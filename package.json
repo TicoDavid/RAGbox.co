@@ -25,6 +25,7 @@
   "author": "RAGbox Team",
   "license": "UNLICENSED",
   "dependencies": {
+    "@openrouter/sdk": "^0.3.15",
     "next": "^14.2.35",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

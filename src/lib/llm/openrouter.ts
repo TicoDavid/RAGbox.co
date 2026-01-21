@@ -1,59 +1,29 @@
+import { OpenRouter } from '@openrouter/sdk'
 import type { LLMProvider } from './provider'
 import type { LLMResponse, LLMStreamChunk } from '@/types'
 import { buildRAGPrompt, RAGBOX_SYSTEM_PROMPT } from './provider'
 
-const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
-
-interface OpenRouterMessage {
-  role: 'system' | 'user' | 'assistant'
-  content: string
-}
-
-interface OpenRouterResponse {
-  id: string
-  choices: {
-    message: {
-      content: string
-      role: string
-    }
-    finish_reason: string
-  }[]
-  usage: {
-    prompt_tokens: number
-    completion_tokens: number
-    total_tokens: number
-  }
-  model: string
-}
-
-interface OpenRouterStreamChunk {
-  id: string
-  choices: {
-    delta: {
-      content?: string
-    }
-    finish_reason: string | null
-  }[]
-}
-
 /**
- * OpenRouter LLM Provider
+ * OpenRouter LLM Provider (using official SDK)
  *
  * Used for development. Provides access to multiple models
- * through a single API (Claude, GPT-4, Llama, etc.)
+ * through a single API.
+ *
+ * Default model: meta-llama/llama-3.3-70b-instruct
+ * This aligns with our production sovereign stack (Llama 3.3)
  *
  * Note: In production, this will be swapped for VertexLlamaProvider
  */
 export class OpenRouterProvider implements LLMProvider {
-  private apiKey: string
+  private client: OpenRouter
   readonly model: string
   readonly name = 'openrouter'
 
-  constructor(apiKey: string, model: string = 'anthropic/claude-3.5-sonnet') {
+  constructor(apiKey: string, model: string = 'meta-llama/llama-3.3-70b-instruct') {
     if (!apiKey) {
       throw new Error('OpenRouter API key is required')
     }
-    this.apiKey = apiKey
+    this.client = new OpenRouter({ apiKey })
     this.model = model
   }
 
@@ -62,42 +32,34 @@ export class OpenRouterProvider implements LLMProvider {
     context: string[],
     systemPrompt: string = RAGBOX_SYSTEM_PROMPT
   ): Promise<LLMResponse> {
-    const messages: OpenRouterMessage[] = [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: buildRAGPrompt(prompt, context) },
-    ]
-
-    const response = await fetch(OPENROUTER_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`,
-        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-        'X-Title': 'RAGbox',
-      },
-      body: JSON.stringify({
-        model: this.model,
-        messages,
-        max_tokens: 2048,
-        temperature: 0.3, // Lower temperature for more consistent, factual responses
-      }),
+    // Use chat.send() as per OpenRouter SDK docs
+    const response = await this.client.chat.send({
+      model: this.model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: buildRAGPrompt(prompt, context) },
+      ],
+      maxTokens: 2048,
+      temperature: 0.3, // Lower temperature for factual, consistent responses
     })
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`)
+    // Handle non-streaming response - cast to expected shape
+    type ChatResponse = {
+      choices?: { message?: { content?: string } }[]
+      usage?: { prompt_tokens?: number; completion_tokens?: number }
+      model?: string
     }
-
-    const data: OpenRouterResponse = await response.json()
-    const choice = data.choices[0]
+    const typedResponse = response as ChatResponse
+    const choice = typedResponse.choices?.[0]
+    const content = choice?.message?.content || ''
 
     return {
-      text: choice.message.content,
+      text: content,
       usage: {
-        input_tokens: data.usage.prompt_tokens,
-        output_tokens: data.usage.completion_tokens,
+        input_tokens: typedResponse.usage?.prompt_tokens || 0,
+        output_tokens: typedResponse.usage?.completion_tokens || 0,
       },
-      model: data.model,
+      model: typedResponse.model || this.model,
     }
   }
 
@@ -106,73 +68,30 @@ export class OpenRouterProvider implements LLMProvider {
     context: string[],
     systemPrompt: string = RAGBOX_SYSTEM_PROMPT
   ): AsyncIterable<LLMStreamChunk> {
-    const messages: OpenRouterMessage[] = [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: buildRAGPrompt(prompt, context) },
-    ]
-
-    const response = await fetch(OPENROUTER_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`,
-        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-        'X-Title': 'RAGbox',
-      },
-      body: JSON.stringify({
-        model: this.model,
-        messages,
-        max_tokens: 2048,
-        temperature: 0.3,
-        stream: true,
-      }),
+    // Use chat.send() with stream: true as per OpenRouter SDK docs
+    const stream = await this.client.chat.send({
+      model: this.model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: buildRAGPrompt(prompt, context) },
+      ],
+      maxTokens: 2048,
+      temperature: 0.3,
+      stream: true,
     })
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`)
-    }
+    // Handle streaming response
+    for await (const chunk of stream as AsyncIterable<{ choices?: { delta?: { content?: string }, finish_reason?: string }[] }>) {
+      const content = chunk.choices?.[0]?.delta?.content
+      const finishReason = chunk.choices?.[0]?.finish_reason
 
-    const reader = response.body?.getReader()
-    if (!reader) {
-      throw new Error('No response body')
-    }
-
-    const decoder = new TextDecoder()
-    let buffer = ''
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || ''
-
-        for (const line of lines) {
-          const trimmed = line.trim()
-          if (!trimmed || trimmed === 'data: [DONE]') continue
-          if (!trimmed.startsWith('data: ')) continue
-
-          try {
-            const json: OpenRouterStreamChunk = JSON.parse(trimmed.slice(6))
-            const content = json.choices[0]?.delta?.content
-            const isDone = json.choices[0]?.finish_reason !== null
-
-            if (content) {
-              yield { text: content, done: false }
-            }
-            if (isDone) {
-              yield { text: '', done: true }
-            }
-          } catch {
-            // Skip malformed JSON chunks
-          }
-        }
+      if (content) {
+        yield { text: content, done: false }
       }
-    } finally {
-      reader.releaseLock()
+
+      if (finishReason) {
+        yield { text: '', done: true }
+      }
     }
   }
 }
