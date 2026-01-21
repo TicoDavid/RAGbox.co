@@ -20,11 +20,12 @@ export default function LandingPage() {
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4 backdrop-blur-md bg-slate-950/80 border-b border-slate-800">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">R</span>
-            </div>
-            <span className="text-xl font-semibold text-white">RAGbox</span>
+          <div className="flex items-center">
+            <img
+              src="https://storage.googleapis.com/connexusai-assets/WhiteLogo_RAGbox.co-removebg-preview.png"
+              alt="RAGbox"
+              className="h-8 w-auto"
+            />
           </div>
           <div className="flex items-center gap-4">
             <button className="text-slate-400 hover:text-white transition-colors px-4 py-2">
@@ -146,11 +147,12 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="px-6 py-12 border-t border-slate-800">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center">
-              <span className="text-white font-bold text-xs">R</span>
-            </div>
-            <span className="text-slate-400">RAGbox.co</span>
+          <div className="flex items-center">
+            <img
+              src="https://storage.googleapis.com/connexusai-assets/WhiteLogo_RAGbox.co-removebg-preview.png"
+              alt="RAGbox"
+              className="h-6 w-auto opacity-70"
+            />
           </div>
           <p className="text-sm text-slate-500">
             Sovereign document intelligence for professionals who can't afford to compromise.
