@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Send, Sparkles, Settings, X, Flag, FileText, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useRagSounds } from '@/hooks/useRagSounds'
 
 interface Message {
   id: string
@@ -69,6 +70,9 @@ export function Mercury() {
   const [showControlDeck, setShowControlDeck] = useState(false)
   const [hoveredCitation, setHoveredCitation] = useState<string | null>(null)
 
+  // Audio UI - The "RAG" Snap
+  const { playSnapSound } = useRagSounds()
+
   // Control Deck state
   const [role, setRole] = useState('Legal Analyst')
   const [precision, setPrecision] = useState(70) // 0-100 slider
@@ -90,6 +94,9 @@ export function Mercury() {
 
     // Simulate AI response with citations (to be replaced with actual API call)
     setTimeout(() => {
+      // AUDIO UI: Play "The RAG Snap" - crisp whip crack
+      playSnapSound()
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',

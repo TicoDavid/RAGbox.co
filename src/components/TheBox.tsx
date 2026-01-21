@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Upload, Box, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useRagSounds } from '@/hooks/useRagSounds'
 
 /**
  * TheBox Component - The Sovereign Drop Zone
@@ -24,6 +25,9 @@ export function TheBox() {
   const [isHovered, setIsHovered] = useState(false)
   const [isAbsorbing, setIsAbsorbing] = useState(false)
 
+  // Audio UI - The "RAG" sounds
+  const { playDropSound } = useRagSounds()
+
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setIsDragOver(true)
@@ -41,6 +45,9 @@ export function TheBox() {
 
       const files = Array.from(e.dataTransfer.files)
       if (files.length > 0) {
+        // AUDIO UI: Play the sci-fi absorption sound
+        playDropSound()
+
         // TEASER GATE: Absorb animation then redirect to login
         setIsAbsorbing(true)
 
@@ -50,7 +57,7 @@ export function TheBox() {
         }, 800)
       }
     },
-    [router]
+    [router, playDropSound]
   )
 
   const handleClick = useCallback(() => {

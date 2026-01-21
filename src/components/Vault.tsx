@@ -12,6 +12,7 @@ import {
   MoreVertical,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useRagSounds } from '@/hooks/useRagSounds'
 
 interface UploadedFile {
   id: string
@@ -62,6 +63,9 @@ export function Vault() {
   const [files, setFiles] = useState<UploadedFile[]>(demoFiles)
   const [isDragOver, setIsDragOver] = useState(false)
 
+  // Audio UI - The "RAG" sounds
+  const { playLockSound, playDropSound } = useRagSounds()
+
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setIsDragOver(true)
@@ -77,19 +81,27 @@ export function Vault() {
     setIsDragOver(false)
 
     const droppedFiles = Array.from(e.dataTransfer.files)
-    const newFiles: UploadedFile[] = droppedFiles.map((file) => ({
-      id: Date.now().toString() + Math.random(),
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      uploadedAt: new Date(),
-      isPrivileged: false,
-    }))
+    if (droppedFiles.length > 0) {
+      // AUDIO UI: Play absorption sound
+      playDropSound()
 
-    setFiles((prev) => [...newFiles, ...prev])
-  }, [])
+      const newFiles: UploadedFile[] = droppedFiles.map((file) => ({
+        id: Date.now().toString() + Math.random(),
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        uploadedAt: new Date(),
+        isPrivileged: false,
+      }))
+
+      setFiles((prev) => [...newFiles, ...prev])
+    }
+  }, [playDropSound])
 
   const togglePrivilege = (id: string) => {
+    // AUDIO UI: Play metallic deadbolt click
+    playLockSound()
+
     setFiles((prev) =>
       prev.map((file) =>
         file.id === id ? { ...file, isPrivileged: !file.isPrivileged } : file

@@ -37,8 +37,8 @@ const pillars: PillarCard[] = [
     icon: <ScrollText className="w-6 h-6" strokeWidth={2} />,
     title: 'The Unalterable Record',
     description:
-      'Every action is logged. Who asked what, when, and what answer they received. Audit-ready from day one.',
-    tag: 'Veritas Log',
+      'Every query and document access is cryptographically hashed and logged. SEC 17a-4 ready audit trails.',
+    tag: 'Veritas Protocol',
   },
 ]
 
