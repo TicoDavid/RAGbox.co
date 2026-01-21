@@ -49,7 +49,7 @@ export function Sidebar() {
       animate={{ opacity: 1, x: 0 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
     >
-      {/* Logo */}
+      {/* Logo - 30% Larger for Authority */}
       <div className="p-6">
         <motion.div
           className="flex items-center"
@@ -60,7 +60,7 @@ export function Sidebar() {
           <img
             src="https://storage.googleapis.com/connexusai-assets/WhiteLogo_RAGbox.co-removebg-preview.png"
             alt="RAGbox.co"
-            className="h-12 w-auto"
+            className="h-16 w-auto"
           />
         </motion.div>
       </div>
