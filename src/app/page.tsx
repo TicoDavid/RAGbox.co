@@ -18,7 +18,7 @@ export default function LandingPage() {
   return (
     <main className="min-h-screen flex flex-col">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4 backdrop-blur-md bg-slate-950/80 border-b border-slate-800">
+      <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-1 backdrop-blur-md bg-slate-950/80 border-b border-slate-800">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center">
             <img
@@ -39,7 +39,7 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="flex-1 flex items-center justify-center px-6 pt-24 pb-16">
+      <section className="flex-1 flex items-center justify-center px-6 pt-56 pb-16">
         <div className="max-w-4xl mx-auto text-center">
           {/* Trust Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/50 border border-slate-700 mb-8">
@@ -145,7 +145,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="px-6 py-12 border-t border-slate-800">
+      <footer className="px-6 py-2 border-t border-slate-800">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center">
             <img
