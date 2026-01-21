@@ -2,16 +2,40 @@
 
 ## Project Overview
 
-**RAGbox.co** is a Retrieval-Augmented Generation (RAG) application. This document provides guidance for AI assistants working on this codebase.
+**RAGbox.co** is a Retrieval-Augmented Generation (RAG) application that combines document search with AI-powered responses.
 
 > **Note**: This is a new repository. Update this document as the codebase evolves.
 
 ---
 
-## Repository Status
+## For Non-Developer Users
 
-- **Current State**: Empty/Initial Setup
-- **Last Updated**: January 2026
+If you're new to Claude Code, here's how to work effectively:
+
+### Talking to Claude
+
+You can ask Claude to:
+- **Build features**: "Create a document upload page"
+- **Explain code**: "What does this function do?"
+- **Fix bugs**: "The search isn't returning results"
+- **Plan tasks**: "Help me plan a user authentication system"
+
+### Useful Slash Commands
+
+| Command | What It Does |
+|---------|--------------|
+| `/plan` | Create a detailed implementation plan before coding |
+| `/tdd` | Use test-driven development (write tests first) |
+| `/code-review` | Review code for quality and security |
+| `/build-fix` | Fix build errors automatically |
+| `/refactor-clean` | Clean up and improve existing code |
+
+### Tips for Best Results
+
+1. **Be specific**: "Add a search bar to the header" works better than "make search work"
+2. **Give context**: Explain what you're trying to achieve
+3. **Ask questions**: If unsure, ask Claude to explain options
+4. **Review changes**: Always look at what Claude modified
 
 ---
 
@@ -25,8 +49,6 @@
 | `npm run test` | Run test suite |
 | `npm run lint` | Run linter |
 
-> Update this table as scripts are added to package.json
-
 ---
 
 ## Project Structure
@@ -36,9 +58,14 @@ RAGbox.co/
 ├── CLAUDE.md           # This file - AI assistant guide
 ├── README.md           # Project documentation
 ├── package.json        # Dependencies and scripts
+├── .claude/            # Claude Code configurations
+│   ├── agents/         # Specialized task agents
+│   ├── rules/          # Coding guidelines
+│   ├── commands/       # Custom slash commands
+│   └── skills/         # Domain knowledge
 ├── src/                # Source code
-│   ├── api/            # API routes and handlers
-│   ├── components/     # UI components
+│   ├── app/            # Next.js app router (pages)
+│   ├── components/     # Reusable UI components
 │   ├── lib/            # Shared utilities
 │   ├── services/       # Business logic
 │   │   ├── embedding/  # Vector embedding services
@@ -46,99 +73,100 @@ RAGbox.co/
 │   │   └── generation/ # LLM generation services
 │   └── types/          # TypeScript type definitions
 ├── tests/              # Test files
-├── docs/               # Documentation
-└── config/             # Configuration files
+└── docs/               # Documentation
 ```
 
-> Update this structure as the project develops
-
 ---
 
-## Development Workflows
+## Core Development Principles
 
-### Setting Up the Development Environment
+### 1. Code Organization
+- Many small files over few large files
+- High cohesion, low coupling
+- 200-400 lines typical, 800 max per file
+- Organize by feature/domain, not by type
 
-1. Clone the repository
-2. Install dependencies: `npm install`
-3. Copy environment template: `cp .env.example .env`
-4. Configure API keys and database connections in `.env`
-5. Start development server: `npm run dev`
+### 2. Code Style
+- No emojis in code, comments, or documentation
+- Immutability always - never mutate objects or arrays
+- No console.log in production code
+- Proper error handling with try/catch
+- Input validation with Zod or similar
 
-### Making Changes
+### 3. Testing (TDD)
+- Write tests first
+- 80% minimum coverage
+- Unit tests for utilities
+- Integration tests for APIs
+- E2E tests for critical flows
 
-1. Create a feature branch from main
-2. Make changes following the code style guidelines
-3. Run tests: `npm run test`
-4. Run linter: `npm run lint`
-5. Commit with descriptive messages
-6. Push and create a pull request
-
-### Testing
-
-- Write tests for all new features
-- Maintain test coverage above 80%
-- Run tests before committing
-
----
-
-## Code Conventions
-
-### General Principles
-
-- **Keep it simple**: Avoid over-engineering
-- **Be explicit**: Prefer clarity over cleverness
-- **Stay consistent**: Follow existing patterns in the codebase
-- **Document intentionally**: Add comments only where logic isn't self-evident
-
-### TypeScript Guidelines
-
-- Use strict TypeScript configuration
-- Define explicit types for function parameters and return values
-- Prefer interfaces over type aliases for object shapes
-- Use enums for fixed sets of values
-
-### File Naming
-
-- Use kebab-case for file names: `user-service.ts`
-- Use PascalCase for component files: `UserProfile.tsx`
-- Use `.test.ts` or `.spec.ts` suffix for test files
-
-### Code Style
-
-- Use 2 spaces for indentation
-- Use single quotes for strings
-- Always use semicolons
-- Maximum line length: 100 characters
+### 4. Security (Mandatory)
+- No hardcoded secrets
+- Environment variables for sensitive data
+- Validate all user inputs
+- Parameterized queries only
+- CSRF protection enabled
 
 ---
 
 ## RAG-Specific Guidelines
 
 ### Embedding Services
+```typescript
+// Use consistent embedding models
+const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || 'text-embedding-3-small'
 
-- Use consistent embedding models across the application
-- Cache embeddings when possible to reduce API costs
-- Handle rate limiting gracefully with exponential backoff
+// Cache embeddings to reduce costs
+const cachedEmbedding = await cache.get(documentId)
+if (cachedEmbedding) return cachedEmbedding
 
-### Vector Database
+// Handle rate limits with exponential backoff
+await fetchWithRetry(() => generateEmbedding(text), { maxRetries: 3 })
+```
 
-- Keep chunk sizes consistent (typically 500-1000 tokens)
-- Include relevant metadata with each vector
-- Use appropriate similarity thresholds for retrieval
+### Vector Database Best Practices
+- Chunk size: 500-1000 tokens (consistent across app)
+- Include metadata: `{ source, timestamp, category }`
+- Similarity threshold: 0.7-0.8 for relevance
+- Use HNSW indexes for fast retrieval
 
-### LLM Integration
+### LLM Integration Patterns
+```typescript
+// Standard API response format
+interface ApiResponse<T> {
+  success: boolean
+  data?: T
+  error?: string
+}
 
-- Use system prompts to establish context
-- Implement proper error handling for API failures
-- Log token usage for cost monitoring
-- Stream responses when possible for better UX
+// Always stream long responses
+const stream = await anthropic.messages.stream({
+  model: 'claude-sonnet-4-20250514',
+  messages,
+  max_tokens: 1024
+})
 
-### Prompt Engineering
+// Log token usage for cost monitoring
+console.info('Token usage:', response.usage)
+```
 
-- Keep prompts in separate, version-controlled files
-- Use template literals for dynamic content
-- Test prompts with diverse inputs
-- Document prompt versions and changes
+---
+
+## Available Claude Agents
+
+These specialized agents handle complex tasks:
+
+| Agent | When to Use |
+|-------|-------------|
+| `planner` | Planning new features |
+| `architect` | System design decisions |
+| `tdd-guide` | Test-driven development |
+| `code-reviewer` | Quality and security review |
+| `security-reviewer` | Vulnerability analysis |
+| `build-error-resolver` | Fix build errors |
+| `e2e-runner` | Playwright E2E testing |
+| `refactor-cleaner` | Dead code cleanup |
+| `doc-updater` | Documentation sync |
 
 ---
 
@@ -148,118 +176,148 @@ RAGbox.co/
 # Database
 DATABASE_URL=
 
-# Vector Database
+# Vector Database (e.g., Pinecone, Qdrant, Weaviate)
 VECTOR_DB_URL=
 VECTOR_DB_API_KEY=
 
-# LLM Provider
+# LLM Providers
 OPENAI_API_KEY=
 ANTHROPIC_API_KEY=
 
 # Embedding Service
-EMBEDDING_MODEL=
-EMBEDDING_API_KEY=
+EMBEDDING_MODEL=text-embedding-3-small
 
 # Application
 NODE_ENV=development
 PORT=3000
 ```
 
-> Never commit actual API keys. Use `.env.example` as a template.
+> NEVER commit actual API keys. Use `.env.example` as a template.
 
 ---
 
-## Common Tasks for AI Assistants
+## Git Workflow
 
-### When Adding New Features
+### Commit Messages
+Use conventional commits:
+- `feat:` New feature
+- `fix:` Bug fix
+- `refactor:` Code improvement
+- `docs:` Documentation
+- `test:` Tests
 
-1. Check existing patterns in the codebase
-2. Follow the established file structure
-3. Add appropriate types
-4. Write tests for new functionality
-5. Update documentation if needed
+### Example
+```bash
+git commit -m "feat: add document chunking service"
+git commit -m "fix: resolve embedding cache miss"
+```
 
-### When Fixing Bugs
-
-1. Read the relevant code before making changes
-2. Understand the context and dependencies
-3. Make minimal, focused changes
-4. Add tests to prevent regression
-5. Verify the fix doesn't break existing functionality
-
-### When Refactoring
-
-1. Ensure tests exist before refactoring
-2. Make incremental changes
-3. Run tests after each change
-4. Don't mix refactoring with feature changes
+### Pull Request Process
+1. Create feature branch from main
+2. Make changes, write tests
+3. Run `npm run test && npm run lint`
+4. Push and create PR
+5. Request review
+6. Merge after approval
 
 ---
 
-## Security Considerations
+## Security Checklist
 
-- Never hardcode secrets or API keys
-- Validate and sanitize all user inputs
-- Use parameterized queries for database operations
-- Implement proper authentication and authorization
-- Sanitize data before embedding to prevent injection
-- Rate limit API endpoints
+Before ANY commit, verify:
+- [ ] No hardcoded secrets (API keys, passwords, tokens)
+- [ ] All user inputs validated
+- [ ] SQL injection prevention (parameterized queries)
+- [ ] XSS prevention (sanitized HTML)
+- [ ] Error messages don't leak sensitive data
+- [ ] Rate limiting on API endpoints
+
+---
+
+## API Response Format
+
+All APIs should return consistent responses:
+
+```typescript
+// Success
+{ success: true, data: { ... } }
+
+// Error
+{ success: false, error: "User-friendly message" }
+```
+
+---
+
+## Error Handling Pattern
+
+```typescript
+try {
+  const result = await operation()
+  return { success: true, data: result }
+} catch (error) {
+  console.error('Operation failed:', error)
+  return { success: false, error: 'User-friendly message' }
+}
+```
+
+---
+
+## Context Window Management
+
+Claude Code has a 200k token context window, but it shrinks with more tools enabled.
+
+**Best Practices:**
+- Keep under 10 MCPs (Model Context Protocol servers) enabled per project
+- Use `disabledMcpServers` in project config to disable unused ones
+- Keep under 80 tools active
+- Use the Explore agent for codebase research instead of manual searching
 
 ---
 
 ## Performance Guidelines
 
-- Batch embedding requests when possible
-- Use caching for frequently accessed data
-- Implement pagination for large result sets
-- Monitor and optimize slow queries
-- Use streaming for long-running LLM responses
-
----
-
-## Dependencies
-
-> Update this section as dependencies are added
-
-### Core Dependencies
-
-- (To be added as project develops)
-
-### Dev Dependencies
-
-- (To be added as project develops)
+1. **Batch Operations**: Group embedding requests
+2. **Caching**: Cache frequently accessed data
+3. **Pagination**: Limit large result sets
+4. **Streaming**: Use for long LLM responses
+5. **Async**: Don't block on expensive operations
 
 ---
 
 ## Troubleshooting
 
-### Common Issues
-
-1. **API Rate Limits**: Implement exponential backoff and caching
-2. **Embedding Mismatch**: Ensure consistent models across indexing and querying
-3. **Memory Issues**: Use streaming and pagination for large datasets
-4. **Slow Retrieval**: Optimize vector database indexes and query parameters
+| Issue | Solution |
+|-------|----------|
+| API Rate Limits | Implement exponential backoff and caching |
+| Embedding Mismatch | Ensure consistent models across indexing and querying |
+| Memory Issues | Use streaming and pagination for large datasets |
+| Slow Retrieval | Optimize vector database indexes |
+| Build Errors | Use `/build-fix` command |
 
 ---
 
-## Contributing
+## Resources
 
-1. Follow the code conventions in this document
-2. Write meaningful commit messages
-3. Keep pull requests focused and small
-4. Request reviews from team members
-5. Address review comments promptly
+### everything-claude-code
+This project uses configurations from the [everything-claude-code](https://github.com/affaan-m/everything-claude-code) repository:
+- Production-ready agents, skills, hooks, and commands
+- Battle-tested configs from real applications
+- MIT licensed - free to use and modify
+
+### Key Files to Review
+- `.claude/agents/` - Specialized task handlers
+- `.claude/rules/` - Coding guidelines
+- `.claude/commands/` - Custom slash commands
 
 ---
 
 ## Updating This Document
 
-This CLAUDE.md should be updated when:
-
+Update this CLAUDE.md when:
 - New major features are added
 - Development workflows change
 - New conventions are established
-- Dependencies are significantly changed
+- Dependencies significantly change
 - Project structure evolves
 
-Keep this document accurate and up-to-date to help AI assistants work effectively with the codebase.
+**Keep this document accurate** - it helps Claude work effectively with the codebase.
