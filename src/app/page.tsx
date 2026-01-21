@@ -15,6 +15,13 @@ import { cn } from '@/lib/utils'
  * - Electric Blue (#2563EB) primary brand color
  * - Generous border radiuses (rounded-2xl, rounded-3xl)
  * - Heavy spring physics (stiffness: 300, damping: 30)
+ *
+ * HIERARCHY (Text First, Box Second):
+ * 1. Navbar (Big Logo)
+ * 2. H1 Headline (Heavy, "Sovereign Environment" gradient)
+ * 3. Subhead (Grey/Slate)
+ * 4. The Breathing Box (Glowing, Heavy Stroke)
+ * 5. "See How It Works" Button
  */
 export default function LandingPage() {
   return (
@@ -32,11 +39,11 @@ export default function LandingPage() {
       <Navbar />
 
       {/* Hero Section - The Sovereign Zone */}
-      <section className="flex-1 flex flex-col items-center justify-center px-6 pt-24 pb-16 min-h-[80vh]">
+      <section className="flex-1 flex flex-col items-center justify-center px-6 pt-28 pb-16 min-h-[85vh]">
         {/* Trust Badge */}
         <motion.div
           className={cn(
-            'inline-flex items-center gap-2 px-4 py-2 mb-12',
+            'inline-flex items-center gap-2 px-4 py-2 mb-8',
             'rounded-full',
             'dark:bg-white/5 dark:border dark:border-white/10',
             'bg-white/60 border border-black/5',
@@ -52,8 +59,48 @@ export default function LandingPage() {
           </span>
         </motion.div>
 
-        {/* The Box - Central Element */}
-        <TheBox />
+        {/* FLIPPED HIERARCHY: H1 Headline ABOVE TheBox */}
+        <motion.h1
+          className={cn(
+            'text-4xl sm:text-5xl md:text-6xl lg:text-7xl',
+            'font-extrabold text-center mb-6',
+            'dark:text-white text-slate-900'
+          )}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.1 }}
+        >
+          Document Interrogation
+          <br />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-electric-400 via-electric-500 to-electric-600">
+            in a Sovereign Environment
+          </span>
+        </motion.h1>
+
+        {/* Subheadline */}
+        <motion.p
+          className={cn(
+            'text-lg md:text-xl lg:text-2xl text-center mb-12',
+            'dark:text-slate-400 text-slate-600',
+            'max-w-2xl'
+          )}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.15 }}
+        >
+          A Digital Fort Knox for your confidential documents.
+          <br className="hidden sm:block" />
+          AI-powered answers grounded in your data, with verifiable citations.
+        </motion.p>
+
+        {/* The Box - Central Element (Now BELOW the headline) */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.2 }}
+        >
+          <TheBox />
+        </motion.div>
 
         {/* Secondary CTA */}
         <motion.button
@@ -68,7 +115,7 @@ export default function LandingPage() {
           )}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.4 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.3 }}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >

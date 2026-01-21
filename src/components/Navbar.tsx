@@ -53,10 +53,12 @@ export function Navbar() {
         >
           <img
             src="https://storage.googleapis.com/connexusai-assets/WhiteLogo_RAGbox.co-removebg-preview.png"
-            alt="RAGbox"
+            alt="RAGbox.co"
             className={cn(
-              'h-10 w-auto transition-all duration-300',
-              // Invert logo for light mode if needed
+              // MAXIMIZED: Mobile h-10, Desktop h-14/h-16 for authoritative presence
+              'h-10 md:h-14 lg:h-16 w-auto',
+              'transition-all duration-300',
+              // Invert logo for light mode
               'dark:brightness-100 brightness-0'
             )}
           />

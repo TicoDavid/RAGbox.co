@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
  * - Intensified glow on hover/drag
  * - Wireframe cube visual with Electric Blue glow
  * - Heavy spring physics (stiffness: 300, damping: 30)
+ * - HIGH VOLTAGE dark mode glow
  */
 export function TheBox() {
   const [isDragOver, setIsDragOver] = useState(false)
@@ -41,7 +42,7 @@ export function TheBox() {
   const isActive = isDragOver || isHovered
 
   return (
-    <div className="flex flex-col items-center gap-8">
+    <div className="flex flex-col items-center">
       {/* The Box */}
       <motion.div
         className="relative"
@@ -65,16 +66,18 @@ export function TheBox() {
         }
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       >
-        {/* Glow effect - behind the box */}
+        {/* HIGH VOLTAGE Glow effect - behind the box (Dark Mode) */}
         <motion.div
           className={cn(
             'absolute inset-0 rounded-3xl',
-            'bg-electric-600/20 blur-3xl',
-            'pointer-events-none'
+            'bg-electric-600/30 blur-3xl',
+            'pointer-events-none',
+            // Layered bloom shadow for dark mode
+            'dark:shadow-[0_0_60px_-15px_rgba(37,99,235,0.6),0_0_100px_-20px_rgba(37,99,235,0.4)]'
           )}
           animate={{
-            opacity: isActive ? 0.8 : 0.3,
-            scale: isActive ? 1.2 : 1,
+            opacity: isActive ? 1 : 0.5,
+            scale: isActive ? 1.3 : 1.1,
           }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         />
@@ -87,7 +90,7 @@ export function TheBox() {
             'rounded-3xl',
             'flex flex-col items-center justify-center gap-6',
             'cursor-pointer',
-            'transition-colors duration-300',
+            'transition-all duration-300',
             // Border
             'border-2 border-dashed',
             isActive
@@ -95,8 +98,10 @@ export function TheBox() {
               : 'dark:border-white/20 border-black/10',
             // Background
             'dark:bg-void-card/50 bg-paper-card/50',
-            // Shadow
-            isActive ? 'shadow-glow-lg' : 'shadow-glow-sm'
+            // HIGH VOLTAGE Shadow - Layered bloom in dark mode
+            isActive
+              ? 'dark:shadow-[0_0_60px_-15px_rgba(37,99,235,0.6),0_0_100px_-20px_rgba(37,99,235,0.4)] shadow-glow-lg'
+              : 'dark:shadow-[0_0_40px_-15px_rgba(37,99,235,0.4),0_0_60px_-20px_rgba(37,99,235,0.2)] shadow-glow-sm'
           )}
         >
           {/* Wireframe Cube SVG */}
@@ -111,7 +116,7 @@ export function TheBox() {
             <WireframeCube isActive={isActive} />
           </motion.div>
 
-          {/* Upload Icon */}
+          {/* Upload Icon - Thicker stroke */}
           <AnimatePresence mode="wait">
             {isDragOver ? (
               <motion.div
@@ -122,10 +127,8 @@ export function TheBox() {
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               >
                 <Upload
-                  className={cn(
-                    'w-12 h-12',
-                    'text-electric-500'
-                  )}
+                  className={cn('w-12 h-12', 'text-electric-500')}
+                  strokeWidth={2}
                 />
               </motion.div>
             ) : (
@@ -142,6 +145,7 @@ export function TheBox() {
                     'dark:text-white/60 text-black/40',
                     isHovered && 'dark:text-electric-400 text-electric-600'
                   )}
+                  strokeWidth={2}
                 />
               </motion.div>
             )}
@@ -166,31 +170,19 @@ export function TheBox() {
           </div>
         </motion.div>
       </motion.div>
-
-      {/* Tagline */}
-      <motion.p
-        className={cn(
-          'text-xl md:text-2xl font-medium text-center',
-          'dark:text-slate-300 text-slate-700',
-          'max-w-lg'
-        )}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.2 }}
-      >
-        Document Interrogation in a{' '}
-        <span className="text-electric-500 font-semibold">Sovereign Environment</span>
-      </motion.p>
     </div>
   )
 }
 
 /**
  * Wireframe Cube - 3D isometric cube using SVG
+ * STRUCTURAL WEIGHT: strokeWidth 2.5 for solid, safe-like appearance
  */
 function WireframeCube({ isActive }: { isActive: boolean }) {
   const strokeColor = isActive ? '#2563eb' : 'currentColor'
-  const strokeOpacity = isActive ? 1 : 0.3
+  const strokeOpacity = isActive ? 1 : 0.4
+  // THICKER strokes for structural weight
+  const strokeWidth = 2.5
 
   return (
     <motion.svg
@@ -198,23 +190,22 @@ function WireframeCube({ isActive }: { isActive: boolean }) {
       height="120"
       viewBox="0 0 120 120"
       fill="none"
-      className={cn(
-        'dark:text-white text-slate-900',
-        'drop-shadow-lg'
-      )}
+      className={cn('dark:text-white text-slate-900', 'drop-shadow-lg')}
       animate={{
         filter: isActive
-          ? 'drop-shadow(0 0 20px rgba(37, 99, 235, 0.5))'
-          : 'drop-shadow(0 0 10px rgba(37, 99, 235, 0.2))',
+          ? 'drop-shadow(0 0 25px rgba(37, 99, 235, 0.6))'
+          : 'drop-shadow(0 0 15px rgba(37, 99, 235, 0.3))',
       }}
     >
       {/* Back face */}
       <motion.path
         d="M30 45 L60 30 L90 45 L90 75 L60 90 L30 75 Z"
         stroke={strokeColor}
-        strokeWidth="2"
+        strokeWidth={strokeWidth}
         strokeOpacity={strokeOpacity}
         fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
         animate={{ strokeOpacity }}
         transition={{ duration: 0.3 }}
       />
@@ -222,9 +213,10 @@ function WireframeCube({ isActive }: { isActive: boolean }) {
       <motion.path
         d="M30 45 L30 75 M60 30 L60 60 M90 45 L90 75"
         stroke={strokeColor}
-        strokeWidth="2"
+        strokeWidth={strokeWidth}
         strokeOpacity={strokeOpacity}
         fill="none"
+        strokeLinecap="round"
         animate={{ strokeOpacity }}
         transition={{ duration: 0.3 }}
       />
@@ -232,9 +224,11 @@ function WireframeCube({ isActive }: { isActive: boolean }) {
       <motion.path
         d="M30 75 L60 60 L90 75 M60 60 L60 90"
         stroke={strokeColor}
-        strokeWidth="2"
+        strokeWidth={strokeWidth}
         strokeOpacity={strokeOpacity}
         fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
         animate={{ strokeOpacity }}
         transition={{ duration: 0.3 }}
       />
