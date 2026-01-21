@@ -53,10 +53,9 @@ export function Navbar() {
             src="https://storage.googleapis.com/connexusai-assets/WhiteLogo_RAGbox.co-removebg-preview.png"
             alt="RAGbox.co"
             className={cn(
-              // BADGE OF AUTHORITY: +15% for commanding presence
-              'h-24 md:h-32 lg:h-36 w-auto',
+              // COMPACT: Reduced to 75% for military-grade tightness
+              'h-12 md:h-14 lg:h-16 w-auto',
               'transition-all duration-300'
-              // Same color in both modes - no brightness filter
             )}
           />
         </motion.div>

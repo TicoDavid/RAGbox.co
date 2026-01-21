@@ -37,7 +37,7 @@ export default function LandingPage() {
       <Navbar />
 
       {/* Hero Section - The Sovereign Zone */}
-      <section className="flex-1 flex flex-col items-center justify-center px-6 pt-28 pb-16 min-h-[85vh]">
+      <section className="flex-1 flex flex-col items-center justify-center px-6 pt-20 pb-16 min-h-[85vh]">
         {/* FLIPPED HIERARCHY: H1 Headline ABOVE TheBox */}
         <motion.h1
           className={cn(
