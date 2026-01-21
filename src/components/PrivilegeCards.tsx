@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Shield, Users, Database, MessageSquareOff } from 'lucide-react'
+import { Shield, Database, MessageSquareOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface PrivilegeCard {
@@ -20,18 +20,11 @@ const privileges: PrivilegeCard[] = [
     highlight: '0.85 threshold',
   },
   {
-    icon: <Users className="w-6 h-6" strokeWidth={2.5} />,
-    title: 'Role-Based Access',
-    description:
-      'Partners, Associates, and Auditors each see exactly what they need. Zero-trust by default.',
-    highlight: '3 distinct roles',
-  },
-  {
     icon: <Database className="w-6 h-6" strokeWidth={2.5} />,
-    title: 'Document Vault',
+    title: 'Enterprise-Scale Collections',
     description:
-      'Upload up to 1,000 documents per vault. Query across all of them simultaneously.',
-    highlight: '1,000 docs / 50GB',
+      'Up to 100 MB per file, 100 GB total storage, and 100,000 files per organization. 2M token context window eliminates chunking.',
+    highlight: 'xAI API',
   },
   {
     icon: <MessageSquareOff className="w-6 h-6" strokeWidth={2.5} />,
