@@ -2,81 +2,96 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 10, 10, 15;
-  --background-end-rgb: 15, 23, 42;
-}
-
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-    to bottom,
-    rgb(var(--background-start-rgb)),
-    rgb(var(--background-end-rgb))
-  );
-  min-height: 100vh;
-}
-
-/* Custom scrollbar for dark mode */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: rgb(15, 23, 42);
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgb(51, 65, 85);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgb(71, 85, 105);
-}
-
-/* Focus states for accessibility */
-*:focus-visible {
-  outline: 2px solid rgb(14, 165, 233);
-  outline-offset: 2px;
-}
-
-/* Confidence indicator colors */
-.confidence-high {
-  color: #22c55e;
-}
-
-.confidence-medium {
-  color: #eab308;
-}
-
-.confidence-low {
-  color: #ef4444;
-}
-
-/* Loading animation */
-@keyframes pulse-slow {
-  0%, 100% {
-    opacity: 1;
+@layer base {
+  /* Light mode defaults */
+  :root {
+    --background: 248, 250, 252;
+    --foreground: 15, 23, 42;
   }
-  50% {
-    opacity: 0.5;
+
+  /* Dark mode overrides */
+  .dark {
+    --background: 5, 5, 5;
+    --foreground: 248, 250, 252;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: rgb(var(--background));
+    color: rgb(var(--foreground));
+    min-height: 100vh;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 }
 
-.animate-pulse-slow {
-  animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+@layer components {
+  /* Glass morphism utility */
+  .glass {
+    @apply backdrop-blur-md;
+    @apply dark:bg-white/5 bg-white/60;
+    @apply dark:border-white/10 border-black/5;
+  }
+
+  /* Electric glow effect */
+  .electric-glow {
+    box-shadow: 0 0 30px rgba(37, 99, 235, 0.4);
+  }
+
+  .electric-glow-intense {
+    box-shadow: 0 0 60px rgba(37, 99, 235, 0.6);
+  }
 }
 
-/* Vault glow effect */
-.vault-glow {
-  box-shadow: 0 0 20px rgba(14, 165, 233, 0.3),
-              0 0 40px rgba(14, 165, 233, 0.1);
-}
+@layer utilities {
+  /* Custom scrollbar - Dark mode */
+  .dark ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
 
-/* Typography */
-.text-balance {
-  text-wrap: balance;
+  .dark ::-webkit-scrollbar-track {
+    background: #0a0a0a;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: #1f1f1f;
+    border-radius: 4px;
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: #2f2f2f;
+  }
+
+  /* Custom scrollbar - Light mode */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #f1f5f9;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
+  /* Focus states for accessibility */
+  *:focus-visible {
+    outline: 2px solid rgb(37, 99, 235);
+    outline-offset: 2px;
+  }
+
+  /* Text balance utility */
+  .text-balance {
+    text-wrap: balance;
+  }
 }

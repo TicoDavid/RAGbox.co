@@ -1,9 +1,11 @@
 import type { Metadata } from 'next'
+import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import './globals.css'
 
 export const metadata: Metadata = {
   title: 'RAGbox - Sovereign Document Intelligence',
-  description: 'A Digital Fort Knox for private knowledge. Interrogate your documents with confidence.',
+  description:
+    'A Digital Fort Knox for private knowledge. Interrogate your documents with confidence.',
   keywords: ['RAG', 'document intelligence', 'legal tech', 'AI', 'secure'],
 }
 
@@ -13,9 +15,9 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <body className="font-sans antialiased">
-        {children}
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   )
