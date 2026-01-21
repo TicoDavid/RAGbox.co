@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, Sparkles, Settings, X, Flag, FileText, Search } from 'lucide-react'
+import { Send, Sparkles, Settings, X, Flag, FileText, Search, Mic, MicOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRagSounds } from '@/hooks/useRagSounds'
 
@@ -69,6 +69,7 @@ export function Mercury() {
   const [isLoading, setIsLoading] = useState(false)
   const [showControlDeck, setShowControlDeck] = useState(false)
   const [hoveredCitation, setHoveredCitation] = useState<string | null>(null)
+  const [isListening, setIsListening] = useState(false)
 
   // Audio UI - The "RAG" Snap
   const { playSnapSound } = useRagSounds()
@@ -77,6 +78,18 @@ export function Mercury() {
   const [role, setRole] = useState('Legal Analyst')
   const [precision, setPrecision] = useState(70) // 0-100 slider
   const [deepAudit, setDeepAudit] = useState(false)
+
+  // Voice mode toggle
+  const toggleListening = () => {
+    setIsListening(!isListening)
+    // Simulate voice input after 2 seconds
+    if (!isListening) {
+      setTimeout(() => {
+        setIsListening(false)
+        setInput('Summarize the key risks in the NDA')
+      }, 2000)
+    }
+  }
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return
@@ -230,41 +243,77 @@ export function Mercury() {
             'flex items-center gap-2',
             'p-2 rounded-3xl',
             'dark:bg-white/5 bg-black/5',
-            'border dark:border-white/10 border-black/10'
+            'border',
+            isListening
+              ? 'border-electric-500 shadow-glow-sm'
+              : 'dark:border-white/10 border-black/10'
           )}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask Mercury anything..."
-            className={cn(
-              'flex-1 bg-transparent px-4 py-2',
-              'text-sm',
-              'dark:text-white text-black',
-              'dark:placeholder:text-white/30 placeholder:text-black/30',
-              'focus:outline-none'
-            )}
-          />
+          {/* Mic Button */}
           <motion.button
-            onClick={handleSend}
-            disabled={!input.trim() || isLoading}
+            onClick={toggleListening}
             className={cn(
               'w-10 h-10 rounded-2xl flex items-center justify-center',
               'transition-all duration-200',
-              input.trim()
+              isListening
+                ? 'bg-electric-600 text-white shadow-glow-sm'
+                : 'dark:bg-white/10 bg-black/10 dark:text-white/60 text-black/60 hover:dark:text-white hover:text-black'
+            )}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {isListening ? (
+              <MicOff className="w-4 h-4" strokeWidth={2.5} />
+            ) : (
+              <Mic className="w-4 h-4" strokeWidth={2.5} />
+            )}
+          </motion.button>
+
+          {/* Input or Waveform */}
+          <AnimatePresence mode="wait">
+            {isListening ? (
+              <VoiceWaveform key="waveform" />
+            ) : (
+              <motion.input
+                key="input"
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Ask Mercury anything..."
+                className={cn(
+                  'flex-1 bg-transparent px-2 py-2',
+                  'text-sm font-medium',
+                  'dark:text-white text-black',
+                  'dark:placeholder:text-white/30 placeholder:text-black/30',
+                  'focus:outline-none'
+                )}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              />
+            )}
+          </AnimatePresence>
+
+          {/* Send Button */}
+          <motion.button
+            onClick={handleSend}
+            disabled={!input.trim() || isLoading || isListening}
+            className={cn(
+              'w-10 h-10 rounded-2xl flex items-center justify-center',
+              'transition-all duration-200',
+              input.trim() && !isListening
                 ? cn(
                     'bg-electric-600 text-white',
                     'shadow-glow-sm hover:shadow-glow'
                   )
                 : 'dark:bg-white/10 bg-black/10 dark:text-white/30 text-black/30'
             )}
-            whileHover={input.trim() ? { scale: 1.05 } : {}}
-            whileTap={input.trim() ? { scale: 0.95 } : {}}
+            whileHover={input.trim() && !isListening ? { scale: 1.05 } : {}}
+            whileTap={input.trim() && !isListening ? { scale: 0.95 } : {}}
           >
             <Send className="w-4 h-4" strokeWidth={2.5} />
           </motion.button>
@@ -690,6 +739,39 @@ function ThinkingIndicator() {
           </div>
         </motion.div>
       </div>
+    </motion.div>
+  )
+}
+
+/**
+ * Voice Waveform - Pulsing bars animation when listening
+ */
+function VoiceWaveform() {
+  return (
+    <motion.div
+      className="flex-1 flex items-center justify-center gap-1 h-10"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      {[0, 1, 2, 3, 4].map((i) => (
+        <motion.div
+          key={i}
+          className="w-1 bg-electric-500 rounded-full"
+          animate={{
+            height: ['8px', '24px', '8px'],
+          }}
+          transition={{
+            duration: 0.6,
+            repeat: Infinity,
+            delay: i * 0.1,
+            ease: 'easeInOut',
+          }}
+        />
+      ))}
+      <span className="ml-2 text-sm font-bold text-electric-400">
+        Listening...
+      </span>
     </motion.div>
   )
 }

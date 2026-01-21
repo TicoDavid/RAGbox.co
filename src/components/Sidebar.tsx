@@ -13,9 +13,9 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { icon: <Box className="w-5 h-5" strokeWidth={2} />, label: 'The Box', id: 'box' },
-  { icon: <Scale className="w-5 h-5" strokeWidth={2} />, label: 'Truth & Audit', id: 'audit' },
-  { icon: <Settings className="w-5 h-5" strokeWidth={2} />, label: 'Settings', id: 'settings' },
+  { icon: <Box className="w-5 h-5" strokeWidth={2.5} />, label: 'The Box', id: 'box' },
+  { icon: <Scale className="w-5 h-5" strokeWidth={2.5} />, label: 'Truth & Audit', id: 'audit' },
+  { icon: <Settings className="w-5 h-5" strokeWidth={2.5} />, label: 'Settings', id: 'settings' },
 ]
 
 /**
@@ -49,10 +49,10 @@ export function Sidebar() {
       animate={{ opacity: 1, x: 0 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
     >
-      {/* Logo - 30% Larger for Authority */}
+      {/* Logo - DOMINANT presence at top left */}
       <div className="p-6">
         <motion.div
-          className="flex items-center"
+          className="flex items-center w-48"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.1 }}
@@ -60,7 +60,7 @@ export function Sidebar() {
           <img
             src="https://storage.googleapis.com/connexusai-assets/WhiteLogo_RAGbox.co-removebg-preview.png"
             alt="RAGbox.co"
-            className="h-16 w-auto"
+            className="w-full h-auto"
           />
         </motion.div>
       </div>
@@ -95,7 +95,7 @@ export function Sidebar() {
                 )}
               >
                 {item.icon}
-                <span className="font-medium">{item.label}</span>
+                <span className="font-bold">{item.label}</span>
               </button>
             </motion.li>
           ))}

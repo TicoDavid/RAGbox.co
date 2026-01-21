@@ -49,12 +49,13 @@ const config: Config = {
         },
       },
       fontFamily: {
+        outfit: ['var(--font-outfit)', 'Outfit', 'sans-serif'],
         sans: [
-          'Inter',
+          'var(--font-outfit)',
+          'Outfit',
           '-apple-system',
           'BlinkMacSystemFont',
           'Segoe UI',
-          'Roboto',
           'sans-serif',
         ],
         mono: [

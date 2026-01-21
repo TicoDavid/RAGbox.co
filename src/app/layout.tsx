@@ -1,6 +1,15 @@
 import type { Metadata } from 'next'
+import { Outfit } from 'next/font/google'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import './globals.css'
+
+// Outfit - Rounded, modern font that matches the RAGbox logo
+const outfit = Outfit({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-outfit',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'RAGbox - Sovereign Document Intelligence',
@@ -15,8 +24,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="font-sans antialiased">
+    <html lang="en" suppressHydrationWarning className={outfit.variable}>
+      <body className="font-outfit antialiased">
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

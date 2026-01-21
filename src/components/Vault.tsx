@@ -131,7 +131,7 @@ export function Vault() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <h1 className="text-3xl font-bold dark:text-white text-black">
+          <h1 className="text-3xl font-extrabold dark:text-white text-black">
             The Box
           </h1>
           <p className="text-sm dark:text-white/40 text-black/40 mt-1">
@@ -292,7 +292,7 @@ function DropZone({
                 ? 'text-electric-500'
                 : 'dark:text-white/40 text-black/40'
             )}
-            strokeWidth={1.5}
+            strokeWidth={2.5}
           />
         </motion.div>
 
@@ -300,7 +300,7 @@ function DropZone({
         <div className="text-center">
           <p
             className={cn(
-              'text-lg font-semibold',
+              'text-lg font-bold',
               isActive
                 ? 'text-electric-500'
                 : 'dark:text-white text-black'
@@ -337,7 +337,7 @@ function WireframeCube({ isActive }: { isActive: boolean }) {
       <motion.path
         d="M30 45 L60 30 L90 45 L90 75 L60 90 L30 75 Z"
         stroke={strokeColor}
-        strokeWidth={2}
+        strokeWidth={2.5}
         strokeOpacity={strokeOpacity}
         fill="none"
         strokeLinecap="round"
@@ -347,7 +347,7 @@ function WireframeCube({ isActive }: { isActive: boolean }) {
       <motion.path
         d="M30 45 L30 75 M60 30 L60 60 M90 45 L90 75"
         stroke={strokeColor}
-        strokeWidth={2}
+        strokeWidth={2.5}
         strokeOpacity={strokeOpacity}
         fill="none"
         strokeLinecap="round"
@@ -356,7 +356,7 @@ function WireframeCube({ isActive }: { isActive: boolean }) {
       <motion.path
         d="M30 75 L60 60 L90 75 M60 60 L60 90"
         stroke={strokeColor}
-        strokeWidth={2}
+        strokeWidth={2.5}
         strokeOpacity={strokeOpacity}
         fill="none"
         strokeLinecap="round"
