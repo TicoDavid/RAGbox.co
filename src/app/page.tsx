@@ -137,7 +137,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer
         className={cn(
-          'px-6 py-8',
+          'px-6 py-0',
           'border-t dark:border-white/5 border-black/5'
         )}
       >
@@ -152,8 +152,8 @@ export default function LandingPage() {
               src="https://storage.googleapis.com/connexusai-assets/WhiteLogo_RAGbox.co-removebg-preview.png"
               alt="RAGbox"
               className={cn(
-                'h-32 w-auto opacity-50'
-                // Same color in both modes - no brightness filter
+                'h-32 w-auto'
+                // Same color in both modes - matches header logo
               )}
             />
           </motion.div>
