@@ -13,28 +13,28 @@ interface PrivilegeCard {
 
 const privileges: PrivilegeCard[] = [
   {
-    icon: <Shield className="w-6 h-6" />,
+    icon: <Shield className="w-6 h-6" strokeWidth={2.5} />,
     title: 'Confidence Gate',
     description:
       "If RAGbox can't answer with 85%+ confidence, it refuses rather than speculates. Silence is safer than speculation.",
     highlight: '0.85 threshold',
   },
   {
-    icon: <Users className="w-6 h-6" />,
+    icon: <Users className="w-6 h-6" strokeWidth={2.5} />,
     title: 'Role-Based Access',
     description:
       'Partners, Associates, and Auditors each see exactly what they need. Zero-trust by default.',
     highlight: '3 distinct roles',
   },
   {
-    icon: <Database className="w-6 h-6" />,
+    icon: <Database className="w-6 h-6" strokeWidth={2.5} />,
     title: 'Document Vault',
     description:
       'Upload up to 1,000 documents per vault. Query across all of them simultaneously.',
     highlight: '1,000 docs / 50GB',
   },
   {
-    icon: <MessageSquareOff className="w-6 h-6" />,
+    icon: <MessageSquareOff className="w-6 h-6" strokeWidth={2.5} />,
     title: 'Graceful Refusal',
     description:
       "When the system can't help, it says so clearly and calmly. No alarming error messages.",

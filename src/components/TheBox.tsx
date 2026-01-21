@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
  *
  * Features:
  * - Breathing animation when idle (2% scale pulse)
+ * - ALIVE: Pulsing blue border (opacity 0.4 -> 1.0)
  * - Intensified glow on hover/drag
  * - Wireframe cube visual with Electric Blue glow
  * - Heavy spring physics (stiffness: 300, damping: 30)
@@ -82,7 +83,7 @@ export function TheBox() {
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         />
 
-        {/* The Drop Zone Card */}
+        {/* The Drop Zone Card - with ALIVE pulsing border */}
         <motion.div
           className={cn(
             'relative z-10',
@@ -91,11 +92,6 @@ export function TheBox() {
             'flex flex-col items-center justify-center gap-6',
             'cursor-pointer',
             'transition-all duration-300',
-            // Border
-            'border-2 border-dashed',
-            isActive
-              ? 'dark:border-electric-500 border-electric-600'
-              : 'dark:border-white/20 border-black/10',
             // Background
             'dark:bg-void-card/50 bg-paper-card/50',
             // HIGH VOLTAGE Shadow - Layered bloom in dark mode
@@ -103,6 +99,30 @@ export function TheBox() {
               ? 'dark:shadow-[0_0_60px_-15px_rgba(37,99,235,0.6),0_0_100px_-20px_rgba(37,99,235,0.4)] shadow-glow-lg'
               : 'dark:shadow-[0_0_40px_-15px_rgba(37,99,235,0.4),0_0_60px_-20px_rgba(37,99,235,0.2)] shadow-glow-sm'
           )}
+          style={{
+            // Base border style - will be animated
+            borderWidth: '2px',
+            borderStyle: 'dashed',
+          }}
+          animate={
+            isActive
+              ? {
+                  borderColor: '#2563eb',
+                }
+              : {
+                  // ALIVE: Pulsing border opacity 0.4 -> 1.0
+                  borderColor: [
+                    'rgba(37, 99, 235, 0.4)',
+                    'rgba(37, 99, 235, 1)',
+                    'rgba(37, 99, 235, 0.4)',
+                  ],
+                  transition: {
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                  },
+                }
+          }
         >
           {/* Wireframe Cube SVG */}
           <motion.div
@@ -128,7 +148,7 @@ export function TheBox() {
               >
                 <Upload
                   className={cn('w-12 h-12', 'text-electric-500')}
-                  strokeWidth={2}
+                  strokeWidth={2.5}
                 />
               </motion.div>
             ) : (
@@ -145,7 +165,7 @@ export function TheBox() {
                     'dark:text-white/60 text-black/40',
                     isHovered && 'dark:text-electric-400 text-electric-600'
                   )}
-                  strokeWidth={2}
+                  strokeWidth={2.5}
                 />
               </motion.div>
             )}
