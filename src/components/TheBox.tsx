@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Upload, Box } from 'lucide-react'
+import { Upload, Box, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /**
@@ -15,10 +16,13 @@ import { cn } from '@/lib/utils'
  * - Wireframe cube visual with Electric Blue glow
  * - Heavy spring physics (stiffness: 300, damping: 30)
  * - HIGH VOLTAGE dark mode glow
+ * - TEASER GATE: Redirects to /login after file drop
  */
 export function TheBox() {
+  const router = useRouter()
   const [isDragOver, setIsDragOver] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
+  const [isAbsorbing, setIsAbsorbing] = useState(false)
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -30,17 +34,34 @@ export function TheBox() {
     setIsDragOver(false)
   }, [])
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(false)
-    // Handle file drop - to be implemented with upload logic
-    const files = Array.from(e.dataTransfer.files)
-    if (files.length > 0) {
-      // Future: trigger upload flow
-    }
-  }, [])
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      setIsDragOver(false)
 
-  const isActive = isDragOver || isHovered
+      const files = Array.from(e.dataTransfer.files)
+      if (files.length > 0) {
+        // TEASER GATE: Absorb animation then redirect to login
+        setIsAbsorbing(true)
+
+        // Wait for absorb animation, then redirect
+        setTimeout(() => {
+          router.push('/login')
+        }, 800)
+      }
+    },
+    [router]
+  )
+
+  const handleClick = useCallback(() => {
+    // Also trigger on click for demo purposes
+    setIsAbsorbing(true)
+    setTimeout(() => {
+      router.push('/login')
+    }, 800)
+  }, [router])
+
+  const isActive = isDragOver || isHovered || isAbsorbing
 
   return (
     <div className="flex flex-col items-center">
@@ -50,20 +71,30 @@ export function TheBox() {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
+        onClick={handleClick}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        // Breathing animation when idle
+        // Breathing animation when idle, absorb pulse when dropping
         animate={
-          isActive
-            ? { scale: 1.05 }
-            : {
-                scale: [1, 1.02, 1],
+          isAbsorbing
+            ? {
+                scale: [1.05, 1.15, 1],
                 transition: {
-                  duration: 4,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
+                  duration: 0.6,
+                  times: [0, 0.4, 1],
+                  ease: 'easeOut',
                 },
               }
+            : isActive
+              ? { scale: 1.05 }
+              : {
+                  scale: [1, 1.02, 1],
+                  transition: {
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                  },
+                }
         }
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       >
@@ -77,8 +108,8 @@ export function TheBox() {
             'dark:shadow-[0_0_60px_-15px_rgba(37,99,235,0.6),0_0_100px_-20px_rgba(37,99,235,0.4)]'
           )}
           animate={{
-            opacity: isActive ? 1 : 0.5,
-            scale: isActive ? 1.3 : 1.1,
+            opacity: isAbsorbing ? 1 : isActive ? 0.8 : 0.5,
+            scale: isAbsorbing ? 1.5 : isActive ? 1.3 : 1.1,
           }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         />
@@ -95,9 +126,11 @@ export function TheBox() {
             // Background
             'dark:bg-void-card/50 bg-paper-card/50',
             // HIGH VOLTAGE Shadow - Layered bloom in dark mode
-            isActive
-              ? 'dark:shadow-[0_0_60px_-15px_rgba(37,99,235,0.6),0_0_100px_-20px_rgba(37,99,235,0.4)] shadow-glow-lg'
-              : 'dark:shadow-[0_0_40px_-15px_rgba(37,99,235,0.4),0_0_60px_-20px_rgba(37,99,235,0.2)] shadow-glow-sm'
+            isAbsorbing
+              ? 'dark:shadow-[0_0_100px_-10px_rgba(37,99,235,0.8),0_0_150px_-20px_rgba(37,99,235,0.5)] shadow-glow-intense'
+              : isActive
+                ? 'dark:shadow-[0_0_60px_-15px_rgba(37,99,235,0.6),0_0_100px_-20px_rgba(37,99,235,0.4)] shadow-glow-lg'
+                : 'dark:shadow-[0_0_40px_-15px_rgba(37,99,235,0.4),0_0_60px_-20px_rgba(37,99,235,0.2)] shadow-glow-sm'
           )}
           style={{
             // Base border style - will be animated
@@ -105,23 +138,28 @@ export function TheBox() {
             borderStyle: 'dashed',
           }}
           animate={
-            isActive
+            isAbsorbing
               ? {
                   borderColor: '#2563eb',
+                  borderStyle: 'solid',
                 }
-              : {
-                  // ALIVE: Pulsing border opacity 0.4 -> 1.0
-                  borderColor: [
-                    'rgba(37, 99, 235, 0.4)',
-                    'rgba(37, 99, 235, 1)',
-                    'rgba(37, 99, 235, 0.4)',
-                  ],
-                  transition: {
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: 'easeInOut',
-                  },
-                }
+              : isActive
+                ? {
+                    borderColor: '#2563eb',
+                  }
+                : {
+                    // ALIVE: Pulsing border opacity 0.4 -> 1.0
+                    borderColor: [
+                      'rgba(37, 99, 235, 0.4)',
+                      'rgba(37, 99, 235, 1)',
+                      'rgba(37, 99, 235, 0.4)',
+                    ],
+                    transition: {
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: 'easeInOut',
+                    },
+                  }
           }
         >
           {/* Wireframe Cube SVG */}
@@ -130,15 +168,28 @@ export function TheBox() {
             animate={{
               rotateY: isActive ? 15 : 0,
               rotateX: isActive ? -15 : 0,
+              scale: isAbsorbing ? 0.8 : 1,
             }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           >
-            <WireframeCube isActive={isActive} />
+            <WireframeCube isActive={isActive} isAbsorbing={isAbsorbing} />
           </motion.div>
 
           {/* Upload Icon - Thicker stroke */}
           <AnimatePresence mode="wait">
-            {isDragOver ? (
+            {isAbsorbing ? (
+              <motion.div
+                key="absorbed"
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.5 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              >
+                <div className="w-12 h-12 rounded-full bg-electric-600 flex items-center justify-center">
+                  <Check className="w-6 h-6 text-white" strokeWidth={3} />
+                </div>
+              </motion.div>
+            ) : isDragOver ? (
               <motion.div
                 key="upload"
                 initial={{ opacity: 0, y: 10 }}
@@ -182,10 +233,16 @@ export function TheBox() {
                 color: isActive ? '#2563eb' : undefined,
               }}
             >
-              {isDragOver ? 'Release to Upload' : 'Feed the Box'}
+              {isAbsorbing
+                ? 'Authenticating...'
+                : isDragOver
+                  ? 'Release to Upload'
+                  : 'Feed the Box'}
             </motion.p>
             <p className="text-sm dark:text-slate-400 text-slate-500">
-              Drag documents here or click to browse
+              {isAbsorbing
+                ? 'Redirecting to secure login'
+                : 'Drag documents here or click to browse'}
             </p>
           </div>
         </motion.div>
@@ -198,9 +255,15 @@ export function TheBox() {
  * Wireframe Cube - 3D isometric cube using SVG
  * STRUCTURAL WEIGHT: strokeWidth 2.5 for solid, safe-like appearance
  */
-function WireframeCube({ isActive }: { isActive: boolean }) {
-  const strokeColor = isActive ? '#2563eb' : 'currentColor'
-  const strokeOpacity = isActive ? 1 : 0.4
+function WireframeCube({
+  isActive,
+  isAbsorbing,
+}: {
+  isActive: boolean
+  isAbsorbing: boolean
+}) {
+  const strokeColor = isActive || isAbsorbing ? '#2563eb' : 'currentColor'
+  const strokeOpacity = isActive || isAbsorbing ? 1 : 0.4
   // THICKER strokes for structural weight
   const strokeWidth = 2.5
 
@@ -212,9 +275,11 @@ function WireframeCube({ isActive }: { isActive: boolean }) {
       fill="none"
       className={cn('dark:text-white text-slate-900', 'drop-shadow-lg')}
       animate={{
-        filter: isActive
-          ? 'drop-shadow(0 0 25px rgba(37, 99, 235, 0.6))'
-          : 'drop-shadow(0 0 15px rgba(37, 99, 235, 0.3))',
+        filter: isAbsorbing
+          ? 'drop-shadow(0 0 35px rgba(37, 99, 235, 0.8))'
+          : isActive
+            ? 'drop-shadow(0 0 25px rgba(37, 99, 235, 0.6))'
+            : 'drop-shadow(0 0 15px rgba(37, 99, 235, 0.3))',
       }}
     >
       {/* Back face */}
@@ -223,10 +288,10 @@ function WireframeCube({ isActive }: { isActive: boolean }) {
         stroke={strokeColor}
         strokeWidth={strokeWidth}
         strokeOpacity={strokeOpacity}
-        fill="none"
+        fill={isAbsorbing ? 'rgba(37, 99, 235, 0.1)' : 'none'}
         strokeLinecap="round"
         strokeLinejoin="round"
-        animate={{ strokeOpacity }}
+        animate={{ strokeOpacity, fill: isAbsorbing ? 'rgba(37, 99, 235, 0.2)' : 'none' }}
         transition={{ duration: 0.3 }}
       />
       {/* Front edges */}
@@ -257,10 +322,10 @@ function WireframeCube({ isActive }: { isActive: boolean }) {
         cx="60"
         cy="60"
         r="4"
-        fill={isActive ? '#2563eb' : 'transparent'}
+        fill={isActive || isAbsorbing ? '#2563eb' : 'transparent'}
         animate={{
-          r: isActive ? 6 : 4,
-          opacity: isActive ? 1 : 0,
+          r: isAbsorbing ? 10 : isActive ? 6 : 4,
+          opacity: isActive || isAbsorbing ? 1 : 0,
         }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       />
