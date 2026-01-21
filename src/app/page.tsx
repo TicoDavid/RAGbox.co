@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import Link from 'next/link'
 import { Navbar } from '@/components/Navbar'
 import { TheBox } from '@/components/TheBox'
 import { PrivilegeCards } from '@/components/PrivilegeCards'
@@ -102,25 +103,40 @@ export default function LandingPage() {
           <TheBox />
         </motion.div>
 
-        {/* Secondary CTA */}
-        <motion.button
-          className={cn(
-            'mt-12 px-6 py-3 rounded-2xl',
-            'text-sm font-medium',
-            'dark:text-slate-400 dark:hover:text-white',
-            'text-slate-600 hover:text-slate-900',
-            'dark:border dark:border-white/10 dark:hover:border-white/20',
-            'border border-black/10 hover:border-black/20',
-            'transition-all duration-200'
-          )}
+        {/* CTAs */}
+        <motion.div
+          className="flex flex-col sm:flex-row items-center gap-4 mt-12"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.3 }}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
         >
-          See How It Works
-        </motion.button>
+          <Link
+            href="/dashboard"
+            className={cn(
+              'px-8 py-4 rounded-2xl',
+              'text-base font-semibold',
+              'bg-electric-600 hover:bg-electric-500',
+              'text-white',
+              'shadow-glow-sm hover:shadow-glow',
+              'transition-all duration-200'
+            )}
+          >
+            Enter The Vault
+          </Link>
+          <button
+            className={cn(
+              'px-6 py-3 rounded-2xl',
+              'text-sm font-medium',
+              'dark:text-slate-400 dark:hover:text-white',
+              'text-slate-600 hover:text-slate-900',
+              'dark:border dark:border-white/10 dark:hover:border-white/20',
+              'border border-black/10 hover:border-black/20',
+              'transition-all duration-200'
+            )}
+          >
+            See How It Works
+          </button>
+        </motion.div>
       </section>
 
       {/* Feature Section - Privilege Controls */}

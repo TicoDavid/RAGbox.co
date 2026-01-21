@@ -10,6 +10,17 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Grok-style: Pure OLED Black / Ceramic White
+        void: {
+          DEFAULT: '#000000',
+          card: '#0A0A0A',
+          elevated: '#111111',
+        },
+        ceramic: {
+          DEFAULT: '#FFFFFF',
+          card: '#FAFAFA',
+          muted: '#F5F5F5',
+        },
         // RAGbox Electric Blue - primary brand color
         electric: {
           50: '#eff6ff',
@@ -24,17 +35,11 @@ const config: Config = {
           900: '#1e3a8a',
           950: '#0044ff',
         },
-        // OLED Void - Dark mode backgrounds
-        void: {
-          DEFAULT: '#050505',
-          card: '#0A0A0A',
-          elevated: '#111111',
-        },
-        // Premium Bond Paper - Light mode backgrounds
-        paper: {
-          DEFAULT: '#F8FAFC',
-          card: '#FFFFFF',
-          muted: '#F1F5F9',
+        // Privilege Red - Attorney Client Privilege
+        privilege: {
+          DEFAULT: '#dc2626',
+          light: '#fef2f2',
+          dark: '#450a0a',
         },
         // Trust indicators
         trust: {
@@ -44,30 +49,18 @@ const config: Config = {
         },
       },
       fontFamily: {
-        // System font stacks (Google Fonts unavailable in build environment)
         sans: [
+          'Inter',
           '-apple-system',
           'BlinkMacSystemFont',
           'Segoe UI',
           'Roboto',
-          'Helvetica Neue',
-          'Arial',
           'sans-serif',
         ],
-        serif: [
-          'Georgia',
-          'Cambria',
-          'Times New Roman',
-          'Times',
-          'serif',
-        ],
         mono: [
+          'JetBrains Mono',
           'ui-monospace',
           'SFMono-Regular',
-          'SF Mono',
-          'Menlo',
-          'Monaco',
-          'Consolas',
           'monospace',
         ],
       },
@@ -78,7 +71,8 @@ const config: Config = {
       animation: {
         'breathe': 'breathe 4s ease-in-out infinite',
         'glow-pulse': 'glow-pulse 2s ease-in-out infinite',
-        'slide-toggle': 'slide-toggle 0.2s ease-out',
+        'border-pulse': 'border-pulse 2s ease-in-out infinite',
+        'float': 'float 6s ease-in-out infinite',
       },
       keyframes: {
         breathe: {
@@ -89,18 +83,21 @@ const config: Config = {
           '0%, 100%': { opacity: '0.5' },
           '50%': { opacity: '1' },
         },
-        'slide-toggle': {
-          '0%': { transform: 'translateX(0)' },
-          '100%': { transform: 'translateX(100%)' },
+        'border-pulse': {
+          '0%, 100%': { borderColor: 'rgba(37, 99, 235, 0.4)' },
+          '50%': { borderColor: 'rgba(37, 99, 235, 1)' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-10px)' },
         },
       },
       boxShadow: {
         'glow-sm': '0 0 15px -3px rgba(37, 99, 235, 0.3)',
         'glow': '0 0 30px -5px rgba(37, 99, 235, 0.4)',
         'glow-lg': '0 0 50px -10px rgba(37, 99, 235, 0.5)',
-        'glow-intense': '0 0 60px -5px rgba(37, 99, 235, 0.7)',
-        'soft': '0 4px 30px rgba(0, 0, 0, 0.05)',
-        'soft-lg': '0 10px 50px rgba(0, 0, 0, 0.08)',
+        'glow-intense': '0 0 50px 0px rgba(37, 99, 235, 0.6)',
+        'privilege': '0 0 20px -5px rgba(220, 38, 38, 0.5)',
       },
     },
   },
