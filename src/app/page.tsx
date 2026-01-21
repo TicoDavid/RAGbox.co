@@ -152,7 +152,7 @@ export default function LandingPage() {
               src="https://storage.googleapis.com/connexusai-assets/WhiteLogo_RAGbox.co-removebg-preview.png"
               alt="RAGbox"
               className={cn(
-                'h-8 w-auto opacity-50',
+                'h-32 w-auto opacity-50',
                 'dark:brightness-100 brightness-0'
               )}
             />
