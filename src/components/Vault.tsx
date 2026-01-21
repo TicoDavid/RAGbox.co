@@ -363,12 +363,13 @@ function WireframeCube({ isActive }: { isActive: boolean }) {
         strokeLinejoin="round"
         animate={{ strokeOpacity }}
       />
-      <motion.circle
+      <circle
         cx="60"
         cy="60"
         r="3"
         fill={isActive ? '#2563eb' : 'transparent'}
-        animate={{ opacity: isActive ? 1 : 0 }}
+        opacity={isActive ? 1 : 0}
+        style={{ transition: 'all 0.3s ease-out' }}
       />
     </motion.svg>
   )
