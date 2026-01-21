@@ -1,8 +1,9 @@
 # RAGbox.co Product Requirements Document (PRD)
 
 ## Version
-- **PRD Version:** v1.0 (Living Document)
-- **Status:** Draft – Section 1 Complete
+- **PRD Version:** v1.1 (Living Document)
+- **Status:** Draft – Sections 1-8 Complete
+- **Last Updated:** January 2026
 
 ---
 
@@ -142,10 +143,16 @@ If a requested behavior requires breaking these constraints, the system must ref
 ### 2.4 Confidence, Refusal, and Silence Protocol
 Every system response must pass through a **Confidence Gate**.
 
-The gate evaluates:
-- Retrieval coverage
-- Source agreement / contradiction
-- Model uncertainty signals
+The gate evaluates three weighted factors:
+
+```
+confidence = (retrieval_coverage × 0.4) + (source_agreement × 0.4) + (model_certainty × 0.2)
+```
+
+Where:
+- **Retrieval Coverage (0.4 weight):** Measures how well the retrieved documents cover the query scope. High coverage = documents contain relevant information. Low coverage = sparse or tangential matches.
+- **Source Agreement (0.4 weight):** Measures consistency across retrieved sources. High agreement = sources corroborate each other. Low agreement = sources contradict or diverge.
+- **Model Certainty (0.2 weight):** Measures the LLM's internal confidence signals. High certainty = model produces consistent, non-hedged responses. Low certainty = model hedges, qualifies, or produces variable outputs.
 
 If confidence ≥ 0.85:
 - Answer is returned
@@ -480,12 +487,37 @@ Represents an authenticated human actor.
 
 ---
 
-### 5A.2 Document
+### 5A.2 Vault
+
+Represents a tenant's document collection.
+
+**Fields:**
+- `vault_id` (immutable, UUID)
+- `tenant_id` (immutable)
+- `name`
+- `document_count` (derived)
+- `storage_used_bytes` (derived)
+- `created_at`
+
+**Constraints:**
+- Maximum **1,000 documents** per vault
+- Maximum **100 MB** per single file
+- Maximum **50 GB** total storage per vault (configurable per tenant)
+
+**Notes:**
+- All queries search across all documents in the vault
+- Vault is the sovereign boundary — no data crosses vaults
+- Storage limits enforced at upload time
+
+---
+
+### 5A.3 Document
 
 Represents an uploaded source file.
 
 **Fields:**
 - `document_id` (immutable)
+- `vault_id` (immutable)
 - `filename`
 - `mime_type`
 - `size_bytes`
@@ -493,15 +525,19 @@ Represents an uploaded source file.
 - `uploaded_at`
 - `storage_uri` (opaque to UI)
 - `index_status` (Pending | Indexed | Failed)
+- `deletion_status` (Active | SoftDeleted | HardDeleted)
+- `deleted_at` (nullable)
+- `hard_delete_scheduled_at` (nullable)
 - `checksum`
 
 **Notes:**
 - Documents are immutable after upload.
-- Deletion is a privileged, audited action.
+- Deletion follows soft-delete → hard-delete lifecycle (see US-009).
+- Soft-deleted documents are recoverable for 30 days.
 
 ---
 
-### 5A.3 DocumentChunk
+### 5A.4 DocumentChunk
 
 Represents an indexed fragment of a document.
 
@@ -518,7 +554,7 @@ Represents an indexed fragment of a document.
 
 ---
 
-### 5A.4 Query
+### 5A.5 Query
 
 Represents a user-issued question.
 
@@ -532,7 +568,7 @@ Represents a user-issued question.
 
 ---
 
-### 5A.5 Answer
+### 5A.6 Answer
 
 Represents a successful system response.
 
@@ -544,7 +580,7 @@ Represents a successful system response.
 
 ---
 
-### 5A.6 Citation
+### 5A.7 Citation
 
 Maps an answer to its document sources.
 
@@ -557,7 +593,7 @@ Maps an answer to its document sources.
 
 ---
 
-### 5A.7 AuditEvent (Veritas Protocol)
+### 5A.8 AuditEvent (Veritas Protocol)
 
 Represents an immutable system log entry.
 
@@ -576,7 +612,7 @@ Represents an immutable system log entry.
 
 ---
 
-### 5A.8 Entity Integrity Rules
+### 5A.9 Entity Integrity Rules
 
 - No entity may reference another tenant.
 - UI-facing entities must never expose:
@@ -586,7 +622,7 @@ Represents an immutable system log entry.
 
 ---
 
-### 5A.9 Success Definition (Section-Level)
+### 5A.10 Success Definition (Section-Level)
 This section is successful if:
 - Backend, frontend, and agents share a single data contract
 - No entity ambiguity exists
@@ -771,6 +807,55 @@ Each story:
 
 ---
 
+### US-009: Delete Document (Soft Delete with Recovery)
+
+**As a** Partner
+**I want** to delete a document with a recovery window
+**So that** accidental deletions are recoverable while maintaining data hygiene
+
+**Preconditions:**
+- User is authenticated as Partner
+- Document exists and is in Active state
+
+**Flow:**
+1. Partner initiates document deletion
+2. Confirmation dialog requires explicit acknowledgment
+3. Document enters SoftDeleted state
+4. Document excluded from queries immediately
+5. 30-day recovery window begins
+6. After 30 days, hard delete executes automatically
+7. All deletion events logged under Veritas Protocol
+
+**Acceptance Criteria:**
+- Confirmation dialog clearly states recovery window
+- Soft-deleted documents are not queryable
+- Recovery action available within 30 days
+- Hard delete is irreversible and audited
+- Storage reclaimed only after hard delete
+
+**Out of Scope:**
+- Immediate hard delete (no bypass of recovery window)
+- Bulk deletion
+
+---
+
+### US-010: Recover Soft-Deleted Document
+
+**As a** Partner
+**I want** to recover a recently deleted document
+**So that** accidental deletions can be reversed
+
+**Preconditions:**
+- Document is in SoftDeleted state
+- Recovery window (30 days) has not expired
+
+**Acceptance Criteria:**
+- Document returns to Active state
+- Document becomes queryable again
+- Recovery action is audited
+
+---
+
 ### 5B.1 Story Execution Rules
 
 - Only one user story may be executed per agent iteration
@@ -807,9 +892,24 @@ This section defines the **non-negotiable system qualities** that govern perform
 - No customer data may be used for model training or fine-tuning
 - Secrets must never be stored in source control
 
+**Session Management:**
+- Access tokens: 15 minutes TTL
+- Refresh tokens: 7 days TTL
+- Idle timeout: 30 minutes (session invalidated)
+- Tokens invalidated on logout
+- No concurrent session limits (audit logged)
+
+**Rate Limiting:**
+- Queries: 100 per hour per user
+- Document uploads: 50 per day per user
+- API requests: 1,000 per hour per tenant
+- Rate limit violations logged and alerted
+
 **Acceptance Criteria:**
 - Independent security review can verify isolation boundaries
 - Compromise of one tenant cannot expose another
+- Session tokens cannot be reused after expiry
+- Rate limits enforced at API gateway level
 
 ---
 
@@ -890,4 +990,342 @@ This section is successful if:
 ---
 
 **End of Section 6**
+
+---
+
+## 7. Error Taxonomy & Graceful Degradation
+
+This section defines **all error states** the system can encounter and the **required degradation behavior** for each. In RAGbox, failure modes must be explicit, safe, and auditable.
+
+---
+
+### 7.1 Error Philosophy
+
+RAGbox follows a **fail-safe-first** principle:
+- When in doubt, refuse rather than guess
+- Every error is an audit event
+- User-facing errors must be calm, non-technical, and actionable
+- Internal errors must be detailed and traceable
+
+---
+
+### 7.2 Error Categories
+
+#### 7.2.1 Retrieval Errors
+
+| Error | Cause | User Message | System Behavior |
+|-------|-------|--------------|-----------------|
+| `VECTOR_DB_UNAVAILABLE` | Qdrant cluster unreachable | "Document search is temporarily unavailable. Please try again in a few moments." | Retry 3x with exponential backoff (1s, 2s, 4s). If still failing, refuse query. Log as CRITICAL. |
+| `VECTOR_DB_TIMEOUT` | Query exceeds 10s | "Your search is taking longer than expected. Please try a simpler question." | Cancel query, return refusal. Log latency metrics. |
+| `NO_RELEVANT_CHUNKS` | No chunks meet similarity threshold | "I couldn't find relevant information in your documents for this question." | Return as refusal (not error). Confidence = 0. |
+| `INDEX_CORRUPTED` | Embedding mismatch detected | "There was an issue with your document index. Please contact support." | Block all queries. Alert operations. Require manual reindex. |
+
+---
+
+#### 7.2.2 LLM Errors
+
+| Error | Cause | User Message | System Behavior |
+|-------|-------|--------------|-----------------|
+| `LLM_UNAVAILABLE` | Llama/Vertex unreachable | "The AI service is temporarily unavailable. Please try again shortly." | Retry 3x. If Llama fails, attempt Gemini fallback. If both fail, refuse. |
+| `LLM_TIMEOUT` | Generation exceeds 30s | "Response generation timed out. Please try a shorter or simpler question." | Cancel generation. Return refusal. |
+| `LLM_CONTEXT_OVERFLOW` | Input exceeds model context | "Your question requires more context than can be processed. Please narrow your query." | Truncate retrieval set and retry once. If still failing, refuse. |
+| `LLM_SAFETY_BLOCK` | Model refuses harmful content | "This query cannot be processed." | Log full request for review. Do not reveal safety trigger. |
+
+---
+
+#### 7.2.3 Storage Errors
+
+| Error | Cause | User Message | System Behavior |
+|-------|-------|--------------|-----------------|
+| `STORAGE_UNAVAILABLE` | GCS bucket unreachable | "Document storage is temporarily unavailable." | Block uploads. Queries may proceed if vectors cached. |
+| `STORAGE_QUOTA_EXCEEDED` | Vault at 50GB limit | "Your vault has reached its storage limit. Please delete documents or contact support to increase capacity." | Reject upload. Show current usage. |
+| `DOCUMENT_TOO_LARGE` | File exceeds 100MB | "This file exceeds the 100MB size limit." | Reject upload immediately. No partial upload. |
+| `UNSUPPORTED_FILE_TYPE` | Non-allowed MIME type | "This file type is not supported. Accepted formats: PDF, DOCX, TXT, MD." | Reject upload. List accepted types. |
+
+---
+
+#### 7.2.4 Authentication & Authorization Errors
+
+| Error | Cause | User Message | System Behavior |
+|-------|-------|--------------|-----------------|
+| `SESSION_EXPIRED` | Token TTL exceeded | "Your session has expired. Please sign in again." | Redirect to login. Clear local tokens. |
+| `INSUFFICIENT_PERMISSIONS` | Role lacks required permission | "You don't have permission to perform this action." | Block action. Log attempt. Do not reveal required permission. |
+| `RATE_LIMIT_EXCEEDED` | User/tenant quota hit | "You've reached your usage limit. Please wait before trying again." | Return 429. Show reset time. |
+
+---
+
+#### 7.2.5 System Errors
+
+| Error | Cause | User Message | System Behavior |
+|-------|-------|--------------|-----------------|
+| `INTERNAL_ERROR` | Unhandled exception | "Something went wrong. Our team has been notified." | Log full stack trace. Alert operations. Return generic error. |
+| `MAINTENANCE_MODE` | Planned downtime | "RAGbox is undergoing scheduled maintenance. Expected return: [time]." | Block all operations. Show maintenance page. |
+
+---
+
+### 7.3 Graceful Degradation Paths
+
+When components fail, the system degrades in priority order:
+
+```
+Full Service
+    ↓ (LLM fails)
+Retrieval-Only Mode: Show relevant passages without generated answers
+    ↓ (Vector DB fails)
+Read-Only Mode: Existing answers viewable, no new queries
+    ↓ (Storage fails)
+Audit-Only Mode: Only audit log access available
+    ↓ (Auth fails)
+Maintenance Mode: System offline with status page
+```
+
+Each degradation level:
+- Is explicitly communicated to users
+- Preserves data integrity
+- Maintains audit logging where possible
+- Triggers operations alerts
+
+---
+
+### 7.4 Error Logging Requirements
+
+All errors must include:
+- `error_id` (unique, traceable)
+- `error_code` (from taxonomy above)
+- `timestamp`
+- `user_id` (if authenticated)
+- `request_id` (for correlation)
+- `component` (which service failed)
+- `severity` (INFO | WARN | ERROR | CRITICAL)
+- `stack_trace` (internal only)
+
+---
+
+### 7.5 Success Definition (Section-Level)
+
+This section is successful if:
+- Every possible error state has a defined behavior
+- Users never see stack traces or technical jargon
+- Degradation preserves trust over functionality
+- Operations can diagnose issues from logs alone
+
+---
+
+**End of Section 7**
+
+---
+
+## 8. Sovereign Stack Architecture
+
+This section defines the **non-negotiable technology decisions** that enable RAGbox to deliver on its "Digital Fort Knox" promise. Every choice is filtered through one rule:
+
+> **No data leaves our Virtual Private Cloud (VPC).**
+
+---
+
+### 8.1 Architecture Philosophy
+
+The "convenient" path (using managed SaaS for everything) creates data leakage vectors. RAGbox takes the **Sovereign path**: harder to build, but enables contractual guarantees of Zero Data Exfiltration.
+
+This is how we win the enterprise contract.
+
+---
+
+### 8.2 Critical Decision Points
+
+#### 8.2.1 Vector Database: Qdrant (Self-Hosted)
+
+**The Choice:** Qdrant deployed on GKE (Google Kubernetes Engine)
+
+**Why Not Pinecone:**
+- Pinecone is a managed service
+- Using Pinecone = shipping client vectors to their cloud
+- Vectors can be reverse-engineered into text
+- That is a data leak
+
+**Execution:**
+- Qdrant (written in Rust, blazing fast) runs in Docker on our GKE cluster
+- We control the disk
+- We control the encryption keys
+- We pay for compute, not per-vector
+- Zero vendor lock-in
+
+**Alternative:** Weaviate (also self-hostable)
+
+---
+
+#### 8.2.2 Cloud Provider: Google Cloud Platform (GCP)
+
+**The Choice:** GCP as primary cloud
+
+**Why GCP over AWS:**
+- GCP is winning the "AI Infrastructure" war
+- Native AI/ML tooling optimized for our use case
+
+**Key GCP Services:**
+- **Vertex AI Model Garden:** One-click deployment of Llama 3.3 to private hardware
+- **CMEK (Customer Managed Encryption Keys):** Single key applies across Database, Storage, and AI Model
+- **IAP (Identity-Aware Proxy):** "BeyondCorp" Zero Trust security out of the box
+- **GKE:** Kubernetes for all containerized services
+- **Cloud Storage:** Document storage with CMEK encryption
+
+---
+
+#### 8.2.3 Embedding Model: Self-Hosted (BGE-m3)
+
+**The Choice:** BGE-m3 or Snowflake-arctic-embed hosted locally
+
+**Why NOT OpenAI:**
+- Using `text-embedding-3-small` sends the entire text of every document to OpenAI's API
+- That violates "The Vault" promise immediately
+- Every embedding request is a data exfiltration event
+
+**Execution:**
+- Open-source embedding model runs on GKE cluster
+- Same VPC as the application
+- Zero external API calls for embeddings
+- Cost = CPU cycles, not per-token pricing
+
+**Model Options:**
+- `BGE-m3` (multilingual, high quality)
+- `Snowflake-arctic-embed` (optimized for retrieval)
+- `E5-large-v2` (strong general-purpose)
+
+---
+
+#### 8.2.4 LLM Provider: Llama 3.3 70B (Self-Hosted)
+
+**The Choice:** Llama 3.3 70B via Vertex AI
+
+**Why NOT Claude/GPT-4:**
+- Relying on Anthropic or OpenAI makes us a reseller, not a Sovereign Platform
+- Creates "Black Box" privacy risk
+- No control over logging, retention, or training
+
+**Execution:**
+
+**Primary (Daily Driver):** Llama 3.3 70B
+- Open weights
+- We run it on our infrastructure
+- We own the logs
+- No external API calls
+
+**Fallback (Deep Audit):** Gemini 1.5 Pro via Vertex API
+- Stays within Google Cloud trust boundary
+- Only acceptable external API
+- Used only when Llama unavailable
+- **We do NOT use GPT-4**
+
+---
+
+#### 8.2.5 Authentication: Google Identity Platform
+
+**The Choice:** Google Identity Platform (Firebase Auth Enterprise)
+
+**Why NOT Clerk/Auth0:**
+- Excellent products, but external databases holding user identities
+- Another potential leak vector
+
+**Execution:**
+- Federated logins (SSO for Law Firms)
+- User data stays in same security perimeter as documents
+- Native integration with IAP for "The Shield"
+- Supports SAML, OIDC, and social providers
+
+---
+
+### 8.3 Sovereign Stack Summary
+
+| Component | "Convenient" Way | RAGbox "Fort Knox" Way |
+|-----------|------------------|------------------------|
+| Vector DB | Pinecone (Shared Cloud) | Qdrant (Private Docker on GKE) |
+| Cloud | AWS (Generic) | GCP (AI-Optimized + CMEK) |
+| Embeddings | OpenAI API (Data Leak) | BGE-m3 (Local/Private) |
+| LLM | GPT-4 API (Black Box) | Llama 3.3 (Sovereign) |
+| Auth | Clerk (External) | Google Identity (Internal) |
+
+---
+
+### 8.4 Infrastructure Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     GOOGLE CLOUD VPC                            │
+│                   (All Data Stays Here)                         │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │                 Identity-Aware Proxy (IAP)                │  │
+│  │                    "The Shield"                           │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                              │                                   │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │                    GKE Cluster                            │  │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐       │  │
+│  │  │   Next.js   │  │   Qdrant    │  │   BGE-m3    │       │  │
+│  │  │   App       │  │  Vector DB  │  │  Embeddings │       │  │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘       │  │
+│  │         │                │                │               │  │
+│  │  ┌─────────────────────────────────────────────────────┐ │  │
+│  │  │              Llama 3.3 70B (Vertex AI)              │ │  │
+│  │  │                   Primary LLM                        │ │  │
+│  │  └─────────────────────────────────────────────────────┘ │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                              │                                   │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐  │
+│  │ Cloud SQL   │  │Cloud Storage│  │  Google Identity        │  │
+│  │ (PostgreSQL)│  │  (CMEK)     │  │  Platform               │  │
+│  │ Audit Logs  │  │  Documents  │  │  Authentication         │  │
+│  └─────────────┘  └─────────────┘  └─────────────────────────┘  │
+│                                                                  │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │              Gemini 1.5 Pro (Vertex API)                  │  │
+│  │              Fallback LLM (Same Trust Boundary)           │  │
+│  └───────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                         ❌ NOTHING ❌
+                      (No data leaves VPC)
+```
+
+---
+
+### 8.5 Cost Implications
+
+The Sovereign Stack is more expensive to operate than managed services:
+
+| Component | Managed Cost | Sovereign Cost | Trade-off |
+|-----------|--------------|----------------|-----------|
+| Vector DB | ~$70/mo (Pinecone) | ~$200/mo (GKE) | Full control |
+| Embeddings | ~$50/mo (OpenAI) | ~$100/mo (GPU) | Zero data leak |
+| LLM | ~$500/mo (GPT-4) | ~$800/mo (A100) | Contractual guarantee |
+
+**Total Delta:** ~$500/mo additional cost
+
+**Value:** Ability to sign contracts guaranteeing Zero Data Exfiltration
+
+This is how we justify $249/user/month pricing.
+
+---
+
+### 8.6 Architect's Note
+
+This stack is harder to build than the "Convenient" stack. But it allows us to:
+- Look a Partner at a Law Firm in the eye
+- Sign a contract guaranteeing Zero Data Exfiltration
+- Differentiate from every "wrapper" competitor
+
+**That is how we win.**
+
+---
+
+### 8.7 Success Definition (Section-Level)
+
+This section is successful if:
+- Every technology choice has a sovereignty justification
+- No component sends data outside the VPC
+- Cost trade-offs are explicit and justified
+- Engineers cannot "convenience optimize" toward data leaks
+
+---
+
+**End of Section 8**
 
