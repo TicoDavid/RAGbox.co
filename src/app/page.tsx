@@ -29,11 +29,8 @@ export default function LandingPage() {
     <main
       className={cn(
         'min-h-screen flex flex-col',
-        'transition-colors duration-300',
-        // OLED Void - Dark mode
-        'dark:bg-void',
-        // Premium Bond Paper - Light mode
-        'bg-paper'
+        // Pure OLED Black - Grok style
+        'bg-black'
       )}
     >
       {/* Glass Navbar */}
@@ -139,26 +136,21 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      {/* Feature Section - Privilege Controls */}
+      {/* Feature Section - The 4 Pillars */}
       <section
         className={cn(
           'py-24',
-          'dark:bg-void-card/50 bg-paper-muted/50',
-          'border-t dark:border-white/5 border-black/5'
+          'bg-black',
+          'border-t border-white/5'
         )}
       >
         <PrivilegeCards />
       </section>
 
-      {/* Footer */}
-      <footer
-        className={cn(
-          'px-6 py-0',
-          'border-t dark:border-white/5 border-black/5'
-        )}
-      >
+      {/* Ghost Footer - Barely visible */}
+      <footer className="px-6 py-8 bg-black">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          {/* Logo */}
+          {/* Logo - Ghost opacity */}
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
@@ -167,37 +159,29 @@ export default function LandingPage() {
             <img
               src="https://storage.googleapis.com/connexusai-assets/WhiteLogo_RAGbox.co-removebg-preview.png"
               alt="RAGbox"
-              className={cn(
-                'h-32 w-auto'
-                // Same color in both modes - matches header logo
-              )}
+              className="h-12 w-auto opacity-20"
             />
           </motion.div>
 
-          {/* Tagline */}
-          <p className="text-sm dark:text-slate-500 text-slate-400">
-            Sovereign document intelligence for professionals who can't afford to compromise.
-          </p>
-
-          {/* Links */}
-          <div className="flex items-center gap-6 text-sm dark:text-slate-500 text-slate-400">
+          {/* Ghost Links - text-neutral-800 barely visible on black */}
+          <div className="flex items-center gap-8 text-sm text-neutral-800 font-medium">
             <a
               href="#"
-              className="hover:dark:text-slate-300 hover:text-slate-600 transition-colors"
+              className="hover:text-neutral-600 transition-colors"
+            >
+              Security
+            </a>
+            <a
+              href="#"
+              className="hover:text-neutral-600 transition-colors"
             >
               Privacy
             </a>
             <a
               href="#"
-              className="hover:dark:text-slate-300 hover:text-slate-600 transition-colors"
+              className="hover:text-neutral-600 transition-colors"
             >
               Terms
-            </a>
-            <a
-              href="#"
-              className="hover:dark:text-slate-300 hover:text-slate-600 transition-colors"
-            >
-              Security
             </a>
           </div>
         </div>

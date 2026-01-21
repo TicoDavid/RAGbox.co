@@ -1,37 +1,44 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Shield, Database, MessageSquareOff } from 'lucide-react'
+import { BrainCircuit, ToggleRight, ShieldBan, ScrollText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-interface PrivilegeCard {
+interface PillarCard {
   icon: React.ReactNode
   title: string
   description: string
-  highlight: string
+  tag: string
 }
 
-const privileges: PrivilegeCard[] = [
+const pillars: PillarCard[] = [
   {
-    icon: <Shield className="w-6 h-6" strokeWidth={2.5} />,
-    title: 'Confidence Gate',
+    icon: <BrainCircuit className="w-6 h-6" strokeWidth={2} />,
+    title: 'The Silence Protocol',
     description:
-      "If RAGbox can't answer with 85%+ confidence, it refuses rather than speculates. Silence is safer than speculation.",
-    highlight: '0.85 threshold',
+      "If RAGbox isn't sure, it says so. No guessing. No fabricating. If the answer isn't in your documents, you'll know.",
+    tag: 'Anti-Hallucination',
   },
   {
-    icon: <Database className="w-6 h-6" strokeWidth={2.5} />,
-    title: 'Enterprise-Scale Collections',
+    icon: <ToggleRight className="w-6 h-6 text-red-500" strokeWidth={2} />,
+    title: 'The Privilege Switch',
     description:
-      'Up to 100 MB per file, 100 GB total storage, and 100,000 files per organization. 2M token context window eliminates chunking.',
-    highlight: 'xAI API',
+      'Flip one switch and privileged documents become invisible to everyone except those who need to see them.',
+    tag: 'Role-Based',
   },
   {
-    icon: <MessageSquareOff className="w-6 h-6" strokeWidth={2.5} />,
-    title: 'Graceful Refusal',
+    icon: <ShieldBan className="w-6 h-6" strokeWidth={2} />,
+    title: 'Digital Fort Knox',
     description:
-      "When the system can't help, it says so clearly and calmly. No alarming error messages.",
-    highlight: 'Trust-first UX',
+      "Your documents stay yours. We don't keep copies. We don't train on your data. When you delete it, it's gone.",
+    tag: 'Zero-Retention',
+  },
+  {
+    icon: <ScrollText className="w-6 h-6" strokeWidth={2} />,
+    title: 'The Unalterable Record',
+    description:
+      'Every action is logged. Who asked what, when, and what answer they received. Audit-ready from day one.',
+    tag: 'Veritas Log',
   },
 ]
 
@@ -60,19 +67,17 @@ const cardVariants = {
 }
 
 /**
- * Privilege Cards Component
+ * Privilege Cards Component - The 4 Pillars
  *
- * Glassmorphism cards displaying RAGbox value propositions
- * Features:
- * - bg-white/5 (dark) or bg-white/60 (light) with 1px border
- * - Staggered entrance animation
- * - Heavy spring physics
+ * "Aggressive Competence" tone
+ * Grok dark card aesthetic (bg-neutral-900/50, border-white/5)
  */
 export function PrivilegeCards() {
   return (
     <section className="w-full max-w-6xl mx-auto px-6">
+      {/* New Headline - Aggressive Competence */}
       <motion.div
-        className="text-center mb-12"
+        className="text-center mb-16"
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
@@ -80,18 +85,23 @@ export function PrivilegeCards() {
       >
         <h2
           className={cn(
-            'text-3xl md:text-4xl font-bold mb-4',
-            'dark:text-white text-slate-900'
+            'text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6',
+            'text-transparent bg-clip-text',
+            'bg-gradient-to-b from-white to-slate-400'
           )}
         >
-          Built for High-Stakes Professionals
+          Your Files Speak.
+          <br />
+          We Make Them Testify.
         </h2>
-        <p className="text-lg dark:text-slate-400 text-slate-600 max-w-2xl mx-auto">
-          Attorneys, compliance officers, and financial analysts trust RAGbox to
-          interrogate their most sensitive documents.
+        <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto">
+          Analyze your vault like a team of experts—without the team.
+          <br />
+          Reliable. Repeatable. Effortless.
         </p>
       </motion.div>
 
+      {/* The 4 Pillars Grid */}
       <motion.div
         className="grid grid-cols-1 md:grid-cols-2 gap-6"
         variants={containerVariants}
@@ -99,32 +109,26 @@ export function PrivilegeCards() {
         whileInView="visible"
         viewport={{ once: true, margin: '-100px' }}
       >
-        {privileges.map((privilege, index) => (
-          <GlassCard key={index} {...privilege} />
+        {pillars.map((pillar, index) => (
+          <PillarCardComponent key={index} {...pillar} />
         ))}
       </motion.div>
     </section>
   )
 }
 
-function GlassCard({ icon, title, description, highlight }: PrivilegeCard) {
+function PillarCardComponent({ icon, title, description, tag }: PillarCard) {
   return (
     <motion.div
       className={cn(
         'relative group',
         'p-8 rounded-3xl',
         'transition-all duration-300',
-        // Glassmorphism - Dark mode
-        'dark:bg-white/5 dark:border dark:border-white/10',
-        'dark:hover:bg-white/10 dark:hover:border-electric-500/30',
-        // Glassmorphism - Light mode
-        'bg-white/60 border border-black/5',
-        'hover:bg-white/80 hover:border-electric-500/20',
-        // Backdrop blur
-        'backdrop-blur-sm',
-        // Shadow
-        'dark:shadow-none shadow-soft',
-        'hover:shadow-soft-lg'
+        // Grok dark card aesthetic
+        'bg-neutral-900/50',
+        'border border-white/5',
+        'hover:border-white/10',
+        'hover:bg-neutral-900/70'
       )}
       variants={cardVariants}
       whileHover={{
@@ -132,15 +136,15 @@ function GlassCard({ icon, title, description, highlight }: PrivilegeCard) {
         transition: { type: 'spring', stiffness: 300, damping: 30 },
       }}
     >
-      {/* Highlight badge */}
-      <div className="flex items-start justify-between mb-4">
+      {/* Tag */}
+      <div className="flex items-start justify-between mb-6">
         <div
           className={cn(
             'p-3 rounded-2xl',
-            'dark:bg-electric-500/10 bg-electric-100',
-            'dark:text-electric-400 text-electric-600',
+            'bg-white/5',
+            'text-white/60',
             'transition-colors duration-300',
-            'group-hover:dark:bg-electric-500/20 group-hover:bg-electric-200'
+            'group-hover:bg-white/10 group-hover:text-white'
           )}
         >
           {icon}
@@ -148,39 +152,18 @@ function GlassCard({ icon, title, description, highlight }: PrivilegeCard) {
         <span
           className={cn(
             'px-3 py-1.5 rounded-full',
-            'text-xs font-medium',
-            'dark:bg-electric-500/10 dark:text-electric-400',
-            'bg-electric-100 text-electric-700',
-            'border dark:border-electric-500/20 border-electric-200'
+            'text-xs font-medium uppercase tracking-wider',
+            'bg-white/5 text-white/40',
+            'border border-white/5'
           )}
         >
-          {highlight}
+          {tag}
         </span>
       </div>
 
       {/* Content */}
-      <h3
-        className={cn(
-          'text-xl font-semibold mb-3',
-          'dark:text-white text-slate-900'
-        )}
-      >
-        {title}
-      </h3>
-      <p className="dark:text-slate-400 text-slate-600 leading-relaxed">
-        {description}
-      </p>
-
-      {/* Hover glow effect */}
-      <div
-        className={cn(
-          'absolute inset-0 rounded-3xl',
-          'opacity-0 group-hover:opacity-100',
-          'transition-opacity duration-300',
-          'bg-gradient-to-br from-electric-500/5 to-transparent',
-          'pointer-events-none'
-        )}
-      />
+      <h3 className="text-xl font-bold text-white mb-3">{title}</h3>
+      <p className="text-slate-400 leading-relaxed">{description}</p>
     </motion.div>
   )
 }

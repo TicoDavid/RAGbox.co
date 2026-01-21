@@ -34,13 +34,11 @@ export function Navbar() {
       className={cn(
         'fixed top-0 left-0 right-0 z-50',
         'px-6 py-0.5',
+        // Ghost Strategy: Deeply transparent, floating
         'backdrop-blur-md',
-        'border-b',
-        'transition-colors duration-300',
-        // Dark mode
-        'dark:bg-void/80 dark:border-white/10',
-        // Light mode
-        'bg-paper/80 border-black/5'
+        'bg-black/50',
+        'border-b border-white/5',
+        'transition-colors duration-300'
       )}
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between">
