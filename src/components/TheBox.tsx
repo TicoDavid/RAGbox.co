@@ -317,19 +317,16 @@ function WireframeCube({
         animate={{ strokeOpacity }}
         transition={{ duration: 0.3 }}
       />
-      {/* Glowing center point */}
-      <motion.circle
+      {/* Glowing center point - using CSS transitions to avoid Framer Motion SVG issues */}
+      <circle
         cx="60"
         cy="60"
-        r="4"
-        fill={isActive || isAbsorbing ? '#2563eb' : 'transparent'}
-        initial={{ scale: 1, opacity: 0 }}
-        animate={{
-          scale: isAbsorbing ? 2.5 : isActive ? 1.5 : 1,
-          opacity: isActive || isAbsorbing ? 1 : 0,
+        r={isAbsorbing ? 10 : isActive ? 6 : 4}
+        fill="#2563eb"
+        opacity={isActive || isAbsorbing ? 1 : 0}
+        style={{
+          transition: 'all 0.3s ease-out',
         }}
-        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        style={{ transformOrigin: '60px 60px' }}
       />
     </motion.svg>
   )
