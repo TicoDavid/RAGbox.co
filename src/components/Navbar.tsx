@@ -57,9 +57,8 @@ export function Navbar() {
             className={cn(
               // BADGE OF AUTHORITY: +15% for commanding presence
               'h-24 md:h-32 lg:h-36 w-auto',
-              'transition-all duration-300',
-              // Invert logo for light mode
-              'dark:brightness-100 brightness-0'
+              'transition-all duration-300'
+              // Same color in both modes - no brightness filter
             )}
           />
         </motion.div>
