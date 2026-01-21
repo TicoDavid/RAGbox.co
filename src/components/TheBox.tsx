@@ -321,13 +321,15 @@ function WireframeCube({
       <motion.circle
         cx="60"
         cy="60"
+        r="4"
         fill={isActive || isAbsorbing ? '#2563eb' : 'transparent'}
-        initial={{ r: 4, opacity: 0 }}
+        initial={{ scale: 1, opacity: 0 }}
         animate={{
-          r: isAbsorbing ? 10 : isActive ? 6 : 4,
+          scale: isAbsorbing ? 2.5 : isActive ? 1.5 : 1,
           opacity: isActive || isAbsorbing ? 1 : 0,
         }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        style={{ transformOrigin: '60px 60px' }}
       />
     </motion.svg>
   )
