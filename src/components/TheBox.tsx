@@ -321,8 +321,8 @@ function WireframeCube({
       <motion.circle
         cx="60"
         cy="60"
-        r="4"
         fill={isActive || isAbsorbing ? '#2563eb' : 'transparent'}
+        initial={{ r: 4, opacity: 0 }}
         animate={{
           r: isAbsorbing ? 10 : isActive ? 6 : 4,
           opacity: isActive || isAbsorbing ? 1 : 0,
