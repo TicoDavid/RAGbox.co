@@ -24,7 +24,7 @@ export default function LandingPage() {
             <img
               src="https://storage.googleapis.com/connexusai-assets/WhiteLogo_RAGbox.co-removebg-preview.png"
               alt="RAGbox"
-              className="h-8 w-auto"
+              className="h-48 w-auto"
             />
           </div>
           <div className="flex items-center gap-4">
@@ -151,7 +151,7 @@ export default function LandingPage() {
             <img
               src="https://storage.googleapis.com/connexusai-assets/WhiteLogo_RAGbox.co-removebg-preview.png"
               alt="RAGbox"
-              className="h-6 w-auto opacity-70"
+              className="h-36 w-auto opacity-70"
             />
           </div>
           <p className="text-sm text-slate-500">
