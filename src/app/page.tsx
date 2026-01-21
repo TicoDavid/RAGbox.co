@@ -38,25 +38,6 @@ export default function LandingPage() {
 
       {/* Hero Section - The Sovereign Zone */}
       <section className="flex-1 flex flex-col items-center justify-center px-6 pt-28 pb-16 min-h-[85vh]">
-        {/* Trust Badge */}
-        <motion.div
-          className={cn(
-            'inline-flex items-center gap-2 px-4 py-2 mb-8',
-            'rounded-full',
-            'dark:bg-white/5 dark:border dark:border-white/10',
-            'bg-white/60 border border-black/5',
-            'backdrop-blur-sm'
-          )}
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        >
-          <div className="w-2 h-2 rounded-full bg-trust-high animate-pulse" />
-          <span className="text-sm dark:text-slate-300 text-slate-600">
-            Zero Data Exfiltration Guarantee
-          </span>
-        </motion.div>
-
         {/* FLIPPED HIERARCHY: H1 Headline ABOVE TheBox */}
         <motion.h1
           className={cn(
