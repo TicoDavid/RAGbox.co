@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Send, Sparkles, Settings, X, Flag, FileText, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -43,6 +43,13 @@ const suggestionChips: SuggestionChip[] = [
   },
 ]
 
+// Thinking state phases
+const thinkingPhases = [
+  'Reading Vector DB...',
+  'Checking Privilege...',
+  'Synthesizing...',
+]
+
 /**
  * Mercury Component - AI Concierge (Right Sidebar)
  *
@@ -52,12 +59,15 @@ const suggestionChips: SuggestionChip[] = [
  * - Floating pill-shaped input
  * - Control Deck (Gemini-style settings)
  * - Suggestion chips in empty state
+ * - Cycling thinking state animation
+ * - Citation cards with hover highlight
  */
 export function Mercury() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [showControlDeck, setShowControlDeck] = useState(false)
+  const [hoveredCitation, setHoveredCitation] = useState<string | null>(null)
 
   // Control Deck state
   const [role, setRole] = useState('Legal Analyst')
@@ -84,19 +94,24 @@ export function Mercury() {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content:
-          'Based on my analysis of the uploaded documents, I found several relevant sections that address your query.',
+          'Based on my analysis of the uploaded documents, I found several relevant sections that address your query. The confidentiality obligations outlined in Section 4.2 require all parties to maintain strict data protection protocols.',
         timestamp: new Date(),
         citations: [
           {
-            document: 'NDA_Agreement.pdf',
+            document: 'Contract_NDA_2024.pdf',
             page: 3,
-            snippet: 'Section 4.2 - Confidentiality obligations...',
+            snippet: 'Section 4.2 - Confidentiality obligations shall remain in effect for a period of five (5) years...',
+          },
+          {
+            document: 'Contract_NDA_2024.pdf',
+            page: 7,
+            snippet: 'Article 8 - Data Protection: All confidential information must be stored in encrypted format...',
           },
         ],
       }
       setMessages((prev) => [...prev, assistantMessage])
       setIsLoading(false)
-    }, 1500)
+    }, 3000) // Longer delay to show thinking animation
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -189,9 +204,14 @@ export function Mercury() {
         ) : (
           <div className="space-y-4">
             {messages.map((message) => (
-              <MessageBubble key={message.id} message={message} />
+              <MessageBubble
+                key={message.id}
+                message={message}
+                hoveredCitation={hoveredCitation}
+                setHoveredCitation={setHoveredCitation}
+              />
             ))}
-            {isLoading && <TypingIndicator />}
+            {isLoading && <ThinkingIndicator />}
           </div>
         )}
       </div>
@@ -458,7 +478,20 @@ function EmptyState({ onChipClick }: { onChipClick: (prompt: string) => void }) 
   )
 }
 
-function MessageBubble({ message }: { message: Message }) {
+/**
+ * Message Bubble - User & Mercury messages
+ * User: Right-aligned, bg-neutral-800, pill shape
+ * Mercury: Left-aligned, subtle bg-blue-900/10
+ */
+function MessageBubble({
+  message,
+  hoveredCitation,
+  setHoveredCitation,
+}: {
+  message: Message
+  hoveredCitation: string | null
+  setHoveredCitation: (id: string | null) => void
+}) {
   const isUser = message.role === 'user'
 
   return (
@@ -468,82 +501,187 @@ function MessageBubble({ message }: { message: Message }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
     >
-      <div
-        className={cn(
-          'max-w-[85%] px-4 py-3 rounded-2xl',
-          'text-sm',
-          isUser
-            ? cn('bg-electric-600 text-white', 'rounded-br-md')
-            : cn(
-                'dark:bg-white/10 bg-black/5',
-                'dark:text-white text-black',
-                'rounded-bl-md'
-              )
-        )}
-      >
-        {message.content}
-      </div>
+      {isUser ? (
+        // USER MESSAGE - Right aligned, neutral-800, pill shape
+        <div
+          className={cn(
+            'max-w-[85%] px-4 py-3',
+            'rounded-3xl',
+            'text-sm text-white',
+            'bg-neutral-800'
+          )}
+        >
+          {message.content}
+        </div>
+      ) : (
+        // MERCURY MESSAGE - Left aligned, subtle background
+        <div className="max-w-[95%]">
+          <div
+            className={cn(
+              'px-3 py-2 rounded-2xl',
+              'text-sm',
+              'dark:text-white/90 text-black/90',
+              'dark:bg-blue-900/10 bg-blue-100/30'
+            )}
+          >
+            {message.content}
+          </div>
 
-      {/* Citations */}
-      {message.citations && message.citations.length > 0 && (
-        <div className="mt-2 space-y-1">
-          {message.citations.map((citation, idx) => (
-            <motion.div
-              key={idx}
-              className={cn(
-                'flex items-center gap-2 px-3 py-1.5 rounded-lg',
-                'text-[10px]',
-                'dark:bg-electric-600/10 bg-electric-100/50',
-                'dark:text-electric-400 text-electric-600',
-                'border dark:border-electric-500/20 border-electric-500/30',
-                'cursor-pointer',
-                'hover:dark:bg-electric-600/20 hover:bg-electric-100'
-              )}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 }}
-              whileHover={{ scale: 1.02 }}
-            >
-              <FileText className="w-3 h-3" />
-              <span className="font-medium">{citation.document}</span>
-              <span className="dark:text-white/40 text-black/40">
-                p.{citation.page}
-              </span>
-            </motion.div>
-          ))}
+          {/* Citation Cards */}
+          {message.citations && message.citations.length > 0 && (
+            <div className="mt-3 space-y-2">
+              {message.citations.map((citation, idx) => {
+                const citationId = `${message.id}-${idx}`
+                const isHovered = hoveredCitation === citationId
+
+                return (
+                  <motion.div
+                    key={idx}
+                    className={cn(
+                      'flex items-start gap-3 px-3 py-2.5 rounded-lg',
+                      'text-xs',
+                      // Citation card styling
+                      'bg-blue-500/5',
+                      'border border-blue-500/30',
+                      'cursor-pointer',
+                      'transition-all duration-200',
+                      // Hover state
+                      isHovered && 'bg-blue-500/15 border-blue-500/50'
+                    )}
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 + idx * 0.1 }}
+                    onMouseEnter={() => setHoveredCitation(citationId)}
+                    onMouseLeave={() => setHoveredCitation(null)}
+                    whileHover={{ scale: 1.01 }}
+                  >
+                    {/* File Icon */}
+                    <div
+                      className={cn(
+                        'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+                        'bg-blue-500/10',
+                        isHovered && 'bg-blue-500/20'
+                      )}
+                    >
+                      <FileText
+                        className={cn(
+                          'w-4 h-4',
+                          'text-blue-400',
+                          isHovered && 'text-blue-300'
+                        )}
+                        strokeWidth={2}
+                      />
+                    </div>
+
+                    {/* Citation Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-blue-400 truncate">
+                          Source: {citation.document}
+                        </span>
+                        <span className="text-blue-400/60 flex-shrink-0">
+                          (Page {citation.page})
+                        </span>
+                      </div>
+                      {/* Snippet preview on hover */}
+                      <AnimatePresence>
+                        {isHovered && citation.snippet && (
+                          <motion.p
+                            className="text-[10px] text-blue-300/70 line-clamp-2"
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            "{citation.snippet}"
+                          </motion.p>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
     </motion.div>
   )
 }
 
-function TypingIndicator() {
+/**
+ * Thinking Indicator - Cycles through processing phases
+ * "Reading Vector DB..." -> "Checking Privilege..." -> "Synthesizing."
+ */
+function ThinkingIndicator() {
+  const [phaseIndex, setPhaseIndex] = useState(0)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPhaseIndex((prev) => (prev + 1) % thinkingPhases.length)
+    }, 1200)
+
+    return () => clearInterval(interval)
+  }, [])
+
   return (
     <motion.div
-      className="flex justify-start"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      className="flex items-start gap-2"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
     >
-      <div
+      {/* Pulsing Mercury avatar */}
+      <motion.div
         className={cn(
-          'px-4 py-3 rounded-2xl rounded-bl-md',
-          'dark:bg-white/10 bg-black/5'
+          'w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0',
+          'bg-electric-600/20'
         )}
+        animate={{
+          scale: [1, 1.1, 1],
+          opacity: [0.7, 1, 0.7],
+        }}
+        transition={{ duration: 1.5, repeat: Infinity }}
       >
-        <div className="flex gap-1">
-          {[0, 1, 2].map((i) => (
-            <motion.div
-              key={i}
-              className="w-2 h-2 rounded-full dark:bg-white/40 bg-black/40"
-              animate={{ opacity: [0.4, 1, 0.4] }}
-              transition={{
-                duration: 1,
-                repeat: Infinity,
-                delay: i * 0.2,
-              }}
-            />
-          ))}
-        </div>
+        <Sparkles className="w-3 h-3 text-electric-500" strokeWidth={2} />
+      </motion.div>
+
+      {/* Thinking text with cycling phases */}
+      <div className="flex-1">
+        <motion.div
+          className={cn(
+            'inline-flex items-center gap-2 px-3 py-2 rounded-2xl',
+            'dark:bg-blue-900/10 bg-blue-100/30'
+          )}
+        >
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={phaseIndex}
+              className="text-sm text-electric-400 font-medium"
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -5 }}
+              transition={{ duration: 0.2 }}
+            >
+              {thinkingPhases[phaseIndex]}
+            </motion.span>
+          </AnimatePresence>
+
+          {/* Animated dots */}
+          <div className="flex gap-0.5">
+            {[0, 1, 2].map((i) => (
+              <motion.div
+                key={i}
+                className="w-1.5 h-1.5 rounded-full bg-electric-500"
+                animate={{ opacity: [0.3, 1, 0.3] }}
+                transition={{
+                  duration: 0.8,
+                  repeat: Infinity,
+                  delay: i * 0.15,
+                }}
+              />
+            ))}
+          </div>
+        </motion.div>
       </div>
     </motion.div>
   )
