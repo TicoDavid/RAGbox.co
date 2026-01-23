@@ -92,12 +92,12 @@ export default function Dashboard() {
 
         {/* TOP HEADER */}
         <header className="h-16 border-b border-slate-200 dark:border-white/10 flex items-center justify-between px-6 bg-white/50 dark:bg-[#050505]/50 backdrop-blur-md">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-slate-400">Workspace</span>
-            <span className="text-slate-300">/</span>
-            <span className="text-slate-900 dark:text-white font-medium">
-              {hasDocument ? 'Q3_Financial_Report.pdf' : 'Overview'}
-            </span>
+          <div className="flex items-center">
+            <img
+              src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_white.jpg"
+              className="h-10 w-auto"
+              alt="RAGbox.co"
+            />
           </div>
           <div className="flex items-center gap-4">
              <div className="flex items-center gap-3">
