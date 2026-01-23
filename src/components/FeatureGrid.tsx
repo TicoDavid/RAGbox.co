@@ -11,6 +11,8 @@ export default function FeatureGrid() {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] dark:opacity-0" />
         {/* Dark Mode Grid */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:24px_24px] opacity-0 dark:opacity-100" />
+        {/* The Horizon Glow Reflection (Gold Dust - Dark Mode Only) */}
+        <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-b from-amber-500/5 to-transparent hidden dark:block" />
         {/* Radial Fade (Vignette) */}
         <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent dark:from-[#050505] dark:via-transparent h-full" />
       </div>
