@@ -10,7 +10,12 @@
     "lint": "next lint",
     "test": "jest",
     "test:watch": "jest --watch",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "cli:build": "cd cli && npm run build",
+    "cli:dev": "cd cli && npm run dev",
+    "cli:install": "cd cli && npm install",
+    "cli": "node cli/dist/bin/ragbox.js",
+    "ragbox": "node cli/dist/bin/ragbox.js"
   },
   "repository": {
     "type": "git",
