@@ -1,10 +1,12 @@
 'use client'
 
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { Navbar } from '@/components/Navbar'
 import { TheBox } from '@/components/TheBox'
 import { PrivilegeCards } from '@/components/PrivilegeCards'
+import { AuthModal } from '@/components/AuthModal'
 import Footer from '@/components/Footer'
 import { cn } from '@/lib/utils'
 
@@ -26,6 +28,8 @@ import { cn } from '@/lib/utils'
  * 5. "See How It Works" Button
  */
 export default function LandingPage() {
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+
   return (
     <main
       className={cn(
@@ -35,7 +39,13 @@ export default function LandingPage() {
       )}
     >
       {/* Glass Navbar */}
-      <Navbar />
+      <Navbar onSignInClick={() => setIsAuthModalOpen(true)} />
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+      />
 
       {/* Hero Section - The Sovereign Zone */}
       <section className="flex-1 flex flex-col items-center justify-center px-6 pt-20 pb-16 min-h-[85vh]">
@@ -44,7 +54,7 @@ export default function LandingPage() {
           className={cn(
             'text-4xl sm:text-5xl md:text-6xl lg:text-7xl',
             'font-extrabold text-center mb-6',
-            'dark:text-white text-slate-900'
+            'text-white'
           )}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -61,7 +71,7 @@ export default function LandingPage() {
         <motion.p
           className={cn(
             'text-lg md:text-xl lg:text-2xl text-center mb-12',
-            'dark:text-slate-400 text-slate-600',
+            'text-slate-400',
             'max-w-2xl'
           )}
           initial={{ opacity: 0, y: 20 }}
@@ -106,10 +116,8 @@ export default function LandingPage() {
             className={cn(
               'px-6 py-3 rounded-2xl',
               'text-sm font-medium',
-              'dark:text-slate-400 dark:hover:text-white',
-              'text-slate-600 hover:text-slate-900',
-              'dark:border dark:border-white/10 dark:hover:border-white/20',
-              'border border-black/10 hover:border-black/20',
+              'text-slate-400 hover:text-white',
+              'border border-white/10 hover:border-white/20',
               'transition-all duration-200'
             )}
           >

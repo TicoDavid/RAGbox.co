@@ -85,16 +85,17 @@ export function PrivilegeCards() {
       >
         <h2
           className={cn(
-            'text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6',
-            'text-transparent bg-clip-text',
-            'bg-gradient-to-b from-white to-slate-400'
+            'text-4xl md:text-5xl font-bold tracking-tight mb-6',
+            'text-slate-900 dark:text-white'
           )}
         >
           Your Files Speak.
           <br />
-          We Make Them Testify.
+          <span className="text-slate-400 dark:text-slate-600">
+            We Make Them Testify.
+          </span>
         </h2>
-        <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto">
+        <p className="text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
           Analyze your vault like a team of experts—without the team.
           <br />
           Reliable. Repeatable. Effortless.
@@ -124,11 +125,12 @@ function PillarCardComponent({ icon, title, description, tag }: PillarCard) {
         'relative group',
         'p-8 rounded-3xl',
         'transition-all duration-300',
-        // Grok dark card aesthetic
-        'bg-neutral-900/50',
-        'border border-white/5',
-        'hover:border-white/10',
-        'hover:bg-neutral-900/70'
+        // Elevated surface: #111 in dark, slate-50 in light
+        'bg-slate-50 dark:bg-[#111111]',
+        // Subtle border for definition
+        'border border-slate-200 dark:border-white/5',
+        'hover:border-blue-500/30 dark:hover:border-blue-500/30',
+        'transition-all duration-300'
       )}
       variants={cardVariants}
       whileHover={{
@@ -140,21 +142,20 @@ function PillarCardComponent({ icon, title, description, tag }: PillarCard) {
       <div className="flex items-start justify-between mb-6">
         <div
           className={cn(
-            'p-3 rounded-2xl',
-            'bg-white/5',
-            'text-white/60',
-            'transition-colors duration-300',
-            'group-hover:bg-white/10 group-hover:text-white'
+            'w-10 h-10 rounded-xl flex items-center justify-center',
+            'bg-white dark:bg-white/5',
+            'border border-slate-200 dark:border-white/10',
+            'text-blue-600 dark:text-blue-400'
           )}
         >
           {icon}
         </div>
         <span
           className={cn(
-            'px-3 py-1.5 rounded-full',
-            'text-xs font-medium uppercase tracking-wider',
-            'bg-white/5 text-white/40',
-            'border border-white/5'
+            'px-3 py-1 rounded-full',
+            'text-[10px] font-bold tracking-wider uppercase',
+            'bg-slate-200 text-slate-700',
+            'dark:bg-white/10 dark:text-slate-300'
           )}
         >
           {tag}
@@ -162,8 +163,8 @@ function PillarCardComponent({ icon, title, description, tag }: PillarCard) {
       </div>
 
       {/* Content */}
-      <h3 className="text-xl font-bold text-white mb-3">{title}</h3>
-      <p className="text-slate-400 leading-relaxed">{description}</p>
+      <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">{title}</h3>
+      <p className="text-slate-600 dark:text-gray-400 leading-relaxed text-sm">{description}</p>
     </motion.div>
   )
 }

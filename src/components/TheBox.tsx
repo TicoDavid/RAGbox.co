@@ -236,7 +236,7 @@ export function TheBox() {
             <motion.p
               className={cn(
                 'text-lg font-semibold mb-2',
-                'dark:text-white text-slate-900'
+                'text-white'
               )}
               animate={{
                 color: isActive ? '#2563eb' : undefined,
@@ -248,7 +248,7 @@ export function TheBox() {
                   ? 'Release to Upload'
                   : 'Feed the Box'}
             </motion.p>
-            <p className="text-sm dark:text-slate-400 text-slate-500">
+            <p className="text-sm text-slate-400">
               {isAbsorbing
                 ? 'Redirecting to secure login'
                 : 'Drag documents here or click to browse'}
