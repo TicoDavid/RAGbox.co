@@ -11,11 +11,11 @@ import { cn } from '@/lib/utils'
  *
  * Features:
  * - Sticky positioning with backdrop blur
+ * - Dynamic text logo (RAG yellow/black, Box blue)
  * - Pill-shaped theme toggle with satisfying spring animation
- * - RAGbox logo on left, controls on right
  */
 export function Navbar() {
-  const { theme, setTheme, resolvedTheme } = useTheme()
+  const { setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
   // Prevent hydration mismatch
@@ -33,38 +33,48 @@ export function Navbar() {
     <nav
       className={cn(
         'fixed top-0 left-0 right-0 z-50',
-        'px-6 py-0.5',
-        // Ghost Strategy: Deeply transparent, floating - theme aware
+        'px-6 h-20',
         'backdrop-blur-md',
-        'dark:bg-black/50 bg-white/70',
-        'dark:border-b dark:border-white/5 border-b border-black/5',
+        'bg-white/70 dark:bg-[#050505]/70',
+        'border-b border-slate-200 dark:border-white/5',
         'transition-colors duration-300'
       )}
     >
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
-        {/* Logo */}
+      <div className="max-w-7xl mx-auto h-full flex items-center justify-between">
+        {/* Logo - Text Based for Theme Adaptability */}
         <motion.div
-          className="flex items-center"
+          className="flex items-center gap-0.5 cursor-pointer"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         >
-          <img
-            src="https://storage.googleapis.com/connexusai-assets/WhiteLogo_RAGbox.co-removebg-preview.png"
-            alt="RAGbox.co"
+          {/* RAG: Black in Light, Yellow in Dark */}
+          <span
             className={cn(
-              // 2x size for prominent branding
-              'h-24 md:h-28 lg:h-32 w-auto',
-              'transition-all duration-300',
-              // Light mode: darken logo for white background (accessibility)
-              // Dark mode: keep original colors
-              'dark:brightness-100 brightness-0'
+              'font-bold text-3xl md:text-4xl tracking-tighter',
+              'text-slate-900 dark:text-[#FFE600]',
+              'transition-colors duration-300'
             )}
-          />
+          >
+            RAG
+          </span>
+          {/* Box: Blue in both modes */}
+          <span
+            className={cn(
+              'font-bold text-3xl md:text-4xl tracking-tighter',
+              'text-blue-600 dark:text-blue-500'
+            )}
+          >
+            box
+          </span>
+          {/* .co suffix */}
+          <span className="text-sm font-medium text-slate-400 dark:text-slate-600 ml-0.5 mt-1">
+            .co
+          </span>
         </motion.div>
 
         {/* Right Controls */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           {/* Theme Toggle - Pill shaped */}
           {mounted && (
             <motion.button
@@ -72,9 +82,9 @@ export function Navbar() {
               className={cn(
                 'relative w-16 h-8 rounded-full p-1',
                 'transition-colors duration-300',
-                'dark:bg-void-elevated dark:border dark:border-white/10',
-                'bg-paper-muted border border-black/10',
-                'focus:outline-none focus:ring-2 focus:ring-electric-500/50'
+                'dark:bg-white/5 dark:border dark:border-white/10',
+                'bg-slate-100 border border-slate-200',
+                'focus:outline-none focus:ring-2 focus:ring-blue-500/50'
               )}
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -86,8 +96,8 @@ export function Navbar() {
                 className={cn(
                   'absolute top-1 w-6 h-6 rounded-full',
                   'flex items-center justify-center',
-                  'dark:bg-electric-600 bg-electric-500',
-                  'shadow-glow-sm'
+                  'bg-blue-600',
+                  'shadow-lg shadow-blue-600/25'
                 )}
                 initial={false}
                 animate={{
@@ -105,29 +115,29 @@ export function Navbar() {
           )}
 
           {/* Sign In Button */}
-          <motion.button
+          <motion.a
+            href="#"
             className={cn(
-              'px-4 py-2 rounded-2xl',
               'text-sm font-medium',
-              'transition-colors duration-200',
+              'text-slate-600 hover:text-slate-900',
               'dark:text-slate-400 dark:hover:text-white',
-              'text-slate-600 hover:text-slate-900'
+              'transition-colors duration-200'
             )}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.15 }}
           >
             Sign In
-          </motion.button>
+          </motion.a>
 
           {/* Request Demo Button */}
           <motion.button
             className={cn(
-              'px-5 py-2.5 rounded-2xl',
+              'px-5 py-2.5 rounded-full',
               'text-sm font-semibold',
-              'bg-electric-600 hover:bg-electric-500',
+              'bg-blue-600 hover:bg-blue-700',
               'text-white',
-              'shadow-glow-sm hover:shadow-glow',
+              'shadow-lg shadow-blue-600/20',
               'transition-all duration-200'
             )}
             initial={{ opacity: 0, x: 20 }}
