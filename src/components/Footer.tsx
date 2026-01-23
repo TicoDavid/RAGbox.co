@@ -9,11 +9,18 @@ export default function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
           {/* COLUMN 1: BRAND */}
           <div className="col-span-2 md:col-span-1 space-y-4">
-            {/* Blue Logo */}
+            {/* Theme-aware Logo */}
             <div className="flex items-center gap-2 font-bold text-xl">
+              {/* Light mode: Black logo */}
               <img
-                src="https://storage.googleapis.com/connexusai-assets/BlueLogo_RAGbox.co.png"
-                className="h-8 w-auto"
+                src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
+                className="h-8 w-auto dark:hidden"
+                alt="RAGBox"
+              />
+              {/* Dark mode: White logo */}
+              <img
+                src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_white.jpg"
+                className="h-8 w-auto hidden dark:block"
                 alt="RAGBox"
               />
             </div>
