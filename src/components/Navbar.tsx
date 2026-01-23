@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
  *
  * Features:
  * - Sticky positioning with backdrop blur
- * - Dynamic text logo (RAG yellow/black, Box blue)
+ * - Official RAGbox.co logo (same in both modes)
  * - Pill-shaped theme toggle with satisfying spring animation
  */
 export function Navbar() {
@@ -41,36 +41,18 @@ export function Navbar() {
       )}
     >
       <div className="max-w-7xl mx-auto h-full flex items-center justify-between">
-        {/* Logo - Text Based for Theme Adaptability */}
+        {/* Logo - Official RAGbox.co Logo */}
         <motion.div
-          className="flex items-center gap-0.5 cursor-pointer"
+          className="flex items-center cursor-pointer"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         >
-          {/* RAG: Black in Light, Yellow in Dark */}
-          <span
-            className={cn(
-              'font-bold text-3xl md:text-4xl tracking-tighter',
-              'text-slate-900 dark:text-[#FFE600]',
-              'transition-colors duration-300'
-            )}
-          >
-            RAG
-          </span>
-          {/* Box: Blue in both modes */}
-          <span
-            className={cn(
-              'font-bold text-3xl md:text-4xl tracking-tighter',
-              'text-blue-600 dark:text-blue-500'
-            )}
-          >
-            box
-          </span>
-          {/* .co suffix - aligned to baseline */}
-          <span className="text-sm font-medium text-slate-400 dark:text-slate-600 ml-0.5 self-end mb-1">
-            .co
-          </span>
+          <img
+            src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_white.jpg"
+            alt="RAGbox.co"
+            className="h-12 md:h-14 w-auto"
+          />
         </motion.div>
 
         {/* Right Controls */}
