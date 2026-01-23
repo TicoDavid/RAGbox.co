@@ -10,6 +10,14 @@ export default function Hero({ onOpenAuth }: HeroProps) {
   return (
     <section className="relative pt-32 pb-20 flex flex-col items-center text-center px-4 overflow-hidden dark:bg-[#050505] bg-white transition-colors duration-300">
 
+      {/* MASTER CLASS TEXTURE: The Grid Background */}
+      <div className="absolute inset-0 pointer-events-none">
+        {/* Light Mode Grid */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] dark:opacity-0" />
+        {/* Dark Mode Grid */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:24px_24px] opacity-0 dark:opacity-100" />
+      </div>
+
       {/* Background Ambience - The "SaaS Glow" */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-blue-500/20 dark:bg-blue-500/10 blur-[120px] rounded-full pointer-events-none" />
 
