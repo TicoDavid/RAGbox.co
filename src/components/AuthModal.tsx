@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
+import useSound from 'use-sound';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -25,6 +26,12 @@ export function AuthModal({ isOpen, onClose, context = 'signin' }: AuthModalProp
   const [error, setError] = useState('');
   const [devOtp, setDevOtp] = useState(''); // For dev mode display
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Sound: The "Vault Door" - heavy impact on successful login
+  const [playSuccess] = useSound(
+    'https://storage.googleapis.com/connexusai-assets/trailer-transition-double-crushing-impact-epic-stock-media-1-00-09.mp3',
+    { volume: 0.4 }
+  );
 
   // Reset state when modal opens/closes
   useEffect(() => {
@@ -130,9 +137,12 @@ export function AuthModal({ isOpen, onClose, context = 'signin' }: AuthModalProp
         setOtp(['', '', '', '', '', '']);
         inputRefs.current[0]?.focus();
       } else {
-        // Success - redirect to dashboard
-        router.push('/dashboard');
-        onClose();
+        // Success - play vault door sound and redirect
+        playSuccess();
+        setTimeout(() => {
+          router.push('/dashboard');
+          onClose();
+        }, 1500); // Give sound time to play
       }
     } catch {
       setError('Verification failed. Please try again.');

@@ -1,10 +1,17 @@
 "use client";
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import useSound from 'use-sound';
 import AdvancedChat from './components/AdvancedChat';
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('Home');
+
+  // Sound: Tactile hover click for sidebar
+  const [playHover] = useSound(
+    'https://storage.googleapis.com/connexusai-assets/sci-fi-whoosh-ui-click-brukowskij-1-00-02.mp3',
+    { volume: 0.2 }
+  );
 
   return (
     <div className="flex h-screen bg-[#F8F9FA] dark:bg-[#050505] text-slate-900 dark:text-white overflow-hidden font-sans selection:bg-blue-500/30 transition-colors duration-300">
@@ -26,6 +33,7 @@ export default function Dashboard() {
         {['Home', 'Vault', 'Settings'].map((item) => (
             <button
               key={item}
+              onMouseEnter={() => playHover()}
               onClick={() => setActiveTab(item)}
               className={`p-3 rounded-xl transition-all duration-300 group relative ${
                 activeTab === item

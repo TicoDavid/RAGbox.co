@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import useSound from 'use-sound';
 
 const MODES = [
   { id: 'exec', label: 'Executive Summary', icon: '📊', color: 'blue' },
@@ -11,9 +12,36 @@ const MODES = [
 export default function AdvancedChat() {
   const [selectedMode, setSelectedMode] = useState('exec');
   const [showLogic, setShowLogic] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
 
   // Helper to get current theme color
   const currentTheme = MODES.find(m => m.id === selectedMode)?.color || 'blue';
+
+  // Sound: Data stream while AI is thinking
+  const [playThinking, { stop: stopThinking }] = useSound(
+    'https://storage.googleapis.com/connexusai-assets/digital-data-processing-davies-aguirre-2-2-00-03.mp3',
+    { volume: 0.1, loop: true }
+  );
+
+  // Sound: Alert ping when analysis is complete
+  const [playAlert] = useSound(
+    'https://storage.googleapis.com/connexusai-assets/low-battery-alert-notification-jeff-kaale-1-00-01.mp3',
+    { volume: 0.3 }
+  );
+
+  // Handle sending a query
+  const handleAsk = () => {
+    setIsThinking(true);
+    playThinking();
+
+    // Simulate API delay
+    setTimeout(() => {
+      stopThinking();
+      playAlert();
+      setIsThinking(false);
+      // TODO: Add actual message logic here
+    }, 2000);
+  };
 
   return (
     <div className="flex flex-col h-full relative bg-slate-50 dark:bg-[#050505] transition-colors duration-300">
@@ -176,8 +204,16 @@ export default function AdvancedChat() {
                 transition-all shadow-xl shadow-slate-200/50 dark:shadow-black/50
             "
           />
-          <button className={`absolute right-2 top-2 h-10 w-10 rounded-lg text-white flex items-center justify-center transition-colors shadow-lg ${selectedMode === 'risk' ? 'bg-amber-600 hover:bg-amber-500' : 'bg-[#0000FF] hover:bg-blue-600'}`}>
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 12h14M12 5l7 7-7 7"></path></svg>
+          <button
+            onClick={handleAsk}
+            disabled={isThinking}
+            className={`absolute right-2 top-2 h-10 w-10 rounded-lg text-white flex items-center justify-center transition-colors shadow-lg disabled:opacity-50 ${selectedMode === 'risk' ? 'bg-amber-600 hover:bg-amber-500' : 'bg-[#0000FF] hover:bg-blue-600'}`}
+          >
+            {isThinking ? (
+              <span className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
+            ) : (
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 12h14M12 5l7 7-7 7"></path></svg>
+            )}
           </button>
         </div>
       </div>
