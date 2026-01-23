@@ -4,6 +4,7 @@ import { Navbar } from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import FeatureGrid from '@/components/FeatureGrid';
 import { AuthModal } from '@/components/AuthModal';
+import Footer from '@/components/Footer';
 
 export default function Home() {
   const [isAuthOpen, setAuthOpen] = useState(false);
@@ -14,6 +15,7 @@ export default function Home() {
       <Navbar onOpenAuth={openAuth} />
       <Hero onOpenAuth={openAuth} />
       <FeatureGrid />
+      <Footer />
       <AuthModal isOpen={isAuthOpen} onClose={() => setAuthOpen(false)} />
     </main>
   );

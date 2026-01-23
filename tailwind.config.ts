@@ -21,6 +21,12 @@ const config: Config = {
           card: '#FAFAFA',
           muted: '#F5F5F5',
         },
+        // Light mode paper colors (aliases for ceramic)
+        paper: {
+          DEFAULT: '#FFFFFF',
+          card: '#FAFAFA',
+          muted: '#F5F5F5',
+        },
         // RAGbox Electric Blue - primary brand color
         electric: {
           50: '#eff6ff',
