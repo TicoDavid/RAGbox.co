@@ -61,21 +61,6 @@ export default function LandingPage() {
 
       {/* Hero Section - The Sovereign Zone */}
       <section className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 pt-20 pb-16 min-h-[85vh]">
-        {/* Tagline - Pulled up for prominence */}
-        <motion.p
-          className={cn(
-            'text-sm md:text-base font-semibold uppercase tracking-widest mb-6',
-            'text-transparent bg-clip-text',
-            'dark:bg-gradient-to-r dark:from-electric-400 dark:to-electric-600',
-            'bg-gradient-to-r from-electric-500 to-electric-700'
-          )}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.05 }}
-        >
-          Your Files Speak. We Make Them Testify.
-        </motion.p>
-
         {/* H1 Headline - Softened, Empowering */}
         <motion.h1
           className={cn(
@@ -94,11 +79,11 @@ export default function LandingPage() {
           </span>
         </motion.h1>
 
-        {/* Subheadline */}
+        {/* Subheadline - High contrast for readability */}
         <motion.p
           className={cn(
-            'text-lg md:text-xl lg:text-2xl text-center mb-4',
-            'dark:text-slate-400 text-slate-600',
+            'text-lg md:text-xl lg:text-2xl text-center mb-4 font-medium',
+            'dark:text-slate-300 text-slate-800',
             'max-w-2xl'
           )}
           initial={{ opacity: 0, y: 20 }}
@@ -113,8 +98,8 @@ export default function LandingPage() {
         {/* Value Prop - Zero Training Emphasis */}
         <motion.p
           className={cn(
-            'text-sm md:text-base text-center mb-12',
-            'dark:text-slate-500 text-slate-500',
+            'text-sm md:text-base text-center mb-10',
+            'dark:text-slate-400 text-slate-600',
             'max-w-xl'
           )}
           initial={{ opacity: 0, y: 20 }}
@@ -133,9 +118,9 @@ export default function LandingPage() {
           <TheBox />
         </motion.div>
 
-        {/* CTAs - Clearer, More Accessible */}
+        {/* CTAs - Connected to Box */}
         <motion.div
-          className="flex flex-col sm:flex-row items-center gap-4 mt-12"
+          className="flex flex-col sm:flex-row items-center gap-4 mt-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.3 }}
@@ -151,18 +136,19 @@ export default function LandingPage() {
               'transition-all duration-200'
             )}
           >
-            Start Free Trial
+            Analyze Documents
           </Link>
           <button
             className={cn(
               'px-6 py-3 rounded-2xl',
               'text-sm font-medium',
-              // Improved contrast for accessibility
-              'dark:text-white/70 dark:hover:text-white',
-              'text-slate-700 hover:text-slate-900',
-              'dark:border dark:border-white/20 dark:hover:border-white/40',
-              'border border-slate-300 hover:border-slate-400',
-              'dark:hover:bg-white/5 hover:bg-slate-50',
+              // High contrast secondary button
+              'dark:text-white dark:hover:text-white',
+              'text-slate-800 hover:text-slate-900',
+              // White border in dark mode for visibility
+              'dark:border dark:border-white/50 dark:hover:border-white',
+              'border border-slate-400 hover:border-slate-500',
+              'dark:hover:bg-white/10 hover:bg-slate-100',
               'transition-all duration-200'
             )}
           >

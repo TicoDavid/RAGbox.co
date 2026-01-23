@@ -106,24 +106,24 @@ export function TheBox() {
         }
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       >
-        {/* HIGH VOLTAGE Glow effect - behind the box */}
+        {/* Glow effect - behind the box (Dark mode only) */}
         <motion.div
           className={cn(
             'absolute inset-0 rounded-3xl',
-            'bg-electric-600/30 blur-3xl',
             'pointer-events-none',
-            // Layered bloom shadow - theme aware
-            'dark:shadow-[0_0_60px_-15px_rgba(37,99,235,0.6),0_0_100px_-20px_rgba(37,99,235,0.4)]',
-            'shadow-[0_0_40px_-10px_rgba(37,99,235,0.3)]'
+            // Dark mode: Electric blue glow
+            'dark:bg-electric-600/20 dark:blur-3xl',
+            // Light mode: No glow (clean floating shadow instead)
+            'bg-transparent blur-none'
           )}
           animate={{
-            opacity: isAbsorbing ? 1 : isActive ? 0.8 : 0.5,
+            opacity: isAbsorbing ? 1 : isActive ? 0.8 : 0.4,
             scale: isAbsorbing ? 1.5 : isActive ? 1.3 : 1.1,
           }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         />
 
-        {/* The Drop Zone Card - Glassmorphism with glowing border */}
+        {/* The Drop Zone Card - Premium floating container */}
         <motion.div
           className={cn(
             'relative z-10',
@@ -132,41 +132,22 @@ export function TheBox() {
             'flex flex-col items-center justify-center gap-4',
             'cursor-pointer',
             'transition-all duration-300',
-            // Glassmorphism background
-            'dark:bg-white/5 bg-black/5',
+            // Dark mode: Elevated surface with subtle fill
+            'dark:bg-[#111111]',
+            // Light mode: Clean white card
+            'bg-white',
             'backdrop-blur-xl',
-            // Solid border (not dashed) - premium feel
-            'border-2',
-            // HIGH VOLTAGE Shadow - Layered bloom
+            // Border: thin with glow in dark, grey in light
+            'border',
+            'dark:border-electric-600/30',
+            'border-slate-200',
+            // Shadows: Layered glow (dark) vs floating shadow (light)
             isAbsorbing
-              ? 'dark:shadow-[0_0_100px_-10px_rgba(37,99,235,0.8),0_0_150px_-20px_rgba(37,99,235,0.5)] shadow-glow-intense'
+              ? 'dark:shadow-[0_0_80px_-10px_rgba(37,99,235,0.7)] shadow-2xl'
               : isActive
-                ? 'dark:shadow-[0_0_60px_-15px_rgba(37,99,235,0.6),0_0_100px_-20px_rgba(37,99,235,0.4)] shadow-glow-lg'
-                : 'dark:shadow-[0_0_40px_-15px_rgba(37,99,235,0.4),0_0_60px_-20px_rgba(37,99,235,0.2)] shadow-glow-sm'
+                ? 'dark:shadow-[0_0_50px_-10px_rgba(37,99,235,0.5)] shadow-xl'
+                : 'dark:shadow-[0_0_30px_-10px_rgba(37,99,235,0.3)] shadow-lg'
           )}
-          animate={
-            isAbsorbing
-              ? {
-                  borderColor: '#2563eb',
-                }
-              : isActive
-                ? {
-                    borderColor: '#2563eb',
-                  }
-                : {
-                    // ALIVE: Pulsing border opacity 0.3 -> 0.8
-                    borderColor: [
-                      'rgba(37, 99, 235, 0.3)',
-                      'rgba(37, 99, 235, 0.8)',
-                      'rgba(37, 99, 235, 0.3)',
-                    ],
-                    transition: {
-                      duration: 3,
-                      repeat: Infinity,
-                      ease: 'easeInOut',
-                    },
-                  }
-          }
         >
           {/* Shield Icon - Premium, secure feel */}
           <AnimatePresence mode="wait">
@@ -214,10 +195,10 @@ export function TheBox() {
                   <Shield
                     className={cn(
                       'w-16 h-16',
-                      'dark:text-white/40 text-black/30',
+                      'dark:text-white/60 text-slate-400',
                       isHovered && 'dark:text-electric-400 text-electric-600'
                     )}
-                    strokeWidth={1.5}
+                    strokeWidth={2.5}
                   />
                 </motion.div>
               </motion.div>

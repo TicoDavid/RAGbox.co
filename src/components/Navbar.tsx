@@ -55,8 +55,10 @@ export function Navbar() {
             className={cn(
               // 2x size for prominent branding
               'h-24 md:h-28 lg:h-32 w-auto',
-              'transition-all duration-300'
-              // Keep original blue color in both modes (registered logo)
+              'transition-all duration-300',
+              // Light mode: darken logo for white background (accessibility)
+              // Dark mode: keep original colors
+              'dark:brightness-100 brightness-0'
             )}
           />
         </motion.div>
