@@ -22,6 +22,7 @@
 - ✅ S013: Implement Privilege Toggle Backend Logic [HIGH] - DONE
 - ✅ S014: Implement Document Privilege Tagging [HIGH] - DONE
 - ✅ S015: Implement Veritas Audit Logging [CRITICAL] - DONE
+- ✅ S016: Build Audit Log Viewer Page [HIGH] - DONE
 
 ---
 
@@ -36,9 +37,9 @@
 ---
 
 ## Next Up
-- S016: Build Audit Log Viewer Page [HIGH]
 - S017: Implement Audit Report PDF Export [MEDIUM]
 - S018: Update Vault to Show Real Documents [HIGH]
+- S019: Implement One-Click Data Export [MEDIUM]
 
 ---
 
@@ -53,6 +54,17 @@
 ---
 
 ## Iteration Log
+
+### Iteration 16 (2026-01-23)
+- Story: S016 - Build Audit Log Viewer Page
+- Status: DONE
+- Created: src/app/api/audit/route.ts (GET API with filtering and pagination)
+- Created: src/app/dashboard/audit/page.tsx (Audit viewer page)
+- Created: src/components/audit/AuditTimeline.tsx (Timeline with filters)
+- Created: src/components/audit/AuditEntry.tsx (Entry card and detail modal)
+- Updated: src/components/Sidebar.tsx (Link navigation to audit page)
+- Features: Blockchain-inspired timeline, action/severity/date filters, search, pagination, detail modal with SHA-256 verification, WORM-compliant display
+- Status: PASS
 
 ### Iteration 15 (2026-01-23)
 - Story: S014 - Implement Document Privilege Tagging
@@ -260,10 +272,10 @@
 
 ## Metrics
 - Total Stories: 20
-- Completed: 15
+- Completed: 16
 - In Progress: 0
-- Remaining: 5
-- Estimated Story Points: ~29
+- Remaining: 4
+- Estimated Story Points: ~25
 
 ---
 

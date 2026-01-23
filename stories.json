@@ -441,7 +441,7 @@
       "id": "S016",
       "epic": "E6",
       "title": "Build Audit Log Viewer Page",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "story_points": 4,
       "description": "Create UI for viewing audit trail (Truth & Audit nav item).",
@@ -462,7 +462,8 @@
         "src/app/dashboard/audit/page.tsx",
         "src/components/audit/AuditTimeline.tsx",
         "src/components/audit/AuditEntry.tsx"
-      ]
+      ],
+      "notes": "Full audit log viewer with blockchain-inspired timeline, filtering (action, severity, date range), search, pagination, and detail modal with integrity verification"
     },
     {
       "id": "S017",

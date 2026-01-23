@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
+import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { useTheme } from 'next-themes'
 import { Box, Scale, Settings, Sun, Moon, User } from 'lucide-react'
@@ -10,12 +12,13 @@ interface NavItem {
   icon: React.ReactNode
   label: string
   id: string
+  href: string
 }
 
 const navItems: NavItem[] = [
-  { icon: <Box className="w-5 h-5" strokeWidth={2.5} />, label: 'The Box', id: 'box' },
-  { icon: <Scale className="w-5 h-5" strokeWidth={2.5} />, label: 'Truth & Audit', id: 'audit' },
-  { icon: <Settings className="w-5 h-5" strokeWidth={2.5} />, label: 'Settings', id: 'settings' },
+  { icon: <Box className="w-5 h-5" strokeWidth={2.5} />, label: 'The Box', id: 'box', href: '/dashboard' },
+  { icon: <Scale className="w-5 h-5" strokeWidth={2.5} />, label: 'Truth & Audit', id: 'audit', href: '/dashboard/audit' },
+  { icon: <Settings className="w-5 h-5" strokeWidth={2.5} />, label: 'Settings', id: 'settings', href: '/dashboard/settings' },
 ]
 
 /**
@@ -27,7 +30,7 @@ const navItems: NavItem[] = [
  * - User profile pill with theme toggle at bottom
  */
 export function Sidebar() {
-  const [activeItem, setActiveItem] = useState('box')
+  const pathname = usePathname()
   const { setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
@@ -36,6 +39,15 @@ export function Sidebar() {
   }, [])
 
   const isDark = resolvedTheme === 'dark'
+
+  // Determine active item based on current pathname
+  const getActiveItem = () => {
+    if (pathname === '/dashboard') return 'box'
+    if (pathname.startsWith('/dashboard/audit')) return 'audit'
+    if (pathname.startsWith('/dashboard/settings')) return 'settings'
+    return 'box'
+  }
+  const activeItem = getActiveItem()
 
   return (
     <motion.aside
@@ -75,8 +87,8 @@ export function Sidebar() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 + index * 0.05 }}
             >
-              <button
-                onClick={() => setActiveItem(item.id)}
+              <Link
+                href={item.href}
                 className={cn(
                   'w-full flex items-center gap-3 px-4 py-3 rounded-2xl',
                   'transition-all duration-200',
@@ -96,7 +108,7 @@ export function Sidebar() {
               >
                 {item.icon}
                 <span className="font-bold">{item.label}</span>
-              </button>
+              </Link>
             </motion.li>
           ))}
         </ul>
