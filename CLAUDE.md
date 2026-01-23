@@ -1,323 +1,256 @@
-# CLAUDE.md - AI Assistant Guide for RAGbox.co
+# CLAUDE.md - RAGbox.co AI Assistant Guide
 
 ## Project Overview
 
-**RAGbox.co** is a Retrieval-Augmented Generation (RAG) application that combines document search with AI-powered responses.
+RAGbox.co is a secure, compliance-ready RAG (Retrieval-Augmented Generation) platform targeting SMBs in legal, financial, and healthcare sectors. The platform transforms unstructured documents into an intelligent, queryable knowledge base with verified citations, attorney-client privilege protection, and immutable audit logging.
 
-> **Note**: This is a new repository. Update this document as the codebase evolves.
+**Tagline:** "Your Files Speak. We Make Them Testify."
 
----
+## Quick Start
 
-## For Non-Developer Users
+```bash
+# Install dependencies
+npm install
 
-If you're new to Claude Code, here's how to work effectively:
+# Set up environment variables
+cp .env.example .env.local
+# Edit .env.local with your GCP credentials
 
-### Talking to Claude
+# Run development server
+npm run dev
 
-You can ask Claude to:
-- **Build features**: "Create a document upload page"
-- **Explain code**: "What does this function do?"
-- **Fix bugs**: "The search isn't returning results"
-- **Plan tasks**: "Help me plan a user authentication system"
+# Run tests
+npm test
 
-### Useful Slash Commands
+# Build for production
+npm run build
 
-| Command | What It Does |
-|---------|--------------|
-| `/plan` | Create a detailed implementation plan before coding |
-| `/tdd` | Use test-driven development (write tests first) |
-| `/code-review` | Review code for quality and security |
-| `/build-fix` | Fix build errors automatically |
-| `/refactor-clean` | Clean up and improve existing code |
-
-### Tips for Best Results
-
-1. **Be specific**: "Add a search bar to the header" works better than "make search work"
-2. **Give context**: Explain what you're trying to achieve
-3. **Ask questions**: If unsure, ask Claude to explain options
-4. **Review changes**: Always look at what Claude modified
-
----
-
-## Quick Reference
-
-| Command | Description |
-|---------|-------------|
-| `npm install` | Install dependencies |
-| `npm run dev` | Start development server |
-| `npm run build` | Build for production |
-| `npm run test` | Run test suite |
-| `npm run lint` | Run linter |
-
----
+# Deploy to GCP
+npm run deploy
+```
 
 ## Project Structure
 
 ```
-RAGbox.co/
-├── CLAUDE.md           # This file - AI assistant guide
-├── README.md           # Project documentation
-├── package.json        # Dependencies and scripts
-├── .claude/            # Claude Code configurations
-│   ├── agents/         # Specialized task agents
-│   ├── rules/          # Coding guidelines
-│   ├── commands/       # Custom slash commands
-│   └── skills/         # Domain knowledge
-├── src/                # Source code
-│   ├── app/            # Next.js app router (pages)
-│   ├── components/     # Reusable UI components
-│   ├── lib/            # Shared utilities
-│   ├── services/       # Business logic
-│   │   ├── embedding/  # Vector embedding services
-│   │   ├── retrieval/  # Document retrieval logic
-│   │   └── generation/ # LLM generation services
-│   └── types/          # TypeScript type definitions
-├── tests/              # Test files
-└── docs/               # Documentation
+ragbox-co/
+├── src/
+│   ├── app/                    # Next.js App Router
+│   │   ├── layout.tsx          # Root layout
+│   │   ├── page.tsx            # Landing page
+│   │   ├── login/              # Authentication
+│   │   ├── dashboard/          # Protected dashboard
+│   │   └── api/                # API routes
+│   ├── components/
+│   │   ├── ui/                 # Reusable primitives
+│   │   ├── landing/            # Landing page
+│   │   ├── vault/              # Document management
+│   │   ├── mercury/            # Chat interface
+│   │   ├── privilege/          # Privilege system
+│   │   └── audit/              # Audit logging
+│   ├── lib/
+│   │   ├── gcp/                # GCP service clients
+│   │   ├── rag/                # RAG pipeline
+│   │   └── audit/              # Audit utilities
+│   ├── hooks/                  # Custom React hooks
+│   ├── contexts/               # React contexts
+│   └── types/                  # TypeScript types
+├── prisma/                     # Database schema
+├── terraform/                  # Infrastructure as code
+├── functions/                  # Cloud Functions
+└── public/                     # Static assets
 ```
 
----
+## Tech Stack
 
-## Core Development Principles
+| Layer | Technology |
+|-------|------------|
+| Frontend | Next.js 14 (App Router), React 18, Tailwind CSS |
+| Backend | Node.js, Express/Fastify, TypeScript |
+| Database | AlloyDB with pgvector (or Cloud SQL PostgreSQL) |
+| AI | Vertex AI (Gemini 1.5 Pro, text-embedding-004) |
+| Auth | Firebase Authentication |
+| Storage | GCP Cloud Storage with CMEK |
+| Infrastructure | Cloud Run, Cloud Functions, Document AI |
 
-### 1. Code Organization
-- Many small files over few large files
-- High cohesion, low coupling
-- 200-400 lines typical, 800 max per file
-- Organize by feature/domain, not by type
+## Design System
 
-### 2. Code Style
-- No emojis in code, comments, or documentation
-- Immutability always - never mutate objects or arrays
-- No console.log in production code
-- Proper error handling with try/catch
-- Input validation with Zod or similar
-
-### 3. Testing (TDD)
-- Write tests first
-- 80% minimum coverage
-- Unit tests for utilities
-- Integration tests for APIs
-- E2E tests for critical flows
-
-### 4. Security (Mandatory)
-- No hardcoded secrets
-- Environment variables for sensitive data
-- Validate all user inputs
-- Parameterized queries only
-- CSRF protection enabled
-
----
-
-## RAG-Specific Guidelines
-
-### Embedding Services
-```typescript
-// Use consistent embedding models
-const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || 'text-embedding-3-small'
-
-// Cache embeddings to reduce costs
-const cachedEmbedding = await cache.get(documentId)
-if (cachedEmbedding) return cachedEmbedding
-
-// Handle rate limits with exponential backoff
-await fetchWithRetry(() => generateEmbedding(text), { maxRetries: 3 })
+### Colors (Cyber-Noir Theme)
+```css
+--background: #050505;      /* OLED Black */
+--primary: #00F0FF;         /* Electric Cyan */
+--warning: #FFAB00;         /* Amber */
+--danger: #FF3D00;          /* Neon Red */
+--border: #333333;
+--text: #FFFFFF;
+--text-muted: #888888;
 ```
 
-### Vector Database Best Practices
-- Chunk size: 500-1000 tokens (consistent across app)
-- Include metadata: `{ source, timestamp, category }`
-- Similarity threshold: 0.7-0.8 for relevance
-- Use HNSW indexes for fast retrieval
+### Typography
+- **Headers:** Space Grotesk (Google Fonts)
+- **Body:** Inter (Google Fonts)
+- **Code/Citations:** JetBrains Mono (Google Fonts)
 
-### LLM Integration Patterns
-```typescript
-// Standard API response format
-interface ApiResponse<T> {
-  success: boolean
-  data?: T
-  error?: string
-}
+### Component Patterns
+- Use Tailwind CSS for styling
+- Glassmorphism for cards: `bg-black/50 backdrop-blur-lg border border-[#333]`
+- Glow effects: `shadow-[0_0_20px_rgba(0,240,255,0.3)]`
+- Animations via Framer Motion
 
-// Always stream long responses
-const stream = await anthropic.messages.stream({
-  model: 'claude-sonnet-4-20250514',
-  messages,
-  max_tokens: 1024
-})
+## Key Features
 
-// Log token usage for cost monitoring
-console.info('Token usage:', response.usage)
+### 1. The Vault (Document Upload)
+- Drag-and-drop upload with "Feed the Box" prompt
+- Terminal-style ingestion log
+- AES-256 encryption at rest
+
+### 2. The Interrogation (Query Interface)
+- Natural language queries
+- Streaming responses
+- Confidence scoring with Silence Protocol (<85%)
+
+### 3. Citation System
+- Inline citation numbers [1], [2], [3]
+- Click to highlight source passage
+- Document preview panel
+
+### 4. Privilege Toggle
+- Binary mode: Open (grey) / Privileged (red)
+- Screen border pulse when active
+- Privileged documents hidden in normal mode
+
+### 5. Veritas Audit Log
+- Immutable, timestamped entries
+- BigQuery storage (WORM-compatible)
+- PDF export for regulators
+
+## Common Commands
+
+### Development
+```bash
+npm run dev              # Start dev server
+npm run lint             # Run ESLint
+npm run type-check       # TypeScript check
+npm run test             # Run tests
+npm run test:watch       # Watch mode
 ```
 
----
+### Database
+```bash
+npx prisma generate      # Generate client
+npx prisma migrate dev   # Run migrations
+npx prisma studio        # Open Prisma Studio
+```
 
-## Available Claude Agents
-
-These specialized agents handle complex tasks:
-
-| Agent | When to Use |
-|-------|-------------|
-| `planner` | Planning new features |
-| `architect` | System design decisions |
-| `tdd-guide` | Test-driven development |
-| `code-reviewer` | Quality and security review |
-| `security-reviewer` | Vulnerability analysis |
-| `build-error-resolver` | Fix build errors |
-| `e2e-runner` | Playwright E2E testing |
-| `refactor-cleaner` | Dead code cleanup |
-| `doc-updater` | Documentation sync |
-
----
+### Deployment
+```bash
+npm run build            # Build for production
+gcloud run deploy        # Deploy to Cloud Run
+terraform apply          # Apply infrastructure
+```
 
 ## Environment Variables
 
 ```bash
+# GCP
+GOOGLE_CLOUD_PROJECT=ragbox-prod
+GCP_REGION=us-central1
+GOOGLE_APPLICATION_CREDENTIALS=./service-account.json
+
 # Database
-DATABASE_URL=
+DATABASE_URL=postgresql://user:pass@host:5432/ragbox
 
-# Vector Database (e.g., Pinecone, Qdrant, Weaviate)
-VECTOR_DB_URL=
-VECTOR_DB_API_KEY=
+# AI
+VERTEX_AI_LOCATION=us-central1
+VERTEX_AI_MODEL=gemini-1.5-pro
 
-# LLM Providers
-OPENAI_API_KEY=
-ANTHROPIC_API_KEY=
+# Storage
+GCS_BUCKET_NAME=ragbox-documents-prod
 
-# Embedding Service
-EMBEDDING_MODEL=text-embedding-3-small
+# Auth (Firebase)
+NEXT_PUBLIC_FIREBASE_API_KEY=...
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
 
-# Application
-NODE_ENV=development
-PORT=3000
+# Encryption
+KMS_KEY_RING=ragbox-keys
+KMS_KEY_NAME=document-key
+
+# App
+NEXT_PUBLIC_APP_URL=https://ragbox.co
+CONFIDENCE_THRESHOLD=0.85
 ```
 
-> NEVER commit actual API keys. Use `.env.example` as a template.
+## API Routes
 
----
+| Route | Method | Description |
+|-------|--------|-------------|
+| `/api/upload` | POST | Upload document to vault |
+| `/api/documents` | GET | List user documents |
+| `/api/documents/[id]` | GET/DELETE | Get/delete document |
+| `/api/documents/[id]/privilege` | PATCH | Toggle privilege |
+| `/api/chat` | POST | RAG query (streaming) |
+| `/api/audit` | GET | Get audit log entries |
+| `/api/audit/export` | GET | Export audit PDF |
+| `/api/export` | GET | Export all user data |
 
-## Git Workflow
+## Testing
 
-### Commit Messages
-Use conventional commits:
-- `feat:` New feature
-- `fix:` Bug fix
-- `refactor:` Code improvement
-- `docs:` Documentation
-- `test:` Tests
-
-### Example
 ```bash
-git commit -m "feat: add document chunking service"
-git commit -m "fix: resolve embedding cache miss"
+# Unit tests
+npm run test
+
+# Integration tests
+npm run test:integration
+
+# E2E tests (Playwright)
+npm run test:e2e
 ```
 
-### Pull Request Process
-1. Create feature branch from main
-2. Make changes, write tests
-3. Run `npm run test && npm run lint`
-4. Push and create PR
-5. Request review
-6. Merge after approval
+## Debugging
 
----
+### Common Issues
+
+1. **Vertex AI not responding**
+   - Check GOOGLE_APPLICATION_CREDENTIALS
+   - Verify IAM permissions for Vertex AI
+   - Check quotas in GCP Console
+
+2. **Database connection failed**
+   - Verify DATABASE_URL format
+   - Check VPC connector for Cloud Run
+   - Test connection with `npx prisma db push`
+
+3. **File upload fails**
+   - Check Cloud Storage bucket permissions
+   - Verify CMEK key access
+   - Check file size limits (50MB default)
+
+### Logging
+```typescript
+import { logger } from '@/lib/logger';
+
+logger.info('User uploaded document', { userId, filename });
+logger.error('RAG query failed', { error, query });
+```
 
 ## Security Checklist
 
-Before ANY commit, verify:
-- [ ] No hardcoded secrets (API keys, passwords, tokens)
-- [ ] All user inputs validated
-- [ ] SQL injection prevention (parameterized queries)
-- [ ] XSS prevention (sanitized HTML)
-- [ ] Error messages don't leak sensitive data
-- [ ] Rate limiting on API endpoints
+- [ ] Environment variables in Secret Manager (not .env in production)
+- [ ] CMEK encryption enabled on Cloud Storage
+- [ ] VPC Service Controls configured
+- [ ] IAM roles follow least-privilege
+- [ ] Audit logging enabled for all sensitive operations
+- [ ] Rate limiting on API routes
+- [ ] CORS configured for allowed origins only
+
+## Contributing
+
+1. Create a feature branch: `git checkout -b feature/story-id`
+2. Implement the story acceptance criteria
+3. Write tests for new functionality
+4. Run `npm run lint && npm run test`
+5. Submit PR with story ID in title
 
 ---
 
-## API Response Format
-
-All APIs should return consistent responses:
-
-```typescript
-// Success
-{ success: true, data: { ... } }
-
-// Error
-{ success: false, error: "User-friendly message" }
-```
-
----
-
-## Error Handling Pattern
-
-```typescript
-try {
-  const result = await operation()
-  return { success: true, data: result }
-} catch (error) {
-  console.error('Operation failed:', error)
-  return { success: false, error: 'User-friendly message' }
-}
-```
-
----
-
-## Context Window Management
-
-Claude Code has a 200k token context window, but it shrinks with more tools enabled.
-
-**Best Practices:**
-- Keep under 10 MCPs (Model Context Protocol servers) enabled per project
-- Use `disabledMcpServers` in project config to disable unused ones
-- Keep under 80 tools active
-- Use the Explore agent for codebase research instead of manual searching
-
----
-
-## Performance Guidelines
-
-1. **Batch Operations**: Group embedding requests
-2. **Caching**: Cache frequently accessed data
-3. **Pagination**: Limit large result sets
-4. **Streaming**: Use for long LLM responses
-5. **Async**: Don't block on expensive operations
-
----
-
-## Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| API Rate Limits | Implement exponential backoff and caching |
-| Embedding Mismatch | Ensure consistent models across indexing and querying |
-| Memory Issues | Use streaming and pagination for large datasets |
-| Slow Retrieval | Optimize vector database indexes |
-| Build Errors | Use `/build-fix` command |
-
----
-
-## Resources
-
-### everything-claude-code
-This project uses configurations from the [everything-claude-code](https://github.com/affaan-m/everything-claude-code) repository:
-- Production-ready agents, skills, hooks, and commands
-- Battle-tested configs from real applications
-- MIT licensed - free to use and modify
-
-### Key Files to Review
-- `.claude/agents/` - Specialized task handlers
-- `.claude/rules/` - Coding guidelines
-- `.claude/commands/` - Custom slash commands
-
----
-
-## Updating This Document
-
-Update this CLAUDE.md when:
-- New major features are added
-- Development workflows change
-- New conventions are established
-- Dependencies significantly change
-- Project structure evolves
-
-**Keep this document accurate** - it helps Claude work effectively with the codebase.
+**For Ralph Wiggum Agent:** This file provides context for autonomous code generation. Reference it when implementing stories.
