@@ -1,144 +1,22 @@
-'use client'
+"use client";
+import { useState } from 'react';
+import { Navbar } from '@/components/Navbar';
+import Hero from '@/components/Hero';
+import FeatureGrid from '@/components/FeatureGrid';
+import { AuthModal } from '@/components/AuthModal';
+import Footer from '@/components/Footer';
 
-import { useState } from 'react'
-import { motion } from 'framer-motion'
-import Link from 'next/link'
-import { Navbar } from '@/components/Navbar'
-import { TheBox } from '@/components/TheBox'
-import { PrivilegeCards } from '@/components/PrivilegeCards'
-import { AuthModal } from '@/components/AuthModal'
-import Footer from '@/components/Footer'
-import { cn } from '@/lib/utils'
-
-/**
- * US-001: Landing Page
- *
- * Design System: "Cupertino Fort Knox"
- * - As secure as a bank vault, as intuitive as an Apple product
- * - OLED Void (dark) / Premium Bond Paper (light)
- * - Electric Blue (#2563EB) primary brand color
- * - Generous border radiuses (rounded-2xl, rounded-3xl)
- * - Heavy spring physics (stiffness: 300, damping: 30)
- *
- * HIERARCHY (Text First, Box Second):
- * 1. Navbar (Big Logo)
- * 2. H1 Headline (Heavy, "Sovereign Environment" gradient)
- * 3. Subhead (Grey/Slate)
- * 4. The Breathing Box (Glowing, Heavy Stroke)
- * 5. "See How It Works" Button
- */
-export default function LandingPage() {
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+export default function Home() {
+  const [isAuthOpen, setAuthOpen] = useState(false);
+  const openAuth = () => setAuthOpen(true);
 
   return (
-    <main
-      className={cn(
-        'min-h-screen flex flex-col',
-        // Pure OLED Black - Grok style
-        'bg-black'
-      )}
-    >
-      {/* Glass Navbar */}
-      <Navbar onSignInClick={() => setIsAuthModalOpen(true)} />
-
-      {/* Auth Modal */}
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-      />
-
-      {/* Hero Section - The Sovereign Zone */}
-      <section className="flex-1 flex flex-col items-center justify-center px-6 pt-20 pb-16 min-h-[85vh]">
-        {/* FLIPPED HIERARCHY: H1 Headline ABOVE TheBox */}
-        <motion.h1
-          className={cn(
-            'text-4xl sm:text-5xl md:text-6xl lg:text-7xl',
-            'font-extrabold text-center mb-6',
-            'text-white'
-          )}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.1 }}
-        >
-          Document Interrogation
-          <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-electric-400 via-electric-500 to-electric-600">
-            in a Sovereign Environment
-          </span>
-        </motion.h1>
-
-        {/* Subheadline */}
-        <motion.p
-          className={cn(
-            'text-lg md:text-xl lg:text-2xl text-center mb-12',
-            'text-slate-400',
-            'max-w-2xl'
-          )}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.15 }}
-        >
-          A Digital Fort Knox for your confidential documents.
-          <br className="hidden sm:block" />
-          AI-powered answers grounded in your data, with verifiable citations.
-        </motion.p>
-
-        {/* The Box - Central Element (Now BELOW the headline) */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.2 }}
-        >
-          <TheBox />
-        </motion.div>
-
-        {/* CTAs */}
-        <motion.div
-          className="flex flex-col sm:flex-row items-center gap-4 mt-12"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.3 }}
-        >
-          <Link
-            href="/dashboard"
-            className={cn(
-              'px-8 py-4 rounded-2xl',
-              'text-base font-semibold',
-              'bg-electric-600 hover:bg-electric-500',
-              'text-white',
-              'shadow-glow-sm hover:shadow-glow',
-              'transition-all duration-200'
-            )}
-          >
-            Enter The Vault
-          </Link>
-          <button
-            className={cn(
-              'px-6 py-3 rounded-2xl',
-              'text-sm font-medium',
-              'text-slate-400 hover:text-white',
-              'border border-white/10 hover:border-white/20',
-              'transition-all duration-200'
-            )}
-          >
-            See How It Works
-          </button>
-        </motion.div>
-      </section>
-
-      {/* Feature Section - The 4 Pillars */}
-      <section
-        className={cn(
-          'py-24',
-          'bg-black',
-          'border-t border-white/5'
-        )}
-      >
-        <PrivilegeCards />
-      </section>
-
-      {/* Cinematic Footer */}
+    <main className="min-h-screen dark:bg-[#050505] bg-white transition-colors duration-300">
+      <Navbar onOpenAuth={openAuth} />
+      <Hero onOpenAuth={openAuth} />
+      <FeatureGrid />
       <Footer />
+      <AuthModal isOpen={isAuthOpen} onClose={() => setAuthOpen(false)} />
     </main>
-  )
+  );
 }

@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 
 interface NavbarProps {
-  onSignInClick?: () => void
+  onOpenAuth?: () => void
 }
 
 /**
@@ -18,7 +18,7 @@ interface NavbarProps {
  * - Pill-shaped theme toggle with satisfying spring animation
  * - RAGbox logo on left, controls on right
  */
-export function Navbar({ onSignInClick }: NavbarProps) {
+export function Navbar({ onOpenAuth }: NavbarProps) {
   const { theme, setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
@@ -40,28 +40,32 @@ export function Navbar({ onSignInClick }: NavbarProps) {
         'px-6 py-0.5',
         // Ghost Strategy: Deeply transparent, floating
         'backdrop-blur-md',
-        'bg-black/50',
-        'border-b border-white/5',
+        'dark:bg-black/50 bg-white/90',
+        'dark:border-b dark:border-white/5 border-b border-slate-200/50',
         'transition-colors duration-300'
       )}
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        {/* Logo */}
+        {/* Logo - Theme-aware */}
         <motion.div
           className="flex items-center"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         >
-          <img
-            src="https://storage.googleapis.com/connexusai-assets/WhiteLogo_RAGbox.co-removebg-preview.png"
-            alt="RAGbox.co"
-            className={cn(
-              // COMPACT: Reduced to 75% for military-grade tightness
-              'h-12 md:h-14 lg:h-16 w-auto',
-              'transition-all duration-300'
-            )}
-          />
+          {mounted && (
+            <img
+              src={isDark
+                ? "https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
+                : "https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_white.jpg"
+              }
+              alt="RAGbox.co"
+              className={cn(
+                'h-12 md:h-14 lg:h-16 w-auto',
+                'transition-all duration-300'
+              )}
+            />
+          )}
         </motion.div>
 
         {/* Right Controls */}
@@ -107,7 +111,7 @@ export function Navbar({ onSignInClick }: NavbarProps) {
 
           {/* Sign In Button */}
           <motion.button
-            onClick={onSignInClick}
+            onClick={onOpenAuth}
             className={cn(
               'px-4 py-2 rounded-2xl',
               'text-sm font-medium',
@@ -123,7 +127,10 @@ export function Navbar({ onSignInClick }: NavbarProps) {
           </motion.button>
 
           {/* Request Demo Button */}
-          <motion.button
+          <motion.a
+            href="https://theconnexus.ai/"
+            target="_blank"
+            rel="noopener noreferrer"
             className={cn(
               'px-5 py-2.5 rounded-2xl',
               'text-sm font-semibold',
@@ -139,7 +146,7 @@ export function Navbar({ onSignInClick }: NavbarProps) {
             whileTap={{ scale: 0.98 }}
           >
             Request Demo
-          </motion.button>
+          </motion.a>
         </div>
       </div>
     </nav>
