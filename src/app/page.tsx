@@ -6,17 +6,24 @@ import FeatureGrid from '@/components/FeatureGrid';
 import { AuthModal } from '@/components/AuthModal';
 import Footer from '@/components/Footer';
 
+type AuthContext = 'signin' | 'signup' | 'upload';
+
 export default function Home() {
   const [isAuthOpen, setAuthOpen] = useState(false);
-  const openAuth = () => setAuthOpen(true);
+  const [authContext, setAuthContext] = useState<AuthContext>('signin');
+
+  const openAuth = (context: AuthContext) => {
+    setAuthContext(context);
+    setAuthOpen(true);
+  };
 
   return (
     <main className="min-h-screen dark:bg-[#050505] bg-white transition-colors duration-300">
-      <Navbar onOpenAuth={openAuth} />
-      <Hero onOpenAuth={openAuth} />
+      <Navbar onOpenAuth={() => openAuth('signin')} />
+      <Hero onOpenAuth={() => openAuth('signup')} />
       <FeatureGrid />
       <Footer />
-      <AuthModal isOpen={isAuthOpen} onClose={() => setAuthOpen(false)} />
+      <AuthModal isOpen={isAuthOpen} onClose={() => setAuthOpen(false)} context={authContext} />
     </main>
   );
 }

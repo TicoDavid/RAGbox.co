@@ -106,7 +106,7 @@ export default function LoginPage() {
           transition={{ delay: 0.4 }}
         >
           <img
-            src="https://storage.googleapis.com/connexusai-assets/WhiteLogo_RAGbox.co-removebg-preview.png"
+            src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
             alt="RAGbox.co"
             className="h-16 w-auto"
           />
