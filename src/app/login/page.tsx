@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Shield, Chrome, Building2 } from 'lucide-react'
+import { Shield, Building2 } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 

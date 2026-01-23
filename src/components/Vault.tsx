@@ -9,7 +9,6 @@ import {
   Lock,
   Unlock,
   Trash2,
-  MoreVertical,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRagSounds } from '@/hooks/useRagSounds'
