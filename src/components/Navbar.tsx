@@ -37,31 +37,43 @@ export function Navbar({ onSignInClick }: NavbarProps) {
     <nav
       className={cn(
         'fixed top-0 left-0 right-0 z-50',
-        'px-6 py-0.5',
+        'px-6 py-2',
         // Ghost Strategy: Deeply transparent, floating
         'backdrop-blur-md',
-        'bg-black/50',
-        'border-b border-white/5',
+        'dark:bg-black/50 bg-white/80',
+        'dark:border-b dark:border-white/5 border-b border-slate-200/50',
         'transition-colors duration-300'
       )}
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        {/* Logo */}
+        {/* Logo - App Icon Style */}
         <motion.div
           className="flex items-center"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         >
-          <img
-            src="https://storage.googleapis.com/connexusai-assets/WhiteLogo_RAGbox.co-removebg-preview.png"
-            alt="RAGbox.co"
+          {/* White rounded square container for brand visibility */}
+          <div
             className={cn(
-              // COMPACT: Reduced to 75% for military-grade tightness
-              'h-12 md:h-14 lg:h-16 w-auto',
+              'flex items-center justify-center',
+              'w-10 h-10 md:w-12 md:h-12 rounded-xl',
+              'bg-white shadow-md',
               'transition-all duration-300'
             )}
-          />
+          >
+            <img
+              src="https://storage.googleapis.com/connexusai-assets/BlueLogo_RAGbox.co.png"
+              alt="RAGbox.co"
+              className="h-7 md:h-8 w-auto"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement
+                target.src =
+                  'https://storage.googleapis.com/connexusai-assets/WhiteLogo_RAGbox.co-removebg-preview.png'
+                target.classList.add('invert')
+              }}
+            />
+          </div>
         </motion.div>
 
         {/* Right Controls */}
