@@ -3,20 +3,21 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Upload, Box, Check } from 'lucide-react'
+import { Upload, Shield, Check, FileText, FileType, File } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRagSounds } from '@/hooks/useRagSounds'
 
 /**
  * TheBox Component - The Sovereign Drop Zone
  *
+ * Design: "Stark Industries Interface" - Premium, tactile, empowering
+ *
  * Features:
+ * - Glassmorphism card with solid glowing border (no dashed lines)
+ * - Shield icon that transforms on hover/drop
  * - Breathing animation when idle (2% scale pulse)
- * - ALIVE: Pulsing blue border (opacity 0.4 -> 1.0)
- * - Intensified glow on hover/drag
- * - Wireframe cube visual with Electric Blue glow
  * - Heavy spring physics (stiffness: 300, damping: 30)
- * - HIGH VOLTAGE dark mode glow
+ * - File type indicators for reduced cognitive load
  * - TEASER GATE: Redirects to /login after file drop
  */
 export function TheBox() {
@@ -122,68 +123,52 @@ export function TheBox() {
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         />
 
-        {/* The Drop Zone Card - with ALIVE pulsing border */}
+        {/* The Drop Zone Card - Glassmorphism with glowing border */}
         <motion.div
           className={cn(
             'relative z-10',
             'w-80 h-80 md:w-96 md:h-96',
             'rounded-3xl',
-            'flex flex-col items-center justify-center gap-6',
+            'flex flex-col items-center justify-center gap-4',
             'cursor-pointer',
             'transition-all duration-300',
-            // Background
-            'dark:bg-void-card/50 bg-paper-card/50',
-            // HIGH VOLTAGE Shadow - Layered bloom in dark mode
+            // Glassmorphism background
+            'dark:bg-white/5 bg-black/5',
+            'backdrop-blur-xl',
+            // Solid border (not dashed) - premium feel
+            'border-2',
+            // HIGH VOLTAGE Shadow - Layered bloom
             isAbsorbing
               ? 'dark:shadow-[0_0_100px_-10px_rgba(37,99,235,0.8),0_0_150px_-20px_rgba(37,99,235,0.5)] shadow-glow-intense'
               : isActive
                 ? 'dark:shadow-[0_0_60px_-15px_rgba(37,99,235,0.6),0_0_100px_-20px_rgba(37,99,235,0.4)] shadow-glow-lg'
                 : 'dark:shadow-[0_0_40px_-15px_rgba(37,99,235,0.4),0_0_60px_-20px_rgba(37,99,235,0.2)] shadow-glow-sm'
           )}
-          style={{
-            // Base border style - will be animated
-            borderWidth: '2px',
-            borderStyle: 'dashed',
-          }}
           animate={
             isAbsorbing
               ? {
                   borderColor: '#2563eb',
-                  borderStyle: 'solid',
                 }
               : isActive
                 ? {
                     borderColor: '#2563eb',
                   }
                 : {
-                    // ALIVE: Pulsing border opacity 0.4 -> 1.0
+                    // ALIVE: Pulsing border opacity 0.3 -> 0.8
                     borderColor: [
-                      'rgba(37, 99, 235, 0.4)',
-                      'rgba(37, 99, 235, 1)',
-                      'rgba(37, 99, 235, 0.4)',
+                      'rgba(37, 99, 235, 0.3)',
+                      'rgba(37, 99, 235, 0.8)',
+                      'rgba(37, 99, 235, 0.3)',
                     ],
                     transition: {
-                      duration: 2,
+                      duration: 3,
                       repeat: Infinity,
                       ease: 'easeInOut',
                     },
                   }
           }
         >
-          {/* Wireframe Cube SVG */}
-          <motion.div
-            className="relative"
-            animate={{
-              rotateY: isActive ? 15 : 0,
-              rotateX: isActive ? -15 : 0,
-              scale: isAbsorbing ? 0.8 : 1,
-            }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          >
-            <WireframeCube isActive={isActive} isAbsorbing={isAbsorbing} />
-          </motion.div>
-
-          {/* Upload Icon - Thicker stroke */}
+          {/* Shield Icon - Premium, secure feel */}
           <AnimatePresence mode="wait">
             {isAbsorbing ? (
               <motion.div
@@ -192,40 +177,49 @@ export function TheBox() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.5 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                className="relative"
               >
-                <div className="w-12 h-12 rounded-full bg-electric-600 flex items-center justify-center">
-                  <Check className="w-6 h-6 text-white" strokeWidth={3} />
+                <div className="w-20 h-20 rounded-full bg-electric-600 flex items-center justify-center shadow-glow">
+                  <Check className="w-10 h-10 text-white" strokeWidth={3} />
                 </div>
               </motion.div>
             ) : isDragOver ? (
               <motion.div
                 key="upload"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
+                initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 0.9 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               >
                 <Upload
-                  className={cn('w-12 h-12', 'text-electric-500')}
-                  strokeWidth={2.5}
+                  className="w-16 h-16 text-electric-500"
+                  strokeWidth={2}
                 />
               </motion.div>
             ) : (
               <motion.div
-                key="box"
+                key="shield"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                className="relative"
               >
-                <Box
-                  className={cn(
-                    'w-12 h-12',
-                    'dark:text-white/60 text-black/40',
-                    isHovered && 'dark:text-electric-400 text-electric-600'
-                  )}
-                  strokeWidth={2.5}
-                />
+                <motion.div
+                  animate={{
+                    scale: isHovered ? 1.1 : 1,
+                  }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                >
+                  <Shield
+                    className={cn(
+                      'w-16 h-16',
+                      'dark:text-white/40 text-black/30',
+                      isHovered && 'dark:text-electric-400 text-electric-600'
+                    )}
+                    strokeWidth={1.5}
+                  />
+                </motion.div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -242,16 +236,39 @@ export function TheBox() {
               }}
             >
               {isAbsorbing
-                ? 'Authenticating...'
+                ? 'Processing...'
                 : isDragOver
-                  ? 'Release to Upload'
-                  : 'Feed the Box'}
+                  ? 'Release to Analyze'
+                  : 'Securely Upload for Analysis'}
             </motion.p>
-            <p className="text-sm dark:text-slate-400 text-slate-500">
+            <p className="text-sm dark:text-slate-400 text-slate-500 mb-4">
               {isAbsorbing
                 ? 'Redirecting to secure login'
                 : 'Drag documents here or click to browse'}
             </p>
+
+            {/* File Type Indicators - Reduces cognitive load */}
+            {!isAbsorbing && (
+              <motion.div
+                className="flex items-center justify-center gap-3"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+              >
+                <div className="flex items-center gap-1.5 text-xs dark:text-slate-500 text-slate-400">
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>PDF</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs dark:text-slate-500 text-slate-400">
+                  <FileType className="w-3.5 h-3.5" />
+                  <span>DOCX</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs dark:text-slate-500 text-slate-400">
+                  <File className="w-3.5 h-3.5" />
+                  <span>TXT</span>
+                </div>
+              </motion.div>
+            )}
           </div>
         </motion.div>
       </motion.div>
@@ -259,83 +276,3 @@ export function TheBox() {
   )
 }
 
-/**
- * Wireframe Cube - 3D isometric cube using SVG
- * STRUCTURAL WEIGHT: strokeWidth 2.5 for solid, safe-like appearance
- */
-function WireframeCube({
-  isActive,
-  isAbsorbing,
-}: {
-  isActive: boolean
-  isAbsorbing: boolean
-}) {
-  const strokeColor = isActive || isAbsorbing ? '#2563eb' : 'currentColor'
-  const strokeOpacity = isActive || isAbsorbing ? 1 : 0.4
-  // THICKER strokes for structural weight
-  const strokeWidth = 2.5
-
-  return (
-    <motion.svg
-      width="120"
-      height="120"
-      viewBox="0 0 120 120"
-      fill="none"
-      className={cn('dark:text-white text-slate-900', 'drop-shadow-lg')}
-      animate={{
-        filter: isAbsorbing
-          ? 'drop-shadow(0 0 35px rgba(37, 99, 235, 0.8))'
-          : isActive
-            ? 'drop-shadow(0 0 25px rgba(37, 99, 235, 0.6))'
-            : 'drop-shadow(0 0 15px rgba(37, 99, 235, 0.3))',
-      }}
-    >
-      {/* Back face */}
-      <motion.path
-        d="M30 45 L60 30 L90 45 L90 75 L60 90 L30 75 Z"
-        stroke={strokeColor}
-        strokeWidth={strokeWidth}
-        strokeOpacity={strokeOpacity}
-        fill={isAbsorbing ? 'rgba(37, 99, 235, 0.1)' : 'none'}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        animate={{ strokeOpacity, fill: isAbsorbing ? 'rgba(37, 99, 235, 0.2)' : 'none' }}
-        transition={{ duration: 0.3 }}
-      />
-      {/* Front edges */}
-      <motion.path
-        d="M30 45 L30 75 M60 30 L60 60 M90 45 L90 75"
-        stroke={strokeColor}
-        strokeWidth={strokeWidth}
-        strokeOpacity={strokeOpacity}
-        fill="none"
-        strokeLinecap="round"
-        animate={{ strokeOpacity }}
-        transition={{ duration: 0.3 }}
-      />
-      {/* Center lines */}
-      <motion.path
-        d="M30 75 L60 60 L90 75 M60 60 L60 90"
-        stroke={strokeColor}
-        strokeWidth={strokeWidth}
-        strokeOpacity={strokeOpacity}
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        animate={{ strokeOpacity }}
-        transition={{ duration: 0.3 }}
-      />
-      {/* Glowing center point - using CSS transitions to avoid Framer Motion SVG issues */}
-      <circle
-        cx="60"
-        cy="60"
-        r={isAbsorbing ? 10 : isActive ? 6 : 4}
-        fill="#2563eb"
-        opacity={isActive || isAbsorbing ? 1 : 0}
-        style={{
-          transition: 'all 0.3s ease-out',
-        }}
-      />
-    </motion.svg>
-  )
-}
