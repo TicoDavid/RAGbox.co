@@ -34,10 +34,10 @@ export function Navbar() {
       className={cn(
         'fixed top-0 left-0 right-0 z-50',
         'px-6 py-0.5',
-        // Ghost Strategy: Deeply transparent, floating
+        // Ghost Strategy: Deeply transparent, floating - theme aware
         'backdrop-blur-md',
-        'bg-black/50',
-        'border-b border-white/5',
+        'dark:bg-black/50 bg-white/70',
+        'dark:border-b dark:border-white/5 border-b border-black/5',
         'transition-colors duration-300'
       )}
     >
@@ -55,7 +55,9 @@ export function Navbar() {
             className={cn(
               // COMPACT: Reduced to 75% for military-grade tightness
               'h-12 md:h-14 lg:h-16 w-auto',
-              'transition-all duration-300'
+              'transition-all duration-300',
+              // Invert logo for light mode
+              'dark:invert-0 invert'
             )}
           />
         </motion.div>

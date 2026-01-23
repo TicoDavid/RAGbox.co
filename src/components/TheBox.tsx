@@ -105,14 +105,15 @@ export function TheBox() {
         }
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       >
-        {/* HIGH VOLTAGE Glow effect - behind the box (Dark Mode) */}
+        {/* HIGH VOLTAGE Glow effect - behind the box */}
         <motion.div
           className={cn(
             'absolute inset-0 rounded-3xl',
             'bg-electric-600/30 blur-3xl',
             'pointer-events-none',
-            // Layered bloom shadow for dark mode
-            'dark:shadow-[0_0_60px_-15px_rgba(37,99,235,0.6),0_0_100px_-20px_rgba(37,99,235,0.4)]'
+            // Layered bloom shadow - theme aware
+            'dark:shadow-[0_0_60px_-15px_rgba(37,99,235,0.6),0_0_100px_-20px_rgba(37,99,235,0.4)]',
+            'shadow-[0_0_40px_-10px_rgba(37,99,235,0.3)]'
           )}
           animate={{
             opacity: isAbsorbing ? 1 : isActive ? 0.8 : 0.5,

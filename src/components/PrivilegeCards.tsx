@@ -87,14 +87,15 @@ export function PrivilegeCards() {
           className={cn(
             'text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6',
             'text-transparent bg-clip-text',
-            'bg-gradient-to-b from-white to-slate-400'
+            'dark:bg-gradient-to-b dark:from-white dark:to-slate-400',
+            'bg-gradient-to-b from-slate-900 to-slate-600'
           )}
         >
           Your Files Speak.
           <br />
           We Make Them Testify.
         </h2>
-        <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto">
+        <p className="text-lg md:text-xl dark:text-slate-400 text-slate-600 max-w-2xl mx-auto">
           Analyze your vault like a team of experts—without the team.
           <br />
           Reliable. Repeatable. Effortless.
@@ -124,11 +125,12 @@ function PillarCardComponent({ icon, title, description, tag }: PillarCard) {
         'relative group',
         'p-8 rounded-3xl',
         'transition-all duration-300',
-        // Grok dark card aesthetic
-        'bg-neutral-900/50',
-        'border border-white/5',
-        'hover:border-white/10',
-        'hover:bg-neutral-900/70'
+        // Theme-aware card aesthetic
+        'dark:bg-neutral-900/50 bg-white',
+        'dark:border dark:border-white/5 border border-black/5',
+        'dark:hover:border-white/10 hover:border-black/10',
+        'dark:hover:bg-neutral-900/70 hover:bg-slate-50',
+        'shadow-sm dark:shadow-none'
       )}
       variants={cardVariants}
       whileHover={{
@@ -141,10 +143,11 @@ function PillarCardComponent({ icon, title, description, tag }: PillarCard) {
         <div
           className={cn(
             'p-3 rounded-2xl',
-            'bg-white/5',
-            'text-white/60',
+            'dark:bg-white/5 bg-slate-100',
+            'dark:text-white/60 text-slate-600',
             'transition-colors duration-300',
-            'group-hover:bg-white/10 group-hover:text-white'
+            'dark:group-hover:bg-white/10 dark:group-hover:text-white',
+            'group-hover:bg-slate-200 group-hover:text-slate-900'
           )}
         >
           {icon}
@@ -153,8 +156,8 @@ function PillarCardComponent({ icon, title, description, tag }: PillarCard) {
           className={cn(
             'px-3 py-1.5 rounded-full',
             'text-xs font-medium uppercase tracking-wider',
-            'bg-white/5 text-white/40',
-            'border border-white/5'
+            'dark:bg-white/5 dark:text-white/40 bg-slate-100 text-slate-500',
+            'dark:border dark:border-white/5 border border-black/5'
           )}
         >
           {tag}
@@ -162,8 +165,8 @@ function PillarCardComponent({ icon, title, description, tag }: PillarCard) {
       </div>
 
       {/* Content */}
-      <h3 className="text-xl font-bold text-white mb-3">{title}</h3>
-      <p className="text-slate-400 leading-relaxed">{description}</p>
+      <h3 className="text-xl font-bold dark:text-white text-slate-900 mb-3">{title}</h3>
+      <p className="dark:text-slate-400 text-slate-600 leading-relaxed">{description}</p>
     </motion.div>
   )
 }

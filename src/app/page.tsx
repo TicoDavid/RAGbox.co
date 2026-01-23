@@ -29,8 +29,9 @@ export default function LandingPage() {
     <main
       className={cn(
         'min-h-screen flex flex-col',
-        // Pure OLED Black - Grok style
-        'bg-black'
+        // Theme-aware background
+        'dark:bg-black bg-white',
+        'transition-colors duration-300'
       )}
     >
       {/* Glass Navbar */}
@@ -121,15 +122,16 @@ export default function LandingPage() {
       <section
         className={cn(
           'py-24',
-          'bg-black',
-          'border-t border-white/5'
+          'dark:bg-black bg-slate-50',
+          'dark:border-t dark:border-white/5 border-t border-black/5',
+          'transition-colors duration-300'
         )}
       >
         <PrivilegeCards />
       </section>
 
       {/* Ghost Footer - Barely visible */}
-      <footer className="px-6 py-8 bg-black">
+      <footer className="px-6 py-8 dark:bg-black bg-white transition-colors duration-300">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           {/* Logo - Ghost opacity */}
           <motion.div
@@ -140,27 +142,27 @@ export default function LandingPage() {
             <img
               src="https://storage.googleapis.com/connexusai-assets/WhiteLogo_RAGbox.co-removebg-preview.png"
               alt="RAGbox"
-              className="h-12 w-auto opacity-20"
+              className="h-12 w-auto opacity-20 dark:invert-0 invert"
             />
           </motion.div>
 
-          {/* Ghost Links - text-neutral-800 barely visible on black */}
-          <div className="flex items-center gap-8 text-sm text-neutral-800 font-medium">
+          {/* Ghost Links - theme-aware muted colors */}
+          <div className="flex items-center gap-8 text-sm dark:text-neutral-700 text-neutral-400 font-medium">
             <a
               href="#"
-              className="hover:text-neutral-600 transition-colors"
+              className="dark:hover:text-neutral-500 hover:text-neutral-600 transition-colors"
             >
               Security
             </a>
             <a
               href="#"
-              className="hover:text-neutral-600 transition-colors"
+              className="dark:hover:text-neutral-500 hover:text-neutral-600 transition-colors"
             >
               Privacy
             </a>
             <a
               href="#"
-              className="hover:text-neutral-600 transition-colors"
+              className="dark:hover:text-neutral-500 hover:text-neutral-600 transition-colors"
             >
               Terms
             </a>
