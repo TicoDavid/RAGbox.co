@@ -55,22 +55,22 @@ export default function Dashboard() {
 
           {/* Breadcrumbs */}
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-slate-400 font-medium">Vault</span>
-            <svg className="w-4 h-4 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 18l6-6-6-6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/5">
+            <span className="text-slate-500 dark:text-slate-400 font-medium">Vault</span>
+            <svg className="w-4 h-4 text-slate-300 dark:text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 18l6-6-6-6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5">
                 <svg className="w-3 h-3 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" /></svg>
-                <span className="text-slate-700 dark:text-white font-semibold">Q3_Performance_Analysis.pdf</span>
+                <span className="text-slate-700 dark:text-white font-semibold truncate max-w-[200px]">Q3_Performance_Analysis.pdf</span>
             </div>
           </div>
 
-          {/* Status Badge */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-900/50">
+          {/* STATUS BADGE - NOW IN GOLD */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-100 dark:bg-amber-500/10 dark:border-amber-500/20">
              <div className="relative flex h-2 w-2">
-               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+               <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
              </div>
-             <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 tracking-widest uppercase">
-               Sovereign Environment Active
+             <span className="text-[10px] font-bold text-amber-700 dark:text-amber-500 tracking-widest uppercase">
+               Sovereign Environment
              </span>
           </div>
         </header>
