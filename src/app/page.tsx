@@ -195,7 +195,7 @@ export default function LandingPage() {
             <img
               src="https://storage.googleapis.com/connexusai-assets/WhiteLogo_RAGbox.co-removebg-preview.png"
               alt="RAGbox"
-              className="h-12 w-auto opacity-20 dark:invert-0 invert"
+              className="h-12 w-auto opacity-20"
             />
           </motion.div>
 

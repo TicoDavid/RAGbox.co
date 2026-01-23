@@ -55,9 +55,8 @@ export function Navbar() {
             className={cn(
               // 2x size for prominent branding
               'h-24 md:h-28 lg:h-32 w-auto',
-              'transition-all duration-300',
-              // Invert logo for light mode
-              'dark:invert-0 invert'
+              'transition-all duration-300'
+              // Keep original blue color in both modes (registered logo)
             )}
           />
         </motion.div>
