@@ -67,8 +67,8 @@ export function Navbar() {
           >
             box
           </span>
-          {/* .co suffix */}
-          <span className="text-sm font-medium text-slate-400 dark:text-slate-600 ml-0.5 mt-1">
+          {/* .co suffix - aligned to baseline */}
+          <span className="text-sm font-medium text-slate-400 dark:text-slate-600 ml-0.5 self-end mb-1">
             .co
           </span>
         </motion.div>
