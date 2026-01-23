@@ -33,8 +33,8 @@ export default function LandingPage() {
     <main
       className={cn(
         'min-h-screen flex flex-col',
-        // Theme-aware: OLED Black (dark) / Premium White (light)
-        'dark:bg-black bg-white'
+        // Pure OLED Black - Grok style
+        'bg-black'
       )}
     >
       {/* Glass Navbar */}
@@ -53,7 +53,7 @@ export default function LandingPage() {
           className={cn(
             'text-4xl sm:text-5xl md:text-6xl lg:text-7xl',
             'font-extrabold text-center mb-6',
-            'dark:text-white text-slate-900'
+            'text-white'
           )}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -70,7 +70,7 @@ export default function LandingPage() {
         <motion.p
           className={cn(
             'text-lg md:text-xl lg:text-2xl text-center mb-12',
-            'dark:text-slate-400 text-slate-600',
+            'text-slate-400',
             'max-w-2xl'
           )}
           initial={{ opacity: 0, y: 20 }}
@@ -115,9 +115,8 @@ export default function LandingPage() {
             className={cn(
               'px-6 py-3 rounded-2xl',
               'text-sm font-medium',
-              'dark:text-slate-400 dark:hover:text-white text-slate-600 hover:text-slate-900',
-              'dark:border-white/10 dark:hover:border-white/20 border-slate-300 hover:border-slate-400',
-              'border',
+              'text-slate-400 hover:text-white',
+              'border border-white/10 hover:border-white/20',
               'transition-all duration-200'
             )}
           >
@@ -130,15 +129,15 @@ export default function LandingPage() {
       <section
         className={cn(
           'py-24',
-          'dark:bg-black bg-slate-50',
-          'dark:border-t dark:border-white/5 border-t border-slate-200'
+          'bg-black',
+          'border-t border-white/5'
         )}
       >
         <PrivilegeCards />
       </section>
 
       {/* Ghost Footer - Barely visible */}
-      <footer className="px-6 py-8 dark:bg-black bg-white">
+      <footer className="px-6 py-8 bg-black">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           {/* Logo - Ghost opacity */}
           <motion.div
@@ -153,23 +152,23 @@ export default function LandingPage() {
             />
           </motion.div>
 
-          {/* Ghost Links */}
-          <div className="flex items-center gap-8 text-sm dark:text-neutral-700 text-neutral-400 font-medium">
+          {/* Ghost Links - text-neutral-800 barely visible on black */}
+          <div className="flex items-center gap-8 text-sm text-neutral-800 font-medium">
             <a
               href="#"
-              className="dark:hover:text-neutral-500 hover:text-neutral-600 transition-colors"
+              className="hover:text-neutral-600 transition-colors"
             >
               Security
             </a>
             <a
               href="#"
-              className="dark:hover:text-neutral-500 hover:text-neutral-600 transition-colors"
+              className="hover:text-neutral-600 transition-colors"
             >
               Privacy
             </a>
             <a
               href="#"
-              className="dark:hover:text-neutral-500 hover:text-neutral-600 transition-colors"
+              className="hover:text-neutral-600 transition-colors"
             >
               Terms
             </a>
