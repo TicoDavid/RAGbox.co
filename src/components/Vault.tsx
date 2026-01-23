@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Upload,
   File,
   FileText,
+  FileSpreadsheet,
   Lock,
   Unlock,
   Trash2,
@@ -13,19 +14,13 @@ import {
   ShieldOff,
   AlertTriangle,
   X,
+  RefreshCw,
+  Calendar,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRagSounds } from '@/hooks/useRagSounds'
 import { usePrivilege } from '@/contexts/PrivilegeContext'
-
-interface UploadedFile {
-  id: string
-  name: string
-  size: number
-  type: string
-  uploadedAt: Date
-  isPrivileged: boolean
-}
+import { useDocuments, Document } from '@/hooks/useDocuments'
 
 // Context menu state
 interface ContextMenuState {
@@ -35,34 +30,6 @@ interface ContextMenuState {
   fileId: string | null
 }
 
-// Demo files for UI
-const demoFiles: UploadedFile[] = [
-  {
-    id: '1',
-    name: 'Contract_NDA_2024.pdf',
-    size: 2450000,
-    type: 'application/pdf',
-    uploadedAt: new Date(),
-    isPrivileged: false,
-  },
-  {
-    id: '2',
-    name: 'Financial_Statement_Q4.xlsx',
-    size: 1200000,
-    type: 'application/excel',
-    uploadedAt: new Date(),
-    isPrivileged: true,
-  },
-  {
-    id: '3',
-    name: 'Legal_Brief_v3.docx',
-    size: 890000,
-    type: 'application/word',
-    uploadedAt: new Date(),
-    isPrivileged: false,
-  },
-]
-
 /**
  * Vault Component - Center Stage
  *
@@ -70,10 +37,20 @@ const demoFiles: UploadedFile[] = [
  * - "Feed the Box" drop zone with Electric Blue glow
  * - File list with Privilege Mode toggle (Grey -> Red)
  * - Wireframe cube animation
+ * - Real document fetching from API
  */
 export function Vault() {
-  const [files, setFiles] = useState<UploadedFile[]>(demoFiles)
   const [isDragOver, setIsDragOver] = useState(false)
+
+  // Fetch documents from API
+  const {
+    documents,
+    isLoading: documentsLoading,
+    error: documentsError,
+    refetch,
+    deleteDocument,
+    togglePrivilege: toggleDocPrivilege,
+  } = useDocuments()
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
@@ -106,11 +83,11 @@ export function Vault() {
   const visibleFiles = useMemo(() => {
     if (globalPrivilegeMode) {
       // Privilege mode ON: show only privileged documents
-      return files.filter((file) => file.isPrivileged)
+      return documents.filter((doc) => doc.isPrivileged)
     }
     // Normal mode: show all non-privileged documents
-    return files.filter((file) => !file.isPrivileged)
-  }, [files, globalPrivilegeMode])
+    return documents.filter((doc) => !doc.isPrivileged)
+  }, [documents, globalPrivilegeMode])
 
   // Close context menu on click outside
   useEffect(() => {
@@ -138,18 +115,31 @@ export function Vault() {
       // AUDIO UI: Play absorption sound
       playDropSound()
 
-      const newFiles: UploadedFile[] = droppedFiles.map((file) => ({
-        id: Date.now().toString() + Math.random(),
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        uploadedAt: new Date(),
-        isPrivileged: false,
-      }))
+      // Upload files to the API
+      for (const file of droppedFiles) {
+        try {
+          // In production, upload to Cloud Storage first, then create document record
+          const response = await fetch('/api/documents', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: file.name,
+              size: file.size,
+              mimeType: file.type,
+              storagePath: `users/demo/documents/${Date.now()}_${file.name}`,
+            }),
+          })
 
-      setFiles((prev) => [...newFiles, ...prev])
+          if (response.ok) {
+            // Refetch documents to show the new one
+            refetch()
+          }
+        } catch (error) {
+          console.error('Failed to upload file:', error)
+        }
+      }
     }
-  }, [playDropSound])
+  }, [playDropSound, refetch])
 
   // Handle right-click context menu
   const handleContextMenu = useCallback((e: React.MouseEvent, fileId: string) => {
@@ -164,11 +154,11 @@ export function Vault() {
 
   // Request privilege toggle (with confirmation for unmarking)
   const requestPrivilegeToggle = useCallback((id: string) => {
-    const file = files.find((f) => f.id === id)
-    if (!file) return
+    const doc = documents.find((d) => d.id === id)
+    if (!doc) return
 
     // If unmarking privilege, check safety and show confirmation
-    if (file.isPrivileged) {
+    if (doc.isPrivileged) {
       // Safety check: Cannot unmark in privileged mode
       if (globalPrivilegeMode) {
         alert('Cannot remove privilege protection while in Privileged Mode. Exit Privileged Mode first.')
@@ -179,62 +169,26 @@ export function Vault() {
       setConfirmDialog({
         isOpen: true,
         fileId: id,
-        fileName: file.name,
+        fileName: doc.name,
         action: 'unmark',
       })
     } else {
       // Marking as privileged - no confirmation needed
       executePrivilegeToggle(id, true)
     }
-  }, [files, globalPrivilegeMode])
+  }, [documents, globalPrivilegeMode])
 
   // Execute the privilege toggle (after confirmation if needed)
   const executePrivilegeToggle = useCallback(async (id: string, newPrivilegeState: boolean) => {
-    const file = files.find((f) => f.id === id)
-    if (!file) return
-
     // AUDIO UI: Play metallic deadbolt click
     playLockSound()
 
-    // Optimistic update
-    setFiles((prev) =>
-      prev.map((f) =>
-        f.id === id ? { ...f, isPrivileged: newPrivilegeState } : f
-      )
-    )
-
-    // Sync with backend
-    try {
-      const response = await fetch(`/api/documents/${id}/privilege`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          privileged: newPrivilegeState,
-          filename: file.name,
-          confirmUnmark: !newPrivilegeState, // Confirmation for unmarking
-        }),
-      })
-
-      if (!response.ok) {
-        // Revert on failure
-        setFiles((prev) =>
-          prev.map((f) =>
-            f.id === id ? { ...f, isPrivileged: !newPrivilegeState } : f
-          )
-        )
-        const error = await response.json()
-        console.error('Failed to update privilege:', error)
-      }
-    } catch (error) {
-      // Revert on error
-      setFiles((prev) =>
-        prev.map((f) =>
-          f.id === id ? { ...f, isPrivileged: !newPrivilegeState } : f
-        )
-      )
-      console.error('Error updating privilege:', error)
+    // Use the hook's togglePrivilege function
+    const success = await toggleDocPrivilege(id, newPrivilegeState, !newPrivilegeState)
+    if (!success) {
+      console.error('Failed to update privilege')
     }
-  }, [files, playLockSound])
+  }, [playLockSound, toggleDocPrivilege])
 
   // Handle confirmation dialog
   const handleConfirmPrivilegeChange = useCallback(() => {
@@ -249,8 +203,11 @@ export function Vault() {
     requestPrivilegeToggle(id)
   }
 
-  const deleteFile = (id: string) => {
-    setFiles((prev) => prev.filter((file) => file.id !== id))
+  const deleteFile = async (id: string) => {
+    const success = await deleteDocument(id)
+    if (!success) {
+      console.error('Failed to delete document')
+    }
   }
 
   return (
@@ -339,13 +296,46 @@ export function Vault() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold dark:text-white text-black">
               {globalPrivilegeMode ? 'Privileged Documents' : 'Documents'} ({visibleFiles.length})
-              {globalPrivilegeMode && files.filter(f => !f.isPrivileged).length > 0 && (
+              {globalPrivilegeMode && documents.filter(d => !d.isPrivileged).length > 0 && (
                 <span className="text-sm font-normal dark:text-white/40 text-black/40 ml-2">
-                  ({files.filter(f => !f.isPrivileged).length} hidden)
+                  ({documents.filter(d => !d.isPrivileged).length} hidden)
                 </span>
               )}
             </h2>
+            {/* Refresh button */}
+            <motion.button
+              onClick={() => refetch()}
+              disabled={documentsLoading}
+              className={cn(
+                'w-8 h-8 rounded-lg flex items-center justify-center',
+                'dark:text-white/40 text-black/40',
+                'dark:hover:bg-white/10 hover:bg-black/10',
+                'transition-colors duration-200'
+              )}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <RefreshCw className={cn('w-4 h-4', documentsLoading && 'animate-spin')} />
+            </motion.button>
           </div>
+
+          {/* Loading state */}
+          {documentsLoading && documents.length === 0 && (
+            <div className="flex items-center justify-center py-12">
+              <RefreshCw className="w-6 h-6 dark:text-white/40 text-black/40 animate-spin" />
+            </div>
+          )}
+
+          {/* Error state */}
+          {documentsError && (
+            <div className="text-center py-8 text-red-500">
+              <AlertTriangle className="w-6 h-6 mx-auto mb-2" />
+              <p className="text-sm">{documentsError}</p>
+              <button onClick={() => refetch()} className="mt-2 text-sm underline">
+                Try again
+              </button>
+            </div>
+          )}
 
           <div className="space-y-2">
             <AnimatePresence mode="popLayout">
@@ -362,7 +352,7 @@ export function Vault() {
               ))}
             </AnimatePresence>
 
-            {visibleFiles.length === 0 && (
+            {!documentsLoading && !documentsError && visibleFiles.length === 0 && (
               <motion.div
                 className="text-center py-12 dark:text-white/30 text-black/30"
                 initial={{ opacity: 0 }}
@@ -370,7 +360,7 @@ export function Vault() {
               >
                 {globalPrivilegeMode
                   ? 'No privileged documents. Toggle document privilege to see them here.'
-                  : files.length === 0
+                  : documents.length === 0
                     ? 'No documents yet. Drop files above to get started.'
                     : 'All documents are marked as privileged. Switch to Privileged Mode to view them.'}
               </motion.div>
@@ -385,7 +375,7 @@ export function Vault() {
           <ContextMenu
             x={contextMenu.x}
             y={contextMenu.y}
-            file={files.find((f) => f.id === contextMenu.fileId)!}
+            file={documents.find((d) => d.id === contextMenu.fileId)!}
             onTogglePrivilege={() => {
               togglePrivilege(contextMenu.fileId!)
               setContextMenu({ ...contextMenu, isOpen: false })
@@ -615,7 +605,7 @@ function FileRow({
   onContextMenu,
   globalPrivilegeMode,
 }: {
-  file: UploadedFile
+  file: Document
   index: number
   onTogglePrivilege: () => void
   onDelete: () => void
@@ -628,8 +618,14 @@ function FileRow({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   }
 
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr)
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  }
+
   const getFileIcon = (type: string) => {
-    if (type.includes('pdf')) return <FileText className="w-5 h-5" />
+    if (type.includes('pdf') || type === 'pdf') return <FileText className="w-5 h-5" />
+    if (type.includes('sheet') || type === 'xlsx' || type === 'xls') return <FileSpreadsheet className="w-5 h-5" />
     return <File className="w-5 h-5" />
   }
 
@@ -681,9 +677,14 @@ function FileRow({
         >
           {file.name}
         </p>
-        <p className="text-xs dark:text-white/40 text-black/40">
-          {formatSize(file.size)}
-        </p>
+        <div className="flex items-center gap-2 text-xs dark:text-white/40 text-black/40">
+          <span>{formatSize(file.size)}</span>
+          <span>•</span>
+          <span className="flex items-center gap-1">
+            <Calendar className="w-3 h-3" />
+            {formatDate(file.uploadedAt)}
+          </span>
+        </div>
       </div>
 
       {/* Privilege Toggle */}
@@ -753,7 +754,7 @@ function ContextMenu({
 }: {
   x: number
   y: number
-  file: UploadedFile
+  file: Document
   onTogglePrivilege: () => void
   onDelete: () => void
   globalPrivilegeMode: boolean

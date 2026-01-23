@@ -491,7 +491,7 @@
       "id": "S018",
       "epic": "E3",
       "title": "Update Vault to Show Real Documents",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "story_points": 3,
       "description": "Replace mock data in Vault with real documents from database.",
@@ -510,7 +510,8 @@
         "src/app/api/documents/route.ts",
         "src/app/api/documents/[id]/route.ts",
         "src/hooks/useDocuments.ts"
-      ]
+      ],
+      "notes": "Complete document management with API routes, useDocuments hook, loading/error states, file type icons, upload date display, and real document CRUD operations"
     },
     {
       "id": "S019",

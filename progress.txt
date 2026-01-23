@@ -23,6 +23,7 @@
 - ✅ S014: Implement Document Privilege Tagging [HIGH] - DONE
 - ✅ S015: Implement Veritas Audit Logging [CRITICAL] - DONE
 - ✅ S016: Build Audit Log Viewer Page [HIGH] - DONE
+- ✅ S018: Update Vault to Show Real Documents [HIGH] - DONE
 
 ---
 
@@ -38,8 +39,8 @@
 
 ## Next Up
 - S017: Implement Audit Report PDF Export [MEDIUM]
-- S018: Update Vault to Show Real Documents [HIGH]
 - S019: Implement One-Click Data Export [MEDIUM]
+- S020: Implement Health Check and Monitoring [MEDIUM]
 
 ---
 
@@ -54,6 +55,16 @@
 ---
 
 ## Iteration Log
+
+### Iteration 17 (2026-01-23)
+- Story: S018 - Update Vault to Show Real Documents
+- Status: DONE
+- Created: src/app/api/documents/route.ts (GET/POST document list API)
+- Created: src/app/api/documents/[id]/route.ts (GET/PATCH/DELETE document API)
+- Created: src/hooks/useDocuments.ts (Document management hook)
+- Updated: src/components/Vault.tsx (Real document fetching, loading/error states)
+- Features: Document CRUD operations, file type icons, upload date display, refresh button, audit logging
+- Status: PASS
 
 ### Iteration 16 (2026-01-23)
 - Story: S016 - Build Audit Log Viewer Page
@@ -272,10 +283,10 @@
 
 ## Metrics
 - Total Stories: 20
-- Completed: 16
+- Completed: 17
 - In Progress: 0
-- Remaining: 4
-- Estimated Story Points: ~25
+- Remaining: 3
+- Estimated Story Points: ~22
 
 ---
 
