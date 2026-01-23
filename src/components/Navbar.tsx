@@ -52,7 +52,7 @@ export function Navbar() {
             <img
               src={
                 isDark
-                  ? 'https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_white.jpg' // TODO: Replace with dark mode logo URL
+                  ? 'https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png'
                   : 'https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_white.jpg'
               }
               alt="RAGbox.co"
