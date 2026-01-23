@@ -185,20 +185,7 @@ export default function LandingPage() {
 
       {/* Ghost Footer - Barely visible */}
       <footer className="px-6 py-8 dark:bg-black bg-white transition-colors duration-300">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          {/* Logo - Ghost opacity */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-          >
-            <img
-              src="https://storage.googleapis.com/connexusai-assets/WhiteLogo_RAGbox.co-removebg-preview.png"
-              alt="RAGbox"
-              className="h-12 w-auto opacity-20"
-            />
-          </motion.div>
-
+        <div className="max-w-6xl mx-auto flex items-center justify-center">
           {/* Ghost Links - theme-aware muted colors */}
           <div className="flex items-center gap-8 text-sm dark:text-neutral-700 text-neutral-400 font-medium">
             <a
