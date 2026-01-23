@@ -73,11 +73,11 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           {/* LOGO & HEADER */}
           <div className="text-center mb-8">
             {/* The White "App Icon" Container */}
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white shadow-lg shadow-blue-900/10 mb-6">
+            <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-white shadow-lg shadow-blue-900/10 mb-6">
               {/* Use the BLUE logo for contrast on white */}
               <img
                 src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
-                className="w-10 h-auto"
+                className="w-20 h-auto"
                 alt="Logo"
               />
             </div>
