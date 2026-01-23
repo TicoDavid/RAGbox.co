@@ -7,6 +7,7 @@ import { Navbar } from '@/components/Navbar'
 import { TheBox } from '@/components/TheBox'
 import { PrivilegeCards } from '@/components/PrivilegeCards'
 import { AuthModal } from '@/components/AuthModal'
+import Footer from '@/components/Footer'
 import { cn } from '@/lib/utils'
 
 /**
@@ -136,45 +137,8 @@ export default function LandingPage() {
         <PrivilegeCards />
       </section>
 
-      {/* Ghost Footer - Barely visible */}
-      <footer className="px-6 py-8 bg-black">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          {/* Logo - Ghost opacity */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-          >
-            <img
-              src="https://storage.googleapis.com/connexusai-assets/WhiteLogo_RAGbox.co-removebg-preview.png"
-              alt="RAGbox"
-              className="h-12 w-auto opacity-20"
-            />
-          </motion.div>
-
-          {/* Ghost Links - text-neutral-800 barely visible on black */}
-          <div className="flex items-center gap-8 text-sm text-neutral-800 font-medium">
-            <a
-              href="#"
-              className="hover:text-neutral-600 transition-colors"
-            >
-              Security
-            </a>
-            <a
-              href="#"
-              className="hover:text-neutral-600 transition-colors"
-            >
-              Privacy
-            </a>
-            <a
-              href="#"
-              className="hover:text-neutral-600 transition-colors"
-            >
-              Terms
-            </a>
-          </div>
-        </div>
-      </footer>
+      {/* Cinematic Footer */}
+      <Footer />
     </main>
   )
 }
