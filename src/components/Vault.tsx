@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Upload,
@@ -11,6 +11,8 @@ import {
   Trash2,
   Shield,
   ShieldOff,
+  AlertTriangle,
+  X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRagSounds } from '@/hooks/useRagSounds'
@@ -23,6 +25,14 @@ interface UploadedFile {
   type: string
   uploadedAt: Date
   isPrivileged: boolean
+}
+
+// Context menu state
+interface ContextMenuState {
+  isOpen: boolean
+  x: number
+  y: number
+  fileId: string | null
 }
 
 // Demo files for UI
@@ -65,6 +75,27 @@ export function Vault() {
   const [files, setFiles] = useState<UploadedFile[]>(demoFiles)
   const [isDragOver, setIsDragOver] = useState(false)
 
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
+    isOpen: false,
+    x: 0,
+    y: 0,
+    fileId: null,
+  })
+
+  // Confirmation dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean
+    fileId: string | null
+    fileName: string
+    action: 'mark' | 'unmark'
+  }>({
+    isOpen: false,
+    fileId: null,
+    fileName: '',
+    action: 'mark',
+  })
+
   // Global privilege mode context
   const { isPrivileged: globalPrivilegeMode, togglePrivilege: toggleGlobalPrivilege, isLoading: privilegeLoading } = usePrivilege()
 
@@ -80,6 +111,13 @@ export function Vault() {
     // Normal mode: show all non-privileged documents
     return files.filter((file) => !file.isPrivileged)
   }, [files, globalPrivilegeMode])
+
+  // Close context menu on click outside
+  useEffect(() => {
+    const handleClick = () => setContextMenu((prev) => ({ ...prev, isOpen: false }))
+    document.addEventListener('click', handleClick)
+    return () => document.removeEventListener('click', handleClick)
+  }, [])
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -113,15 +151,102 @@ export function Vault() {
     }
   }, [playDropSound])
 
-  const togglePrivilege = (id: string) => {
+  // Handle right-click context menu
+  const handleContextMenu = useCallback((e: React.MouseEvent, fileId: string) => {
+    e.preventDefault()
+    setContextMenu({
+      isOpen: true,
+      x: e.clientX,
+      y: e.clientY,
+      fileId,
+    })
+  }, [])
+
+  // Request privilege toggle (with confirmation for unmarking)
+  const requestPrivilegeToggle = useCallback((id: string) => {
+    const file = files.find((f) => f.id === id)
+    if (!file) return
+
+    // If unmarking privilege, check safety and show confirmation
+    if (file.isPrivileged) {
+      // Safety check: Cannot unmark in privileged mode
+      if (globalPrivilegeMode) {
+        alert('Cannot remove privilege protection while in Privileged Mode. Exit Privileged Mode first.')
+        return
+      }
+
+      // Show confirmation dialog
+      setConfirmDialog({
+        isOpen: true,
+        fileId: id,
+        fileName: file.name,
+        action: 'unmark',
+      })
+    } else {
+      // Marking as privileged - no confirmation needed
+      executePrivilegeToggle(id, true)
+    }
+  }, [files, globalPrivilegeMode])
+
+  // Execute the privilege toggle (after confirmation if needed)
+  const executePrivilegeToggle = useCallback(async (id: string, newPrivilegeState: boolean) => {
+    const file = files.find((f) => f.id === id)
+    if (!file) return
+
     // AUDIO UI: Play metallic deadbolt click
     playLockSound()
 
+    // Optimistic update
     setFiles((prev) =>
-      prev.map((file) =>
-        file.id === id ? { ...file, isPrivileged: !file.isPrivileged } : file
+      prev.map((f) =>
+        f.id === id ? { ...f, isPrivileged: newPrivilegeState } : f
       )
     )
+
+    // Sync with backend
+    try {
+      const response = await fetch(`/api/documents/${id}/privilege`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          privileged: newPrivilegeState,
+          filename: file.name,
+          confirmUnmark: !newPrivilegeState, // Confirmation for unmarking
+        }),
+      })
+
+      if (!response.ok) {
+        // Revert on failure
+        setFiles((prev) =>
+          prev.map((f) =>
+            f.id === id ? { ...f, isPrivileged: !newPrivilegeState } : f
+          )
+        )
+        const error = await response.json()
+        console.error('Failed to update privilege:', error)
+      }
+    } catch (error) {
+      // Revert on error
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.id === id ? { ...f, isPrivileged: !newPrivilegeState } : f
+        )
+      )
+      console.error('Error updating privilege:', error)
+    }
+  }, [files, playLockSound])
+
+  // Handle confirmation dialog
+  const handleConfirmPrivilegeChange = useCallback(() => {
+    if (confirmDialog.fileId) {
+      executePrivilegeToggle(confirmDialog.fileId, confirmDialog.action === 'mark')
+    }
+    setConfirmDialog({ isOpen: false, fileId: null, fileName: '', action: 'mark' })
+  }, [confirmDialog, executePrivilegeToggle])
+
+  // Legacy toggle function (for button click)
+  const togglePrivilege = (id: string) => {
+    requestPrivilegeToggle(id)
   }
 
   const deleteFile = (id: string) => {
@@ -231,6 +356,8 @@ export function Vault() {
                   index={index}
                   onTogglePrivilege={() => togglePrivilege(file.id)}
                   onDelete={() => deleteFile(file.id)}
+                  onContextMenu={(e) => handleContextMenu(e, file.id)}
+                  globalPrivilegeMode={globalPrivilegeMode}
                 />
               ))}
             </AnimatePresence>
@@ -251,6 +378,44 @@ export function Vault() {
           </div>
         </motion.div>
       </div>
+
+      {/* Context Menu */}
+      <AnimatePresence>
+        {contextMenu.isOpen && contextMenu.fileId && (
+          <ContextMenu
+            x={contextMenu.x}
+            y={contextMenu.y}
+            file={files.find((f) => f.id === contextMenu.fileId)!}
+            onTogglePrivilege={() => {
+              togglePrivilege(contextMenu.fileId!)
+              setContextMenu({ ...contextMenu, isOpen: false })
+            }}
+            onDelete={() => {
+              deleteFile(contextMenu.fileId!)
+              setContextMenu({ ...contextMenu, isOpen: false })
+            }}
+            globalPrivilegeMode={globalPrivilegeMode}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Confirmation Dialog */}
+      <AnimatePresence>
+        {confirmDialog.isOpen && (
+          <ConfirmationDialog
+            title={confirmDialog.action === 'unmark' ? 'Remove Privilege Protection?' : 'Mark as Privileged?'}
+            message={
+              confirmDialog.action === 'unmark'
+                ? `Removing privilege protection will make "${confirmDialog.fileName}" visible in normal mode. This document may contain attorney-client privileged or work product protected information.`
+                : `Mark "${confirmDialog.fileName}" as privileged? This document will only be visible in Privileged Mode.`
+            }
+            confirmLabel={confirmDialog.action === 'unmark' ? 'Remove Protection' : 'Mark Privileged'}
+            confirmVariant={confirmDialog.action === 'unmark' ? 'danger' : 'primary'}
+            onConfirm={handleConfirmPrivilegeChange}
+            onCancel={() => setConfirmDialog({ isOpen: false, fileId: null, fileName: '', action: 'mark' })}
+          />
+        )}
+      </AnimatePresence>
     </motion.main>
   )
 }
@@ -447,11 +612,15 @@ function FileRow({
   index,
   onTogglePrivilege,
   onDelete,
+  onContextMenu,
+  globalPrivilegeMode,
 }: {
   file: UploadedFile
   index: number
   onTogglePrivilege: () => void
   onDelete: () => void
+  onContextMenu: (e: React.MouseEvent) => void
+  globalPrivilegeMode: boolean
 }) {
   const formatSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`
@@ -486,6 +655,7 @@ function FileRow({
       exit={{ opacity: 0, x: -20 }}
       transition={{ delay: index * 0.05 }}
       layout
+      onContextMenu={onContextMenu}
     >
       {/* File Icon */}
       <div
@@ -565,6 +735,206 @@ function FileRow({
       >
         <Trash2 className="w-4 h-4" />
       </motion.button>
+    </motion.div>
+  )
+}
+
+/**
+ * Context Menu Component
+ * Right-click menu for document actions
+ */
+function ContextMenu({
+  x,
+  y,
+  file,
+  onTogglePrivilege,
+  onDelete,
+  globalPrivilegeMode,
+}: {
+  x: number
+  y: number
+  file: UploadedFile
+  onTogglePrivilege: () => void
+  onDelete: () => void
+  globalPrivilegeMode: boolean
+}) {
+  return (
+    <motion.div
+      className={cn(
+        'fixed z-50 min-w-[180px]',
+        'dark:bg-void-card bg-ceramic-card',
+        'border dark:border-white/10 border-black/10',
+        'rounded-xl shadow-lg overflow-hidden',
+        'backdrop-blur-xl'
+      )}
+      style={{ left: x, top: y }}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      transition={{ duration: 0.15 }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Privilege Toggle Option */}
+      <button
+        onClick={onTogglePrivilege}
+        className={cn(
+          'w-full flex items-center gap-3 px-4 py-3',
+          'text-left text-sm font-medium',
+          'transition-colors duration-150',
+          file.isPrivileged
+            ? cn(
+                'dark:text-privilege text-privilege',
+                'dark:hover:bg-privilege/10 hover:bg-privilege/10'
+              )
+            : cn(
+                'dark:text-white text-black',
+                'dark:hover:bg-white/10 hover:bg-black/10'
+              )
+        )}
+      >
+        {file.isPrivileged ? (
+          <>
+            <Unlock className="w-4 h-4" />
+            <span>Remove Privilege</span>
+          </>
+        ) : (
+          <>
+            <Lock className="w-4 h-4" />
+            <span>Mark as Privileged</span>
+          </>
+        )}
+      </button>
+
+      {/* Safety warning if trying to unmark in privilege mode */}
+      {file.isPrivileged && globalPrivilegeMode && (
+        <div className="px-4 py-2 text-xs dark:text-amber-400/80 text-amber-600 bg-amber-500/10 flex items-center gap-2">
+          <AlertTriangle className="w-3 h-3" />
+          <span>Exit Privileged Mode first</span>
+        </div>
+      )}
+
+      <div className="h-px dark:bg-white/10 bg-black/10" />
+
+      {/* Delete Option */}
+      <button
+        onClick={onDelete}
+        className={cn(
+          'w-full flex items-center gap-3 px-4 py-3',
+          'text-left text-sm font-medium',
+          'dark:text-red-400 text-red-600',
+          'dark:hover:bg-red-500/10 hover:bg-red-500/10',
+          'transition-colors duration-150'
+        )}
+      >
+        <Trash2 className="w-4 h-4" />
+        <span>Delete</span>
+      </button>
+    </motion.div>
+  )
+}
+
+/**
+ * Confirmation Dialog Component
+ * Modal dialog for confirming privilege changes
+ */
+function ConfirmationDialog({
+  title,
+  message,
+  confirmLabel,
+  confirmVariant,
+  onConfirm,
+  onCancel,
+}: {
+  title: string
+  message: string
+  confirmLabel: string
+  confirmVariant: 'danger' | 'primary'
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onCancel}
+    >
+      <motion.div
+        className={cn(
+          'relative max-w-md w-full mx-4',
+          'dark:bg-void-card bg-ceramic-card',
+          'border dark:border-white/10 border-black/10',
+          'rounded-2xl shadow-2xl overflow-hidden',
+          'backdrop-blur-xl'
+        )}
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b dark:border-white/10 border-black/10">
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              'w-10 h-10 rounded-xl flex items-center justify-center',
+              confirmVariant === 'danger'
+                ? 'bg-red-500/20 text-red-500'
+                : 'bg-electric-500/20 text-electric-500'
+            )}>
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <h3 className="text-lg font-semibold dark:text-white text-black">
+              {title}
+            </h3>
+          </div>
+          <button
+            onClick={onCancel}
+            className="w-8 h-8 rounded-lg flex items-center justify-center dark:text-white/40 text-black/40 dark:hover:bg-white/10 hover:bg-black/10 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-6 py-5">
+          <p className="text-sm dark:text-white/70 text-black/70 leading-relaxed">
+            {message}
+          </p>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t dark:border-white/10 border-black/10 bg-black/5 dark:bg-white/5">
+          <motion.button
+            onClick={onCancel}
+            className={cn(
+              'px-4 py-2 rounded-xl text-sm font-medium',
+              'dark:bg-white/10 bg-black/10',
+              'dark:text-white text-black',
+              'dark:hover:bg-white/20 hover:bg-black/20',
+              'transition-colors duration-200'
+            )}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            Cancel
+          </motion.button>
+          <motion.button
+            onClick={onConfirm}
+            className={cn(
+              'px-4 py-2 rounded-xl text-sm font-semibold',
+              'transition-all duration-200',
+              confirmVariant === 'danger'
+                ? 'bg-red-500 text-white hover:bg-red-600 shadow-[0_0_15px_rgba(239,68,68,0.3)]'
+                : 'bg-electric-500 text-white hover:bg-electric-600 shadow-[0_0_15px_rgba(37,99,235,0.3)]'
+            )}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            {confirmLabel}
+          </motion.button>
+        </div>
+      </motion.div>
     </motion.div>
   )
 }

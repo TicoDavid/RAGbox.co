@@ -20,6 +20,7 @@
 - ✅ S011: Implement Full RAG Pipeline with Citations [CRITICAL] - DONE
 - ✅ S012: Implement Silence Protocol [CRITICAL] - DONE
 - ✅ S013: Implement Privilege Toggle Backend Logic [HIGH] - DONE
+- ✅ S014: Implement Document Privilege Tagging [HIGH] - DONE
 - ✅ S015: Implement Veritas Audit Logging [CRITICAL] - DONE
 
 ---
@@ -35,9 +36,9 @@
 ---
 
 ## Next Up
-- S014: Implement Document Privilege Tagging [HIGH]
 - S016: Build Audit Log Viewer Page [HIGH]
-- S017: Implement Audit Report PDF Export [HIGH]
+- S017: Implement Audit Report PDF Export [MEDIUM]
+- S018: Update Vault to Show Real Documents [HIGH]
 
 ---
 
@@ -52,6 +53,14 @@
 ---
 
 ## Iteration Log
+
+### Iteration 15 (2026-01-23)
+- Story: S014 - Implement Document Privilege Tagging
+- Status: DONE
+- Created: src/app/api/documents/[id]/privilege/route.ts (GET/PATCH API for per-document privilege)
+- Updated: src/components/Vault.tsx (Context menu, confirmation dialog, safety checks)
+- Features: Per-document privilege tagging, right-click context menu, confirmation dialog for unmarking, safety check (cannot unmark in privileged mode), API integration, lock sound
+- Status: PASS
 
 ### Iteration 14 (2026-01-23)
 - Story: S013 - Implement Privilege Toggle Backend Logic
@@ -251,10 +260,10 @@
 
 ## Metrics
 - Total Stories: 20
-- Completed: 14
+- Completed: 15
 - In Progress: 0
-- Remaining: 6
-- Estimated Story Points: ~32
+- Remaining: 5
+- Estimated Story Points: ~29
 
 ---
 

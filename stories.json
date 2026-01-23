@@ -393,7 +393,7 @@
       "id": "S014",
       "epic": "E5",
       "title": "Implement Document Privilege Tagging",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "story_points": 3,
       "description": "Allow marking individual documents as privileged.",
@@ -410,7 +410,8 @@
       ],
       "files_to_create": [
         "src/app/api/documents/[id]/privilege/route.ts"
-      ]
+      ],
+      "notes": "Full per-document privilege tagging with context menu, confirmation dialog, safety checks (cannot unmark in privileged mode), and API integration"
     },
     {
       "id": "S015",
