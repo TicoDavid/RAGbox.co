@@ -190,7 +190,7 @@ export default function Dashboard() {
             onError={(e) => {
               const target = e.target as HTMLImageElement
               target.src =
-                'https://storage.googleapis.com/connexusai-assets/WhiteLogo_RAGbox.co-removebg-preview.png'
+                'https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png'
               target.classList.add('invert')
             }}
           />
