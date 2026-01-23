@@ -6,9 +6,16 @@ import { useRouter } from 'next/navigation';
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  context?: 'signin' | 'signup' | 'upload';
 }
 
-export function AuthModal({ isOpen, onClose }: AuthModalProps) {
+const HEADERS = {
+  signin: { title: 'Welcome Back', subtitle: 'Sign in to access your vault.' },
+  signup: { title: 'Create Sovereign Vault', subtitle: 'Enter your work email to get started.' },
+  upload: { title: 'Authenticate to Analyze', subtitle: 'Sign in to upload and interrogate your documents.' },
+};
+
+export function AuthModal({ isOpen, onClose, context = 'signin' }: AuthModalProps) {
   const router = useRouter();
   const [step, setStep] = useState<'email' | 'otp'>('email');
   const [email, setEmail] = useState('');
@@ -83,11 +90,11 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             </div>
 
             <h2 className="text-2xl font-bold text-white tracking-tight">
-              {step === 'email' ? 'Initialize Access' : 'Verify Identity'}
+              {step === 'email' ? HEADERS[context].title : 'Verify Identity'}
             </h2>
             <p className="text-sm text-slate-400 mt-2">
               {step === 'email'
-                ? 'Enter your work email to enter the vault.'
+                ? HEADERS[context].subtitle
                 : <span>Enter the code sent to <span className="text-white font-medium">{email}</span></span>
               }
             </p>
