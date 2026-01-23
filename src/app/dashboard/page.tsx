@@ -3,13 +3,24 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useTheme } from 'next-themes';
+import { Sun, Moon } from 'lucide-react';
 import AdvancedChat from './components/AdvancedChat';
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [hasDocument, setHasDocument] = useState(false);
   const [activeTab, setActiveTab] = useState('Home');
+
+  // Prevent hydration mismatch for theme
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isDark = resolvedTheme === 'dark';
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -88,9 +99,25 @@ export default function Dashboard() {
               {hasDocument ? 'Q3_Financial_Report.pdf' : 'Overview'}
             </span>
           </div>
-          <div className="flex items-center gap-3">
-             <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]"></div>
-             <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-500 tracking-widest uppercase">Encrypted Connection</span>
+          <div className="flex items-center gap-4">
+             <div className="flex items-center gap-3">
+               <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]"></div>
+               <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-500 tracking-widest uppercase">Encrypted Connection</span>
+             </div>
+             {/* Theme Toggle */}
+             {mounted && (
+               <button
+                 onClick={() => setTheme(isDark ? 'light' : 'dark')}
+                 className="p-2 rounded-xl transition-all duration-300 text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10"
+                 aria-label="Toggle theme"
+               >
+                 {isDark ? (
+                   <Sun className="w-5 h-5" />
+                 ) : (
+                   <Moon className="w-5 h-5" />
+                 )}
+               </button>
+             )}
           </div>
         </header>
 
