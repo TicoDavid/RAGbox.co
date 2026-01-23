@@ -4,9 +4,10 @@ import React from 'react';
 // Define the interface for the props
 interface HeroProps {
   onOpenAuth: () => void;
+  onOpenVideo: () => void;
 }
 
-export default function Hero({ onOpenAuth }: HeroProps) {
+export default function Hero({ onOpenAuth, onOpenVideo }: HeroProps) {
   return (
     <section className="relative pt-32 pb-20 flex flex-col items-center text-center px-4 overflow-hidden dark:bg-[#050505] bg-white transition-colors duration-300">
 
@@ -99,7 +100,13 @@ export default function Hero({ onOpenAuth }: HeroProps) {
           >
             Start Free Trial
           </button>
-          <button className="h-12 px-8 rounded-full border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-white/10 font-medium transition-all w-full sm:w-auto">
+          <button
+            onClick={onOpenVideo}
+            className="group h-12 px-8 rounded-full border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-white/10 font-medium transition-all w-full sm:w-auto flex items-center justify-center gap-2"
+          >
+            <svg className="w-4 h-4 text-slate-400 group-hover:text-blue-500 transition-colors" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
             See How It Works
           </button>
         </div>
