@@ -111,7 +111,7 @@
       "id": "S003",
       "epic": "E1",
       "title": "Create Terraform Infrastructure",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "story_points": 5,
       "description": "Define infrastructure as code for reproducible GCP deployment.",
@@ -416,7 +416,7 @@
       "id": "S015",
       "epic": "E6",
       "title": "Implement Veritas Audit Logging",
-      "status": "todo",
+      "status": "done",
       "priority": "critical",
       "story_points": 5,
       "description": "Create immutable audit trail of all system activities.",
@@ -433,7 +433,8 @@
         "src/lib/audit/logger.ts",
         "src/lib/audit/types.ts",
         "src/lib/gcp/bigquery.ts"
-      ]
+      ],
+      "notes": "Full audit system with Cloud Logging, BigQuery (7-year retention), and database logging; SHA-256 hash verification, convenience functions for all event types"
     },
     {
       "id": "S016",

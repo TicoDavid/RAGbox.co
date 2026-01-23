@@ -8,11 +8,22 @@
 
 ## Completed Stories
 - ✅ S001: Initialize Next.js 14 Project with GCP Config [CRITICAL] - DONE
+- ✅ S002: Set Up GCP Project and Enable APIs [CRITICAL] - DONE
+- ✅ S003: Create Terraform Infrastructure [HIGH] - DONE
+- ✅ S005: Implement Firebase Authentication [CRITICAL] - DONE
+- ✅ S006: Implement Cloud Storage File Upload [CRITICAL] - DONE
+- ✅ S007: Implement Document AI Text Extraction [CRITICAL] - DONE
+- ✅ S008: Set Up AlloyDB with pgvector [CRITICAL] - DONE
+- ✅ S009: Implement Vertex AI Embeddings [CRITICAL] - DONE
+- ✅ S010: Migrate LLM from OpenRouter to Vertex AI [CRITICAL] - DONE
+- ✅ S011: Implement Full RAG Pipeline with Citations [CRITICAL] - DONE
+- ✅ S012: Implement Silence Protocol [CRITICAL] - DONE
+- ✅ S015: Implement Veritas Audit Logging [CRITICAL] - DONE
 
 ---
 
 ## In Progress
-- 🔄 S003: Build Landing Page Hero Section [HIGH] - PARTIAL (hero created)
+(none)
 
 ---
 
@@ -22,23 +33,166 @@
 ---
 
 ## Next Up
-- S002: Create Design System Components [CRITICAL]
-- S005: Implement Firebase Authentication [CRITICAL]
-- S006: Create Dashboard Layout [CRITICAL]
+- S004: Configure Cloud Build CI/CD [HIGH]
+- S013: Implement Privilege Toggle Backend Logic [HIGH]
+- S014: Implement Document Privilege Tagging [HIGH]
 
 ---
 
 ## Sprint 1 Goals (Foundation)
 - [x] S001: Project initialization
-- [ ] S002: Design system components
-- [~] S003: Landing page hero (partial)
-- [ ] S004: Landing page features
-- [ ] S005: Firebase authentication
-- [ ] S006: Dashboard layout
+- [x] S002: GCP Project Setup
+- [x] S003: Terraform Infrastructure
+- [ ] S004: Cloud Build CI/CD
+- [x] S005: Firebase authentication
+- [x] S006: Cloud Storage File Upload
 
 ---
 
 ## Iteration Log
+
+### Iteration 12 (2026-01-23)
+- Story: S003 - Create Terraform Infrastructure
+- Status: DONE
+- Created: terraform/main.tf (Provider config, APIs, locals)
+- Created: terraform/variables.tf (Input variables)
+- Created: terraform/outputs.tf (Output values)
+- Created: terraform/network.tf (VPC, subnets, VPC connector, NAT)
+- Created: terraform/storage.tf (Cloud Storage buckets with CMEK)
+- Created: terraform/database.tf (Cloud SQL PostgreSQL with pgvector)
+- Created: terraform/cloudrun.tf (Cloud Run service with VPC access)
+- Created: terraform/kms.tf (Cloud KMS keyring and keys)
+- Created: terraform/iam.tf (Service accounts and IAM bindings)
+- Created: terraform/bigquery.tf (Audit logging dataset)
+- Created: terraform/README.md (Documentation)
+- Created: terraform/terraform.tfvars.example (Sample variables)
+- Updated: .gitignore (Terraform ignores)
+- Features: Full IaC for GCP deployment, CMEK encryption, private networking, least-privilege IAM, 7-year audit retention
+- Status: PASS
+
+### Iteration 1 (2026-01-23T19:02:31.471Z)
+- Story: S015 - Implement Veritas Audit Logging
+- Status: PROMPTED
+- Prompt generated - awaiting implementation
+
+
+### Iteration 1 (2026-01-23T18:58:17.703Z)
+- Story: S012 - Implement Silence Protocol
+- Status: PROMPTED
+- Prompt generated - awaiting implementation
+
+
+### Iteration 1 (2026-01-23T18:50:22.101Z)
+- Story: S011 - Implement Full RAG Pipeline with Citations
+- Status: PROMPTED
+- Prompt generated - awaiting implementation
+
+
+### Iteration 1 (2026-01-23T18:44:20.779Z)
+- Story: S010 - Migrate LLM from OpenRouter to Vertex AI
+- Status: PROMPTED
+- Prompt generated - awaiting implementation
+
+
+### Iteration 11 (2026-01-23)
+- Story: S015 - Implement Veritas Audit Logging
+- Status: DONE
+- Created: src/lib/audit/types.ts (Audit event types, hashing, validation)
+- Created: src/lib/audit/logger.ts (Main logger with Cloud Logging + BigQuery + DB)
+- Created: src/lib/audit/index.ts (Module exports)
+- Created: src/lib/gcp/bigquery.ts (BigQuery client for audit storage)
+- Installed: @google-cloud/bigquery, @google-cloud/logging packages
+- Features: Triple logging (DB+Cloud+BigQuery), SHA-256 hash verification, 7-year retention, convenience functions for all event types
+- Status: PASS
+
+### Iteration 10 (2026-01-23)
+- Story: S012 - Implement Silence Protocol
+- Status: DONE
+- Created: src/lib/rag/silenceProtocol.ts (Silence Protocol logic and UI config)
+- Updated: src/components/Mercury.tsx (Amber warning styling, badge, lock sound)
+- Updated: src/lib/rag/index.ts (Export silenceProtocol module)
+- Features: 85% confidence threshold, reason detection, amber warning styling, "Low Confidence - Verify Source" badge, lock sound on trigger, audit logging
+- Status: PASS
+
+### Iteration 9 (2026-01-23)
+- Story: S011 - Implement Full RAG Pipeline with Citations
+- Status: DONE
+- Created: src/lib/rag/pipeline.ts (Main pipeline orchestration)
+- Created: src/lib/rag/retrieval.ts (Vector search with keyword reranking)
+- Created: src/lib/rag/generation.ts (LLM generation with role-specific prompts)
+- Created: src/lib/rag/citations.ts (Citation extraction and inline insertion)
+- Created: src/lib/rag/index.ts (Module exports)
+- Updated: src/components/Mercury.tsx (Real API integration)
+- Features: Complete query→embed→retrieve→generate→cite pipeline, keyword reranking, inline citations, role-specific system prompts, streaming support
+- Status: PASS
+
+### Iteration 8 (2026-01-23)
+- Story: S010 - Migrate LLM from OpenRouter to Vertex AI
+- Status: DONE
+- Created: src/lib/llm/vertexai.ts (Vertex AI Gemini 1.5 Pro provider)
+- Updated: src/lib/llm/index.ts (Added VertexAIProvider, updated getLLMProvider)
+- Updated: src/app/api/chat/route.ts (Full RAG pipeline with semantic search, streaming, citations)
+- Installed: @google-cloud/vertexai package
+- Features: Gemini 1.5 Pro, streaming SSE responses, confidence scoring, Silence Protocol, OpenRouter fallback
+- Status: PASS
+
+### Iteration 7 (2026-01-23)
+- Story: S009 - Implement Vertex AI Embeddings
+- Status: DONE
+- Created: src/lib/gcp/vertexai.ts (Vertex AI client with text-embedding-004)
+- Created: src/lib/embeddings.ts (Embedding orchestration service)
+- Created: src/app/api/embed/route.ts (POST/GET /api/embed endpoint)
+- Installed: @google-cloud/aiplatform package
+- Features: batch embedding (250 max), query vs document task types, cosine similarity, pgvector integration
+- Status: PASS
+
+### Iteration 6 (2026-01-23)
+- Story: S008 - Set Up AlloyDB with pgvector
+- Status: DONE
+- Created: prisma/schema.prisma (Prisma schema with pgvector support)
+- Created: prisma/migrations/00001_init/migration.sql (Initial migration with HNSW index)
+- Created: src/lib/db.ts (Prisma client with vector search functions)
+- Created: scripts/seed.ts (Test data seeding script)
+- Updated: package.json with Prisma scripts (db:generate, db:migrate, etc.)
+- Features: User/Document/Chunk/Query/AuditLog models, vector(768) embeddings, HNSW index for fast similarity search, raw SQL for pgvector operations
+- Status: PASS
+
+### Iteration 5 (2026-01-23)
+- Story: S007 - Implement Document AI Text Extraction
+- Status: DONE
+- Created: src/lib/gcp/documentai.ts (Document AI client for text extraction)
+- Created: src/lib/chunking.ts (Text chunking with 500 tokens, 50 overlap)
+- Created: functions/processDocument/ (Cloud Function for async processing)
+- Features: PDF/image OCR, page tracking, chunk metadata, Firestore storage
+- Status: PASS
+
+### Iteration 4 (2026-01-23)
+- Story: S006 - Implement Cloud Storage File Upload
+- Status: DONE
+- Created: src/lib/gcp/storage.ts (GCP Cloud Storage client with resumable uploads)
+- Created: src/app/api/upload/route.ts (Upload API with direct and resumable support)
+- Created: src/hooks/useUpload.ts (React hook with progress tracking)
+- Features: user-specific paths, signed URLs, metadata storage, file validation
+- Status: PASS
+
+### Iteration 3 (2026-01-23)
+- Story: S005 - Implement Firebase Authentication
+- Status: DONE
+- Created: src/lib/firebase.ts (Firebase client SDK with Google/Microsoft/Email auth)
+- Created: src/contexts/AuthContext.tsx (React context for auth state)
+- Created: src/middleware.ts (Protected routes, session management)
+- Updated: src/components/providers/AuthProvider.tsx (Firebase provider wrapper)
+- Updated: src/app/login/page.tsx (Full Firebase auth integration)
+- Installed: firebase, firebase-admin packages
+- Status: PASS
+
+### Iteration 2 (2026-01-23)
+- Story: S002 - Set Up GCP Project and Enable APIs
+- Status: DONE
+- Created: scripts/setup-gcp.sh (comprehensive GCP setup automation)
+- Updated: .env.example with full GCP configuration
+- Setup script handles: project creation, API enabling, service account, IAM roles, KMS, Cloud Storage bucket
+- Status: PASS
 
 ### Iteration 1 (2026-01-23)
 - Implemented S001: Initialize Next.js 14 Project with GCP Config
@@ -68,11 +222,11 @@
 ---
 
 ## Metrics
-- Total Stories: 25
-- Completed: 0
+- Total Stories: 20
+- Completed: 12
 - In Progress: 0
-- Remaining: 25
-- Estimated Story Points: ~95
+- Remaining: 8
+- Estimated Story Points: ~39
 
 ---
 

@@ -1,0 +1,207 @@
+/**
+ * RAGbox.co - Terraform Outputs
+ *
+ * Export values for CI/CD and application configuration.
+ */
+
+# ============================================
+# Project Information
+# ============================================
+
+output "project_id" {
+  description = "GCP Project ID"
+  value       = var.project_id
+}
+
+output "region" {
+  description = "GCP Region"
+  value       = var.region
+}
+
+output "environment" {
+  description = "Deployment environment"
+  value       = var.environment
+}
+
+# ============================================
+# Cloud Run
+# ============================================
+
+output "cloud_run_url" {
+  description = "Cloud Run service URL"
+  value       = google_cloud_run_v2_service.app.uri
+}
+
+output "cloud_run_service_name" {
+  description = "Cloud Run service name"
+  value       = google_cloud_run_v2_service.app.name
+}
+
+# ============================================
+# Database
+# ============================================
+
+output "database_instance_name" {
+  description = "Cloud SQL instance name"
+  value       = google_sql_database_instance.postgres.name
+}
+
+output "database_connection_name" {
+  description = "Cloud SQL connection name"
+  value       = google_sql_database_instance.postgres.connection_name
+}
+
+output "database_private_ip" {
+  description = "Cloud SQL private IP address"
+  value       = google_sql_database_instance.postgres.private_ip_address
+  sensitive   = true
+}
+
+output "database_name" {
+  description = "Database name"
+  value       = google_sql_database.ragbox.name
+}
+
+# ============================================
+# Storage
+# ============================================
+
+output "documents_bucket_name" {
+  description = "Cloud Storage bucket for documents"
+  value       = google_storage_bucket.documents.name
+}
+
+output "documents_bucket_url" {
+  description = "Cloud Storage bucket URL"
+  value       = google_storage_bucket.documents.url
+}
+
+output "temp_bucket_name" {
+  description = "Cloud Storage bucket for temporary uploads"
+  value       = google_storage_bucket.temp.name
+}
+
+# ============================================
+# KMS
+# ============================================
+
+output "kms_keyring_name" {
+  description = "KMS keyring name"
+  value       = google_kms_key_ring.ragbox.name
+}
+
+output "kms_document_key_id" {
+  description = "KMS key ID for document encryption"
+  value       = google_kms_crypto_key.documents.id
+}
+
+output "kms_database_key_id" {
+  description = "KMS key ID for database encryption"
+  value       = google_kms_crypto_key.database.id
+}
+
+# ============================================
+# Networking
+# ============================================
+
+output "vpc_name" {
+  description = "VPC network name"
+  value       = google_compute_network.vpc.name
+}
+
+output "vpc_connector_name" {
+  description = "VPC access connector name"
+  value       = google_vpc_access_connector.connector.name
+}
+
+# ============================================
+# Service Accounts
+# ============================================
+
+output "cloud_run_service_account" {
+  description = "Cloud Run service account email"
+  value       = google_service_account.cloud_run.email
+}
+
+output "cloud_functions_service_account" {
+  description = "Cloud Functions service account email"
+  value       = google_service_account.cloud_functions.email
+}
+
+output "cicd_service_account" {
+  description = "CI/CD service account email"
+  value       = google_service_account.cicd.email
+}
+
+# ============================================
+# BigQuery
+# ============================================
+
+output "bigquery_dataset_id" {
+  description = "BigQuery audit dataset ID"
+  value       = google_bigquery_dataset.audit.dataset_id
+}
+
+output "bigquery_audit_table_id" {
+  description = "BigQuery audit log table ID"
+  value       = google_bigquery_table.audit_log.table_id
+}
+
+# ============================================
+# Secrets
+# ============================================
+
+output "database_url_secret_name" {
+  description = "Secret Manager secret name for DATABASE_URL"
+  value       = google_secret_manager_secret.database_url.secret_id
+}
+
+output "database_password_secret_name" {
+  description = "Secret Manager secret name for database password"
+  value       = google_secret_manager_secret.db_password.secret_id
+}
+
+# ============================================
+# Custom Domain
+# ============================================
+
+output "domain_mapping_status" {
+  description = "Custom domain mapping status"
+  value       = var.domain_name != "" ? google_cloud_run_domain_mapping.default[0].status : null
+}
+
+# ============================================
+# Summary for .env file
+# ============================================
+
+output "env_file_template" {
+  description = "Environment variables template for local development"
+  value = <<-EOT
+    # Generated by Terraform - Copy to .env.local
+
+    # GCP Configuration
+    GOOGLE_CLOUD_PROJECT=${var.project_id}
+    GCP_REGION=${var.region}
+
+    # Storage
+    GCS_BUCKET_NAME=${google_storage_bucket.documents.name}
+
+    # KMS
+    KMS_KEY_RING=${google_kms_key_ring.ragbox.name}
+    KMS_KEY_NAME=${google_kms_crypto_key.documents.name}
+
+    # Vertex AI
+    VERTEX_AI_LOCATION=${var.region}
+
+    # BigQuery
+    BIGQUERY_DATASET=${google_bigquery_dataset.audit.dataset_id}
+    BIGQUERY_TABLE=${google_bigquery_table.audit_log.table_id}
+
+    # Database (fetch from Secret Manager)
+    # gcloud secrets versions access latest --secret=${google_secret_manager_secret.database_url.secret_id}
+
+    # Confidence Threshold
+    CONFIDENCE_THRESHOLD=0.85
+  EOT
+  sensitive = true
+}
