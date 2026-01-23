@@ -61,6 +61,7 @@ export default function Hero({ onOpenAuth, onOpenVideo }: HeroProps) {
             group-hover:opacity-60
             transition duration-700
             animate-pulse-slow
+            pointer-events-none
         " />
 
         {/* 2. THE GLASS CONTAINER */}
