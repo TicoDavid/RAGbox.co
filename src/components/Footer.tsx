@@ -19,7 +19,7 @@ export default function Footer() {
               />
               {/* Dark mode: White logo */}
               <img
-                src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_white.jpg"
+                src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_white.png"
                 className="h-8 w-auto hidden dark:block"
                 alt="RAGBox"
               />
