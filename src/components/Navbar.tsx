@@ -41,18 +41,24 @@ export function Navbar() {
       )}
     >
       <div className="max-w-7xl mx-auto h-full flex items-center justify-between">
-        {/* Logo - Official RAGbox.co Logo */}
+        {/* Logo - Theme-aware: different logos for dark/light modes */}
         <motion.div
           className="flex items-center cursor-pointer"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         >
-          <img
-            src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_white.jpg"
-            alt="RAGbox.co"
-            className="h-12 md:h-14 w-auto"
-          />
+          {mounted && (
+            <img
+              src={
+                isDark
+                  ? 'https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_white.jpg' // TODO: Replace with dark mode logo URL
+                  : 'https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_white.jpg'
+              }
+              alt="RAGbox.co"
+              className="h-12 md:h-14 w-auto"
+            />
+          )}
         </motion.div>
 
         {/* Right Controls */}
