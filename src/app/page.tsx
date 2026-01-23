@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Navbar } from '@/components/Navbar';
 import Hero from '@/components/Hero';
-import { PrivilegeCards } from '@/components/PrivilegeCards';
+import FeatureGrid from '@/components/FeatureGrid';
 import { AuthModal } from '@/components/AuthModal';
 
 export default function Home() {
@@ -13,7 +13,7 @@ export default function Home() {
     <main className="min-h-screen dark:bg-[#050505] bg-white transition-colors duration-300">
       <Navbar onOpenAuth={openAuth} />
       <Hero onOpenAuth={openAuth} />
-      <PrivilegeCards />
+      <FeatureGrid />
       <AuthModal isOpen={isAuthOpen} onClose={() => setAuthOpen(false)} />
     </main>
   );
