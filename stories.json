@@ -518,7 +518,7 @@
       "id": "S019",
       "epic": "E0",
       "title": "Implement One-Click Data Export",
-      "status": "todo",
+      "status": "done",
       "priority": "medium",
       "story_points": 3,
       "description": "Allow users to export all their data (anti-lock-in).",
@@ -534,7 +534,8 @@
       "files_to_create": [
         "src/app/dashboard/settings/page.tsx",
         "src/app/api/export/route.ts"
-      ]
+      ],
+      "notes": "Full data export with settings page, ZIP archive format, document/query/profile export, manifest with SHA-256 hash, audit logging"
     },
     {
       "id": "S020",
