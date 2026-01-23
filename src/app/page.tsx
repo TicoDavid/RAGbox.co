@@ -1,10 +1,12 @@
 'use client'
 
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { Navbar } from '@/components/Navbar'
 import { TheBox } from '@/components/TheBox'
 import { PrivilegeCards } from '@/components/PrivilegeCards'
+import { AuthModal } from '@/components/AuthModal'
 import { cn } from '@/lib/utils'
 
 /**
@@ -25,6 +27,8 @@ import { cn } from '@/lib/utils'
  * 5. "See How It Works" Button
  */
 export default function LandingPage() {
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+
   return (
     <main
       className={cn(
@@ -34,7 +38,13 @@ export default function LandingPage() {
       )}
     >
       {/* Glass Navbar */}
-      <Navbar />
+      <Navbar onSignInClick={() => setIsAuthModalOpen(true)} />
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+      />
 
       {/* Hero Section - The Sovereign Zone */}
       <section className="flex-1 flex flex-col items-center justify-center px-6 pt-20 pb-16 min-h-[85vh]">

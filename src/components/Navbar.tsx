@@ -6,6 +6,10 @@ import { Sun, Moon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 
+interface NavbarProps {
+  onSignInClick?: () => void
+}
+
 /**
  * Glass Navbar Component
  *
@@ -14,7 +18,7 @@ import { cn } from '@/lib/utils'
  * - Pill-shaped theme toggle with satisfying spring animation
  * - RAGbox logo on left, controls on right
  */
-export function Navbar() {
+export function Navbar({ onSignInClick }: NavbarProps) {
   const { theme, setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
@@ -103,6 +107,7 @@ export function Navbar() {
 
           {/* Sign In Button */}
           <motion.button
+            onClick={onSignInClick}
             className={cn(
               'px-4 py-2 rounded-2xl',
               'text-sm font-medium',
