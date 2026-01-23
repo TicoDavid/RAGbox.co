@@ -127,7 +127,10 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
           </motion.button>
 
           {/* Request Demo Button */}
-          <motion.button
+          <motion.a
+            href="https://theconnexus.ai/"
+            target="_blank"
+            rel="noopener noreferrer"
             className={cn(
               'px-5 py-2.5 rounded-2xl',
               'text-sm font-semibold',
@@ -143,7 +146,7 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
             whileTap={{ scale: 0.98 }}
           >
             Request Demo
-          </motion.button>
+          </motion.a>
         </div>
       </div>
     </nav>
