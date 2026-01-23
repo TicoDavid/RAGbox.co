@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 
 interface NavbarProps {
-  onSignInClick?: () => void
+  onOpenAuth?: () => void
 }
 
 /**
@@ -18,7 +18,7 @@ interface NavbarProps {
  * - Pill-shaped theme toggle with satisfying spring animation
  * - RAGbox logo on left, controls on right
  */
-export function Navbar({ onSignInClick }: NavbarProps) {
+export function Navbar({ onOpenAuth }: NavbarProps) {
   const { theme, setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
@@ -107,7 +107,7 @@ export function Navbar({ onSignInClick }: NavbarProps) {
 
           {/* Sign In Button */}
           <motion.button
-            onClick={onSignInClick}
+            onClick={onOpenAuth}
             className={cn(
               'px-4 py-2 rounded-2xl',
               'text-sm font-medium',
