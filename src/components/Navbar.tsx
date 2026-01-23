@@ -40,8 +40,8 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
         'px-6 py-0.5',
         // Ghost Strategy: Deeply transparent, floating
         'backdrop-blur-md',
-        'bg-black/50',
-        'border-b border-white/5',
+        'dark:bg-black/50 bg-white/90',
+        'dark:border-b dark:border-white/5 border-b border-slate-200/50',
         'transition-colors duration-300'
       )}
     >
