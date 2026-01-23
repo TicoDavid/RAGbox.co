@@ -1,11 +1,39 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import AdvancedChat from './components/AdvancedChat';
 
 export default function Dashboard() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [hasDocument, setHasDocument] = useState(false);
   const [activeTab, setActiveTab] = useState('Home');
+
+  // Redirect to home if not authenticated
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/');
+    }
+  }, [status, router]);
+
+  // Show loading while checking auth
+  if (status === 'loading') {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-[#050505]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full" />
+          <p className="text-slate-500 dark:text-slate-400 text-sm">Authenticating...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render dashboard if not authenticated
+  if (!session) {
+    return null;
+  }
 
   // Simulated Upload
   const handleUpload = () => {
