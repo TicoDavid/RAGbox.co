@@ -81,3 +81,12 @@ override.tf.json
 *_override.tf.json
 .terraformrc
 terraform.rc
+
+secrets/
+*.json
+
+# Secrets
+secrets/
+*.json
+.env.local
+.env*.local
