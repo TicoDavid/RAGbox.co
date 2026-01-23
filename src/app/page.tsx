@@ -43,7 +43,7 @@ export default function LandingPage() {
           className={cn(
             'text-4xl sm:text-5xl md:text-6xl lg:text-7xl',
             'font-extrabold text-center mb-6',
-            'dark:text-white text-slate-900'
+            'text-white'
           )}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -60,7 +60,7 @@ export default function LandingPage() {
         <motion.p
           className={cn(
             'text-lg md:text-xl lg:text-2xl text-center mb-12',
-            'dark:text-slate-400 text-slate-600',
+            'text-slate-400',
             'max-w-2xl'
           )}
           initial={{ opacity: 0, y: 20 }}
@@ -105,10 +105,8 @@ export default function LandingPage() {
             className={cn(
               'px-6 py-3 rounded-2xl',
               'text-sm font-medium',
-              'dark:text-slate-400 dark:hover:text-white',
-              'text-slate-600 hover:text-slate-900',
-              'dark:border dark:border-white/10 dark:hover:border-white/20',
-              'border border-black/10 hover:border-black/20',
+              'text-slate-400 hover:text-white',
+              'border border-white/10 hover:border-white/20',
               'transition-all duration-200'
             )}
           >
