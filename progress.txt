@@ -10,6 +10,7 @@
 - ✅ S001: Initialize Next.js 14 Project with GCP Config [CRITICAL] - DONE
 - ✅ S002: Set Up GCP Project and Enable APIs [CRITICAL] - DONE
 - ✅ S003: Create Terraform Infrastructure [HIGH] - DONE
+- ✅ S004: Configure Cloud Build CI/CD [HIGH] - DONE
 - ✅ S005: Implement Firebase Authentication [CRITICAL] - DONE
 - ✅ S006: Implement Cloud Storage File Upload [CRITICAL] - DONE
 - ✅ S007: Implement Document AI Text Extraction [CRITICAL] - DONE
@@ -33,9 +34,9 @@
 ---
 
 ## Next Up
-- S004: Configure Cloud Build CI/CD [HIGH]
 - S013: Implement Privilege Toggle Backend Logic [HIGH]
 - S014: Implement Document Privilege Tagging [HIGH]
+- S016: Build Audit Log Viewer Page [HIGH]
 
 ---
 
@@ -43,13 +44,30 @@
 - [x] S001: Project initialization
 - [x] S002: GCP Project Setup
 - [x] S003: Terraform Infrastructure
-- [ ] S004: Cloud Build CI/CD
+- [x] S004: Cloud Build CI/CD
 - [x] S005: Firebase authentication
 - [x] S006: Cloud Storage File Upload
 
 ---
 
 ## Iteration Log
+
+### Iteration 13 (2026-01-23)
+- Story: S004 - Configure Cloud Build CI/CD
+- Status: DONE
+- Created: Dockerfile (Multi-stage build optimized for Cloud Run)
+- Created: cloudbuild.yaml (10-step CI/CD pipeline)
+- Created: .dockerignore (Build context optimization)
+- Created: src/app/api/health/route.ts (Health check endpoint)
+- Updated: next.config.js (Standalone output, security headers)
+- Features: Build/test/deploy pipeline, Secret Manager integration, VPC connector, Artifact Registry
+- Status: PASS
+
+### Iteration 1 (2026-01-23T19:26:04.193Z)
+- Story: S002 - Set Up GCP Project and Enable APIs
+- Status: PROMPTED
+- Prompt generated - awaiting implementation
+
 
 ### Iteration 12 (2026-01-23)
 - Story: S003 - Create Terraform Infrastructure
@@ -223,10 +241,10 @@
 
 ## Metrics
 - Total Stories: 20
-- Completed: 12
+- Completed: 13
 - In Progress: 0
-- Remaining: 8
-- Estimated Story Points: ~39
+- Remaining: 7
+- Estimated Story Points: ~36
 
 ---
 

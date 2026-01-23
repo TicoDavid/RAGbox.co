@@ -141,7 +141,7 @@
       "id": "S004",
       "epic": "E1",
       "title": "Configure Cloud Build CI/CD",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "story_points": 3,
       "description": "Set up automated deployment pipeline from GitHub to Cloud Run.",

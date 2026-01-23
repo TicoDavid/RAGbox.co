@@ -1,0 +1,76 @@
+# .dockerignore - RAGbox.co
+# Exclude unnecessary files from Docker build context
+
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# Testing
+coverage
+.nyc_output
+
+# Build outputs (we rebuild in Docker)
+.next
+out
+build
+dist
+
+# Development
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+!README.md
+docs
+
+# Tests
+__tests__
+*.test.*
+*.spec.*
+jest.config.*
+playwright.config.*
+cypress
+
+# CI/CD
+.github
+.gitlab
+cloudbuild.yaml
+
+# Terraform
+terraform
+*.tf
+*.tfvars
+
+# Logs
+*.log
+logs
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp
+temp
+
+# Scripts (keep only necessary ones)
+scripts
+
+# Large/unnecessary folders
+cli
+RAGbox.co
+ragbox-co
