@@ -62,20 +62,6 @@ export default function Dashboard() {
 
       {/* 1. SIDEBAR (Fixed Rail) */}
       <aside className="w-20 border-r border-slate-200 dark:border-white/10 flex flex-col items-center py-6 gap-8 bg-white dark:bg-[#0A0A0A] z-20 shadow-xl shadow-slate-200/20 dark:shadow-none">
-        {/* LOGO BOX */}
-        <div className="w-12 h-12 rounded-2xl bg-white dark:bg-[#0A0A0A] flex items-center justify-center shrink-0 shadow-lg shadow-blue-900/10 border border-slate-100 dark:border-white/10">
-           {mounted && (
-             <img
-               src={isDark
-                 ? "https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
-                 : "https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_white.jpg"
-               }
-               className="w-24 h-auto transition-all duration-300"
-               alt="Logo"
-             />
-           )}
-        </div>
-
         <div className="flex flex-col gap-4 w-full items-center">
           {['Home', 'Vault', 'Settings'].map((item) => (
             <button
