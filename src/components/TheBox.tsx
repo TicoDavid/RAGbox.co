@@ -3,21 +3,19 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Upload, Shield, Check, FileText, FileType, File } from 'lucide-react'
+import { Upload, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRagSounds } from '@/hooks/useRagSounds'
 
 /**
  * TheBox Component - The Sovereign Drop Zone
  *
- * Design: "Stark Industries Interface" - Premium, tactile, empowering
+ * Design: Sync.so / Linear aesthetic - Clean, professional, premium
  *
  * Features:
- * - Glassmorphism card with solid glowing border (no dashed lines)
- * - Shield icon that transforms on hover/drop
- * - Breathing animation when idle (2% scale pulse)
- * - Heavy spring physics (stiffness: 300, damping: 30)
- * - File type indicators for reduced cognitive load
+ * - Dashed border that highlights on hover
+ * - Solid shield icon with shadow
+ * - Clean file type badges
  * - TEASER GATE: Redirects to /login after file drop
  */
 export function TheBox() {
@@ -46,13 +44,8 @@ export function TheBox() {
 
       const files = Array.from(e.dataTransfer.files)
       if (files.length > 0) {
-        // AUDIO UI: Play the sci-fi absorption sound
         playDropSound()
-
-        // TEASER GATE: Absorb animation then redirect to login
         setIsAbsorbing(true)
-
-        // Wait for absorb animation, then redirect
         setTimeout(() => {
           router.push('/login')
         }, 800)
@@ -62,198 +55,140 @@ export function TheBox() {
   )
 
   const handleClick = useCallback(() => {
-    // Also trigger on click for demo purposes
     setIsAbsorbing(true)
     setTimeout(() => {
       router.push('/login')
     }, 800)
   }, [router])
 
-  const isActive = isDragOver || isHovered || isAbsorbing
+  const isActive = isDragOver || isHovered
 
   return (
-    <div className="flex flex-col items-center">
-      {/* The Box */}
+    <div className="w-full max-w-lg">
+      {/* The Drop Zone Card */}
       <motion.div
-        className="relative"
+        className={cn(
+          'relative aspect-square md:aspect-[4/3] rounded-3xl',
+          'flex flex-col items-center justify-center gap-4',
+          'cursor-pointer',
+          'transition-all duration-300 ease-out',
+          // Background
+          'bg-slate-50 dark:bg-white/5',
+          // Border: Dashed, highlights on hover
+          'border-2 border-dashed',
+          isActive || isAbsorbing
+            ? 'border-blue-500 dark:border-blue-500/50'
+            : 'border-slate-300 dark:border-white/10',
+          // Hover background tint
+          isActive && 'bg-blue-50/50 dark:bg-blue-900/10'
+        )}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={handleClick}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        // Breathing animation when idle, absorb pulse when dropping
         animate={
           isAbsorbing
-            ? {
-                scale: [1.05, 1.15, 1],
-                transition: {
-                  duration: 0.6,
-                  times: [0, 0.4, 1],
-                  ease: 'easeOut',
-                },
-              }
-            : isActive
-              ? { scale: 1.05 }
-              : {
-                  scale: [1, 1.02, 1],
-                  transition: {
-                    duration: 4,
-                    repeat: Infinity,
-                    ease: 'easeInOut',
-                  },
-                }
+            ? { scale: [1, 1.02, 1] }
+            : { scale: 1 }
         }
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       >
-        {/* Glow effect - behind the box (Dark mode only) */}
-        <motion.div
-          className={cn(
-            'absolute inset-0 rounded-3xl',
-            'pointer-events-none',
-            // Dark mode: Electric blue glow
-            'dark:bg-electric-600/20 dark:blur-3xl',
-            // Light mode: No glow (clean floating shadow instead)
-            'bg-transparent blur-none'
-          )}
-          animate={{
-            opacity: isAbsorbing ? 1 : isActive ? 0.8 : 0.4,
-            scale: isAbsorbing ? 1.5 : isActive ? 1.3 : 1.1,
-          }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        />
-
-        {/* The Drop Zone Card - Premium floating container */}
-        <motion.div
-          className={cn(
-            'relative z-10',
-            'w-80 h-80 md:w-96 md:h-96',
-            'rounded-3xl',
-            'flex flex-col items-center justify-center gap-4',
-            'cursor-pointer',
-            'transition-all duration-300',
-            // Dark mode: Elevated surface with subtle fill
-            'dark:bg-[#111111]',
-            // Light mode: Clean white card
-            'bg-white',
-            'backdrop-blur-xl',
-            // Border: thin with glow in dark, grey in light
-            'border',
-            'dark:border-electric-600/30',
-            'border-slate-200',
-            // Shadows: Layered glow (dark) vs floating shadow (light)
-            isAbsorbing
-              ? 'dark:shadow-[0_0_80px_-10px_rgba(37,99,235,0.7)] shadow-2xl'
-              : isActive
-                ? 'dark:shadow-[0_0_50px_-10px_rgba(37,99,235,0.5)] shadow-xl'
-                : 'dark:shadow-[0_0_30px_-10px_rgba(37,99,235,0.3)] shadow-lg'
-          )}
-        >
-          {/* Shield Icon - Premium, secure feel */}
-          <AnimatePresence mode="wait">
-            {isAbsorbing ? (
-              <motion.div
-                key="absorbed"
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.5 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                className="relative"
-              >
-                <div className="w-20 h-20 rounded-full bg-electric-600 flex items-center justify-center shadow-glow">
-                  <Check className="w-10 h-10 text-white" strokeWidth={3} />
-                </div>
-              </motion.div>
-            ) : isDragOver ? (
-              <motion.div
-                key="upload"
-                initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -10, scale: 0.9 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              >
-                <Upload
-                  className="w-16 h-16 text-electric-500"
-                  strokeWidth={2}
-                />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="shield"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                className="relative"
-              >
-                <motion.div
-                  animate={{
-                    scale: isHovered ? 1.1 : 1,
-                  }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                >
-                  <Shield
-                    className={cn(
-                      'w-16 h-16',
-                      'dark:text-white/60 text-slate-400',
-                      isHovered && 'dark:text-electric-400 text-electric-600'
-                    )}
-                    strokeWidth={2.5}
-                  />
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Text */}
-          <div className="text-center px-6">
-            <motion.p
-              className={cn(
-                'text-lg font-semibold mb-2',
-                'dark:text-white text-slate-900'
-              )}
-              animate={{
-                color: isActive ? '#2563eb' : undefined,
-              }}
+        {/* Icon Container */}
+        <AnimatePresence mode="wait">
+          {isAbsorbing ? (
+            <motion.div
+              key="check"
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.5 }}
+              className="p-4 rounded-2xl bg-blue-600 shadow-lg shadow-blue-600/25"
             >
-              {isAbsorbing
-                ? 'Processing...'
-                : isDragOver
-                  ? 'Release to Analyze'
-                  : 'Securely Upload for Analysis'}
-            </motion.p>
-            <p className="text-sm dark:text-slate-400 text-slate-500 mb-4">
-              {isAbsorbing
-                ? 'Redirecting to secure login'
-                : 'Drag documents here or click to browse'}
-            </p>
-
-            {/* File Type Indicators - Reduces cognitive load */}
-            {!isAbsorbing && (
-              <motion.div
-                className="flex items-center justify-center gap-3"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
+              <Check className="w-8 h-8 text-white" strokeWidth={3} />
+            </motion.div>
+          ) : isDragOver ? (
+            <motion.div
+              key="upload"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="p-4 rounded-2xl bg-blue-600 shadow-lg shadow-blue-600/25"
+            >
+              <Upload className="w-8 h-8 text-white" strokeWidth={2} />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="shield"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className={cn(
+                'p-4 rounded-2xl mb-2',
+                'bg-white dark:bg-white/10',
+                'shadow-xl shadow-slate-200/50 dark:shadow-none',
+                'transition-transform duration-300',
+                isHovered && 'scale-110'
+              )}
+            >
+              {/* Solid Shield Icon */}
+              <svg
+                className="w-8 h-8 text-blue-600 dark:text-blue-400"
+                fill="currentColor"
+                viewBox="0 0 24 24"
               >
-                <div className="flex items-center gap-1.5 text-xs dark:text-slate-500 text-slate-400">
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>PDF</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs dark:text-slate-500 text-slate-400">
-                  <FileType className="w-3.5 h-3.5" />
-                  <span>DOCX</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs dark:text-slate-500 text-slate-400">
-                  <File className="w-3.5 h-3.5" />
-                  <span>TXT</span>
-                </div>
-              </motion.div>
+                <path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V8.26l7-3.89v8.63z" />
+              </svg>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Text */}
+        <div className="space-y-1 text-center">
+          <h3
+            className={cn(
+              'text-lg font-semibold',
+              'text-slate-900 dark:text-white',
+              isActive && 'text-blue-600 dark:text-blue-400'
             )}
-          </div>
-        </motion.div>
+          >
+            {isAbsorbing
+              ? 'Processing...'
+              : isDragOver
+                ? 'Release to Analyze'
+                : 'Securely Upload for Analysis'}
+          </h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {isAbsorbing
+              ? 'Redirecting to secure login'
+              : 'Drag & drop or click to browse'}
+          </p>
+        </div>
+
+        {/* File Type Badges */}
+        {!isAbsorbing && (
+          <motion.div
+            className="flex gap-3 mt-2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            {['PDF', 'DOCX', 'TXT'].map((type) => (
+              <span
+                key={type}
+                className={cn(
+                  'px-2 py-1 rounded',
+                  'text-[10px] font-bold uppercase tracking-wide',
+                  'bg-slate-200 dark:bg-white/10',
+                  'text-slate-500 dark:text-slate-400'
+                )}
+              >
+                {type}
+              </span>
+            ))}
+          </motion.div>
+        )}
       </motion.div>
     </div>
   )
 }
-

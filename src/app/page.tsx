@@ -1,7 +1,6 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import Link from 'next/link'
 import { Navbar } from '@/components/Navbar'
 import { TheBox } from '@/components/TheBox'
 import { PrivilegeCards } from '@/components/PrivilegeCards'
@@ -10,186 +9,138 @@ import { cn } from '@/lib/utils'
 /**
  * US-001: Landing Page
  *
- * Design System: "Stark Industries Interface"
- * - Empowering, not intimidating - makes users feel like superheroes
+ * Design System: Sync.so / Linear aesthetic
+ * - Clean, professional, premium feel
  * - OLED Void (dark) / Premium Bond Paper (light)
- * - Electric Blue (#2563EB) primary brand color
- * - Generous border radiuses (rounded-2xl, rounded-3xl)
- * - Heavy spring physics (stiffness: 300, damping: 30)
- *
- * HIERARCHY (Text First, Box Second):
- * 1. Navbar (Big Logo)
- * 2. H1 Headline (Heavy, "Sovereign Intelligence" gradient)
- * 3. Subhead (Grey/Slate)
- * 4. The Breathing Box (Glassmorphism, Premium feel)
- * 5. Clear CTAs
+ * - Blue (#2563EB) primary brand color
+ * - Rounded buttons and cards
  */
 export default function LandingPage() {
   return (
     <main
       className={cn(
         'min-h-screen flex flex-col relative overflow-hidden',
-        // Theme-aware background
-        'dark:bg-black bg-white',
+        'bg-white dark:bg-[#050505]',
         'transition-colors duration-300'
       )}
     >
-      {/* Subtle Background Pattern - Constellation Network */}
+      {/* Background Ambience - SaaS Glow */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {/* Radial glow behind hero */}
         <div
           className={cn(
-            'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
-            'w-[800px] h-[800px]',
-            'dark:bg-electric-600/10 bg-electric-500/5',
-            'rounded-full blur-3xl',
-            'opacity-60'
-          )}
-        />
-        {/* Mesh gradient overlay */}
-        <div
-          className={cn(
-            'absolute inset-0',
-            'dark:bg-gradient-to-b dark:from-transparent dark:via-black/50 dark:to-black',
-            'bg-gradient-to-b from-transparent via-white/50 to-white'
+            'absolute top-0 left-1/2 -translate-x-1/2',
+            'w-[600px] h-[400px]',
+            'bg-blue-500/20 dark:bg-blue-500/10',
+            'blur-[120px] rounded-full'
           )}
         />
       </div>
 
-      {/* Glass Navbar */}
+      {/* Navbar */}
       <Navbar />
 
-      {/* Hero Section - The Sovereign Zone */}
-      <section className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 pt-20 pb-16 min-h-[85vh]">
-        {/* H1 Headline - Softened, Empowering */}
-        <motion.h1
-          className={cn(
-            'text-4xl sm:text-5xl md:text-6xl lg:text-7xl',
-            'font-extrabold text-center mb-6',
-            'dark:text-white text-slate-900'
-          )}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.1 }}
-        >
-          Secure Document Intelligence
-          <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-electric-400 via-electric-500 to-electric-600">
-            in a Sovereign Environment
-          </span>
-        </motion.h1>
-
-        {/* Subheadline - High contrast for readability */}
-        <motion.p
-          className={cn(
-            'text-lg md:text-xl lg:text-2xl text-center mb-4 font-medium',
-            'dark:text-slate-300 text-slate-800',
-            'max-w-2xl'
-          )}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.15 }}
-        >
-          A Digital Fort Knox for your confidential documents.
-          <br className="hidden sm:block" />
-          AI-powered answers grounded in your data, with verifiable citations.
-        </motion.p>
-
-        {/* Value Prop - Zero Training Emphasis */}
-        <motion.p
-          className={cn(
-            'text-sm md:text-base text-center mb-10',
-            'dark:text-slate-400 text-slate-600',
-            'max-w-xl'
-          )}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.18 }}
-        >
-          Zero training required. Instant analysis. Enterprise-grade security.
-        </motion.p>
-
-        {/* The Box - Central Element */}
+      {/* Hero Section */}
+      <section className="relative z-10 pt-32 pb-20 flex flex-col items-center text-center px-4">
+        {/* Headlines */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.2 }}
+          className="max-w-4xl mx-auto space-y-6 mb-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         >
-          <TheBox />
+          <h1
+            className={cn(
+              'text-5xl md:text-7xl font-bold tracking-tight',
+              'text-slate-900 dark:text-white'
+            )}
+          >
+            Secure Document Intelligence
+            <br />
+            <span className="text-blue-600 dark:text-blue-500">
+              in a Sovereign Environment
+            </span>
+          </h1>
+
+          <p
+            className={cn(
+              'text-lg md:text-xl leading-relaxed',
+              'text-slate-600 dark:text-slate-400',
+              'max-w-2xl mx-auto'
+            )}
+          >
+            A Digital Fort Knox for your confidential documents.
+            AI-powered answers grounded in your data, with verifiable citations.
+          </p>
+
+          {/* Trust Badges */}
+          <div className="flex items-center justify-center gap-2 text-xs font-mono text-slate-400 dark:text-slate-600 uppercase tracking-widest">
+            <span>Zero Training</span>
+            <span className="text-blue-500">•</span>
+            <span>SOC2 Ready</span>
+            <span className="text-blue-500">•</span>
+            <span>Private Vaults</span>
+          </div>
         </motion.div>
 
-        {/* CTAs - Connected to Box */}
+        {/* The Drop Zone */}
         <motion.div
-          className="flex flex-col sm:flex-row items-center gap-4 mt-8"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.3 }}
+          className="w-full max-w-lg"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.1 }}
         >
-          <Link
-            href="/dashboard"
-            className={cn(
-              'px-8 py-4 rounded-2xl',
-              'text-base font-semibold',
-              'bg-electric-600 hover:bg-electric-500',
-              'text-white',
-              'shadow-glow-sm hover:shadow-glow',
-              'transition-all duration-200'
-            )}
-          >
-            Analyze Documents
-          </Link>
-          <button
-            className={cn(
-              'px-6 py-3 rounded-2xl',
-              'text-sm font-medium',
-              // High contrast secondary button
-              'dark:text-white dark:hover:text-white',
-              'text-slate-800 hover:text-slate-900',
-              // White border in dark mode for visibility
-              'dark:border dark:border-white/50 dark:hover:border-white',
-              'border border-slate-400 hover:border-slate-500',
-              'dark:hover:bg-white/10 hover:bg-slate-100',
-              'transition-all duration-200'
-            )}
-          >
-            See How It Works
-          </button>
+          <TheBox />
+
+          {/* CTAs - Anchored below the box */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
+            <button
+              className={cn(
+                'h-12 px-8 rounded-full',
+                'bg-blue-600 hover:bg-blue-500',
+                'text-white font-semibold',
+                'shadow-lg shadow-blue-600/25',
+                'transition-all w-full sm:w-auto'
+              )}
+            >
+              Start Free Trial
+            </button>
+            <button
+              className={cn(
+                'h-12 px-8 rounded-full',
+                'border border-slate-200 dark:border-white/10',
+                'text-slate-700 dark:text-white',
+                'hover:bg-slate-50 dark:hover:bg-white/10',
+                'font-medium transition-all w-full sm:w-auto'
+              )}
+            >
+              See How It Works
+            </button>
+          </div>
         </motion.div>
       </section>
 
-      {/* Feature Section - The 4 Pillars */}
+      {/* Feature Section */}
       <section
         className={cn(
-          'py-24',
-          'dark:bg-black bg-slate-50',
-          'dark:border-t dark:border-white/5 border-t border-black/5',
+          'py-24 px-6',
+          'bg-white dark:bg-[#050505]',
           'transition-colors duration-300'
         )}
       >
         <PrivilegeCards />
       </section>
 
-      {/* Ghost Footer - Barely visible */}
-      <footer className="px-6 py-8 dark:bg-black bg-white transition-colors duration-300">
+      {/* Footer */}
+      <footer className="px-6 py-8 bg-white dark:bg-[#050505] transition-colors duration-300">
         <div className="max-w-6xl mx-auto flex items-center justify-center">
-          {/* Ghost Links - theme-aware muted colors */}
-          <div className="flex items-center gap-8 text-sm dark:text-neutral-700 text-neutral-400 font-medium">
-            <a
-              href="#"
-              className="dark:hover:text-neutral-500 hover:text-neutral-600 transition-colors"
-            >
+          <div className="flex items-center gap-8 text-sm text-slate-400 dark:text-slate-600 font-medium">
+            <a href="#" className="hover:text-slate-600 dark:hover:text-slate-400 transition-colors">
               Security
             </a>
-            <a
-              href="#"
-              className="dark:hover:text-neutral-500 hover:text-neutral-600 transition-colors"
-            >
+            <a href="#" className="hover:text-slate-600 dark:hover:text-slate-400 transition-colors">
               Privacy
             </a>
-            <a
-              href="#"
-              className="dark:hover:text-neutral-500 hover:text-neutral-600 transition-colors"
-            >
+            <a href="#" className="hover:text-slate-600 dark:hover:text-slate-400 transition-colors">
               Terms
             </a>
           </div>
