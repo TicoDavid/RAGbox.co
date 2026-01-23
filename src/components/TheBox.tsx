@@ -121,7 +121,7 @@ export function TheBox() {
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         />
 
-        {/* The Drop Zone Card - with ALIVE pulsing border */}
+        {/* The Drop Zone Card - Polished Glass Surface */}
         <motion.div
           className={cn(
             'relative z-10',
@@ -129,40 +129,42 @@ export function TheBox() {
             'rounded-3xl',
             'flex flex-col items-center justify-center gap-6',
             'cursor-pointer',
-            'transition-all duration-300',
-            // Background
-            'dark:bg-void-card/50 bg-paper-card/50',
+            'transition-all duration-500 ease-out',
+            // LIGHT MODE: Clean White Surface
+            'bg-white border border-slate-200 shadow-xl shadow-slate-200/50',
+            // DARK MODE: Cinematic Glass
+            'dark:bg-white/5 dark:border-white/10 dark:shadow-black/50',
+            // HOVER EFFECTS: Blue Glow (overridden by animate below for active states)
+            'hover:border-electric-500/50 dark:hover:border-electric-500/50',
+            'hover:shadow-[0_0_40px_-10px_rgba(37,99,235,0.15)]',
             // HIGH VOLTAGE Shadow - Layered bloom in dark mode
             isAbsorbing
               ? 'dark:shadow-[0_0_100px_-10px_rgba(37,99,235,0.8),0_0_150px_-20px_rgba(37,99,235,0.5)] shadow-glow-intense'
               : isActive
                 ? 'dark:shadow-[0_0_60px_-15px_rgba(37,99,235,0.6),0_0_100px_-20px_rgba(37,99,235,0.4)] shadow-glow-lg'
-                : 'dark:shadow-[0_0_40px_-15px_rgba(37,99,235,0.4),0_0_60px_-20px_rgba(37,99,235,0.2)] shadow-glow-sm'
+                : ''
           )}
-          style={{
-            // Base border style - will be animated
-            borderWidth: '2px',
-            borderStyle: 'dashed',
-          }}
           animate={
             isAbsorbing
               ? {
                   borderColor: '#2563eb',
-                  borderStyle: 'solid',
+                  borderWidth: '2px',
                 }
               : isActive
                 ? {
                     borderColor: '#2563eb',
+                    borderWidth: '2px',
                   }
                 : {
-                    // ALIVE: Pulsing border opacity 0.4 -> 1.0
+                    // ALIVE: Subtle pulsing border opacity
                     borderColor: [
-                      'rgba(37, 99, 235, 0.4)',
-                      'rgba(37, 99, 235, 1)',
-                      'rgba(37, 99, 235, 0.4)',
+                      'rgba(37, 99, 235, 0.2)',
+                      'rgba(37, 99, 235, 0.5)',
+                      'rgba(37, 99, 235, 0.2)',
                     ],
+                    borderWidth: '1px',
                     transition: {
-                      duration: 2,
+                      duration: 3,
                       repeat: Infinity,
                       ease: 'easeInOut',
                     },
