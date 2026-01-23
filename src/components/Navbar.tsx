@@ -19,7 +19,7 @@ interface NavbarProps {
  * - RAGbox logo on left, controls on right
  */
 export function Navbar({ onOpenAuth }: NavbarProps) {
-  const { theme, setTheme, resolvedTheme } = useTheme()
+  const { setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
   // Prevent hydration mismatch
