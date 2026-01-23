@@ -76,7 +76,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white shadow-lg shadow-blue-900/10 mb-6">
               {/* Use the BLUE logo for contrast on white */}
               <img
-                src="https://storage.googleapis.com/connexusai-assets/BlueLogo_RAGbox.co.png"
+                src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
                 className="w-10 h-auto"
                 alt="Logo"
               />
