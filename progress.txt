@@ -19,6 +19,7 @@
 - ✅ S010: Migrate LLM from OpenRouter to Vertex AI [CRITICAL] - DONE
 - ✅ S011: Implement Full RAG Pipeline with Citations [CRITICAL] - DONE
 - ✅ S012: Implement Silence Protocol [CRITICAL] - DONE
+- ✅ S013: Implement Privilege Toggle Backend Logic [HIGH] - DONE
 - ✅ S015: Implement Veritas Audit Logging [CRITICAL] - DONE
 
 ---
@@ -34,9 +35,9 @@
 ---
 
 ## Next Up
-- S013: Implement Privilege Toggle Backend Logic [HIGH]
 - S014: Implement Document Privilege Tagging [HIGH]
 - S016: Build Audit Log Viewer Page [HIGH]
+- S017: Implement Audit Report PDF Export [HIGH]
 
 ---
 
@@ -51,6 +52,15 @@
 ---
 
 ## Iteration Log
+
+### Iteration 14 (2026-01-23)
+- Story: S013 - Implement Privilege Toggle Backend Logic
+- Status: DONE
+- Created: src/contexts/PrivilegeContext.tsx (React context for privilege state)
+- Created: src/app/api/privilege/route.ts (GET/POST API for privilege sync)
+- Updated: src/components/Vault.tsx (Global privilege mode toggle, document filtering)
+- Features: Binary privilege mode, server sync, cookie persistence, document filtering, lock sound, audit logging
+- Status: PASS
 
 ### Iteration 13 (2026-01-23)
 - Story: S004 - Configure Cloud Build CI/CD
@@ -241,10 +251,10 @@
 
 ## Metrics
 - Total Stories: 20
-- Completed: 13
+- Completed: 14
 - In Progress: 0
-- Remaining: 7
-- Estimated Story Points: ~36
+- Remaining: 6
+- Estimated Story Points: ~32
 
 ---
 

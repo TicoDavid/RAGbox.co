@@ -367,7 +367,7 @@
       "id": "S013",
       "epic": "E5",
       "title": "Implement Privilege Toggle Backend Logic",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "story_points": 4,
       "description": "Connect existing privilege toggle UI to backend logic.",

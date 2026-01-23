@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Upload,
@@ -9,9 +9,12 @@ import {
   Lock,
   Unlock,
   Trash2,
+  Shield,
+  ShieldOff,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRagSounds } from '@/hooks/useRagSounds'
+import { usePrivilege } from '@/contexts/PrivilegeContext'
 
 interface UploadedFile {
   id: string
@@ -62,8 +65,21 @@ export function Vault() {
   const [files, setFiles] = useState<UploadedFile[]>(demoFiles)
   const [isDragOver, setIsDragOver] = useState(false)
 
+  // Global privilege mode context
+  const { isPrivileged: globalPrivilegeMode, togglePrivilege: toggleGlobalPrivilege, isLoading: privilegeLoading } = usePrivilege()
+
   // Audio UI - The "RAG" sounds
   const { playLockSound, playDropSound } = useRagSounds()
+
+  // Filter files based on global privilege mode
+  const visibleFiles = useMemo(() => {
+    if (globalPrivilegeMode) {
+      // Privilege mode ON: show only privileged documents
+      return files.filter((file) => file.isPrivileged)
+    }
+    // Normal mode: show all non-privileged documents
+    return files.filter((file) => !file.isPrivileged)
+  }, [files, globalPrivilegeMode])
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -124,18 +140,61 @@ export function Vault() {
       transition={{ duration: 0.3 }}
     >
       <div className="max-w-4xl mx-auto space-y-8">
-        {/* Header */}
+        {/* Header with Global Privilege Toggle */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
+          className="flex items-start justify-between"
         >
-          <h1 className="text-3xl font-extrabold dark:text-white text-black">
-            The Box
-          </h1>
-          <p className="text-sm dark:text-white/40 text-black/40 mt-1">
-            Feed your documents. Interrogate with confidence.
-          </p>
+          <div>
+            <h1 className="text-3xl font-extrabold dark:text-white text-black">
+              The Box
+            </h1>
+            <p className="text-sm dark:text-white/40 text-black/40 mt-1">
+              {globalPrivilegeMode
+                ? 'Viewing privileged documents only'
+                : 'Feed your documents. Interrogate with confidence.'}
+            </p>
+          </div>
+
+          {/* Global Privilege Mode Toggle */}
+          <motion.button
+            onClick={toggleGlobalPrivilege}
+            disabled={privilegeLoading}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2 rounded-xl',
+              'text-sm font-semibold',
+              'transition-all duration-300',
+              'border-2',
+              globalPrivilegeMode
+                ? cn(
+                    'bg-privilege/20 text-privilege border-privilege',
+                    'shadow-[0_0_20px_rgba(255,61,0,0.3)]'
+                  )
+                : cn(
+                    'dark:bg-white/5 bg-black/5',
+                    'dark:text-white/60 text-black/60',
+                    'dark:border-white/20 border-black/10',
+                    'dark:hover:bg-white/10 hover:bg-black/10'
+                  ),
+              privilegeLoading && 'opacity-50 cursor-not-allowed'
+            )}
+            whileHover={{ scale: privilegeLoading ? 1 : 1.02 }}
+            whileTap={{ scale: privilegeLoading ? 1 : 0.98 }}
+          >
+            {globalPrivilegeMode ? (
+              <>
+                <Shield className="w-5 h-5" strokeWidth={2.5} />
+                <span>Privileged Mode</span>
+              </>
+            ) : (
+              <>
+                <ShieldOff className="w-5 h-5" strokeWidth={2} />
+                <span>Normal Mode</span>
+              </>
+            )}
+          </motion.button>
         </motion.div>
 
         {/* Drop Zone */}
@@ -154,13 +213,18 @@ export function Vault() {
         >
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold dark:text-white text-black">
-              Documents ({files.length})
+              {globalPrivilegeMode ? 'Privileged Documents' : 'Documents'} ({visibleFiles.length})
+              {globalPrivilegeMode && files.filter(f => !f.isPrivileged).length > 0 && (
+                <span className="text-sm font-normal dark:text-white/40 text-black/40 ml-2">
+                  ({files.filter(f => !f.isPrivileged).length} hidden)
+                </span>
+              )}
             </h2>
           </div>
 
           <div className="space-y-2">
-            <AnimatePresence>
-              {files.map((file, index) => (
+            <AnimatePresence mode="popLayout">
+              {visibleFiles.map((file, index) => (
                 <FileRow
                   key={file.id}
                   file={file}
@@ -171,13 +235,17 @@ export function Vault() {
               ))}
             </AnimatePresence>
 
-            {files.length === 0 && (
+            {visibleFiles.length === 0 && (
               <motion.div
                 className="text-center py-12 dark:text-white/30 text-black/30"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
               >
-                No documents yet. Drop files above to get started.
+                {globalPrivilegeMode
+                  ? 'No privileged documents. Toggle document privilege to see them here.'
+                  : files.length === 0
+                    ? 'No documents yet. Drop files above to get started.'
+                    : 'All documents are marked as privileged. Switch to Privileged Mode to view them.'}
               </motion.div>
             )}
           </div>
