@@ -1,7 +1,8 @@
 'use client'
 
+import { useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { Scale, Download, Shield, Clock } from 'lucide-react'
+import { Scale, Download, Shield, Clock, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AuditTimeline } from '@/components/audit/AuditTimeline'
 
@@ -12,6 +13,42 @@ import { AuditTimeline } from '@/components/audit/AuditTimeline'
  * Displays immutable audit trail in blockchain-inspired style
  */
 export default function AuditPage() {
+  const [isExporting, setIsExporting] = useState(false)
+
+  /**
+   * Handle PDF export
+   */
+  const handleExport = useCallback(async () => {
+    setIsExporting(true)
+    try {
+      const response = await fetch('/api/audit/export?format=pdf')
+
+      if (!response.ok) {
+        throw new Error('Export failed')
+      }
+
+      // Get the blob from response
+      const blob = await response.blob()
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `ragbox_audit_report_${new Date().toISOString().split('T')[0]}.pdf`
+      document.body.appendChild(a)
+      a.click()
+
+      // Cleanup
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Export failed:', error)
+      alert('Failed to export audit report. Please try again.')
+    } finally {
+      setIsExporting(false)
+    }
+  }, [])
+
   return (
     <motion.main
       className={cn(
@@ -52,6 +89,8 @@ export default function AuditPage() {
 
           {/* Export button */}
           <motion.button
+            onClick={handleExport}
+            disabled={isExporting}
             className={cn(
               'flex items-center gap-2 px-5 py-3 rounded-xl',
               'dark:bg-electric-600/20 bg-electric-100',
@@ -59,13 +98,18 @@ export default function AuditPage() {
               'border dark:border-electric-500/30 border-electric-200',
               'font-semibold text-sm',
               'transition-all duration-200',
-              'hover:shadow-glow-sm'
+              'hover:shadow-glow-sm',
+              isExporting && 'opacity-50 cursor-not-allowed'
             )}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ scale: isExporting ? 1 : 1.02 }}
+            whileTap={{ scale: isExporting ? 1 : 0.98 }}
           >
-            <Download className="w-4 h-4" />
-            <span>Print Official Ledger</span>
+            {isExporting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            <span>{isExporting ? 'Generating Report...' : 'Print Official Ledger'}</span>
           </motion.button>
         </motion.div>
 

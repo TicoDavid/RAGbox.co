@@ -23,6 +23,7 @@
 - ✅ S014: Implement Document Privilege Tagging [HIGH] - DONE
 - ✅ S015: Implement Veritas Audit Logging [CRITICAL] - DONE
 - ✅ S016: Build Audit Log Viewer Page [HIGH] - DONE
+- ✅ S017: Implement Audit Report PDF Export [MEDIUM] - DONE
 - ✅ S018: Update Vault to Show Real Documents [HIGH] - DONE
 
 ---
@@ -38,7 +39,6 @@
 ---
 
 ## Next Up
-- S017: Implement Audit Report PDF Export [MEDIUM]
 - S019: Implement One-Click Data Export [MEDIUM]
 - S020: Implement Health Check and Monitoring [MEDIUM]
 
@@ -55,6 +55,15 @@
 ---
 
 ## Iteration Log
+
+### Iteration 18 (2026-01-23)
+- Story: S017 - Implement Audit Report PDF Export
+- Status: DONE
+- Created: src/lib/audit/pdfExport.ts (PDF generation with watermark and hash)
+- Created: src/app/api/audit/export/route.ts (GET API for PDF/JSON export)
+- Updated: src/app/dashboard/audit/page.tsx (Export button with loading state)
+- Features: Watermarked PDF, organization header, SHA-256 report hash, date filtering, audit logging of exports
+- Status: PASS
 
 ### Iteration 17 (2026-01-23)
 - Story: S018 - Update Vault to Show Real Documents
@@ -283,10 +292,10 @@
 
 ## Metrics
 - Total Stories: 20
-- Completed: 17
+- Completed: 18
 - In Progress: 0
-- Remaining: 3
-- Estimated Story Points: ~22
+- Remaining: 2
+- Estimated Story Points: ~19
 
 ---
 

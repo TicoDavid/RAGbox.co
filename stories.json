@@ -469,7 +469,7 @@
       "id": "S017",
       "epic": "E6",
       "title": "Implement Audit Report PDF Export",
-      "status": "todo",
+      "status": "done",
       "priority": "medium",
       "story_points": 3,
       "description": "Export audit logs as watermarked PDF for regulators.",
@@ -485,7 +485,8 @@
       "files_to_create": [
         "src/lib/audit/pdfExport.ts",
         "src/app/api/audit/export/route.ts"
-      ]
+      ],
+      "notes": "Full PDF export with watermark, header/footer, SHA-256 hash verification, date filtering support, and audit logging of export action"
     },
     {
       "id": "S018",
