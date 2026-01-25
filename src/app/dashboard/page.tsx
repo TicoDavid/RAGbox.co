@@ -1,248 +1,503 @@
 "use client";
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+
+import React, { useState, useCallback, useRef } from 'react';
 import { useTheme } from 'next-themes';
-import useSound from 'use-sound';
-import AdvancedChat from './components/AdvancedChat';
+import { useSession } from 'next-auth/react';
+import { redirect } from 'next/navigation';
+
+// Import styles
+import './dashboard.css';
+
+// Import types
+import type {
+  Vault,
+  Source,
+  Artifact,
+  Session,
+  ChatMessage,
+  DrawerState,
+  StudioMode,
+  ComponentVariation
+} from './types';
+
+// Import utilities
+import { generateId, fileToBase64, getFileTypeDescription } from './utils';
+import { MOCK_RESPONSES } from './constants';
+
+// Import components
+import Header from './components/Header';
+import VaultPanel from './components/VaultPanel';
+import SecurityDrop from './components/SecurityDrop';
+import MercuryChat from './components/MercuryChat';
+import StudioPanel from './components/StudioPanel';
+import SecurityModal from './components/SecurityModal';
+import SaveToVaultModal from './components/SaveToVaultModal';
+import SideDrawer from './components/SideDrawer';
+import { ThinkingIcon, HistoryIcon } from './components/Icons';
+
+// Vault contents storage (in-memory for demo)
+const VAULT_CONTENTS: Record<string, string> = {};
+
+// Get initial chat log
+const getInitialChatLog = (vaults: Vault[], sources: Source[]): ChatMessage[] => {
+  const openVaults = vaults.filter(v => v.status === 'open');
+  const hasSources = sources.length > 0;
+
+  let text = "MERCURY\n\nSUMMARY\n• Secure Core Online.\n";
+
+  if (openVaults.length === 0 && !hasSources) {
+    text += "• No active vault context detected.";
+  } else {
+    text += "• Active context verified and ready for analysis.";
+  }
+
+  return [{ id: 'intro', text, isUser: false, timestamp: Date.now() }];
+};
 
 export default function Dashboard() {
-  const { theme, setTheme } = useTheme();
+  // Auth check
+  const { data: session, status } = useSession();
 
-  // App State
-  const [currentFile, setCurrentFile] = useState<string | null>(null);
-  const [isVaultOpen, setIsVaultOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [files, setFiles] = useState([
-    { name: 'Q3_Performance_Analysis.pdf', size: '2.4 MB', date: 'Just now' },
-    { name: 'HR_Compliance_2025.docx', size: '1.1 MB', date: '2 days ago' },
-    { name: 'Engineering_Roadmap_v4.pdf', size: '4.2 MB', date: '5 days ago' },
-  ]);
+  // Theme
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const currentTheme = (resolvedTheme || theme || 'dark') as 'dark' | 'light';
 
-  // Sound: Tactile hover click for sidebar
-  const [playHover] = useSound(
-    'https://storage.googleapis.com/connexusai-assets/sci-fi-whoosh-ui-click-brukowskij-1-00-02.mp3',
-    { volume: 0.2 }
-  );
+  // Global search
+  const [globalSearchTerm, setGlobalSearchTerm] = useState('');
 
-  const handleUpload = () => {
-    // Simulate upload delay
-    setTimeout(() => setCurrentFile('Q3_Performance_Analysis.pdf'), 800);
+  // Input state
+  const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Vault state
+  const [vaults, setVaults] = useState<Vault[]>([]);
+  const [editingVaultId, setEditingVaultId] = useState<string | null>(null);
+
+  // Sources state
+  const [sources, setSources] = useState<Source[]>([]);
+
+  // Layout state (resizable panels)
+  const [colWidths, setColWidths] = useState([280, 280, 450]);
+  const isResizing = useRef<number | null>(null);
+
+  // Studio state
+  const [gridColumns, setGridColumns] = useState<1 | 2 | 4>(2);
+  const [studioMode, setStudioMode] = useState<StudioMode>('UI');
+  const [artifacts, setArtifacts] = useState<Artifact[]>([]);
+  const [focusedArtifactIndex, setFocusedArtifactIndex] = useState<number | null>(null);
+
+  // Chat state
+  const [chatLog, setChatLog] = useState<ChatMessage[]>(() => getInitialChatLog([], []));
+
+  // Session & Archive state
+  const [archivedSessions, setArchivedSessions] = useState<Session[]>([]);
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+
+  // Drawer state
+  const [drawerState, setDrawerState] = useState<DrawerState>({
+    isOpen: false,
+    mode: null,
+    title: '',
+    data: null
+  });
+  const [componentVariations, setComponentVariations] = useState<ComponentVariation[]>([]);
+
+  // Redirect if not authenticated
+  if (status === 'unauthenticated') {
+    redirect('/');
+  }
+
+  // Resizing logic
+  const handleMouseDown = (index: number) => {
+    isResizing.current = index;
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'col-resize';
   };
 
-  const openFile = (fileName: string) => {
-    setCurrentFile(fileName);
-    setIsVaultOpen(false); // Close drawer on selection
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (isResizing.current === null) return;
+    const index = isResizing.current;
+
+    setColWidths(prev => {
+      const newWidths = [...prev];
+      if (e.movementX) {
+        newWidths[index] = Math.max(150, newWidths[index] + e.movementX);
+      }
+      return newWidths;
+    });
+  }, []);
+
+  const handleMouseUp = () => {
+    isResizing.current = null;
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = '';
   };
 
-  const handleNavClick = (tab: string) => {
-    if (tab === 'Home') setCurrentFile(null); // Go back to Drop Zone
-    if (tab === 'Vault') setIsVaultOpen(true);
-    if (tab === 'Settings') setIsSettingsOpen(true);
+  const toggleTheme = () => {
+    setTheme(currentTheme === 'dark' ? 'light' : 'dark');
   };
 
-  return (
-    <div className="flex h-screen bg-[#F8F9FA] dark:bg-[#050505] text-slate-900 dark:text-white overflow-hidden font-sans selection:bg-blue-500/30 transition-colors duration-300">
+  // File drop handler
+  const handleFileDrop = async (file: File) => {
+    const { typeDescription, isImage } = getFileTypeDescription(file);
 
-      {/* BACKGROUND GRID */}
-      <div className="absolute inset-0 pointer-events-none z-0">
-         <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px]" />
-      </div>
+    let content = '';
+    let base64: string | undefined = undefined;
 
-      {/* --- SIDEBAR RAIL --- */}
-      <aside className="w-[72px] flex flex-col items-center py-6 gap-6 bg-[#0F172A] z-30 shadow-2xl border-r border-white/5">
+    if (isImage) {
+      try {
+        base64 = await fileToBase64(file);
+        content = `[Image Asset: ${file.name}]`;
+      } catch (e) {
+        console.error("Failed to read image", e);
+        return;
+      }
+    } else {
+      content = `[Document: ${file.name}]
+- Status: Uploaded via Security Drop.
+- Analysis: Contains verified data regarding user inquiry.
+- Key Metric: 98% compliance with internal standards.
+- Note: This is a simulated ingestion for the demo.`;
+    }
 
-        {/* LOGO: Blue on White (App Icon Style) */}
-        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/20 mb-4">
-           <img
-             src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
-             className="w-7 h-auto object-contain"
-             alt="RAGbox Logo"
-           />
-        </div>
-
-        {/* NAV ITEMS */}
-        <div className="flex flex-col gap-4 w-full items-center">
-            <NavButton name="Home" active={!currentFile && !isVaultOpen && !isSettingsOpen} onClick={() => handleNavClick('Home')} onHover={playHover} />
-            <NavButton name="Vault" active={isVaultOpen} onClick={() => handleNavClick('Vault')} onHover={playHover} />
-            <NavButton name="Settings" active={isSettingsOpen} onClick={() => handleNavClick('Settings')} onHover={playHover} />
-        </div>
-
-        <div className="flex-1" />
-
-        {/* THEME TOGGLE */}
-        <button
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            onMouseEnter={() => playHover()}
-            className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
-        >
-            {theme === 'dark' ? (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-            ) : (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
-            )}
-        </button>
-      </aside>
-
-      {/* --- MAIN WORKSPACE --- */}
-      <main className="flex-1 flex flex-col relative z-10">
-
-        {/* HEADER */}
-        <header className="h-16 border-b border-slate-200 dark:border-white/10 flex items-center justify-between px-6 bg-white/60 dark:bg-[#050505]/60 backdrop-blur-xl z-20">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-slate-500 dark:text-slate-400 font-medium">Workspace</span>
-            <svg className="w-4 h-4 text-slate-300 dark:text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 18l6-6-6-6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            <span className="text-slate-900 dark:text-white font-semibold truncate">
-                {currentFile || 'Overview'}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-100 dark:bg-amber-500/10 dark:border-amber-500/20">
-             <span className="relative flex h-2 w-2">
-               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-               <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-             </span>
-             <span className="text-[10px] font-bold text-amber-700 dark:text-amber-500 tracking-widest uppercase">Sovereign Environment</span>
-          </div>
-        </header>
-
-        {/* CONTENT AREA */}
-        <div className="flex-1 relative overflow-hidden">
-          <AnimatePresence mode="wait">
-
-            {/* 1. HOME (DROP ZONE) */}
-            {!currentFile && (
-              <motion.div
-                key="empty"
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="absolute inset-0 flex flex-col items-center justify-center p-8"
-              >
-                <div
-                  onClick={handleUpload}
-                  className="group cursor-pointer relative w-full max-w-2xl aspect-[16/9] rounded-3xl bg-white border border-slate-200 shadow-2xl shadow-slate-200/50 dark:bg-[#0A0A0A] dark:border-white/10 dark:shadow-black hover:border-[#0000FF] dark:hover:border-blue-500/50 transition-all duration-500 flex flex-col items-center justify-center gap-6"
-                >
-                  <div className="p-6 rounded-3xl bg-blue-50 text-[#0000FF] dark:bg-white/5 dark:text-blue-500 shadow-xl group-hover:scale-110 transition-transform">
-                    <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                  </div>
-                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Upload to Vault</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Click to select a file or drag & drop</p>
-                </div>
-              </motion.div>
-            )}
-
-            {/* 2. ACTIVE WORKSPACE */}
-            {currentFile && (
-              <motion.div
-                key="active"
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                className="absolute inset-0 flex"
-              >
-                {/* LEFT: DOC VIEWER */}
-                <div className="w-1/2 border-r border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-[#111] flex flex-col">
-                  <div className="flex-1 p-8 overflow-y-auto flex justify-center">
-                    <div className="w-full max-w-xl bg-white min-h-[1000px] shadow-2xl p-12 text-black rounded-sm">
-                      <h1 className="text-3xl font-bold mb-6 font-serif">Q3 Performance Analysis</h1>
-                      <div className="space-y-4 font-serif text-gray-800 text-lg leading-relaxed">
-                        <p><strong>Executive Summary:</strong> The third quarter demonstrated resilience in core logistics sectors despite geopolitical headwinds.</p>
-                        <p>Revenue increased by <span className="bg-blue-100 px-1">14% year-over-year</span>, driven primarily by the automation initiative.</p>
-                        <div className="mt-8 p-6 bg-slate-50 border border-slate-100 rounded text-center text-xs text-slate-400 tracking-widest">[DATA VISUALIZATION]</div>
-                        <p>Detailed breakdown of risk factors follows in Section 4...</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* RIGHT: CHAT */}
-                <div className="w-1/2 flex flex-col">
-                  <AdvancedChat />
-                </div>
-              </motion.div>
-            )}
-
-          </AnimatePresence>
-        </div>
-
-        {/* --- MODALS / DRAWERS --- */}
-
-        {/* VAULT DRAWER */}
-        <AnimatePresence>
-          {isVaultOpen && (
-            <>
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsVaultOpen(false)} className="fixed inset-0 bg-black/50 z-40 backdrop-blur-sm" />
-              <motion.div initial={{ x: -300 }} animate={{ x: 72 }} exit={{ x: -300 }} className="fixed top-0 bottom-0 left-0 w-80 bg-white dark:bg-[#0F172A] border-r border-slate-200 dark:border-white/10 z-50 p-6 shadow-2xl">
-                 <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Sovereign Vault</h2>
-                 <div className="space-y-2">
-                    {files.map(file => (
-                        <button key={file.name} onClick={() => openFile(file.name)} className="w-full text-left p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 flex items-center gap-3 group transition-colors">
-                            <div className="w-8 h-8 rounded bg-blue-50 text-blue-600 dark:bg-white/10 dark:text-blue-400 flex items-center justify-center">
-                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" /></svg>
-                            </div>
-                            <div>
-                                <div className="text-sm font-medium text-slate-700 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-white truncate w-48">{file.name}</div>
-                                <div className="text-[10px] text-slate-400">{file.size} • {file.date}</div>
-                            </div>
-                        </button>
-                    ))}
-                 </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-
-        {/* SETTINGS MODAL */}
-        <AnimatePresence>
-          {isSettingsOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsSettingsOpen(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-               <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative w-full max-w-md bg-white dark:bg-[#0F172A] rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-white/10">
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Settings</h2>
-                  <div className="space-y-4">
-                      <div className="flex justify-between items-center p-3 rounded-lg bg-slate-50 dark:bg-white/5">
-                          <span className="text-sm text-slate-700 dark:text-slate-200">Dark Mode</span>
-                          <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="px-3 py-1 rounded bg-white dark:bg-black border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-white shadow-sm">
-                            {theme === 'dark' ? 'ON' : 'OFF'}
-                          </button>
-                      </div>
-                      <div className="flex justify-between items-center p-3 rounded-lg bg-slate-50 dark:bg-white/5">
-                          <span className="text-sm text-slate-700 dark:text-slate-200">Data Retention</span>
-                          <span className="text-xs font-mono text-emerald-500">0 DAYS (ACTIVE)</span>
-                      </div>
-                      <div className="flex justify-between items-center p-3 rounded-lg bg-slate-50 dark:bg-white/5">
-                          <span className="text-sm text-slate-700 dark:text-slate-200">Encryption</span>
-                          <span className="text-xs font-mono text-emerald-500">AES-256</span>
-                      </div>
-                  </div>
-                  <button onClick={() => setIsSettingsOpen(false)} className="mt-6 w-full py-2 rounded-lg bg-[#0000FF] hover:bg-blue-700 text-white font-bold text-sm transition-colors">Close</button>
-               </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
-
-      </main>
-    </div>
-  );
-}
-
-// --- SUB COMPONENTS ---
-function NavButton({ name, active, onClick, onHover }: { name: string, active: boolean, onClick: () => void, onHover: () => void }) {
-    const icons: Record<string, React.ReactNode> = {
-        'Home': <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>,
-        'Vault': <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>,
-        'Settings': <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></>
+    const newSource: Source = {
+      id: Date.now(),
+      title: file.name,
+      type: isImage ? 'image' : 'text',
+      time: "Just now",
+      isNew: true,
+      content: content,
+      base64: base64,
+      mimeType: file.type
     };
 
+    setTimeout(() => {
+      setSources(prev => [newSource, ...prev]);
+      setChatLog(prev => [...prev, {
+        id: generateId(),
+        text: `MERCURY\n\nFINDINGS\n• New Source Ingested: "${file.name}"\n• Type: ${typeDescription}`,
+        isUser: false,
+        timestamp: Date.now()
+      }]);
+
+      if (isImage) setStudioMode('VISION');
+    }, 800);
+  };
+
+  // Send message handler (mock responses)
+  const handleSendMessage = useCallback(async (mode: 'chat' | 'design' = 'chat', overridePrompt?: string) => {
+    const textToUse = overridePrompt || inputValue.trim();
+    if (!textToUse || isLoading) return;
+
+    if (!overridePrompt) setInputValue('');
+    setIsLoading(true);
+
+    // Add user message
+    const userMsgId = generateId();
+    setChatLog(prev => [...prev, { id: userMsgId, text: textToUse, isUser: true, timestamp: Date.now() }]);
+
+    // Check context
+    const openVaults = vaults.filter(v => v.status === 'open');
+    const hasContext = openVaults.length > 0 || sources.length > 0;
+
+    // Simulate AI response delay
+    setTimeout(() => {
+      const botMsgId = generateId();
+      const responseText = hasContext ? MOCK_RESPONSES.default : MOCK_RESPONSES.noContext;
+
+      setChatLog(prev => [...prev, {
+        id: botMsgId,
+        text: responseText,
+        isUser: false,
+        timestamp: Date.now()
+      }]);
+
+      // If design mode, create mock artifact
+      if (mode === 'design') {
+        const newArtifact: Artifact = {
+          id: generateId(),
+          type: studioMode === 'ASSET' ? 'image' : studioMode === 'VIDEO' ? 'video' : studioMode === 'CHART' ? 'chart' : 'ui',
+          styleName: `Generated ${studioMode}`,
+          title: textToUse,
+          content: `<div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-family: system-ui; border-radius: 12px; text-align: center;">
+            <h2 style="margin: 0 0 10px 0;">${textToUse}</h2>
+            <p style="margin: 0; opacity: 0.8;">Generated UI Component</p>
+          </div>`,
+          status: 'complete'
+        };
+
+        setArtifacts(prev => [newArtifact, ...prev]);
+      }
+
+      setIsLoading(false);
+    }, 1500);
+  }, [inputValue, isLoading, vaults, sources, studioMode]);
+
+  // Session actions
+  const handleNewSession = () => {
+    if (chatLog.length > 1 || artifacts.length > 0) {
+      const sessionTitle = chatLog.find(m => m.isUser)?.text || `Session ${new Date().toLocaleTimeString()}`;
+      const newSession: Session = {
+        id: generateId(),
+        prompt: sessionTitle,
+        timestamp: Date.now(),
+        artifacts: [...artifacts]
+      };
+      setArchivedSessions(prev => [newSession, ...prev]);
+    }
+    setChatLog(getInitialChatLog(vaults, sources));
+    setArtifacts([]);
+  };
+
+  const handleDeleteSession = () => {
+    setChatLog(getInitialChatLog(vaults, sources));
+    setArtifacts([]);
+  };
+
+  const handleCreateVault = () => {
+    const name = prompt("Enter Vault Name:");
+    if (name) {
+      const newVault: Vault = {
+        id: generateId(),
+        name: name,
+        status: 'open'
+      };
+      setVaults(prev => [...prev, newVault]);
+      setChatLog(prev => [...prev, {
+        id: generateId(),
+        text: `MERCURY\n\nFINDINGS\n• New Secure Vault Initialized: "${name}"\n• Status: OPEN (Ready for ingress)`,
+        isUser: false,
+        timestamp: Date.now()
+      }]);
+    }
+  };
+
+  const handleMoveSourceToVault = (vaultId: string, sourceIds: number[]) => {
+    const targetVault = vaults.find(v => v.id === vaultId);
+    if (!targetVault) return;
+
+    const sourcesToMove = sources.filter(s => sourceIds.includes(s.id));
+    if (sourcesToMove.length === 0) return;
+
+    let appendContent = "";
+    sourcesToMove.forEach(s => {
+      appendContent += `\n[Moved Source: ${s.title}]\n${s.content || '(Binary Data)'}`;
+    });
+
+    if (VAULT_CONTENTS[vaultId]) {
+      VAULT_CONTENTS[vaultId] += appendContent;
+    } else {
+      VAULT_CONTENTS[vaultId] = appendContent;
+    }
+
+    setSources(prev => prev.filter(s => !sourceIds.includes(s.id)));
+
+    setChatLog(prev => [...prev, {
+      id: generateId(),
+      text: `MERCURY\n\nFINDINGS\n• Secure Transfer: ${sourcesToMove.length} item(s) moved to "${targetVault.name}".\n• Security Drop cleared.`,
+      isUser: false,
+      timestamp: Date.now()
+    }]);
+  };
+
+  const handleSaveToVault = (vaultId: string) => {
+    const vaultName = vaults.find(v => v.id === vaultId)?.name;
+    const sessionData = chatLog.map(c => `${c.isUser ? 'USER' : 'MERCURY'}: ${c.text}`).join('\n');
+    const artifactData = artifacts.map(a => `[Artifact: ${a.styleName}]`).join('\n');
+
+    if (VAULT_CONTENTS[vaultId]) {
+      VAULT_CONTENTS[vaultId] += `\n\n[SAVED SESSION - ${new Date().toLocaleDateString()}]\n${sessionData}\n${artifactData}`;
+    }
+
+    const sessionTitle = chatLog.find(m => m.isUser)?.text || `Saved Session`;
+    const newSession: Session = {
+      id: generateId(),
+      prompt: `SAVED: ${sessionTitle}`,
+      timestamp: Date.now(),
+      artifacts: [...artifacts]
+    };
+    setArchivedSessions(prev => [newSession, ...prev]);
+
+    setChatLog([{
+      id: generateId(),
+      text: `MERCURY\n\nSUMMARY\n• Session successfully encrypted and transferred to vault: "${vaultName}".\n• Workspace cleared for new tasks.`,
+      isUser: false,
+      timestamp: Date.now()
+    }]);
+    setArtifacts([]);
+  };
+
+  const handleGenerateVariations = useCallback(async (artifactId: string) => {
+    // Mock variation generation
+    setComponentVariations([]);
+    setDrawerState({ isOpen: true, mode: 'variations', title: 'Variations', data: artifactId });
+
+    setTimeout(() => {
+      setComponentVariations([
+        { name: 'Minimal', html: '<div style="padding:20px;background:#111;color:#fff;border-radius:8px;">Minimal Variant</div>' },
+        { name: 'Vibrant', html: '<div style="padding:20px;background:linear-gradient(45deg,#ff6b6b,#feca57);color:#fff;border-radius:8px;">Vibrant Variant</div>' },
+        { name: 'Corporate', html: '<div style="padding:20px;background:#1a365d;color:#fff;border-radius:8px;">Corporate Variant</div>' }
+      ]);
+    }, 1000);
+  }, []);
+
+  // Filtering logic
+  const filteredVaults = vaults.filter(v => v.name.toLowerCase().includes(globalSearchTerm.toLowerCase()));
+  const filteredSources = sources.filter(s => s.title.toLowerCase().includes(globalSearchTerm.toLowerCase()));
+
+  // Loading state for auth
+  if (status === 'loading') {
     return (
-        <button
-            onClick={onClick}
-            onMouseEnter={onHover}
-            className={`p-3 rounded-xl transition-all duration-300 group relative ${
-                active
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50'
-                : 'text-slate-400 hover:text-white hover:bg-white/10'
-            }`}
-        >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">{icons[name]}</svg>
-            <span className="absolute left-14 bg-[#0F172A] border border-white/10 text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-                {name}
-            </span>
-        </button>
+      <div className="dashboard-root" style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
+          <ThinkingIcon />
+          <p>Loading...</p>
+        </div>
+      </div>
     );
+  }
+
+  return (
+    <div className={`dashboard-root ${currentTheme}`} style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {/* Drawer */}
+      <SideDrawer
+        isOpen={drawerState.isOpen}
+        onClose={() => setDrawerState(s => ({ ...s, isOpen: false }))}
+        title={drawerState.title}
+      >
+        {drawerState.mode === 'code' && (
+          <pre className="code-block"><code>{drawerState.data as string}</code></pre>
+        )}
+
+        {drawerState.mode === 'variations' && (
+          <div className="sexy-grid">
+            {componentVariations.map((v, i) => (
+              <div key={i} className="sexy-card" onClick={() => setDrawerState(s => ({ ...s, isOpen: false }))}>
+                <div className="sexy-preview">
+                  <iframe srcDoc={v.html} title={v.name} sandbox="allow-scripts allow-same-origin" />
+                </div>
+                <div className="sexy-label">{v.name}</div>
+              </div>
+            ))}
+            {componentVariations.length === 0 && (
+              <div className="loading-state"><ThinkingIcon /> Designing...</div>
+            )}
+          </div>
+        )}
+
+        {drawerState.mode === 'history' && (
+          <div className="sources-list">
+            {archivedSessions.length === 0 && (
+              <div style={{ padding: 20, color: '#666' }}>No archived sessions.</div>
+            )}
+            {archivedSessions.map(sessionItem => (
+              <div key={sessionItem.id} className="source-card-new">
+                <div className="source-card-icon"><HistoryIcon /></div>
+                <div className="source-card-details">
+                  <div className="source-card-title">{sessionItem.prompt}</div>
+                  <div className="source-card-time">{new Date(sessionItem.timestamp).toLocaleString()}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </SideDrawer>
+
+      {/* Security Modal */}
+      <SecurityModal
+        isOpen={!!editingVaultId}
+        onClose={() => setEditingVaultId(null)}
+        vaultName={vaults.find(v => v.id === editingVaultId)?.name || 'Unknown Vault'}
+        currentStatus={vaults.find(v => v.id === editingVaultId)?.status || 'closed'}
+        onUpdateStatus={(newStatus) => {
+          if (editingVaultId) {
+            setVaults(prev => prev.map(v => v.id === editingVaultId ? { ...v, status: newStatus } : v));
+            if (newStatus === 'open') {
+              setChatLog(prev => [...prev, {
+                id: generateId(),
+                text: `MERCURY\n\nFindings\n• Vault "${vaults.find(v => v.id === editingVaultId)?.name}" access granted.\n• Context updated.`,
+                isUser: false,
+                timestamp: Date.now()
+              }]);
+            }
+          }
+        }}
+      />
+
+      {/* Save to Vault Modal */}
+      <SaveToVaultModal
+        isOpen={isSaveModalOpen}
+        onClose={() => setIsSaveModalOpen(false)}
+        vaults={vaults}
+        onSave={handleSaveToVault}
+      />
+
+      {/* Main App */}
+      <div className="ragbox-app">
+        <Header
+          theme={currentTheme}
+          toggleTheme={toggleTheme}
+          searchTerm={globalSearchTerm}
+          onSearchChange={setGlobalSearchTerm}
+        />
+
+        {/* Dynamic Resizable Layout */}
+        <div
+          className="ragbox-layout"
+          style={{
+            gridTemplateColumns: `${colWidths[0]}px 16px ${colWidths[1]}px 16px ${colWidths[2]}px 16px 1fr`
+          }}
+        >
+          {/* Column 0: Vault */}
+          <VaultPanel
+            vaults={filteredVaults}
+            onVaultClick={setEditingVaultId}
+            onSourceDrop={handleMoveSourceToVault}
+            onCreateVault={handleCreateVault}
+          />
+          <div className="resizer" onMouseDown={() => handleMouseDown(0)}></div>
+
+          {/* Column 1: Security Drop */}
+          <SecurityDrop
+            sources={filteredSources}
+            onFileDrop={handleFileDrop}
+          />
+          <div className="resizer" onMouseDown={() => handleMouseDown(1)}></div>
+
+          {/* Column 2: Mercury Chat */}
+          <MercuryChat
+            chatLog={chatLog}
+            inputValue={inputValue}
+            isLoading={isLoading}
+            vaults={filteredVaults}
+            sources={filteredSources}
+            onInputChange={setInputValue}
+            onSendMessage={handleSendMessage}
+            onNewSession={handleNewSession}
+            onShowHistory={() => setDrawerState({ isOpen: true, mode: 'history', title: 'Session Archives', data: null })}
+            onSaveToVault={() => setIsSaveModalOpen(true)}
+            onDeleteSession={handleDeleteSession}
+          />
+          <div className="resizer" onMouseDown={() => handleMouseDown(2)}></div>
+
+          {/* Column 3: Studio */}
+          <StudioPanel
+            artifacts={artifacts}
+            studioMode={studioMode}
+            gridColumns={gridColumns}
+            focusedArtifactIndex={focusedArtifactIndex}
+            isLoading={isLoading}
+            onStudioModeChange={setStudioMode}
+            onGridColumnsChange={setGridColumns}
+            onArtifactClick={setFocusedArtifactIndex}
+            onGenerateVariations={handleGenerateVariations}
+            onShowCode={(content) => setDrawerState({ isOpen: true, mode: 'code', title: 'Source Code', data: content })}
+            onSendDesignPrompt={(prompt) => handleSendMessage('design', prompt)}
+          />
+        </div>
+      </div>
+    </div>
+  );
 }
