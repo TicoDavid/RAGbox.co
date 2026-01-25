@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo, useState } from 'react';
 import type { ChatMessage, Vault, Source, SystemAuditEvent, ParsedInsight, InsightHandoffPayload, ArtifactType } from '../types';
 import {
   PlusIcon,
   HistoryIcon,
   SaveIcon,
   TrashIcon,
-  DesignGenIcon,
   CopyIcon,
   MaximizeIcon,
   DownloadIcon,
@@ -273,6 +272,14 @@ const MercuryChat: React.FC<MercuryChatProps> = ({
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Voice state for Google Realtime
+  const [isVoiceActive, setIsVoiceActive] = useState(false);
+
+  const handleVoiceToggle = () => {
+    setIsVoiceActive(prev => !prev);
+    // TODO: Integrate with Google Realtime Voice API
+  };
+
   // Filter out system events from chat - only show user messages and AI responses
   const filteredChatLog = useMemo(() => {
     return chatLog.filter(msg => msg.type !== 'system_event');
@@ -293,6 +300,8 @@ const MercuryChat: React.FC<MercuryChatProps> = ({
 
   return (
     <div className="panel chat-panel">
+      {/* Circuit board background pattern */}
+      <div className="mercury-circuit-bg" aria-hidden="true" />
       <div className="panel-header">
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <h3 className="mercury-logo-text">Mercury</h3>
@@ -334,30 +343,45 @@ const MercuryChat: React.FC<MercuryChatProps> = ({
       </div>
 
       <div className="chat-input-area">
-        <div className="chat-input-wrapper">
-          <input
-            ref={inputRef}
-            type="text"
-            value={inputValue}
-            onChange={(e) => onInputChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Request verified intelligence or Search URL..."
-            disabled={isLoading}
-          />
-          <button className="voice-btn" title="Voice Mode">
-            <img
-              src="https://storage.googleapis.com/connexusai-assets/ICON_RAGbox2.png"
-              className="voice-icon-image"
-              alt="Voice"
+        <div className="chat-input-row">
+          <div className="chat-input-wrapper">
+            <input
+              ref={inputRef}
+              type="text"
+              value={inputValue}
+              onChange={(e) => onInputChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Request verified intelligence..."
+              disabled={isLoading || isVoiceActive}
             />
-          </button>
+          </div>
+
+          {/* Standalone Realtime Voice Button */}
           <button
-            className="send-btn design-btn"
-            title="Generate Design + Chat"
-            onClick={() => onSendMessage('design')}
-            disabled={isLoading || !inputValue.trim()}
+            className={`realtime-voice-btn ${isVoiceActive ? 'active' : ''}`}
+            onClick={handleVoiceToggle}
+            title="ENGAGE REALTIME SECURE VOICE"
           >
-            <DesignGenIcon />
+            <div className="voice-ripple" />
+            <div className="voice-ripple delay-1" />
+            <div className="voice-ripple delay-2" />
+            <svg className="voice-waveform-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* Microphone with waveform */}
+              <rect x="9" y="2" width="6" height="11" rx="3" stroke="currentColor" strokeWidth="2"/>
+              <path d="M5 10V11C5 14.866 8.13401 18 12 18C15.866 18 19 14.866 19 11V10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <line x1="12" y1="18" x2="12" y2="22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <line x1="8" y1="22" x2="16" y2="22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              {/* Waveform lines */}
+              <line x1="2" y1="12" x2="2" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="wave-line">
+                <animate attributeName="y1" values="10;14;10" dur="0.5s" repeatCount="indefinite"/>
+                <animate attributeName="y2" values="14;10;14" dur="0.5s" repeatCount="indefinite"/>
+              </line>
+              <line x1="22" y1="12" x2="22" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="wave-line">
+                <animate attributeName="y1" values="14;10;14" dur="0.5s" repeatCount="indefinite"/>
+                <animate attributeName="y2" values="10;14;10" dur="0.5s" repeatCount="indefinite"/>
+              </line>
+            </svg>
+            {isVoiceActive && <span className="voice-status-text">LISTENING...</span>}
           </button>
         </div>
         <div className="chat-footer-info">

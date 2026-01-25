@@ -68,19 +68,26 @@ const SaveToVaultModal: React.FC<SaveToVaultModalProps> = ({
         </div>
 
         <div className="security-form">
-          <button
-            className="security-action-btn"
-            disabled={!selectedVaultId}
-            style={{ opacity: !selectedVaultId ? 0.5 : 1, background: '#0000FF' }}
-            onClick={() => {
-              if (selectedVaultId) {
-                onSave(selectedVaultId);
-                onClose();
-              }
-            }}
-          >
-            Confirm Transfer
-          </button>
+          <div className="security-button-group">
+            <button
+              className="security-action-btn security-btn-primary"
+              disabled={!selectedVaultId}
+              onClick={() => {
+                if (selectedVaultId) {
+                  onSave(selectedVaultId);
+                  onClose();
+                }
+              }}
+            >
+              EXECUTE TRANSFER
+            </button>
+            <button
+              className="security-action-btn security-btn-abort"
+              onClick={onClose}
+            >
+              ABORT
+            </button>
+          </div>
         </div>
       </div>
     </div>

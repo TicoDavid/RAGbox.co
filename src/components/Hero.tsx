@@ -35,8 +35,8 @@ export default function Hero({ onOpenAuth, onOpenVideo }: HeroProps) {
         {/* The Headline */}
         <h1 className="text-5xl md:text-7xl font-bold tracking-tighter text-slate-900 dark:text-white leading-[1.1]">
           Secure Document Intelligence <br />
-          {/* THE GOLD GRADIENT TEXT */}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-600 drop-shadow-[0_0_15px_rgba(251,191,36,0.3)]">
+          {/* THE METALLIC GOLD GRADIENT TEXT */}
+          <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#FACC15] via-[#EAB308] to-[#CA8A04] drop-shadow-[0_0_20px_rgba(250,204,21,0.4)]">
             in a Sovereign Environment
           </span>
         </h1>
@@ -117,23 +117,25 @@ export default function Hero({ onOpenAuth, onOpenVideo }: HeroProps) {
           </div>
         </div>
 
-        {/* CTAs */}
+        {/* CTAs - Premium Sovereign Styling */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-12">
+          {/* Primary Button - Electric Blue Gradient with Glow */}
           <button
             onClick={onOpenAuth}
-            className="h-14 px-8 rounded-full bg-[#0000FF] hover:bg-blue-600 text-white font-bold tracking-wide shadow-[0_0_20px_rgba(0,0,255,0.4)] hover:shadow-[0_0_40px_rgba(0,0,255,0.6)] transition-all w-full sm:w-auto text-sm"
+            className="h-14 px-8 rounded-full bg-gradient-to-b from-[#4040FF] to-[#0000FF] hover:from-[#5050FF] hover:to-[#0000DD] text-white font-bold tracking-wide shadow-[0_0_30px_rgba(0,0,255,0.5),inset_0_1px_0_rgba(255,255,255,0.2)] hover:shadow-[0_0_50px_rgba(0,0,255,0.7),0_4px_20px_rgba(0,0,255,0.4)] transition-all duration-300 w-full sm:w-auto text-sm hover:-translate-y-0.5"
           >
             Start Free Trial
           </button>
 
+          {/* Secondary Button - Glass Effect */}
           <button
             onClick={() => {
               playOpen();
               onOpenVideo();
             }}
-            className="group h-14 px-8 rounded-full border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 text-slate-700 dark:text-white hover:bg-white hover:text-[#0000FF] font-medium transition-all w-full sm:w-auto flex items-center justify-center gap-2 text-sm"
+            className="group h-14 px-8 rounded-full border border-slate-300 dark:border-white/20 bg-transparent text-slate-600 dark:text-white hover:border-[#0000FF] hover:text-[#0000FF] dark:hover:border-[#4040FF] dark:hover:text-[#4040FF] font-medium transition-all duration-300 w-full sm:w-auto flex items-center justify-center gap-2 text-sm hover:shadow-[0_0_20px_rgba(0,0,255,0.2)]"
           >
-            <svg className="w-4 h-4 text-slate-400 group-hover:text-[#0000FF] transition-colors" fill="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-slate-400 dark:text-white/60 group-hover:text-[#0000FF] dark:group-hover:text-[#4040FF] transition-colors" fill="currentColor" viewBox="0 0 24 24">
                <path d="M8 5v14l11-7z"/>
             </svg>
             See How It Works

@@ -12,7 +12,8 @@ import {
   VideoIcon,
   Layout1Icon,
   Layout2Icon,
-  Layout4Icon
+  Layout4Icon,
+  TrashIcon
 } from './Icons';
 import ArtifactCard from './ArtifactCard';
 import { getInsightTypeName } from '../insight-detection';
@@ -30,6 +31,7 @@ interface StudioPanelProps {
   onGenerateVariations: (artifactId: string) => void;
   onShowCode: (content: string) => void;
   onSendDesignPrompt: (prompt: string) => void;
+  onDeleteArtifact?: (artifactId: string) => void;
 }
 
 // Sovereign Forge Module Icons
@@ -241,7 +243,8 @@ const StudioPanel: React.FC<StudioPanelProps> = ({
   onArtifactClick,
   onGenerateVariations,
   onShowCode,
-  onSendDesignPrompt
+  onSendDesignPrompt,
+  onDeleteArtifact
 }) => {
   // Determine what to show based on forge state
   const showIntelAnimation = forgeContext && (forgeContext.state === 'receiving_intel' || forgeContext.state === 'forging');
@@ -254,46 +257,7 @@ const StudioPanel: React.FC<StudioPanelProps> = ({
       <div className="forge-circuit-bg" aria-hidden="true" />
 
       <div className="panel-header forge-header">
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <h3 className="forge-title">FORGE</h3>
-          <div className="studio-mode-selector forge-mode-selector">
-            <button
-              className={`mode-btn ${studioMode === 'UI' ? 'active' : ''}`}
-              onClick={() => onStudioModeChange('UI')}
-              title="UI Code"
-            >
-              <LayoutIcon />
-            </button>
-            <button
-              className={`mode-btn ${studioMode === 'ASSET' ? 'active' : ''}`}
-              onClick={() => onStudioModeChange('ASSET')}
-              title="Visual Asset"
-            >
-              <ImageIcon />
-            </button>
-            <button
-              className={`mode-btn ${studioMode === 'CHART' ? 'active' : ''}`}
-              onClick={() => onStudioModeChange('CHART')}
-              title="Data Viz"
-            >
-              <ChartIcon />
-            </button>
-            <button
-              className={`mode-btn ${studioMode === 'VISION' ? 'active' : ''}`}
-              onClick={() => onStudioModeChange('VISION')}
-              title="Vision-to-Code"
-            >
-              <VisionIcon />
-            </button>
-            <button
-              className={`mode-btn ${studioMode === 'VIDEO' ? 'active' : ''}`}
-              onClick={() => onStudioModeChange('VIDEO')}
-              title="Motion/Video"
-            >
-              <VideoIcon />
-            </button>
-          </div>
-        </div>
+        <h3 className="forge-title">FORGE</h3>
         <div className="panel-actions">
           <div className="grid-selector">
             <button
@@ -399,6 +363,15 @@ const StudioPanel: React.FC<StudioPanelProps> = ({
                       className="studio-action-btn"
                     >
                       <CodeIcon /> Code
+                    </button>
+                  )}
+                  {onDeleteArtifact && (
+                    <button
+                      onClick={() => onDeleteArtifact(art.id)}
+                      className="studio-action-btn studio-action-btn-danger"
+                      title="Delete artifact"
+                    >
+                      <TrashIcon />
                     </button>
                   )}
                 </div>

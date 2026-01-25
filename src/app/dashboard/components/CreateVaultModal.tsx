@@ -75,33 +75,19 @@ const CreateVaultModal: React.FC<CreateVaultModalProps> = ({
             onChange={e => setVaultName(e.target.value)}
             onKeyDown={handleKeyDown}
           />
-          <div style={{
-            display: 'flex',
-            gap: '12px',
-            marginTop: '16px'
-          }}>
+          <div className="security-button-group">
             <button
-              className="security-action-btn"
+              className="security-action-btn security-btn-primary"
               onClick={handleCreate}
               disabled={!vaultName.trim()}
-              style={{
-                flex: 1,
-                opacity: vaultName.trim() ? 1 : 0.5,
-                cursor: vaultName.trim() ? 'pointer' : 'not-allowed'
-              }}
             >
-              OK
+              INITIALIZE CONTAINER
             </button>
             <button
-              className="security-action-btn"
+              className="security-action-btn security-btn-abort"
               onClick={onClose}
-              style={{
-                flex: 1,
-                background: 'transparent',
-                border: '1px solid var(--border-primary)'
-              }}
             >
-              Cancel
+              ABORT
             </button>
           </div>
         </div>

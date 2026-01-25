@@ -366,6 +366,13 @@ export default function Dashboard() {
     }, 1000);
   }, []);
 
+  // Handle artifact deletion
+  const handleDeleteArtifact = useCallback((artifactId: string) => {
+    setArtifacts(prev => prev.filter(a => a.id !== artifactId));
+    // Add audit event for artifact deletion
+    addAuditEvent('forge', `Artifact ${artifactId} securely removed from Forge`);
+  }, [addAuditEvent]);
+
   // Handle insight action from Mercury chat - orchestrates the insight-to-artifact workflow
   const handleInsightAction = useCallback((payload: InsightHandoffPayload) => {
     // Set initial state - receiving intel
@@ -679,6 +686,7 @@ export default function Dashboard() {
             onGenerateVariations={handleGenerateVariations}
             onShowCode={(content) => setDrawerState({ isOpen: true, mode: 'code', title: 'Source Code', data: content })}
             onSendDesignPrompt={(prompt) => handleSendMessage('design', prompt)}
+            onDeleteArtifact={handleDeleteArtifact}
           />
         </div>
       </div>
