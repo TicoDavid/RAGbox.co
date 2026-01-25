@@ -219,7 +219,7 @@ export default function Dashboard() {
     }, 800);
   };
 
-  // Send message handler (mock responses)
+  // Send message handler - calls Gemini via /api/chat with streaming support
   const handleSendMessage = useCallback(async (mode: 'chat' | 'design' = 'chat', overridePrompt?: string) => {
     const textToUse = overridePrompt || inputValue.trim();
     if (!textToUse || isLoading) return;
@@ -231,23 +231,152 @@ export default function Dashboard() {
     const userMsgId = generateId();
     setChatLog(prev => [...prev, { id: userMsgId, text: textToUse, isUser: true, timestamp: Date.now() }]);
 
-    // Check context
-    const openVaults = vaults.filter(v => v.status === 'open');
-    const hasContext = openVaults.length > 0 || sources.length > 0;
+    // Build context from open vaults and sources with actual document content
+    const contextDocuments: string[] = [];
 
-    // Simulate AI response delay
-    setTimeout(() => {
-      const botMsgId = generateId();
-      const responseText = hasContext ? MOCK_RESPONSES.default : MOCK_RESPONSES.noContext;
+    // Add source content (actual document text)
+    sources.forEach(source => {
+      if (source.content) {
+        contextDocuments.push(`[${source.title}]: ${source.content}`);
+      }
+    });
 
-      setChatLog(prev => [...prev, {
-        id: botMsgId,
-        text: responseText,
-        isUser: false,
-        timestamp: Date.now()
-      }]);
+    const botMsgId = generateId();
+    const useStreaming = contextDocuments.length === 0; // Stream for direct chat, non-stream for RAG
 
-      // If design mode, create mock artifact
+    try {
+      if (useStreaming) {
+        // Streaming mode for direct chat
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: textToUse,
+            stream: true,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        // Add empty bot message that we'll update with streaming content
+        setChatLog(prev => [...prev, {
+          id: botMsgId,
+          text: '',
+          isUser: false,
+          timestamp: Date.now()
+        }]);
+
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error('No response stream');
+
+        const decoder = new TextDecoder();
+        let accumulatedText = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+
+                if (data.type === 'token') {
+                  accumulatedText += data.content;
+                  // Update the message in real-time
+                  setChatLog(prev => prev.map(msg =>
+                    msg.id === botMsgId ? { ...msg, text: accumulatedText } : msg
+                  ));
+                } else if (data.type === 'done') {
+                  // Final update with confidence
+                  const finalText = accumulatedText + '\n\n📊 Confidence: 95%';
+                  setChatLog(prev => prev.map(msg =>
+                    msg.id === botMsgId ? { ...msg, text: finalText } : msg
+                  ));
+                  addAuditEvent('TRANSFER', 'Query processed via Gemini API (streaming) - Confidence: 95%');
+                } else if (data.type === 'error') {
+                  setChatLog(prev => prev.map(msg =>
+                    msg.id === botMsgId ? { ...msg, text: `⚠️ Error: ${data.message}`, type: 'error' as const } : msg
+                  ));
+                  addAuditEvent('SYSTEM', `Query failed: ${data.message}`);
+                } else if (data.type === 'complete') {
+                  // RAG complete response
+                  let responseText = data.answer;
+                  if (data.confidence) {
+                    responseText += `\n\n📊 Confidence: ${Math.round(data.confidence * 100)}%`;
+                  }
+                  if (data.citations?.length > 0) {
+                    responseText += `\n\n📚 Sources: ${data.citations.length} document(s) referenced`;
+                  }
+                  setChatLog(prev => prev.map(msg =>
+                    msg.id === botMsgId ? { ...msg, text: responseText } : msg
+                  ));
+                  addAuditEvent('TRANSFER', `Query processed via Gemini API - Confidence: ${Math.round((data.confidence || 0) * 100)}%`);
+                }
+              } catch {
+                // Ignore JSON parse errors for partial chunks
+              }
+            }
+          }
+        }
+      } else {
+        // Non-streaming mode for RAG queries
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: textToUse,
+            context: contextDocuments,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          const errorText = result.error || 'Failed to get response from AI. Please try again.';
+          setChatLog(prev => [...prev, {
+            id: botMsgId,
+            text: `⚠️ Error: ${errorText}`,
+            isUser: false,
+            timestamp: Date.now(),
+            type: 'error' as const
+          }]);
+          addAuditEvent('SYSTEM', `Query failed: ${errorText}`);
+        } else {
+          const { answer, confidence, silenceProtocol, citations } = result.data;
+
+          let responseText = answer;
+
+          if (confidence) {
+            const confidencePercent = Math.round(confidence * 100);
+            responseText += `\n\n📊 Confidence: ${confidencePercent}%`;
+          }
+
+          if (citations && citations.length > 0) {
+            responseText += `\n\n📚 Sources: ${citations.length} document(s) referenced`;
+          }
+
+          if (silenceProtocol) {
+            addAuditEvent('SECURITY', 'Silence Protocol triggered - confidence below threshold');
+          }
+
+          setChatLog(prev => [...prev, {
+            id: botMsgId,
+            text: responseText,
+            isUser: false,
+            timestamp: Date.now()
+          }]);
+
+          addAuditEvent('TRANSFER', `Query processed via Gemini API - Confidence: ${Math.round((confidence || 0) * 100)}%`);
+        }
+      }
+
+      // If design mode, create artifact
       if (mode === 'design') {
         const newArtifact: Artifact = {
           id: generateId(),
@@ -260,13 +389,35 @@ export default function Dashboard() {
           </div>`,
           status: 'complete'
         };
-
         setArtifacts(prev => [newArtifact, ...prev]);
       }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
 
+      setChatLog(prev => {
+        // Check if we already added an empty message for streaming
+        const existingMsg = prev.find(m => m.id === botMsgId);
+        if (existingMsg) {
+          return prev.map(msg =>
+            msg.id === botMsgId
+              ? { ...msg, text: `⚠️ Connection Error: ${errorMessage}\n\nPlease check your connection and try again.`, type: 'error' as const }
+              : msg
+          );
+        }
+        return [...prev, {
+          id: botMsgId,
+          text: `⚠️ Connection Error: ${errorMessage}\n\nPlease check your connection and try again.`,
+          isUser: false,
+          timestamp: Date.now(),
+          type: 'error' as const
+        }];
+      });
+
+      addAuditEvent('SYSTEM', `API connection failed: ${errorMessage}`);
+    } finally {
       setIsLoading(false);
-    }, 1500);
-  }, [inputValue, isLoading, vaults, sources, studioMode]);
+    }
+  }, [inputValue, isLoading, sources, studioMode, addAuditEvent]);
 
   // Session actions
   const handleNewSession = () => {

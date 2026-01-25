@@ -56,7 +56,7 @@ export interface Vault {
   createdAt: Date;
 }
 
-export type ChatMessageType = 'user' | 'ai_response' | 'system_event' | 'security_alert';
+export type ChatMessageType = 'user' | 'ai_response' | 'system_event' | 'security_alert' | 'error';
 
 export interface ChatMessage {
   id: string;

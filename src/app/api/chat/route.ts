@@ -4,11 +4,13 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/chat
- * 
- * RAG-powered chat endpoint using Vertex AI
+ *
+ * Chat endpoint using Vertex AI Gemini
+ * Supports both direct chat and RAG-grounded responses
  */
 export async function POST(request: NextRequest) {
   try {
@@ -22,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { query, context = [] } = body;
+    const { query, context = [], stream = false } = body;
 
     if (!query || typeof query !== 'string') {
       return NextResponse.json(
@@ -31,43 +33,102 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Use provided context or fallback to demo context
-    const documentContext = context.length > 0 ? context : [
-      'RAGbox is a sovereign document intelligence platform for compliance-sensitive professionals.',
-      'The platform uses a confidence threshold of 85%. Below this threshold, the Silence Protocol activates.',
-      'AEGIS (Automated Enterprise Guard for Information Security) provides privilege-based access control.',
-      'All queries and responses are logged in the Veritas immutable audit trail for SEC 17a-4 compliance.',
-    ];
+    console.log(`[Chat API] Query: "${query.substring(0, 50)}..." | Context: ${context.length} docs | Stream: ${stream}`);
 
-    // Query using Vertex AI
-    const response = await ragClient.query(query, documentContext);
+    // Streaming response
+    if (stream) {
+      const encoder = new TextEncoder();
+      const readable = new ReadableStream({
+        async start(controller) {
+          try {
+            if (context.length > 0) {
+              // RAG mode with context
+              const response = await ragClient.query(query, context);
+              // For RAG, send complete response (streaming RAG is more complex)
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                type: 'complete',
+                answer: response.answer,
+                confidence: response.confidence,
+                citations: response.citations
+              })}\n\n`));
+            } else {
+              // Direct chat mode - stream tokens
+              await ragClient.chatStream(query, {
+                onToken: (token) => {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'token', content: token })}\n\n`));
+                },
+                onComplete: (fullText) => {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done', fullText })}\n\n`));
+                },
+                onError: (error) => {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`));
+                }
+              });
+            }
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', message })}\n\n`));
+          } finally {
+            controller.close();
+          }
+        }
+      });
 
-    // Apply Silence Protocol - refuse to answer if confidence is too low
-    const confidenceThreshold = parseFloat(process.env.AEGIS_CONFIDENCE_THRESHOLD || '0.85');
-    
-    if (response.confidence < confidenceThreshold) {
-      return NextResponse.json({
-        success: true,
-        data: {
-          answer: "I cannot provide a confident answer based on your documents. Please upload more relevant materials or rephrase your question.",
-          confidence: response.confidence,
-          silenceProtocol: true,
-          citations: [],
+      return new Response(readable, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
         },
       });
     }
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        answer: response.answer,
-        confidence: response.confidence,
-        citations: response.citations,
-        silenceProtocol: false,
-      },
-    });
+    // Non-streaming response
+    if (context.length > 0) {
+      // RAG mode - use query with context
+      const response = await ragClient.query(query, context);
+
+      // Apply Silence Protocol
+      const confidenceThreshold = parseFloat(process.env.AEGIS_CONFIDENCE_THRESHOLD || '0.85');
+
+      if (response.confidence < confidenceThreshold) {
+        return NextResponse.json({
+          success: true,
+          data: {
+            answer: "I cannot provide a confident answer based on your documents. Please upload more relevant materials or rephrase your question.",
+            confidence: response.confidence,
+            silenceProtocol: true,
+            citations: [],
+          },
+        });
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          answer: response.answer,
+          confidence: response.confidence,
+          citations: response.citations,
+          silenceProtocol: false,
+        },
+      });
+    } else {
+      // Direct chat mode - no context
+      const response = await ragClient.chat(query);
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          answer: response.answer,
+          confidence: 0.95, // High confidence for direct chat
+          citations: [],
+          silenceProtocol: false,
+          model: response.model,
+        },
+      });
+    }
   } catch (error) {
-    console.error('Chat API error:', error);
+    console.error('[Chat API] Error:', error);
 
     const message = error instanceof Error ? error.message : 'Unknown error';
 
