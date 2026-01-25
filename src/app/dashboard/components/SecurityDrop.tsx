@@ -8,9 +8,10 @@ import IngestionVortex from './IngestionVortex';
 interface SecurityDropProps {
   sources: Source[];
   onFileDrop: (files: File[]) => void;
+  theme?: 'dark' | 'light';
 }
 
-const SecurityDrop: React.FC<SecurityDropProps> = ({ sources, onFileDrop }) => {
+const SecurityDrop: React.FC<SecurityDropProps> = ({ sources, onFileDrop, theme = 'dark' }) => {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
   const handleDragStart = (e: React.DragEvent, source: Source) => {
@@ -41,7 +42,7 @@ const SecurityDrop: React.FC<SecurityDropProps> = ({ sources, onFileDrop }) => {
         <h3 className="panel-title">SECURITY DROP</h3>
         <button className="icon-btn"><MenuIcon /></button>
       </div>
-      <IngestionVortex onFileDrop={onFileDrop} />
+      <IngestionVortex onFileDrop={onFileDrop} theme={theme} />
       <div className="sources-content">
         {sources.length === 0 && (
           <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.8rem' }}>

@@ -1067,6 +1067,143 @@
 .vortex-title { display: block; font-weight: 700; font-size: 0.9rem; letter-spacing: 0.05em; }
 .vortex-subtitle { display: block; font-size: 0.7rem; color: #aaa; margin-top: 4px; }
 
+/* === CLAY RENDER - Light Mode Asset === */
+.ingestion-vortex-container.light-mode {
+    background: linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 50%, #F1F5F9 100%);
+}
+
+.clay-render-stack {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease;
+}
+
+.clay-render-stack.hover {
+    transform: scale(1.05);
+}
+
+.clay-render-stack.imploding {
+    animation: clayImplode 0.6s ease-out forwards;
+}
+
+@keyframes clayImplode {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1) rotate(5deg); opacity: 0.8; }
+    100% { transform: scale(0.3) rotate(-10deg); opacity: 0; }
+}
+
+/* Individual paper layers with 3D clay aesthetic */
+.clay-paper {
+    position: absolute;
+    width: 70px;
+    height: 90px;
+    border-radius: 6px;
+    background: linear-gradient(145deg, #FFFFFF 0%, #F1F5F9 50%, #E2E8F0 100%);
+    box-shadow:
+        0 4px 6px rgba(0, 0, 0, 0.07),
+        0 10px 20px rgba(0, 0, 0, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.clay-paper-back {
+    transform: rotate(-8deg) translateX(-8px) translateY(4px);
+    z-index: 1;
+}
+
+.clay-paper-mid {
+    transform: rotate(-3deg) translateX(-2px) translateY(2px);
+    z-index: 2;
+}
+
+.clay-paper-front {
+    transform: rotate(2deg);
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.clay-render-stack.hover .clay-paper-back {
+    transform: rotate(-12deg) translateX(-12px) translateY(6px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.clay-render-stack.hover .clay-paper-mid {
+    transform: rotate(-6deg) translateX(-6px) translateY(3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+}
+
+.clay-render-stack.hover .clay-paper-front {
+    transform: rotate(4deg) translateY(-2px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+}
+
+.clay-doc-icon {
+    width: 36px;
+    height: 36px;
+    opacity: 0.7;
+}
+
+/* Upload indicator arrow */
+.clay-upload-indicator {
+    position: absolute;
+    bottom: -20px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748B;
+    z-index: 10;
+    animation: clayBounce 1.5s ease-in-out infinite;
+}
+
+.clay-upload-indicator svg {
+    width: 24px;
+    height: 24px;
+}
+
+@keyframes clayBounce {
+    0%, 100% { transform: translateY(0); opacity: 0.6; }
+    50% { transform: translateY(-6px); opacity: 1; }
+}
+
+/* === FROSTED GLASS PILL - Light Mode Text === */
+.vortex-text.frosted-pill {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    padding: 12px 20px;
+    border-radius: 24px;
+}
+
+.vortex-text.frosted-pill .vortex-title {
+    color: #1E293B;
+    text-shadow: none;
+    font-weight: 600;
+}
+
+.vortex-text.frosted-pill .vortex-subtitle {
+    color: #64748B;
+}
+
+/* Light mode hover state */
+.ingestion-vortex-container.light-mode:hover .vortex-text.frosted-pill {
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow:
+        0 6px 20px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
 /* --- Sources List (RAG.box) --- */
 .sources-content {
     padding: 16px; display: flex; flex-direction: column; gap: 12px;
@@ -3555,3 +3692,52 @@
 
 /* --- 11. VAULTS SIDEBAR - KEEP DARK (Anchor Bar Pattern) --- */
 /* The left sidebar stays dark intentionally - this frames the light content */
+
+/* --- 12. PANEL DIVIDERS - Structural Integrity (Light Mode Only) --- */
+/* Vertical dividers between panels to create clear visual separation */
+.dashboard-root.light .panel,
+[data-theme='light'] .dashboard-root .panel,
+.light .dashboard-root .panel {
+    position: relative;
+}
+
+/* Add right border to all panels except the last (Studio) */
+.dashboard-root.light .vault-panel,
+.dashboard-root.light .sources-panel,
+.dashboard-root.light .chat-panel,
+[data-theme='light'] .dashboard-root .vault-panel,
+[data-theme='light'] .dashboard-root .sources-panel,
+[data-theme='light'] .dashboard-root .chat-panel,
+.light .dashboard-root .vault-panel,
+.light .dashboard-root .sources-panel,
+.light .dashboard-root .chat-panel {
+    border-right: 1px solid #CBD5E1 !important;
+}
+
+/* Light mode resizers - more visible */
+.dashboard-root.light .resizer,
+[data-theme='light'] .dashboard-root .resizer,
+.light .dashboard-root .resizer {
+    background: transparent;
+}
+
+.dashboard-root.light .resizer::before,
+[data-theme='light'] .dashboard-root .resizer::before,
+.light .dashboard-root .resizer::before {
+    background: #CBD5E1 !important;
+    opacity: 1 !important;
+}
+
+.dashboard-root.light .resizer:hover::before,
+[data-theme='light'] .dashboard-root .resizer:hover::before,
+.light .dashboard-root .resizer:hover::before {
+    background: #0000FF !important;
+    box-shadow: 0 0 8px rgba(0, 0, 255, 0.3) !important;
+}
+
+/* Security Drop panel in light mode - subtle background */
+.dashboard-root.light .ingestion-vortex-container,
+[data-theme='light'] .dashboard-root .ingestion-vortex-container,
+.light .dashboard-root .ingestion-vortex-container {
+    border-bottom: 1px solid #E2E8F0 !important;
+}

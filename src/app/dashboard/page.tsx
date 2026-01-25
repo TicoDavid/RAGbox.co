@@ -979,6 +979,7 @@ export default function Dashboard() {
           <SecurityDrop
             sources={filteredSources}
             onFileDrop={handleFileDrop}
+            theme={theme}
           />
 
           {/* Resize Handle: Security Drop | Mercury */}
