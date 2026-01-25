@@ -186,15 +186,13 @@ export function AuthModal({ isOpen, onClose, context = 'signin' }: AuthModalProp
 
           {/* LOGO & HEADER */}
           <div className="text-center mb-8">
-            {/* The White "App Icon" Container */}
-            <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-white shadow-lg shadow-blue-900/10 mb-6">
-              {/* Use the BLUE logo for contrast on white */}
-              <img
-                src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
-                className="w-20 h-auto"
-                alt="Logo"
-              />
-            </div>
+            {/* Official RAGbox.co Logo - Direct on dark background */}
+            <img
+              src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
+              className="w-[200px] h-auto mx-auto mb-6"
+              style={{ filter: 'drop-shadow(0 0 8px rgba(0, 0, 255, 0.4))' }}
+              alt="RAGbox.co"
+            />
 
             <h2 className="text-2xl font-bold text-white tracking-tight">
               {step === 'email' ? HEADERS[context].title : 'Verify Identity'}
