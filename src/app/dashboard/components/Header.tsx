@@ -156,6 +156,7 @@ const Header: React.FC<HeaderProps> = ({
               src={userImage}
               alt={userName || 'User'}
               className="user-avatar-image"
+              referrerPolicy="no-referrer"
             />
           ) : (
             <SovereignPlaceholder />
