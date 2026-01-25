@@ -54,12 +54,22 @@ export interface Vault {
   createdAt: Date;
 }
 
+export type ChatMessageType = 'user' | 'ai_response' | 'system_event' | 'security_alert';
+
 export interface ChatMessage {
   id: string;
   text: string;
   isUser: boolean;
   timestamp: number;
+  type?: ChatMessageType; // system_event messages go to audit log
   groundingMetadata?: GroundingMetadata;
+}
+
+export interface SystemAuditEvent {
+  id: string;
+  timestamp: number;
+  category: 'SYSTEM' | 'INGEST' | 'TRANSFER' | 'SECURITY' | 'VAULT';
+  message: string;
 }
 
 export interface GroundingMetadata {

@@ -485,6 +485,111 @@
 .context-item.vault .dot { background: var(--status-open); box-shadow: 0 0 4px var(--status-open); }
 .context-item.source .dot { background: var(--electric-blue); box-shadow: 0 0 4px var(--electric-blue); }
 
+/* --- System Audit Log --- */
+.audit-log-bar {
+    background: rgba(0, 0, 0, 0.4);
+    border-bottom: 1px solid rgba(0, 0, 255, 0.15);
+}
+.audit-log-bar.expanded {
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.audit-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+}
+.audit-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+}
+.audit-header-left svg {
+    opacity: 0.7;
+}
+.audit-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.7rem;
+}
+.audit-event-count {
+    color: rgba(0, 0, 255, 0.8);
+    font-weight: 500;
+}
+.audit-toggle-hint {
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+
+.audit-log-drawer {
+    border-top: 1px solid rgba(0, 0, 255, 0.1);
+    animation: slideDown 0.2s ease;
+}
+.audit-log-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    background: rgba(0, 0, 255, 0.05);
+    border-bottom: 1px solid rgba(0, 0, 255, 0.1);
+}
+.audit-log-title {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: rgba(0, 0, 255, 0.9);
+}
+.audit-log-subtitle {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+.audit-log-content {
+    max-height: 160px;
+    overflow-y: auto;
+    padding: 8px 16px;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.7rem;
+}
+.audit-log-empty {
+    color: var(--text-secondary);
+    opacity: 0.5;
+    padding: 12px 0;
+    text-align: center;
+}
+.audit-log-entry {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 4px 0;
+    color: var(--text-secondary);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+.audit-log-entry:last-of-type {
+    border-bottom: none;
+}
+.audit-timestamp {
+    color: rgba(255, 255, 255, 0.4);
+    flex-shrink: 0;
+}
+.audit-category {
+    font-weight: 600;
+    flex-shrink: 0;
+}
+.audit-message {
+    color: var(--text-secondary);
+}
+
+/* Audit Category Colors */
+.audit-category-security .audit-category { color: #ff3d00; }
+.audit-category-vault .audit-category { color: #00f0ff; }
+.audit-category-ingest .audit-category { color: #00ff88; }
+.audit-category-transfer .audit-category { color: #ffab00; }
+.audit-category-system .audit-category { color: rgba(0, 0, 255, 0.9); }
+
 
 .chat-area {
     flex: 1; overflow-y: auto; padding: 32px 24px;
@@ -916,6 +1021,238 @@
 .mode-btn.active {
     background: var(--electric-blue); color: #fff;
     box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+/* ============================================
+   SOVEREIGN ARTIFACT FORGE - Digital Fort Knox
+   ============================================ */
+
+/* Sovereign Theme Variables */
+.sovereign-forge {
+    --sovereign-bg-deep: #09090b;
+    --sovereign-bg-panel: #131316;
+    --connexus-blue: #0000FF;
+    --connexus-blue-glow: 0 0 15px rgba(0, 0, 255, 0.6);
+    --connexus-blue-subtle: rgba(0, 0, 255, 0.1);
+
+    position: relative;
+    background: var(--sovereign-bg-deep);
+}
+
+/* Circuit Board Background Pattern */
+.forge-circuit-bg {
+    position: absolute;
+    inset: 0;
+    opacity: 0.03;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%230000FF' stroke-width='0.5'%3E%3Cpath d='M0 30h20M40 30h20M30 0v20M30 40v20'/%3E%3Ccircle cx='30' cy='30' r='3'/%3E%3Ccircle cx='10' cy='30' r='2'/%3E%3Ccircle cx='50' cy='30' r='2'/%3E%3Ccircle cx='30' cy='10' r='2'/%3E%3Ccircle cx='30' cy='50' r='2'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 60px 60px;
+}
+
+/* Forge Header */
+.forge-header {
+    background: var(--sovereign-bg-panel);
+    border-bottom: 1px solid rgba(0, 0, 255, 0.15);
+    z-index: 1;
+}
+
+.forge-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--connexus-blue);
+    text-shadow: var(--connexus-blue-glow);
+}
+
+/* Forge Mode Selector - Blue Glow States */
+.forge-mode-selector .mode-btn:hover {
+    color: var(--connexus-blue);
+    filter: drop-shadow(0 0 4px rgba(0, 0, 255, 0.5));
+}
+
+.forge-mode-selector .mode-btn.active {
+    background: var(--connexus-blue);
+    box-shadow: var(--connexus-blue-glow);
+}
+
+/* Forge Content Area */
+.forge-content {
+    background: var(--sovereign-bg-deep);
+    position: relative;
+    z-index: 1;
+}
+
+/* Forge Empty State */
+.forge-empty-state {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 24px;
+    gap: 32px;
+}
+
+/* Forge Hero Section */
+.forge-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+}
+
+.forge-crucible-icon {
+    width: 100px;
+    height: 100px;
+    color: var(--connexus-blue);
+    filter: drop-shadow(0 0 20px rgba(0, 0, 255, 0.4));
+    animation: cruciblePulse 3s ease-in-out infinite;
+}
+
+@keyframes cruciblePulse {
+    0%, 100% { filter: drop-shadow(0 0 15px rgba(0, 0, 255, 0.3)); }
+    50% { filter: drop-shadow(0 0 30px rgba(0, 0, 255, 0.6)); }
+}
+
+.forge-hero-title {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #fff;
+    text-shadow: 0 0 20px rgba(0, 0, 255, 0.5), 0 0 40px rgba(0, 0, 255, 0.3);
+}
+
+.forge-hero-subtitle {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    max-width: 320px;
+    line-height: 1.5;
+}
+
+/* Forge Module Grid */
+.forge-module-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    width: 100%;
+    max-width: 600px;
+}
+
+@media (min-width: 900px) {
+    .forge-module-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Forge Module Card */
+.forge-module-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 24px 16px;
+    background: var(--sovereign-bg-panel);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    overflow: hidden;
+
+    /* Hardware-like inset depth */
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.04),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2),
+        0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.forge-module-card:hover {
+    border-color: var(--connexus-blue);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.04),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2),
+        0 0 20px rgba(0, 0, 255, 0.3),
+        0 4px 16px rgba(0, 0, 0, 0.4);
+    transform: translateY(-2px);
+}
+
+.forge-module-card:hover .forge-module-glow {
+    opacity: 1;
+}
+
+.forge-module-card:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Module Glow Effect */
+.forge-module-glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(0, 0, 255, 0.08) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+}
+
+/* Module Icon Wrapper */
+.forge-module-icon-wrapper {
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: rgba(0, 0, 255, 0.08);
+    border: 1px solid rgba(0, 0, 255, 0.15);
+    transition: all 0.3s;
+}
+
+.forge-module-card:hover .forge-module-icon-wrapper {
+    background: rgba(0, 0, 255, 0.15);
+    border-color: var(--connexus-blue);
+    box-shadow: 0 0 15px rgba(0, 0, 255, 0.3);
+}
+
+.forge-module-icon {
+    width: 32px;
+    height: 32px;
+    color: var(--connexus-blue);
+    transition: all 0.3s;
+}
+
+.forge-module-card:hover .forge-module-icon {
+    filter: drop-shadow(0 0 6px rgba(0, 0, 255, 0.6));
+}
+
+/* Module Title */
+.forge-module-title {
+    margin: 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-primary);
+    line-height: 1.3;
+}
+
+.forge-module-card:hover .forge-module-title {
+    color: var(--connexus-blue);
+    text-shadow: 0 0 10px rgba(0, 0, 255, 0.4);
+}
+
+/* Module Description */
+.forge-module-desc {
+    margin: 0;
+    font-size: 0.7rem;
+    color: var(--text-tertiary);
+    line-height: 1.4;
 }
 
 /* --- Drawer & Overlays --- */

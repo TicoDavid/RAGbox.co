@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useRef, useEffect } from 'react';
-import type { ChatMessage, Vault, Source } from '../types';
+import React, { useRef, useEffect, useMemo } from 'react';
+import type { ChatMessage, Vault, Source, SystemAuditEvent } from '../types';
 import {
   PlusIcon,
   HistoryIcon,
@@ -21,6 +21,7 @@ interface MercuryChatProps {
   isLoading: boolean;
   vaults: Vault[];
   sources: Source[];
+  auditEvents: SystemAuditEvent[];
   onInputChange: (value: string) => void;
   onSendMessage: (mode: 'chat' | 'design') => void;
   onNewSession: () => void;
@@ -154,6 +155,7 @@ const MercuryChat: React.FC<MercuryChatProps> = ({
   isLoading,
   vaults,
   sources,
+  auditEvents,
   onInputChange,
   onSendMessage,
   onNewSession,
@@ -164,11 +166,16 @@ const MercuryChat: React.FC<MercuryChatProps> = ({
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Filter out system events from chat - only show user messages and AI responses
+  const filteredChatLog = useMemo(() => {
+    return chatLog.filter(msg => msg.type !== 'system_event');
+  }, [chatLog]);
+
   useEffect(() => {
     if (chatScrollRef.current) {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
     }
-  }, [chatLog]);
+  }, [filteredChatLog]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !isLoading) {
@@ -203,10 +210,10 @@ const MercuryChat: React.FC<MercuryChatProps> = ({
         </div>
       </div>
 
-      <ContextBar vaults={vaults} sources={sources} />
+      <ContextBar vaults={vaults} sources={sources} auditEvents={auditEvents} />
 
       <div className="chat-area" ref={chatScrollRef}>
-        {chatLog.map(msg => (
+        {filteredChatLog.map(msg => (
           <ChatMessageItem key={msg.id} message={msg} />
         ))}
         {isLoading && (

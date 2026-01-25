@@ -8,13 +8,17 @@ interface HeaderProps {
   toggleTheme: () => void;
   searchTerm: string;
   onSearchChange: (value: string) => void;
+  userImage?: string | null;
+  userName?: string | null;
 }
 
 const Header: React.FC<HeaderProps> = ({
   theme,
   toggleTheme,
   searchTerm,
-  onSearchChange
+  onSearchChange,
+  userImage,
+  userName
 }) => {
   return (
     <header className="app-header">
@@ -50,10 +54,23 @@ const Header: React.FC<HeaderProps> = ({
           <SettingsIcon /> Settings
         </button>
         <div className="user-avatar-placeholder">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
+          {userImage ? (
+            <img
+              src={userImage}
+              alt={userName || 'User'}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: '50%',
+                objectFit: 'cover'
+              }}
+            />
+          ) : (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          )}
         </div>
       </div>
     </header>

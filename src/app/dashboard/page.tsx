@@ -17,7 +17,8 @@ import type {
   ChatMessage,
   DrawerState,
   StudioMode,
-  ComponentVariation
+  ComponentVariation,
+  SystemAuditEvent
 } from './types';
 
 // Import utilities
@@ -78,6 +79,20 @@ export default function Dashboard() {
 
   // Chat state
   const [chatLog, setChatLog] = useState<ChatMessage[]>(() => getInitialChatLog());
+
+  // System Audit Events (separate from chat)
+  const [auditEvents, setAuditEvents] = useState<SystemAuditEvent[]>([]);
+
+  // Helper to add audit event
+  const addAuditEvent = useCallback((category: SystemAuditEvent['category'], message: string) => {
+    const event: SystemAuditEvent = {
+      id: generateId(),
+      timestamp: Date.now(),
+      category,
+      message
+    };
+    setAuditEvents(prev => [...prev, event]);
+  }, []);
 
   // Session & Archive state
   const [archivedSessions, setArchivedSessions] = useState<Session[]>([]);
@@ -180,18 +195,15 @@ export default function Dashboard() {
     setTimeout(() => {
       setSources(prev => [...newSources, ...prev]);
 
-      // Create summary message for ingested files
-      const fileList = fileNames.map(name => `• "${name}"`).join('\n');
-      const summary = files.length === 1
-        ? `MERCURY\n\nAEGIS\n• New Source Ingested: "${fileNames[0]}"\n• Type: ${getFileTypeDescription(files[0]).typeDescription}`
-        : `MERCURY\n\nAEGIS\n• ${files.length} Sources Ingested:\n${fileList}`;
+      // Add to audit log instead of chat
+      const fileListStr = fileNames.length <= 3
+        ? fileNames.map(n => `"${n}"`).join(', ')
+        : `"${fileNames[0]}", "${fileNames[1]}", ... (+${fileNames.length - 2} more)`;
 
-      setChatLog(prev => [...prev, {
-        id: generateId(),
-        text: summary,
-        isUser: false,
-        timestamp: Date.now()
-      }]);
+      addAuditEvent(
+        'INGEST',
+        `${files.length} source${files.length !== 1 ? 's' : ''} ingested. (${fileListStr})`
+      );
 
       if (hasImage) setStudioMode('VISION');
     }, 800);
@@ -282,12 +294,7 @@ export default function Dashboard() {
       createdAt: new Date()
     };
     setVaults(prev => [...prev, newVault]);
-    setChatLog(prev => [...prev, {
-      id: generateId(),
-      text: `MERCURY\n\nAEGIS\n• New Secure Vault Initialized: "${name}"\n• Status: OPEN (Ready for ingress)`,
-      isUser: false,
-      timestamp: Date.now()
-    }]);
+    addAuditEvent('VAULT', `New Secure Vault Initialized: "${name}" - Status: OPEN`);
   };
 
   const handleMoveSourceToVault = (vaultId: string, sourceIds: number[]) => {
@@ -309,13 +316,7 @@ export default function Dashboard() {
     }
 
     setSources(prev => prev.filter(s => !sourceIds.includes(s.id)));
-
-    setChatLog(prev => [...prev, {
-      id: generateId(),
-      text: `MERCURY\n\nAEGIS\n• Secure Transfer: ${sourcesToMove.length} item(s) moved to "${targetVault.name}".\n• Security Drop cleared.`,
-      isUser: false,
-      timestamp: Date.now()
-    }]);
+    addAuditEvent('TRANSFER', `Secure Transfer: ${sourcesToMove.length} item(s) moved to "${targetVault.name}"`);
   };
 
   const handleSaveToVault = (vaultId: string) => {
@@ -336,12 +337,8 @@ export default function Dashboard() {
     };
     setArchivedSessions(prev => [newSession, ...prev]);
 
-    setChatLog([{
-      id: generateId(),
-      text: `MERCURY\n\nSUMMARY\n• Session successfully encrypted and transferred to vault: "${vaultName}".\n• Workspace cleared for new tasks.`,
-      isUser: false,
-      timestamp: Date.now()
-    }]);
+    addAuditEvent('VAULT', `Session encrypted and transferred to vault: "${vaultName}"`);
+    setChatLog([]);
     setArtifacts([]);
   };
 
@@ -429,15 +426,9 @@ export default function Dashboard() {
         currentStatus={vaults.find(v => v.id === editingVaultId)?.status || 'closed'}
         onUpdateStatus={(newStatus) => {
           if (editingVaultId) {
+            const vaultName = vaults.find(v => v.id === editingVaultId)?.name;
             setVaults(prev => prev.map(v => v.id === editingVaultId ? { ...v, status: newStatus } : v));
-            if (newStatus === 'open') {
-              setChatLog(prev => [...prev, {
-                id: generateId(),
-                text: `MERCURY\n\nAegis\n• Vault "${vaults.find(v => v.id === editingVaultId)?.name}" access granted.\n• Context updated.`,
-                isUser: false,
-                timestamp: Date.now()
-              }]);
-            }
+            addAuditEvent('SECURITY', `Vault "${vaultName}" status changed to ${newStatus.toUpperCase()}`);
           }
         }}
       />
@@ -498,6 +489,7 @@ export default function Dashboard() {
             isLoading={isLoading}
             vaults={filteredVaults}
             sources={filteredSources}
+            auditEvents={auditEvents}
             onInputChange={setInputValue}
             onSendMessage={handleSendMessage}
             onNewSession={handleNewSession}
