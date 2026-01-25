@@ -3,6 +3,9 @@
 import React, { useState } from 'react';
 import type { Vault, VaultStatus } from '../types';
 import { LockIcon, UnlockIcon, MenuIcon, PlusIcon } from './Icons';
+import { Tooltip } from '@/components/ui/Tooltip';
+import { useTooltips } from '../context/TooltipContext';
+import { TOOLTIPS } from '../constants/tooltips';
 
 interface VaultPanelProps {
   vaults: Vault[];
@@ -143,6 +146,7 @@ const VaultPanel: React.FC<VaultPanelProps> = ({
   onSourceDrop,
   onCreateVault
 }) => {
+  const { tooltipsEnabled } = useTooltips();
   const [dragOverVaultId, setDragOverVaultId] = useState<string | null>(null);
   const [clickedVaultId, setClickedVaultId] = useState<string | null>(null);
 
@@ -196,12 +200,14 @@ const VaultPanel: React.FC<VaultPanelProps> = ({
 
       <div className="vault-content">
         {/* Master Key Button */}
-        <button className="create-vault-btn" onClick={onCreateVault}>
-          <div className="create-vault-glow" aria-hidden="true" />
-          <PlusIcon />
-          <span>Initialize Vault</span>
-          <div className="create-vault-shine" aria-hidden="true" />
-        </button>
+        <Tooltip content={TOOLTIPS.initializeVault} enabled={tooltipsEnabled} position="right">
+          <button className="create-vault-btn" onClick={onCreateVault}>
+            <div className="create-vault-glow" aria-hidden="true" />
+            <PlusIcon />
+            <span>Initialize Vault</span>
+            <div className="create-vault-shine" aria-hidden="true" />
+          </button>
+        </Tooltip>
 
         {/* Vault Items */}
         <div className="vault-items-container">

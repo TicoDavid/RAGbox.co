@@ -39,6 +39,9 @@ import CreateVaultModal from './components/CreateVaultModal';
 import SideDrawer from './components/SideDrawer';
 import { ThinkingIcon, HistoryIcon } from './components/Icons';
 
+// Import Tooltip Context
+import { TooltipProvider } from './context/TooltipContext';
+
 // Vault contents storage (in-memory for demo)
 const VAULT_CONTENTS: Record<string, string> = {};
 
@@ -867,6 +870,7 @@ export default function Dashboard() {
   }
 
   return (
+    <TooltipProvider>
     <div className={`dashboard-root ${currentTheme}`} style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Drawer */}
       <SideDrawer
@@ -1023,5 +1027,6 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
+    </TooltipProvider>
   );
 }

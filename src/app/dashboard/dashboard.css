@@ -61,36 +61,53 @@
     --header-height: 60px;
 }
 
-/* Light Theme Override */
+/* Light Theme Override - "Aerospace Platinum" Aesthetic */
 .dashboard-root.light,
 [data-theme='light'] .dashboard-root,
 .light .dashboard-root {
-    --bg-app: #f4f4f5;
-    --bg-panel: #ffffff;
-    --bg-input: #e4e4e7;
-    --bg-hover: #f4f4f5;
+    /* Aerospace Platinum - Cool Silver/Grey base, not paper white */
+    --bg-app: #F1F5F9;           /* Cool Silver - main app background */
+    --bg-panel: #F8FAFC;         /* Alice Blue/Grey - panel backgrounds */
+    --bg-panel-alt: #FFFFFF;     /* Pure white for cards/modules */
+    --bg-input: #FFFFFF;
+    --bg-hover: #F1F5F9;
 
-    --border-color: #e4e4e7;
-    --border-active: #d4d4d8;
+    /* Steel borders for definition */
+    --border-color: #E2E8F0;     /* Light Steel */
+    --border-active: #CBD5E1;    /* Slate 300 */
 
-    --text-primary: #18181b;
-    --text-secondary: #52525b;
-    --text-tertiary: #a1a1aa;
+    /* Slate text hierarchy */
+    --text-primary: #0F172A;     /* Slate 900 - Headers */
+    --text-secondary: #475569;   /* Slate 600 - Body */
+    --text-tertiary: #94A3B8;    /* Slate 400 - Muted */
 
-    --accent: #18181b;
-    --accent-bg: #e4e4e7;
+    --accent: #0F172A;
+    --accent-bg: #E2E8F0;
 
+    /* Electric Blue pops beautifully on platinum */
     --electric-blue: #0000FF;
+    --electric-blue-hover: #0000CC;
 
-    --bg-chat-panel: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
-    --bg-vault-item: linear-gradient(145deg, #ffffff, #f0f0f0);
-    --border-vault-item: #e4e4e7;
-    --bg-modal: #ffffff;
-    --bg-chat-input: rgba(255, 255, 255, 0.7);
-    --border-chat-input: rgba(0, 0, 0, 0.1);
-    --text-chat-placeholder: #a1a1aa;
-    --bg-source-card: #ffffff;
-    --shadow-vault-item: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+    /* Sovereign Gold - Darker for light mode readability */
+    --sovereign-gold: #B45309;           /* Dark Amber for text */
+    --sovereign-gold-bg: rgba(245, 158, 11, 0.1);  /* Subtle amber fill */
+    --sovereign-gold-border: #B45309;
+
+    /* Panel backgrounds - unified platinum workspace */
+    --bg-chat-panel: #F8FAFC;    /* Off-white, not pure white */
+    --bg-forge-panel: #F1F5F9;   /* Cool Silver for Forge */
+    --bg-vault-item: #FFFFFF;
+    --border-vault-item: #E2E8F0;
+    --bg-modal: #FFFFFF;
+    --bg-chat-input: #FFFFFF;
+    --border-chat-input: #E2E8F0;
+    --text-chat-placeholder: #94A3B8;
+    --bg-source-card: #FFFFFF;
+
+    /* Physical shadows for depth */
+    --shadow-vault-item: 0 1px 2px rgba(0,0,0,0.05);
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-module: 0 2px 4px rgba(0,0,0,0.06);
 }
 
 /* --- Header --- */
@@ -152,6 +169,25 @@
     font-family: var(--font-sans);
 }
 .header-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+/* Help Toggle Button - Amber accent when active */
+.header-btn.help-toggle {
+    padding: 6px;
+    min-width: 32px;
+    justify-content: center;
+}
+.header-btn.help-toggle.active {
+    color: #FCD34D;
+    background: rgba(252, 211, 77, 0.1);
+    border-color: rgba(252, 211, 77, 0.3);
+}
+.header-btn.help-toggle.active:hover {
+    background: rgba(252, 211, 77, 0.15);
+}
+.header-btn.help-toggle svg {
+    width: 16px;
+    height: 16px;
+}
 
 .user-avatar-video {
     width: 36px; height: 36px;
@@ -3218,3 +3254,304 @@
         display: none;
     }
 }
+
+/* =============================================================================
+   AEROSPACE PLATINUM - LIGHT MODE COMPONENT OVERRIDES
+   Dr. Insane's Prescription: Eliminate Dark-Light-Light-Dark fragmentation
+   ============================================================================= */
+
+/* --- 1. THE FORGE (Right Panel) - Platinum Laboratory --- */
+.dashboard-root.light .studio-panel,
+[data-theme='light'] .dashboard-root .studio-panel,
+.light .dashboard-root .studio-panel,
+.dashboard-root.light .panel.studio-panel,
+[data-theme='light'] .dashboard-root .panel.studio-panel,
+.light .dashboard-root .panel.studio-panel {
+    background: #F1F5F9 !important;
+    border-color: #E2E8F0 !important;
+}
+
+.dashboard-root.light .forge-content,
+[data-theme='light'] .dashboard-root .forge-content,
+.light .dashboard-root .forge-content {
+    background: #F1F5F9 !important;
+}
+
+.dashboard-root.light .forge-header,
+[data-theme='light'] .dashboard-root .forge-header,
+.light .dashboard-root .forge-header {
+    background: #F8FAFC !important;
+    border-bottom: 1px solid #E2E8F0 !important;
+}
+
+.dashboard-root.light .forge-title,
+[data-theme='light'] .dashboard-root .forge-title,
+.light .dashboard-root .forge-title {
+    color: #0000FF !important;
+    text-shadow: none !important;
+}
+
+.dashboard-root.light .forge-hero-title,
+[data-theme='light'] .dashboard-root .forge-hero-title,
+.light .dashboard-root .forge-hero-title {
+    color: #0F172A !important;
+    text-shadow: 0 0 20px rgba(0, 0, 255, 0.2) !important;
+}
+
+.dashboard-root.light .forge-hero-subtitle,
+[data-theme='light'] .dashboard-root .forge-hero-subtitle,
+.light .dashboard-root .forge-hero-subtitle {
+    color: #475569 !important;
+}
+
+/* Forge Module Cards - White with silver border */
+.dashboard-root.light .forge-module-card,
+[data-theme='light'] .dashboard-root .forge-module-card,
+.light .dashboard-root .forge-module-card {
+    background: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.06) !important;
+}
+
+.dashboard-root.light .forge-module-card:hover,
+[data-theme='light'] .dashboard-root .forge-module-card:hover,
+.light .dashboard-root .forge-module-card:hover {
+    border-color: #0000FF !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 255, 0.15) !important;
+}
+
+.dashboard-root.light .forge-module-title,
+[data-theme='light'] .dashboard-root .forge-module-title,
+.light .dashboard-root .forge-module-title {
+    color: #0F172A !important;
+}
+
+.dashboard-root.light .forge-module-desc,
+[data-theme='light'] .dashboard-root .forge-module-desc,
+.light .dashboard-root .forge-module-desc {
+    color: #475569 !important;
+}
+
+.dashboard-root.light .forge-crucible-icon,
+[data-theme='light'] .dashboard-root .forge-crucible-icon,
+.light .dashboard-root .forge-crucible-icon {
+    filter: drop-shadow(0 0 15px rgba(0, 0, 255, 0.3)) !important;
+}
+
+/* Artifact cards in light mode */
+.dashboard-root.light .artifact-card,
+[data-theme='light'] .dashboard-root .artifact-card,
+.light .dashboard-root .artifact-card {
+    background: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04) !important;
+}
+
+.dashboard-root.light .artifact-card:hover,
+[data-theme='light'] .dashboard-root .artifact-card:hover,
+.light .dashboard-root .artifact-card:hover {
+    border-color: #0000FF !important;
+}
+
+/* --- 2. MERCURY (Center Panel) - Glare Reduction --- */
+.dashboard-root.light .chat-panel,
+[data-theme='light'] .dashboard-root .chat-panel,
+.light .dashboard-root .chat-panel,
+.dashboard-root.light .panel.chat-panel,
+[data-theme='light'] .dashboard-root .panel.chat-panel,
+.light .dashboard-root .panel.chat-panel {
+    background: #F8FAFC !important;
+}
+
+.dashboard-root.light .mercury-chat-container,
+[data-theme='light'] .dashboard-root .mercury-chat-container,
+.light .dashboard-root .mercury-chat-container,
+.dashboard-root.light .chat-messages-area,
+[data-theme='light'] .dashboard-root .chat-messages-area,
+.light .dashboard-root .chat-messages-area {
+    background: #F8FAFC !important;
+}
+
+.dashboard-root.light .chat-input-container,
+[data-theme='light'] .dashboard-root .chat-input-container,
+.light .dashboard-root .chat-input-container {
+    background: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+}
+
+.dashboard-root.light .chat-input-wrapper,
+[data-theme='light'] .dashboard-root .chat-input-wrapper,
+.light .dashboard-root .chat-input-wrapper {
+    background: #FFFFFF !important;
+    border-color: #E2E8F0 !important;
+}
+
+.dashboard-root.light .chat-bubble.assistant,
+[data-theme='light'] .dashboard-root .chat-bubble.assistant,
+.light .dashboard-root .chat-bubble.assistant {
+    background: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+    color: #0F172A !important;
+}
+
+.dashboard-root.light .chat-bubble.user,
+[data-theme='light'] .dashboard-root .chat-bubble.user,
+.light .dashboard-root .chat-bubble.user {
+    background: #0000FF !important;
+    color: #FFFFFF !important;
+}
+
+/* --- 3. SECURITY DROP (2nd Column) - Match Mercury --- */
+.dashboard-root.light .sources-panel,
+[data-theme='light'] .dashboard-root .sources-panel,
+.light .dashboard-root .sources-panel,
+.dashboard-root.light .panel.sources-panel,
+[data-theme='light'] .dashboard-root .panel.sources-panel,
+.light .dashboard-root .panel.sources-panel {
+    background: #F8FAFC !important;
+}
+
+/* File cards - Physical border */
+.dashboard-root.light .source-card,
+[data-theme='light'] .dashboard-root .source-card,
+.light .dashboard-root .source-card,
+.dashboard-root.light .document-card,
+[data-theme='light'] .dashboard-root .document-card,
+.light .dashboard-root .document-card,
+.dashboard-root.light .file-card,
+[data-theme='light'] .dashboard-root .file-card,
+.light .dashboard-root .file-card {
+    background: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+}
+
+.dashboard-root.light .source-card:hover,
+[data-theme='light'] .dashboard-root .source-card:hover,
+.light .dashboard-root .source-card:hover,
+.dashboard-root.light .document-card:hover,
+[data-theme='light'] .dashboard-root .document-card:hover,
+.light .dashboard-root .document-card:hover,
+.dashboard-root.light .file-card:hover,
+[data-theme='light'] .dashboard-root .file-card:hover,
+.light .dashboard-root .file-card:hover {
+    border-color: #0000FF !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 255, 0.1) !important;
+}
+
+/* --- 4. SOVEREIGN GOLD BADGE - Light Mode Readability --- */
+.dashboard-root.light .sovereign-badge,
+[data-theme='light'] .dashboard-root .sovereign-badge,
+.light .dashboard-root .sovereign-badge {
+    color: #B45309 !important;
+    border-color: #B45309 !important;
+    background: rgba(245, 158, 11, 0.1) !important;
+    box-shadow: none !important;
+}
+
+.dashboard-root.light .sovereign-badge svg,
+[data-theme='light'] .dashboard-root .sovereign-badge svg,
+.light .dashboard-root .sovereign-badge svg {
+    stroke: #B45309 !important;
+    fill: rgba(180, 83, 9, 0.15) !important;
+}
+
+/* --- 5. HEADER - Platinum aesthetic --- */
+.dashboard-root.light .app-header,
+[data-theme='light'] .dashboard-root .app-header,
+.light .dashboard-root .app-header {
+    background: #F8FAFC !important;
+    border-bottom-color: #E2E8F0 !important;
+}
+
+.dashboard-root.light .protocol-selector,
+[data-theme='light'] .dashboard-root .protocol-selector,
+.light .dashboard-root .protocol-selector {
+    background: #FFFFFF !important;
+    border-color: #E2E8F0 !important;
+}
+
+.dashboard-root.light .global-search-container input,
+[data-theme='light'] .dashboard-root .global-search-container input,
+.light .dashboard-root .global-search-container input {
+    background: #FFFFFF !important;
+    border-color: #E2E8F0 !important;
+    color: #0F172A !important;
+}
+
+/* --- 6. CONTEXT BAR - Mercury context indicator --- */
+.dashboard-root.light .context-bar,
+[data-theme='light'] .dashboard-root .context-bar,
+.light .dashboard-root .context-bar,
+.dashboard-root.light .mercury-context-bar,
+[data-theme='light'] .dashboard-root .mercury-context-bar,
+.light .dashboard-root .mercury-context-bar {
+    background: #FFFFFF !important;
+    border-color: #E2E8F0 !important;
+}
+
+/* --- 7. INSIGHT BLOCKS - Maintain color coding with light bg --- */
+.dashboard-root.light .insight-block,
+[data-theme='light'] .dashboard-root .insight-block,
+.light .dashboard-root .insight-block {
+    background: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+}
+
+.dashboard-root.light .insight-action-bar,
+[data-theme='light'] .dashboard-root .insight-action-bar,
+.light .dashboard-root .insight-action-bar {
+    background: rgba(241, 245, 249, 0.8) !important;
+    border-top: 1px solid #E2E8F0 !important;
+}
+
+/* --- 8. AUDIT LOG - Steel frame --- */
+.dashboard-root.light .audit-log-panel,
+[data-theme='light'] .dashboard-root .audit-log-panel,
+.light .dashboard-root .audit-log-panel,
+.dashboard-root.light .system-audit-log,
+[data-theme='light'] .dashboard-root .system-audit-log,
+.light .dashboard-root .system-audit-log {
+    background: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+}
+
+.dashboard-root.light .audit-log-entry,
+[data-theme='light'] .dashboard-root .audit-log-entry,
+.light .dashboard-root .audit-log-entry {
+    border-bottom-color: #E2E8F0 !important;
+}
+
+/* --- 9. MODALS - Clean white with steel frame --- */
+.dashboard-root.light .modal-content,
+[data-theme='light'] .dashboard-root .modal-content,
+.light .dashboard-root .modal-content,
+.dashboard-root.light .side-drawer-content,
+[data-theme='light'] .dashboard-root .side-drawer-content,
+.light .dashboard-root .side-drawer-content {
+    background: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+}
+
+/* --- 10. INTEL RECEIVED ANIMATION - Adapt for light --- */
+.dashboard-root.light .forge-intel-received,
+[data-theme='light'] .dashboard-root .forge-intel-received,
+.light .dashboard-root .forge-intel-received {
+    background: linear-gradient(180deg, #F1F5F9 0%, #F8FAFC 100%) !important;
+}
+
+.dashboard-root.light .intel-headline,
+[data-theme='light'] .dashboard-root .intel-headline,
+.light .dashboard-root .intel-headline {
+    color: #0000FF !important;
+    text-shadow: 0 0 20px rgba(0, 0, 255, 0.3) !important;
+}
+
+.dashboard-root.light .intel-progress-bar,
+[data-theme='light'] .dashboard-root .intel-progress-bar,
+.light .dashboard-root .intel-progress-bar {
+    background: #E2E8F0 !important;
+}
+
+/* --- 11. VAULTS SIDEBAR - KEEP DARK (Anchor Bar Pattern) --- */
+/* The left sidebar stays dark intentionally - this frames the light content */

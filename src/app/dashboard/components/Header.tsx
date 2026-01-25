@@ -2,6 +2,18 @@
 
 import React from 'react';
 import { SearchIcon, SettingsIcon, MoonIcon, SunIcon } from './Icons';
+import { Tooltip } from '@/components/ui/Tooltip';
+import { useTooltips } from '../context/TooltipContext';
+import { TOOLTIPS } from '../constants/tooltips';
+
+// Help Circle Icon
+const HelpCircleIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+    <line x1="12" y1="17" x2="12.01" y2="17"/>
+  </svg>
+);
 
 // Protocol modes for system prompt injection
 export type ProtocolMode = 'standard' | 'legal' | 'executive' | 'analyst';
@@ -99,6 +111,8 @@ const Header: React.FC<HeaderProps> = ({
   protocolMode = 'standard',
   onProtocolChange
 }) => {
+  const { tooltipsEnabled, toggleTooltips } = useTooltips();
+
   return (
     <header className="app-header">
       <div className="header-left">
@@ -115,53 +129,79 @@ const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      <div className="global-search-container">
-        <SearchIcon />
-        <input
-          type="text"
-          placeholder="Search Vaults & Files..."
-          value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
-        />
-      </div>
+      <Tooltip content={TOOLTIPS.globalSearch} enabled={tooltipsEnabled} position="bottom">
+        <div className="global-search-container">
+          <SearchIcon />
+          <input
+            type="text"
+            placeholder="Search Vaults & Files..."
+            value={searchTerm}
+            onChange={(e) => onSearchChange(e.target.value)}
+          />
+        </div>
+      </Tooltip>
 
       <div className="header-right">
         {/* Protocol Mode Dropdown */}
-        <div className="protocol-selector">
-          <ProtocolIcon />
-          <select
-            value={protocolMode}
-            onChange={(e) => onProtocolChange?.(e.target.value as ProtocolMode)}
-            className="protocol-dropdown"
-            title="Select Protocol Mode"
-          >
-            <option value="standard">Standard</option>
-            <option value="legal">Legal Counsel</option>
-            <option value="executive">Executive Brief</option>
-            <option value="analyst">Deep Analysis</option>
-          </select>
-        </div>
+        <Tooltip content={TOOLTIPS.protocolSwitcher} enabled={tooltipsEnabled} position="bottom">
+          <div className="protocol-selector">
+            <ProtocolIcon />
+            <select
+              value={protocolMode}
+              onChange={(e) => onProtocolChange?.(e.target.value as ProtocolMode)}
+              className="protocol-dropdown"
+              title="Select Protocol Mode"
+            >
+              <option value="standard">Standard</option>
+              <option value="legal">Legal Counsel</option>
+              <option value="executive">Executive Brief</option>
+              <option value="analyst">Deep Analysis</option>
+            </select>
+          </div>
+        </Tooltip>
 
-        <button className="header-btn" onClick={toggleTheme}>
-          {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
-        </button>
-        <button className="header-btn">
-          <SettingsIcon /> Settings
-        </button>
+        {/* Help Toggle Button */}
+        <Tooltip
+          content={tooltipsEnabled ? TOOLTIPS.helpEnabled : TOOLTIPS.helpDisabled}
+          enabled={true}
+          position="bottom"
+        >
+          <button
+            className={`header-btn help-toggle ${tooltipsEnabled ? 'active' : ''}`}
+            onClick={toggleTooltips}
+            aria-label={tooltipsEnabled ? 'Disable help tooltips' : 'Enable help tooltips'}
+          >
+            <HelpCircleIcon />
+          </button>
+        </Tooltip>
+
+        <Tooltip content={TOOLTIPS.themeToggle} enabled={tooltipsEnabled} position="bottom">
+          <button className="header-btn" onClick={toggleTheme}>
+            {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+          </button>
+        </Tooltip>
+
+        <Tooltip content={TOOLTIPS.settings} enabled={tooltipsEnabled} position="bottom">
+          <button className="header-btn">
+            <SettingsIcon /> Settings
+          </button>
+        </Tooltip>
 
         {/* User Avatar with Sovereign Styling */}
-        <div className={`user-avatar-container ${userImage ? 'authenticated' : 'placeholder'}`}>
-          {userImage ? (
-            <img
-              src={userImage}
-              alt={userName || 'User'}
-              className="user-avatar-image"
-              referrerPolicy="no-referrer"
-            />
-          ) : (
-            <SovereignPlaceholder />
-          )}
-        </div>
+        <Tooltip content={TOOLTIPS.userAvatar} enabled={tooltipsEnabled} position="bottom">
+          <div className={`user-avatar-container ${userImage ? 'authenticated' : 'placeholder'}`}>
+            {userImage ? (
+              <img
+                src={userImage}
+                alt={userName || 'User'}
+                className="user-avatar-image"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <SovereignPlaceholder />
+            )}
+          </div>
+        </Tooltip>
       </div>
     </header>
   );
