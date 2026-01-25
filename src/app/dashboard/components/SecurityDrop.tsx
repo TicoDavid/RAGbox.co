@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import type { Source } from '../types';
-import { MenuIcon, PadlockSmallIcon, PhotoIcon } from './Icons';
+import { MenuIcon, PhotoIcon, FileTextIcon } from './Icons';
 import IngestionVortex from './IngestionVortex';
 
 interface SecurityDropProps {
@@ -38,7 +38,7 @@ const SecurityDrop: React.FC<SecurityDropProps> = ({ sources, onFileDrop }) => {
   return (
     <div className="panel sources-panel">
       <div className="panel-header">
-        <h3>Security Drop</h3>
+        <h3 className="panel-title">SECURITY DROP</h3>
         <button className="icon-btn"><MenuIcon /></button>
       </div>
       <IngestionVortex onFileDrop={onFileDrop} />
@@ -60,7 +60,7 @@ const SecurityDrop: React.FC<SecurityDropProps> = ({ sources, onFileDrop }) => {
                 onClick={() => toggleSelection(source.id)}
               >
                 <div className="source-card-icon">
-                  {source.type === 'image' ? <PhotoIcon /> : <PadlockSmallIcon />}
+                  {source.type === 'image' ? <PhotoIcon /> : <FileTextIcon />}
                 </div>
                 <div className="source-card-details">
                   <div className="source-card-title">{source.title}</div>

@@ -257,7 +257,7 @@ const StudioPanel: React.FC<StudioPanelProps> = ({
       <div className="forge-circuit-bg" aria-hidden="true" />
 
       <div className="panel-header forge-header">
-        <h3 className="forge-title">FORGE</h3>
+        <h3 className="panel-title">FORGE</h3>
         <div className="panel-actions">
           <div className="grid-selector">
             <button

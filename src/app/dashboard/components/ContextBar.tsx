@@ -41,12 +41,15 @@ const InfoIcon = () => (
 );
 
 const ContextBar: React.FC<ContextBarProps> = ({ vaults = [], sources = [], auditEvents = [] }) => {
+  // Default to collapsed - executives don't need to see plumbing unless they ask
   const [isExpanded, setIsExpanded] = useState(false);
   const logEndRef = useRef<HTMLDivElement>(null);
 
   const openVaults = vaults.filter(v => v.status === 'open');
+  const lockedVaults = vaults.filter(v => v.status !== 'open');
   const hasContext = openVaults.length > 0 || sources.length > 0;
   const hasEvents = auditEvents.length > 0;
+  const totalAccessible = sources.length + openVaults.length;
 
   // Auto-scroll to latest event when expanded
   useEffect(() => {
@@ -65,7 +68,8 @@ const ContextBar: React.FC<ContextBarProps> = ({ vaults = [], sources = [], audi
         <div className="audit-header-left">
           <InfoIcon />
           <span className="context-label">
-            Active Context: {openVaults.length} Vault{openVaults.length !== 1 ? 's' : ''}, {sources.length} Source{sources.length !== 1 ? 's' : ''} Ingested
+            Mercury Context: {sources.length} in Drop, {openVaults.length} Vault{openVaults.length !== 1 ? 's' : ''} Open
+            {lockedVaults.length > 0 && <span className="context-locked-info"> ({lockedVaults.length} locked)</span>}
           </span>
         </div>
         <div className="audit-header-right">

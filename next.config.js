@@ -45,7 +45,7 @@ const nextConfig = {
       bodySizeLimit: '10mb',
     },
     // Server-side external packages (native modules that shouldn't be bundled)
-    serverComponentsExternalPackages: ['ws', 'bufferutil', 'utf-8-validate'],
+    serverComponentsExternalPackages: ['ws', 'bufferutil', 'utf-8-validate', 'pdf-parse', 'mammoth'],
   },
 
   // Headers for security

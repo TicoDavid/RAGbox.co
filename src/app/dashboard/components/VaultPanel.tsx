@@ -11,10 +11,19 @@ interface VaultPanelProps {
   onCreateVault: () => void;
 }
 
+// Traffic Light Protocol Colors
+const STATUS_COLORS: Record<VaultStatus, string> = {
+  secure: '#DC2626',  // Crimson Red - Armed, Fortified, No Entry
+  open: '#0000FF',    // Electric Blue - Online, Ready, Working
+  closed: '#71717A',  // Zinc Grey - Offline, Cold Storage, Inactive
+};
+
 // Sovereign Vault Door Icon
 const VaultDoorIcon: React.FC<{ status: VaultStatus }> = ({ status }) => {
+  const color = STATUS_COLORS[status];
   const isActive = status === 'open';
-  const color = isActive ? '#0000FF' : '#FF3D00';
+  // Disable animation for closed vaults (cold storage)
+  const showAnimation = status !== 'closed';
 
   return (
     <svg
@@ -61,9 +70,11 @@ const VaultDoorIcon: React.FC<{ status: VaultStatus }> = ({ status }) => {
       <line x1="12" y1="18" x2="12" y2="15" stroke={color} strokeWidth="1" />
       <line x1="9" y1="12" x2="6" y2="12" stroke={color} strokeWidth="1" />
       <line x1="18" y1="12" x2="15" y2="12" stroke={color} strokeWidth="1" />
-      {/* Glow effect */}
-      <circle cx="12" cy="12" r="2" fill={color} opacity="0.6">
-        <animate attributeName="opacity" values="0.4;0.8;0.4" dur="2s" repeatCount="indefinite" />
+      {/* Glow effect - disabled for closed (cold storage) vaults */}
+      <circle cx="12" cy="12" r="2" fill={color} opacity={showAnimation ? 0.6 : 0.3}>
+        {showAnimation && (
+          <animate attributeName="opacity" values="0.4;0.8;0.4" dur="2s" repeatCount="indefinite" />
+        )}
       </circle>
     </svg>
   );
@@ -99,25 +110,27 @@ const EmptyVaultIcon = () => (
   </svg>
 );
 
-// Lock Status Icon
+// Lock Status Icon - Traffic Light Protocol
 const LockStatusIcon: React.FC<{ status: VaultStatus; isAnimating?: boolean }> = ({ status, isAnimating }) => {
-  const isActive = status === 'open';
+  const color = STATUS_COLORS[status];
+  const isLocked = status !== 'open';
+  const fillOpacity = status === 'secure' ? '0.15' : status === 'closed' ? '0.1' : '0.1';
 
   return (
-    <div className={`lock-status-container ${isActive ? 'active' : 'locked'} ${isAnimating ? 'animating' : ''}`}>
-      {isActive ? (
+    <div className={`lock-status-container status-${status} ${isAnimating ? 'animating' : ''}`}>
+      {!isLocked ? (
         <svg className="lock-icon-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           {/* Unlocked padlock */}
-          <rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" fill="rgba(0,0,255,0.1)" />
-          <path d="M8 11V7a4 4 0 0 1 8 0" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-          <circle cx="12" cy="16" r="1.5" fill="currentColor" />
+          <rect x="5" y="11" width="14" height="10" rx="2" stroke={color} strokeWidth="1.5" fill={`${color}${fillOpacity}`} />
+          <path d="M8 11V7a4 4 0 0 1 8 0" stroke={color} strokeWidth="1.5" fill="none" strokeLinecap="round" />
+          <circle cx="12" cy="16" r="1.5" fill={color} />
         </svg>
       ) : (
         <svg className="lock-icon-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           {/* Locked padlock */}
-          <rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" fill="rgba(255,61,0,0.1)" />
-          <path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" strokeWidth="1.5" fill="none" />
-          <circle cx="12" cy="16" r="1.5" fill="currentColor" />
+          <rect x="5" y="11" width="14" height="10" rx="2" stroke={color} strokeWidth="1.5" fill={`${color}${fillOpacity}`} />
+          <path d="M8 11V7a4 4 0 0 1 8 0v4" stroke={color} strokeWidth="1.5" fill="none" />
+          <circle cx="12" cy="16" r="1.5" fill={color} />
         </svg>
       )}
     </div>
@@ -177,7 +190,7 @@ const VaultPanel: React.FC<VaultPanelProps> = ({
       <div className="vault-circuit-bg" aria-hidden="true" />
 
       <div className="panel-header vault-header">
-        <h3 className="vault-panel-title">SECURE VAULTS</h3>
+        <h3 className="panel-title">SECURE VAULTS</h3>
         <button className="icon-btn"><MenuIcon /></button>
       </div>
 

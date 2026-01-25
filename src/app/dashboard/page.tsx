@@ -42,6 +42,27 @@ import { ThinkingIcon, HistoryIcon } from './components/Icons';
 // Vault contents storage (in-memory for demo)
 const VAULT_CONTENTS: Record<string, string> = {};
 
+// Protocol system prompts - injected into Gemini based on selected mode
+export type ProtocolMode = 'standard' | 'legal' | 'executive' | 'analyst';
+
+// Content analysis guidance - appended to all protocol prompts
+const CONTENT_FOCUS_GUIDANCE = `
+
+CRITICAL - Document Analysis Focus:
+When analyzing documents, ALWAYS focus on the CONTENT and SUBSTANCE:
+- Business risks, legal concerns, compliance gaps, contractual issues
+- Financial discrepancies, operational concerns, regulatory issues
+- Liability exposure, missing clauses, ambiguous terms
+NEVER discuss technical issues (file formats, extraction failures, parsing errors).
+If asked about "issues" or "problems", analyze the MEANING of the text, not processing status.`;
+
+export const PROTOCOL_SYSTEM_PROMPTS: Record<ProtocolMode, string> = {
+  standard: 'You are Mercury, a helpful intelligence analyst. Provide clear, accurate information with citations when available.' + CONTENT_FOCUS_GUIDANCE,
+  legal: 'You are Mercury acting as a corporate attorney. Cite relevant statutes and regulations. Be risk-averse in your assessments. Flag potential compliance issues. Use precise legal terminology. Look for: liability exposure, indemnification gaps, termination risks, IP assignment issues, confidentiality weaknesses.' + CONTENT_FOCUS_GUIDANCE,
+  executive: 'You are Mercury briefing a C-suite executive. Be brief. Use bullet points. Bottom line up front (BLUF). No fluff. Quantify impacts when possible. Focus on business impact, risk exposure, and actionable recommendations.' + CONTENT_FOCUS_GUIDANCE,
+  analyst: 'You are Mercury, a deep research analyst. Provide thorough analysis with multiple perspectives. Include data points, trends, and supporting evidence. Structure findings clearly. Identify patterns, anomalies, and areas requiring attention.' + CONTENT_FOCUS_GUIDANCE,
+};
+
 // Get initial chat log (empty - no intro message per user request)
 const getInitialChatLog = (): ChatMessage[] => {
   return [];
@@ -69,9 +90,33 @@ export default function Dashboard() {
   // Sources state
   const [sources, setSources] = useState<Source[]>([]);
 
-  // Layout state (resizable panels)
-  const [colWidths, setColWidths] = useState([280, 280, 450]);
-  const isResizing = useRef<number | null>(null);
+  // Layout state - Column widths per spec
+  // Vaults: 260px FIXED (not in state)
+  // Security Drop: 260px default (resizable 200-500px)
+  // Mercury: flex-1 (auto)
+  // Forge: 480px default (resizable 300-800px)
+  const LAYOUT_STORAGE_KEY = 'ragbox-column-widths';
+  const DEFAULT_WIDTHS = { securityDrop: 260, forge: 480 };
+
+  const [colWidths, setColWidths] = useState(() => {
+    // Try to load from localStorage on mount
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(LAYOUT_STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return {
+            securityDrop: parsed.securityDrop || DEFAULT_WIDTHS.securityDrop,
+            forge: parsed.forge || DEFAULT_WIDTHS.forge
+          };
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+    }
+    return DEFAULT_WIDTHS;
+  });
+  const isResizing = useRef<'securityDrop' | 'forge' | null>(null);
 
   // Studio state
   const [gridColumns, setGridColumns] = useState<1 | 2 | 4>(2);
@@ -92,6 +137,9 @@ export default function Dashboard() {
     animationTitle: '',
     progress: 0
   });
+
+  // Protocol mode - controls system prompt injection
+  const [protocolMode, setProtocolMode] = useState<ProtocolMode>('standard');
 
   // Helper to add audit event
   const addAuditEvent = useCallback((category: SystemAuditEvent['category'], message: string) => {
@@ -123,43 +171,66 @@ export default function Dashboard() {
     redirect('/');
   }
 
+  // Column constraints per spec
+  const COL_CONSTRAINTS = {
+    securityDrop: { min: 200, max: 500 },
+    forge: { min: 300, max: 800 }
+  };
+
   // Resizing logic
-  const handleMouseDown = (index: number) => {
-    isResizing.current = index;
+  const handleMouseDown = (column: 'securityDrop' | 'forge') => {
+    isResizing.current = column;
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
     document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
   };
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (isResizing.current === null) return;
-    const index = isResizing.current;
+    const column = isResizing.current;
+    const { min, max } = COL_CONSTRAINTS[column];
 
     setColWidths(prev => {
-      const newWidths = [...prev];
+      const newWidths = { ...prev };
       if (e.movementX) {
-        newWidths[index] = Math.max(150, newWidths[index] + e.movementX);
+        // For Forge, moving right should shrink it (negative movement)
+        const delta = column === 'forge' ? -e.movementX : e.movementX;
+        newWidths[column] = Math.max(min, Math.min(max, prev[column] + delta));
       }
       return newWidths;
     });
   }, []);
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
+    // Save to localStorage when resize ends
+    if (isResizing.current !== null) {
+      setColWidths(current => {
+        try {
+          localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(current));
+        } catch (e) {
+          // Ignore storage errors
+        }
+        return current;
+      });
+    }
     isResizing.current = null;
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', handleMouseUp);
     document.body.style.cursor = '';
-  };
+    document.body.style.userSelect = '';
+  }, [handleMouseMove]);
 
   const toggleTheme = () => {
     setTheme(currentTheme === 'dark' ? 'light' : 'dark');
   };
 
-  // File drop handler - supports multiple files
+  // File drop handler - supports multiple files with real text extraction
   const handleFileDrop = async (files: File[]) => {
     const newSources: Source[] = [];
     const fileNames: string[] = [];
     let hasImage = false;
+    let totalChunks = 0;
 
     // Process each file
     for (const file of files) {
@@ -167,6 +238,7 @@ export default function Dashboard() {
 
       let content = '';
       let base64: string | undefined = undefined;
+      let chunks: string[] = [];
 
       if (isImage) {
         hasImage = true;
@@ -178,11 +250,33 @@ export default function Dashboard() {
           continue;
         }
       } else {
-        content = `[Document: ${file.name}]
-- Status: Uploaded via Security Drop.
-- Analysis: Contains verified data regarding user inquiry.
-- Key Metric: 98% compliance with internal standards.
-- Note: This is a simulated ingestion for the demo.`;
+        // Extract text from document using the extraction API
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+
+          const response = await fetch('/api/documents/extract', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success && result.data) {
+              content = result.data.text;
+              chunks = result.data.chunks || [];
+              totalChunks += chunks.length;
+              console.log(`[Upload] Extracted ${content.length} chars from ${file.name}`);
+            } else {
+              content = `[Document: ${file.name}] - Extraction failed: ${result.error || 'Unknown error'}`;
+            }
+          } else {
+            content = `[Document: ${file.name}] - Failed to extract text (HTTP ${response.status})`;
+          }
+        } catch (e) {
+          console.error("Failed to extract text from", file.name, e);
+          content = `[Document: ${file.name}] - Text extraction error`;
+        }
       }
 
       const newSource: Source = {
@@ -202,21 +296,20 @@ export default function Dashboard() {
 
     if (newSources.length === 0) return;
 
-    setTimeout(() => {
-      setSources(prev => [...newSources, ...prev]);
+    setSources(prev => [...newSources, ...prev]);
 
-      // Add to audit log instead of chat
-      const fileListStr = fileNames.length <= 3
-        ? fileNames.map(n => `"${n}"`).join(', ')
-        : `"${fileNames[0]}", "${fileNames[1]}", ... (+${fileNames.length - 2} more)`;
+    // Add to audit log with chunk info
+    const fileListStr = fileNames.length <= 3
+      ? fileNames.map(n => `"${n}"`).join(', ')
+      : `"${fileNames[0]}", "${fileNames[1]}", ... (+${fileNames.length - 2} more)`;
 
-      addAuditEvent(
-        'INGEST',
-        `${files.length} source${files.length !== 1 ? 's' : ''} ingested. (${fileListStr})`
-      );
+    const chunkInfo = totalChunks > 0 ? ` [${totalChunks} chunks indexed]` : '';
+    addAuditEvent(
+      'INGEST',
+      `${files.length} source${files.length !== 1 ? 's' : ''} ingested. (${fileListStr})${chunkInfo}`
+    );
 
-      if (hasImage) setStudioMode('VISION');
-    }, 800);
+    if (hasImage) setStudioMode('VISION');
   };
 
   // Send message handler - calls Gemini via /api/chat with streaming support
@@ -231,15 +324,29 @@ export default function Dashboard() {
     const userMsgId = generateId();
     setChatLog(prev => [...prev, { id: userMsgId, text: textToUse, isUser: true, timestamp: Date.now() }]);
 
-    // Build context from open vaults and sources with actual document content
+    // Build context from Security Drop + UNLOCKED vaults
+    // AEGIS Protection: Locked vaults are excluded from Mercury's context
     const contextDocuments: string[] = [];
 
-    // Add source content (actual document text)
+    // 1. Add ALL sources from Security Drop (staging area - always visible to Mercury)
     sources.forEach(source => {
       if (source.content) {
-        contextDocuments.push(`[${source.title}]: ${source.content}`);
+        contextDocuments.push(`[Security Drop - ${source.title}]: ${source.content}`);
       }
     });
+
+    // 2. Add content from UNLOCKED vaults only (status === 'open')
+    // Locked vaults (status === 'closed' or 'secure') are protected by AEGIS
+    vaults.forEach(vault => {
+      if (vault.status === 'open' && VAULT_CONTENTS[vault.id]) {
+        contextDocuments.push(`[Vault: ${vault.name}]: ${VAULT_CONTENTS[vault.id]}`);
+      }
+    });
+
+    // Log context status for debugging
+    const openVaultCount = vaults.filter(v => v.status === 'open' && VAULT_CONTENTS[v.id]).length;
+    const lockedVaultCount = vaults.filter(v => v.status !== 'open' && VAULT_CONTENTS[v.id]).length;
+    console.log(`[Mercury Context] Security Drop: ${sources.length} files, Open Vaults: ${openVaultCount}, Locked Vaults (excluded): ${lockedVaultCount}`);
 
     const botMsgId = generateId();
     const useStreaming = contextDocuments.length === 0; // Stream for direct chat, non-stream for RAG
@@ -439,6 +546,70 @@ export default function Dashboard() {
     setChatLog(getInitialChatLog());
     setArtifacts([]);
   };
+
+  // Voice transcript handler - adds voice messages to chat log
+  const handleVoiceTranscript = useCallback((userText: string, aiResponse: string) => {
+    // Add user's spoken message to chat
+    if (userText) {
+      const userMsgId = generateId();
+      setChatLog(prev => [...prev, {
+        id: userMsgId,
+        text: userText,
+        isUser: true,
+        timestamp: Date.now()
+      }]);
+    }
+
+    // Add AI response to chat
+    if (aiResponse) {
+      const aiMsgId = generateId();
+      setChatLog(prev => [...prev, {
+        id: aiMsgId,
+        text: aiResponse,
+        isUser: false,
+        timestamp: Date.now()
+      }]);
+    }
+  }, []);
+
+  // Get document context for voice chat (same logic as text chat)
+  const getDocumentContext = useCallback(() => {
+    const contextDocuments: string[] = [];
+
+    // 1. Add ALL sources from Security Drop (staging area - always visible to Mercury)
+    sources.forEach(source => {
+      if (source.content) {
+        contextDocuments.push(`[Security Drop - ${source.title}]: ${source.content}`);
+      }
+    });
+
+    // 2. Add content from UNLOCKED vaults only (status === 'open')
+    // Locked vaults (status === 'closed' or 'secure') are protected by AEGIS
+    vaults.forEach(vault => {
+      if (vault.status === 'open' && VAULT_CONTENTS[vault.id]) {
+        contextDocuments.push(`[Vault: ${vault.name}]: ${VAULT_CONTENTS[vault.id]}`);
+      }
+    });
+
+    return contextDocuments;
+  }, [sources, vaults]);
+
+  // Get chat history for voice context (provides conversation continuity)
+  const getChatHistory = useCallback(() => {
+    // Convert chatLog to the format expected by the API
+    // Only include user messages and AI responses, not system events
+    return chatLog
+      .filter(msg => msg.type !== 'system_event')
+      .map(msg => ({
+        role: msg.isUser ? 'user' as const : 'assistant' as const,
+        content: msg.text
+      }));
+  }, [chatLog]);
+
+  // Get current system prompt based on protocol mode
+  const getSystemPrompt = useCallback(() => {
+    return PROTOCOL_SYSTEM_PROMPTS[protocolMode];
+  }, [protocolMode]);
 
   const handleCreateVault = () => {
     setIsCreateVaultModalOpen(true);
@@ -780,32 +951,36 @@ export default function Dashboard() {
           onSearchChange={setGlobalSearchTerm}
           userImage={session?.user?.image}
           userName={session?.user?.name}
+          protocolMode={protocolMode}
+          onProtocolChange={setProtocolMode}
         />
 
-        {/* Dynamic Resizable Layout */}
+        {/* Dynamic Resizable Layout - Mercury (1fr) is the hero */}
+        {/* Vaults: 260px FIXED | Security Drop: resizable | Mercury: flex | Forge: resizable */}
         <div
           className="ragbox-layout"
           style={{
-            gridTemplateColumns: `${colWidths[0]}px 16px ${colWidths[1]}px 16px ${colWidths[2]}px 16px 1fr`
+            gridTemplateColumns: `260px ${colWidths.securityDrop}px 4px 1fr 4px ${colWidths.forge}px`
           }}
         >
-          {/* Column 0: Vault */}
+          {/* Column 1: Vault - FIXED WIDTH, NO RESIZE */}
           <VaultPanel
             vaults={filteredVaults}
             onVaultClick={setEditingVaultId}
             onSourceDrop={handleMoveSourceToVault}
             onCreateVault={handleCreateVault}
           />
-          <div className="resizer" onMouseDown={() => handleMouseDown(0)}></div>
 
-          {/* Column 1: Security Drop */}
+          {/* Column 2: Security Drop - RESIZABLE */}
           <SecurityDrop
             sources={filteredSources}
             onFileDrop={handleFileDrop}
           />
-          <div className="resizer" onMouseDown={() => handleMouseDown(1)}></div>
 
-          {/* Column 2: Mercury Chat */}
+          {/* Resize Handle: Security Drop | Mercury */}
+          <div className="resizer" onMouseDown={() => handleMouseDown('securityDrop')}></div>
+
+          {/* Column 3: Mercury Chat - FLEX (fills remaining space) */}
           <MercuryChat
             chatLog={chatLog}
             inputValue={inputValue}
@@ -820,10 +995,16 @@ export default function Dashboard() {
             onSaveToVault={() => setIsSaveModalOpen(true)}
             onDeleteSession={handleDeleteSession}
             onInsightAction={handleInsightAction}
+            onVoiceTranscript={handleVoiceTranscript}
+            getDocumentContext={getDocumentContext}
+            getChatHistory={getChatHistory}
+            getSystemPrompt={getSystemPrompt}
           />
-          <div className="resizer" onMouseDown={() => handleMouseDown(2)}></div>
 
-          {/* Column 3: Studio */}
+          {/* Resize Handle: Mercury | Forge */}
+          <div className="resizer" onMouseDown={() => handleMouseDown('forge')}></div>
+
+          {/* Column 4: Forge/Studio - RESIZABLE */}
           <StudioPanel
             artifacts={artifacts}
             studioMode={studioMode}

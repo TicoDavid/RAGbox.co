@@ -101,6 +101,14 @@ export function AuthModal({ isOpen, onClose, context = 'signin' }: AuthModalProp
     if (e.key === 'Backspace' && !otp[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
+    // Submit on Enter if all digits are filled
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const otpCode = otp.join('');
+      if (otpCode.length === 6 && !isLoading) {
+        handleVerify();
+      }
+    }
   };
 
   const handleOtpPaste = (e: React.ClipboardEvent) => {

@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useRef, useEffect, useMemo, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import type { Components } from 'react-markdown';
 import type { ChatMessage, Vault, Source, SystemAuditEvent, ParsedInsight, InsightHandoffPayload, ArtifactType } from '../types';
 import {
   PlusIcon,
@@ -16,7 +19,49 @@ import {
 } from './Icons';
 import ContextBar from './ContextBar';
 import { detectInsights, getActionsForInsight, getInsightColor, getInsightTypeName } from '../insight-detection';
-import { useVoiceChat } from '../hooks/useVoiceChat';
+import { useVoiceChat, GeminiVoice } from '../hooks/useVoiceChat';
+
+// Custom markdown components for styled rendering
+const markdownComponents: Components = {
+  table: ({ children }) => (
+    <div className="mercury-table-wrapper">
+      <table className="mercury-table">{children}</table>
+    </div>
+  ),
+  thead: ({ children }) => <thead className="mercury-thead">{children}</thead>,
+  tbody: ({ children }) => <tbody className="mercury-tbody">{children}</tbody>,
+  tr: ({ children }) => <tr className="mercury-tr">{children}</tr>,
+  th: ({ children }) => <th className="mercury-th">{children}</th>,
+  td: ({ children }) => <td className="mercury-td">{children}</td>,
+  ul: ({ children }) => <ul className="mercury-ul">{children}</ul>,
+  ol: ({ children }) => <ol className="mercury-ol">{children}</ol>,
+  li: ({ children }) => <li className="mercury-li">{children}</li>,
+  h1: ({ children }) => <h1 className="mercury-h1">{children}</h1>,
+  h2: ({ children }) => <h2 className="mercury-h2">{children}</h2>,
+  h3: ({ children }) => <h3 className="mercury-h3">{children}</h3>,
+  h4: ({ children }) => <h4 className="mercury-h4">{children}</h4>,
+  p: ({ children }) => <p className="mercury-paragraph">{children}</p>,
+  strong: ({ children }) => <strong className="mercury-strong">{children}</strong>,
+  em: ({ children }) => <em className="mercury-em">{children}</em>,
+  code: ({ children, className }) => {
+    const isInline = !className;
+    return isInline
+      ? <code className="mercury-code-inline">{children}</code>
+      : <code className={`mercury-code-block ${className || ''}`}>{children}</code>;
+  },
+  pre: ({ children }) => <pre className="mercury-pre">{children}</pre>,
+  blockquote: ({ children }) => <blockquote className="mercury-blockquote">{children}</blockquote>,
+  a: ({ href, children }) => (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="mercury-link">
+      {children}
+    </a>
+  ),
+};
+
+interface ChatHistoryMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 interface MercuryChatProps {
   chatLog: ChatMessage[];
@@ -33,6 +78,9 @@ interface MercuryChatProps {
   onDeleteSession: () => void;
   onInsightAction?: (payload: InsightHandoffPayload) => void;
   onVoiceTranscript?: (userText: string, aiText: string) => void;
+  getDocumentContext?: () => string[];  // Document context for voice chat
+  getChatHistory?: () => ChatHistoryMessage[];  // Chat history for voice context
+  getSystemPrompt?: () => string;  // Current protocol system prompt
 }
 
 // Helper to highlight citations in text
@@ -146,51 +194,8 @@ const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ message, onInsightAct
   // Detect insights from message text
   const insights = useMemo(() => detectInsights(message.id, message.text), [message.id, message.text]);
 
-  const lines = message.text.split('\n');
-  const sections: React.ReactNode[] = [];
-  let currentSectionTitle: string | null = null;
-  let currentSectionContent: React.ReactNode[] = [];
-
-  const flushSection = () => {
-    if (currentSectionTitle || currentSectionContent.length > 0) {
-      const isFindings = currentSectionTitle?.toUpperCase() === 'AEGIS' || currentSectionTitle?.toUpperCase() === 'FINDINGS';
-      sections.push(
-        <div key={sections.length} className="mercury-section">
-          {currentSectionTitle && (
-            <div className={`mercury-section-header ${isFindings ? 'green-mode' : ''}`}>
-              {currentSectionTitle}
-            </div>
-          )}
-          <div className="mercury-section-content">{currentSectionContent}</div>
-        </div>
-      );
-    }
-    currentSectionTitle = null;
-    currentSectionContent = [];
-  };
-
-  lines.forEach((line, i) => {
-    const trimmed = line.trim();
-    if (!trimmed) return;
-    if (trimmed === 'MERCURY') return;
-    if (trimmed.match(/^(Summary|Aegis|Sources|Findings)$/i)) {
-      flushSection();
-      currentSectionTitle = trimmed.toUpperCase();
-    } else if (trimmed.startsWith('•') || trimmed.startsWith('-')) {
-      currentSectionContent.push(
-        <div key={i} className="mercury-list-item">
-          {renderTextWithCitations(trimmed.substring(1).trim())}
-        </div>
-      );
-    } else {
-      currentSectionContent.push(
-        <p key={i} className="mercury-paragraph">
-          {renderTextWithCitations(trimmed)}
-        </p>
-      );
-    }
-  });
-  flushSection();
+  // Clean up the message text - remove "MERCURY" prefix if present
+  const cleanedText = message.text.replace(/^MERCURY\s*/i, '').trim();
 
   // Grounding Sources (Google Search)
   let groundingSources = null;
@@ -225,7 +230,15 @@ const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ message, onInsightAct
     <div className="chat-message mercury">
       <span className="chat-label mercury">MERCURY</span>
       <div className="mercury-content">
-        {sections}
+        {/* Render markdown content */}
+        <div className="mercury-markdown">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={markdownComponents}
+          >
+            {cleanedText}
+          </ReactMarkdown>
+        </div>
 
         {/* Render detected insights */}
         {insights.length > 0 && onInsightAction && (
@@ -270,28 +283,47 @@ const MercuryChat: React.FC<MercuryChatProps> = ({
   onSaveToVault,
   onDeleteSession,
   onInsightAction,
-  onVoiceTranscript
+  onVoiceTranscript,
+  getDocumentContext,
+  getChatHistory,
+  getSystemPrompt
 }) => {
   const chatScrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Voice chat hook for Gemini Live API
+  // Voice chat hook - Manual Toggle Mode
+  // Click mic to START recording, click again to STOP (or wait 2s silence)
   const voiceChat = useVoiceChat(
-    useCallback((text: string, isFinal: boolean) => {
-      // This callback receives transcription from Gemini
-      if (isFinal && text.trim() && onVoiceTranscript) {
-        // For now, we'll add the AI's spoken response to chat
-        // User speech is sent directly to Gemini, response is spoken back
-        onVoiceTranscript('', text);
+    useCallback((userText: string, aiResponse: string) => {
+      if (onVoiceTranscript) {
+        onVoiceTranscript(userText, aiResponse);
       }
-    }, [onVoiceTranscript])
+    }, [onVoiceTranscript]),
+    {
+      getContext: getDocumentContext,
+      getChatHistory: getChatHistory,
+      getSystemPrompt: getSystemPrompt,
+    }
   );
 
-  const handleVoiceToggle = useCallback(async () => {
+  // Voice button click handler - context-aware
+  const handleVoiceClick = useCallback(async () => {
+    if (!voiceChat.isConnected) {
+      // Not in voice mode - start session
+      await voiceChat.startVoiceChat();
+    } else if (voiceChat.isSpeaking) {
+      // AI is speaking - interrupt
+      voiceChat.interrupt();
+    } else {
+      // In voice mode - toggle recording
+      voiceChat.toggleRecording();
+    }
+  }, [voiceChat]);
+
+  // Long press to end voice session
+  const handleVoiceLongPress = useCallback(() => {
     if (voiceChat.isConnected) {
       voiceChat.stopVoiceChat();
-    } else {
-      await voiceChat.startVoiceChat();
     }
   }, [voiceChat]);
 
@@ -306,11 +338,26 @@ const MercuryChat: React.FC<MercuryChatProps> = ({
     }
   }, [filteredChatLog]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !isLoading) {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Enter sends message, Shift+Enter adds new line
+    if (e.key === 'Enter' && !e.shiftKey && !isLoading) {
       e.preventDefault();
       onSendMessage('chat');
+      // Reset textarea height after sending
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+      }
     }
+  };
+
+  // Auto-resize textarea as user types
+  const handleTextareaInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const textarea = e.target;
+    // Reset height to auto to get accurate scrollHeight
+    textarea.style.height = 'auto';
+    // Set height to scrollHeight, capped at max-height (200px)
+    textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+    onInputChange(textarea.value);
   };
 
   return (
@@ -319,10 +366,12 @@ const MercuryChat: React.FC<MercuryChatProps> = ({
       <div className="mercury-circuit-bg" aria-hidden="true" />
       <div className="panel-header">
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <h3 className="mercury-logo-text">Mercury</h3>
-          <div className="status-indicator">
-            <div className="status-dot"></div>
-            <span>Verified Intelligence</span>
+          <h3 className="panel-title">MERCURY</h3>
+          <div className="sovereign-badge">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <span>SOVEREIGN ENVIRONMENT</span>
           </div>
         </div>
         <div className="grid-selector">
@@ -360,63 +409,76 @@ const MercuryChat: React.FC<MercuryChatProps> = ({
       <div className="chat-input-area">
         <div className="chat-input-row">
           <div className="chat-input-wrapper">
-            <input
-              ref={inputRef}
-              type="text"
+            <textarea
+              ref={textareaRef}
               value={inputValue}
-              onChange={(e) => onInputChange(e.target.value)}
+              onChange={handleTextareaInput}
               onKeyDown={handleKeyDown}
-              placeholder={voiceChat.isConnected ? "Voice mode active - speak or type..." : "Request verified intelligence..."}
+              placeholder={
+                voiceChat.transcript ? `🎤 ${voiceChat.transcript}` :
+                voiceChat.isRecording ? "🎤 Recording... click mic to stop" :
+                voiceChat.isConnected ? "🎤 Voice mode active - click mic to record" :
+                "Request verified intelligence..."
+              }
               disabled={isLoading}
+              rows={1}
+              className="mercury-textarea"
             />
           </div>
 
-          {/* Standalone Realtime Voice Button - Gemini Live */}
+          {/* Voice Button - Manual Toggle Mode */}
+          {/* Click: Start session / Toggle recording / Interrupt speech */}
+          {/* Long press: End session */}
           <button
-            className={`realtime-voice-btn ${voiceChat.isConnected ? 'active' : ''} ${voiceChat.isSpeaking ? 'speaking' : ''} ${voiceChat.isListening ? 'listening' : ''}`}
-            onClick={handleVoiceToggle}
-            title={voiceChat.isConnected ? "END VOICE SESSION" : "ENGAGE REALTIME SECURE VOICE"}
+            className={`realtime-voice-btn ${voiceChat.isConnected ? 'active' : ''} ${voiceChat.isRecording ? 'recording' : ''} ${voiceChat.isSpeaking ? 'speaking' : ''}`}
+            onClick={handleVoiceClick}
+            onContextMenu={(e) => { e.preventDefault(); handleVoiceLongPress(); }}
+            title={
+              !voiceChat.isConnected ? 'START VOICE MODE' :
+              voiceChat.isRecording ? 'STOP RECORDING' :
+              voiceChat.isSpeaking ? 'INTERRUPT' :
+              'START RECORDING (right-click to exit)'
+            }
             disabled={isLoading}
           >
-            <div className="voice-ripple" />
-            <div className="voice-ripple delay-1" />
-            <div className="voice-ripple delay-2" />
+            {/* Pulse rings for recording state */}
+            {voiceChat.isRecording && (
+              <>
+                <div className="voice-ripple recording" />
+                <div className="voice-ripple recording delay-1" />
+                <div className="voice-ripple recording delay-2" />
+              </>
+            )}
+            {voiceChat.isSpeaking && (
+              <>
+                <div className="voice-ripple speaking" />
+                <div className="voice-ripple speaking delay-1" />
+              </>
+            )}
             <svg className="voice-waveform-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              {/* Microphone with waveform */}
+              {/* Microphone */}
               <rect x="9" y="2" width="6" height="11" rx="3" stroke="currentColor" strokeWidth="2"/>
               <path d="M5 10V11C5 14.866 8.13401 18 12 18C15.866 18 19 14.866 19 11V10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               <line x1="12" y1="18" x2="12" y2="22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               <line x1="8" y1="22" x2="16" y2="22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              {/* Waveform lines - animated when active */}
-              {voiceChat.isConnected && (
-                <>
-                  <line x1="2" y1="12" x2="2" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="wave-line">
-                    <animate attributeName="y1" values="10;14;10" dur="0.5s" repeatCount="indefinite"/>
-                    <animate attributeName="y2" values="14;10;14" dur="0.5s" repeatCount="indefinite"/>
-                  </line>
-                  <line x1="22" y1="12" x2="22" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="wave-line">
-                    <animate attributeName="y1" values="14;10;14" dur="0.5s" repeatCount="indefinite"/>
-                    <animate attributeName="y2" values="10;14;10" dur="0.5s" repeatCount="indefinite"/>
-                  </line>
-                </>
+              {/* Recording indicator - pulsing dot */}
+              {voiceChat.isRecording && (
+                <circle cx="12" cy="7" r="2" fill="#FF3D00">
+                  <animate attributeName="opacity" values="1;0.3;1" dur="0.8s" repeatCount="indefinite"/>
+                </circle>
               )}
             </svg>
             {voiceChat.isConnected && (
               <span className="voice-status-text">
-                {voiceChat.isSpeaking ? 'SPEAKING...' : voiceChat.isListening ? 'LISTENING...' : 'CONNECTED'}
+                {voiceChat.isSpeaking ? 'SPEAKING...' :
+                 voiceChat.isRecording ? 'RECORDING...' :
+                 'READY'}
               </span>
             )}
             {voiceChat.error && (
               <span className="voice-error-text">{voiceChat.error}</span>
             )}
           </button>
-
-          {/* Voice transcript preview */}
-          {voiceChat.transcript && (
-            <div className="voice-transcript-preview">
-              {voiceChat.transcript}
-            </div>
-          )}
         </div>
         <div className="chat-footer-info">
           Responses are citation-backed. Unverifiable outputs are withheld.

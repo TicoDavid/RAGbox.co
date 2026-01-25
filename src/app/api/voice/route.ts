@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { createGeminiLiveSession, GeminiLiveSession } from '@/lib/vertex/gemini-live-client';
+import { createGeminiLiveSession, GeminiLiveSession, GeminiLiveConfig } from '@/lib/vertex/gemini-live-client';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+// Valid Gemini voices
+const VALID_VOICES = ['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede'] as const;
+type GeminiVoice = typeof VALID_VOICES[number];
+
 // Store active sessions (in production, use Redis or similar)
 const activeSessions = new Map<string, GeminiLiveSession>();
+const sessionVoices = new Map<string, GeminiVoice>();
 
 /**
  * POST /api/voice
@@ -97,6 +102,8 @@ export async function POST(request: NextRequest) {
  * GET /api/voice
  *
  * SSE endpoint for receiving audio/text from Gemini
+ * Query params:
+ *   - voice: Puck | Charon | Kore | Fenrir | Aoede (default: Puck)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -106,7 +113,13 @@ export async function GET(request: NextRequest) {
     }
 
     const userId = session.user.email;
-    console.log(`[Voice API] SSE connection requested for ${userId}`);
+
+    // Get voice from query param or use stored preference
+    const { searchParams } = new URL(request.url);
+    const voiceParam = searchParams.get('voice') as GeminiVoice | null;
+    const voice: GeminiVoice = voiceParam && VALID_VOICES.includes(voiceParam) ? voiceParam : (sessionVoices.get(userId) || 'Puck');
+
+    console.log(`[Voice API] SSE connection requested for ${userId} with voice: ${voice}`);
 
     // Create SSE stream
     const encoder = new TextEncoder();
@@ -121,7 +134,7 @@ export async function GET(request: NextRequest) {
         try {
           // Create Gemini Live session
           liveSession = await createGeminiLiveSession({
-            voice: 'Puck',
+            voice: voice,
             onConnected: () => {
               console.log(`[Voice API] Gemini session connected for ${userId}`);
               activeSessions.set(userId, liveSession!);

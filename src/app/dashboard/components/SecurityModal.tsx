@@ -83,7 +83,7 @@ const SecurityModal: React.FC<SecurityModalProps> = ({
           />
           {error && <div className="security-error-msg">{error}</div>}
           <button
-            className="security-action-btn"
+            className={`security-action-btn action-${selectedStatus}`}
             onClick={handleAuthenticate}
           >
             Authenticate & Update

@@ -3,6 +3,16 @@
 import React from 'react';
 import { SearchIcon, SettingsIcon, MoonIcon, SunIcon } from './Icons';
 
+// Protocol modes for system prompt injection
+export type ProtocolMode = 'standard' | 'legal' | 'executive' | 'analyst';
+
+const PROTOCOL_LABELS: Record<ProtocolMode, string> = {
+  standard: 'Standard',
+  legal: 'Legal Counsel',
+  executive: 'Executive Brief',
+  analyst: 'Deep Analysis',
+};
+
 interface HeaderProps {
   theme: 'dark' | 'light';
   toggleTheme: () => void;
@@ -10,6 +20,8 @@ interface HeaderProps {
   onSearchChange: (value: string) => void;
   userImage?: string | null;
   userName?: string | null;
+  protocolMode?: ProtocolMode;
+  onProtocolChange?: (mode: ProtocolMode) => void;
 }
 
 // Sovereign Placeholder Avatar - Encrypted Identity Pattern
@@ -69,13 +81,23 @@ const SovereignPlaceholder = () => (
   </svg>
 );
 
+// Protocol Icon
+const ProtocolIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="8" r="4"/>
+    <path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
+  </svg>
+);
+
 const Header: React.FC<HeaderProps> = ({
   theme,
   toggleTheme,
   searchTerm,
   onSearchChange,
   userImage,
-  userName
+  userName,
+  protocolMode = 'standard',
+  onProtocolChange
 }) => {
   return (
     <header className="app-header">
@@ -104,6 +126,22 @@ const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="header-right">
+        {/* Protocol Mode Dropdown */}
+        <div className="protocol-selector">
+          <ProtocolIcon />
+          <select
+            value={protocolMode}
+            onChange={(e) => onProtocolChange?.(e.target.value as ProtocolMode)}
+            className="protocol-dropdown"
+            title="Select Protocol Mode"
+          >
+            <option value="standard">Standard</option>
+            <option value="legal">Legal Counsel</option>
+            <option value="executive">Executive Brief</option>
+            <option value="analyst">Deep Analysis</option>
+          </select>
+        </div>
+
         <button className="header-btn" onClick={toggleTheme}>
           {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
         </button>
