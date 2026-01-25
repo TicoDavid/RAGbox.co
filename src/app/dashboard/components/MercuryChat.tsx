@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useEffect, useMemo, useState } from 'react';
+import React, { useRef, useEffect, useMemo, useCallback } from 'react';
 import type { ChatMessage, Vault, Source, SystemAuditEvent, ParsedInsight, InsightHandoffPayload, ArtifactType } from '../types';
 import {
   PlusIcon,
@@ -16,6 +16,7 @@ import {
 } from './Icons';
 import ContextBar from './ContextBar';
 import { detectInsights, getActionsForInsight, getInsightColor, getInsightTypeName } from '../insight-detection';
+import { useVoiceChat } from '../hooks/useVoiceChat';
 
 interface MercuryChatProps {
   chatLog: ChatMessage[];
@@ -31,6 +32,7 @@ interface MercuryChatProps {
   onSaveToVault: () => void;
   onDeleteSession: () => void;
   onInsightAction?: (payload: InsightHandoffPayload) => void;
+  onVoiceTranscript?: (userText: string, aiText: string) => void;
 }
 
 // Helper to highlight citations in text
@@ -267,18 +269,31 @@ const MercuryChat: React.FC<MercuryChatProps> = ({
   onShowHistory,
   onSaveToVault,
   onDeleteSession,
-  onInsightAction
+  onInsightAction,
+  onVoiceTranscript
 }) => {
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Voice state for Google Realtime
-  const [isVoiceActive, setIsVoiceActive] = useState(false);
+  // Voice chat hook for Gemini Live API
+  const voiceChat = useVoiceChat(
+    useCallback((text: string, isFinal: boolean) => {
+      // This callback receives transcription from Gemini
+      if (isFinal && text.trim() && onVoiceTranscript) {
+        // For now, we'll add the AI's spoken response to chat
+        // User speech is sent directly to Gemini, response is spoken back
+        onVoiceTranscript('', text);
+      }
+    }, [onVoiceTranscript])
+  );
 
-  const handleVoiceToggle = () => {
-    setIsVoiceActive(prev => !prev);
-    // TODO: Integrate with Google Realtime Voice API
-  };
+  const handleVoiceToggle = useCallback(async () => {
+    if (voiceChat.isConnected) {
+      voiceChat.stopVoiceChat();
+    } else {
+      await voiceChat.startVoiceChat();
+    }
+  }, [voiceChat]);
 
   // Filter out system events from chat - only show user messages and AI responses
   const filteredChatLog = useMemo(() => {
@@ -351,16 +366,17 @@ const MercuryChat: React.FC<MercuryChatProps> = ({
               value={inputValue}
               onChange={(e) => onInputChange(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Request verified intelligence..."
-              disabled={isLoading || isVoiceActive}
+              placeholder={voiceChat.isConnected ? "Voice mode active - speak or type..." : "Request verified intelligence..."}
+              disabled={isLoading}
             />
           </div>
 
-          {/* Standalone Realtime Voice Button */}
+          {/* Standalone Realtime Voice Button - Gemini Live */}
           <button
-            className={`realtime-voice-btn ${isVoiceActive ? 'active' : ''}`}
+            className={`realtime-voice-btn ${voiceChat.isConnected ? 'active' : ''} ${voiceChat.isSpeaking ? 'speaking' : ''} ${voiceChat.isListening ? 'listening' : ''}`}
             onClick={handleVoiceToggle}
-            title="ENGAGE REALTIME SECURE VOICE"
+            title={voiceChat.isConnected ? "END VOICE SESSION" : "ENGAGE REALTIME SECURE VOICE"}
+            disabled={isLoading}
           >
             <div className="voice-ripple" />
             <div className="voice-ripple delay-1" />
@@ -371,18 +387,36 @@ const MercuryChat: React.FC<MercuryChatProps> = ({
               <path d="M5 10V11C5 14.866 8.13401 18 12 18C15.866 18 19 14.866 19 11V10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               <line x1="12" y1="18" x2="12" y2="22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               <line x1="8" y1="22" x2="16" y2="22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              {/* Waveform lines */}
-              <line x1="2" y1="12" x2="2" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="wave-line">
-                <animate attributeName="y1" values="10;14;10" dur="0.5s" repeatCount="indefinite"/>
-                <animate attributeName="y2" values="14;10;14" dur="0.5s" repeatCount="indefinite"/>
-              </line>
-              <line x1="22" y1="12" x2="22" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="wave-line">
-                <animate attributeName="y1" values="14;10;14" dur="0.5s" repeatCount="indefinite"/>
-                <animate attributeName="y2" values="10;14;10" dur="0.5s" repeatCount="indefinite"/>
-              </line>
+              {/* Waveform lines - animated when active */}
+              {voiceChat.isConnected && (
+                <>
+                  <line x1="2" y1="12" x2="2" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="wave-line">
+                    <animate attributeName="y1" values="10;14;10" dur="0.5s" repeatCount="indefinite"/>
+                    <animate attributeName="y2" values="14;10;14" dur="0.5s" repeatCount="indefinite"/>
+                  </line>
+                  <line x1="22" y1="12" x2="22" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="wave-line">
+                    <animate attributeName="y1" values="14;10;14" dur="0.5s" repeatCount="indefinite"/>
+                    <animate attributeName="y2" values="10;14;10" dur="0.5s" repeatCount="indefinite"/>
+                  </line>
+                </>
+              )}
             </svg>
-            {isVoiceActive && <span className="voice-status-text">LISTENING...</span>}
+            {voiceChat.isConnected && (
+              <span className="voice-status-text">
+                {voiceChat.isSpeaking ? 'SPEAKING...' : voiceChat.isListening ? 'LISTENING...' : 'CONNECTED'}
+              </span>
+            )}
+            {voiceChat.error && (
+              <span className="voice-error-text">{voiceChat.error}</span>
+            )}
           </button>
+
+          {/* Voice transcript preview */}
+          {voiceChat.transcript && (
+            <div className="voice-transcript-preview">
+              {voiceChat.transcript}
+            </div>
+          )}
         </div>
         <div className="chat-footer-info">
           Responses are citation-backed. Unverifiable outputs are withheld.
