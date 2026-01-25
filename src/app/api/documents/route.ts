@@ -9,6 +9,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { logDocumentUpload } from '@/lib/audit'
 
+/**
+ * Storage limits for document uploads (PRD compliance)
+ */
+export const STORAGE_LIMITS = {
+  MAX_FILE_SIZE_BYTES: 100 * 1024 * 1024,           // 100MB per file
+  MAX_DOCUMENTS_PER_VAULT: 1000,
+  MAX_VAULT_STORAGE_BYTES: 50 * 1024 * 1024 * 1024  // 50GB per vault
+} as const
+
+export type DeletionStatus = 'Active' | 'SoftDeleted' | 'HardDeleted'
+
 export interface Document {
   id: string
   name: string
@@ -24,6 +35,9 @@ export interface Document {
   chunkCount: number
   status: 'pending' | 'processing' | 'ready' | 'error'
   metadata?: Record<string, unknown>
+  deletionStatus: DeletionStatus
+  deletedAt: string | null
+  hardDeleteScheduledAt: string | null
 }
 
 // In-memory document store (replace with database in production)
@@ -50,6 +64,9 @@ function initDemoDocuments() {
       isPrivileged: false,
       chunkCount: 15,
       status: 'ready',
+      deletionStatus: 'Active',
+      deletedAt: null,
+      hardDeleteScheduledAt: null,
     },
     {
       id: 'doc_2',
@@ -65,6 +82,9 @@ function initDemoDocuments() {
       isPrivileged: true,
       chunkCount: 8,
       status: 'ready',
+      deletionStatus: 'Active',
+      deletedAt: null,
+      hardDeleteScheduledAt: null,
     },
     {
       id: 'doc_3',
@@ -80,6 +100,9 @@ function initDemoDocuments() {
       isPrivileged: false,
       chunkCount: 12,
       status: 'ready',
+      deletionStatus: 'Active',
+      deletedAt: null,
+      hardDeleteScheduledAt: null,
     },
     {
       id: 'doc_4',
@@ -95,6 +118,9 @@ function initDemoDocuments() {
       isPrivileged: true,
       chunkCount: 6,
       status: 'ready',
+      deletionStatus: 'Active',
+      deletedAt: null,
+      hardDeleteScheduledAt: null,
     },
   ]
 
@@ -158,8 +184,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const privilegedFilter = searchParams.get('privileged') || 'all'
     const statusFilter = searchParams.get('status') || 'all'
 
-    // Get user's documents
-    let documents = Array.from(documentStore.values()).filter((doc) => doc.userId === userId)
+    // Get user's documents (exclude soft-deleted and hard-deleted)
+    let documents = Array.from(documentStore.values()).filter(
+      (doc) => doc.userId === userId && doc.deletionStatus === 'Active'
+    )
 
     // Apply filters
     if (privilegedFilter !== 'all') {
@@ -239,6 +267,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       )
     }
 
+    // Validate file size against storage limits
+    if (body.size > STORAGE_LIMITS.MAX_FILE_SIZE_BYTES) {
+      return NextResponse.json(
+        {
+          error: `File size exceeds maximum allowed size of ${STORAGE_LIMITS.MAX_FILE_SIZE_BYTES / (1024 * 1024)}MB`,
+          code: 'FILE_TOO_LARGE',
+          maxSize: STORAGE_LIMITS.MAX_FILE_SIZE_BYTES
+        },
+        { status: 413 }
+      )
+    }
+
     // Extract file type from mime type
     const typeMap: Record<string, string> = {
       'application/pdf': 'pdf',
@@ -269,6 +309,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       isPrivileged: false,
       chunkCount: 0,
       status: 'pending',
+      deletionStatus: 'Active',
+      deletedAt: null,
+      hardDeleteScheduledAt: null,
     }
 
     documentStore.set(docId, document)
@@ -276,7 +319,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Log to audit trail
     const ipAddress = getClientIP(request)
     try {
-      await logDocumentUpload(userId, docId, body.name, ipAddress)
+      await logDocumentUpload(userId, docId, body.name, body.size, ipAddress)
     } catch (auditError) {
       console.error('Failed to log document upload:', auditError)
     }

@@ -157,7 +157,8 @@ export async function PATCH(
 /**
  * DELETE /api/documents/[id]
  *
- * Deletes a document from storage and database.
+ * Soft-deletes a document (marks as SoftDeleted, schedules hard delete for 30 days).
+ * Document remains in store but is excluded from queries.
  */
 export async function DELETE(
   request: NextRequest,
@@ -187,8 +188,19 @@ export async function DELETE(
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
-    // Delete from store
-    store.delete(documentId)
+    // Soft-delete: Set deletion status and schedule hard delete for 30 days
+    const now = new Date()
+    const hardDeleteDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+
+    const updatedDocument: Document = {
+      ...document,
+      deletionStatus: 'SoftDeleted',
+      deletedAt: now.toISOString(),
+      hardDeleteScheduledAt: hardDeleteDate.toISOString(),
+      updatedAt: now.toISOString(),
+    }
+
+    store.set(documentId, updatedDocument)
 
     // Log to audit trail
     const ipAddress = getClientIP(request)
@@ -198,12 +210,11 @@ export async function DELETE(
       console.error('Failed to log document delete:', auditError)
     }
 
-    // In production: Also delete from Cloud Storage
-    // await deleteFromCloudStorage(document.storagePath)
-
     return NextResponse.json({
       success: true,
-      message: 'Document deleted successfully',
+      message: 'Document moved to trash. Will be permanently deleted in 30 days.',
+      deletedAt: updatedDocument.deletedAt,
+      hardDeleteScheduledAt: updatedDocument.hardDeleteScheduledAt,
     })
   } catch (error) {
     console.error('Error deleting document:', error)

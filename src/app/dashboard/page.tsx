@@ -32,26 +32,16 @@ import MercuryChat from './components/MercuryChat';
 import StudioPanel from './components/StudioPanel';
 import SecurityModal from './components/SecurityModal';
 import SaveToVaultModal from './components/SaveToVaultModal';
+import CreateVaultModal from './components/CreateVaultModal';
 import SideDrawer from './components/SideDrawer';
 import { ThinkingIcon, HistoryIcon } from './components/Icons';
 
 // Vault contents storage (in-memory for demo)
 const VAULT_CONTENTS: Record<string, string> = {};
 
-// Get initial chat log
-const getInitialChatLog = (vaults: Vault[], sources: Source[]): ChatMessage[] => {
-  const openVaults = vaults.filter(v => v.status === 'open');
-  const hasSources = sources.length > 0;
-
-  let text = "MERCURY\n\nSUMMARY\n• Secure Core Online.\n";
-
-  if (openVaults.length === 0 && !hasSources) {
-    text += "• No active vault context detected.";
-  } else {
-    text += "• Active context verified and ready for analysis.";
-  }
-
-  return [{ id: 'intro', text, isUser: false, timestamp: Date.now() }];
+// Get initial chat log (empty - no intro message per user request)
+const getInitialChatLog = (): ChatMessage[] => {
+  return [];
 };
 
 export default function Dashboard() {
@@ -87,11 +77,12 @@ export default function Dashboard() {
   const [focusedArtifactIndex, setFocusedArtifactIndex] = useState<number | null>(null);
 
   // Chat state
-  const [chatLog, setChatLog] = useState<ChatMessage[]>(() => getInitialChatLog([], []));
+  const [chatLog, setChatLog] = useState<ChatMessage[]>(() => getInitialChatLog());
 
   // Session & Archive state
   const [archivedSessions, setArchivedSessions] = useState<Session[]>([]);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [isCreateVaultModalOpen, setIsCreateVaultModalOpen] = useState(false);
 
   // Drawer state
   const [drawerState, setDrawerState] = useState<DrawerState>({
@@ -139,50 +130,70 @@ export default function Dashboard() {
     setTheme(currentTheme === 'dark' ? 'light' : 'dark');
   };
 
-  // File drop handler
-  const handleFileDrop = async (file: File) => {
-    const { typeDescription, isImage } = getFileTypeDescription(file);
+  // File drop handler - supports multiple files
+  const handleFileDrop = async (files: File[]) => {
+    const newSources: Source[] = [];
+    const fileNames: string[] = [];
+    let hasImage = false;
 
-    let content = '';
-    let base64: string | undefined = undefined;
+    // Process each file
+    for (const file of files) {
+      const { typeDescription, isImage } = getFileTypeDescription(file);
 
-    if (isImage) {
-      try {
-        base64 = await fileToBase64(file);
-        content = `[Image Asset: ${file.name}]`;
-      } catch (e) {
-        console.error("Failed to read image", e);
-        return;
-      }
-    } else {
-      content = `[Document: ${file.name}]
+      let content = '';
+      let base64: string | undefined = undefined;
+
+      if (isImage) {
+        hasImage = true;
+        try {
+          base64 = await fileToBase64(file);
+          content = `[Image Asset: ${file.name}]`;
+        } catch (e) {
+          console.error("Failed to read image", e);
+          continue;
+        }
+      } else {
+        content = `[Document: ${file.name}]
 - Status: Uploaded via Security Drop.
 - Analysis: Contains verified data regarding user inquiry.
 - Key Metric: 98% compliance with internal standards.
 - Note: This is a simulated ingestion for the demo.`;
+      }
+
+      const newSource: Source = {
+        id: Date.now() + Math.random(),
+        title: file.name,
+        type: isImage ? 'image' : 'text',
+        time: "Just now",
+        isNew: true,
+        content: content,
+        base64: base64,
+        mimeType: file.type
+      };
+
+      newSources.push(newSource);
+      fileNames.push(file.name);
     }
 
-    const newSource: Source = {
-      id: Date.now(),
-      title: file.name,
-      type: isImage ? 'image' : 'text',
-      time: "Just now",
-      isNew: true,
-      content: content,
-      base64: base64,
-      mimeType: file.type
-    };
+    if (newSources.length === 0) return;
 
     setTimeout(() => {
-      setSources(prev => [newSource, ...prev]);
+      setSources(prev => [...newSources, ...prev]);
+
+      // Create summary message for ingested files
+      const fileList = fileNames.map(name => `• "${name}"`).join('\n');
+      const summary = files.length === 1
+        ? `MERCURY\n\nAEGIS\n• New Source Ingested: "${fileNames[0]}"\n• Type: ${getFileTypeDescription(files[0]).typeDescription}`
+        : `MERCURY\n\nAEGIS\n• ${files.length} Sources Ingested:\n${fileList}`;
+
       setChatLog(prev => [...prev, {
         id: generateId(),
-        text: `MERCURY\n\nFINDINGS\n• New Source Ingested: "${file.name}"\n• Type: ${typeDescription}`,
+        text: summary,
         isUser: false,
         timestamp: Date.now()
       }]);
 
-      if (isImage) setStudioMode('VISION');
+      if (hasImage) setStudioMode('VISION');
     }, 800);
   };
 
@@ -247,31 +258,36 @@ export default function Dashboard() {
       };
       setArchivedSessions(prev => [newSession, ...prev]);
     }
-    setChatLog(getInitialChatLog(vaults, sources));
+    setChatLog(getInitialChatLog());
     setArtifacts([]);
   };
 
   const handleDeleteSession = () => {
-    setChatLog(getInitialChatLog(vaults, sources));
+    setChatLog(getInitialChatLog());
     setArtifacts([]);
   };
 
   const handleCreateVault = () => {
-    const name = prompt("Enter Vault Name:");
-    if (name) {
-      const newVault: Vault = {
-        id: generateId(),
-        name: name,
-        status: 'open'
-      };
-      setVaults(prev => [...prev, newVault]);
-      setChatLog(prev => [...prev, {
-        id: generateId(),
-        text: `MERCURY\n\nFINDINGS\n• New Secure Vault Initialized: "${name}"\n• Status: OPEN (Ready for ingress)`,
-        isUser: false,
-        timestamp: Date.now()
-      }]);
-    }
+    setIsCreateVaultModalOpen(true);
+  };
+
+  const handleCreateVaultSubmit = (name: string) => {
+    const newVault: Vault = {
+      id: generateId(),
+      name: name,
+      status: 'open',
+      tenantId: session?.user?.id || 'default',
+      documentCount: 0,
+      storageUsedBytes: 0,
+      createdAt: new Date()
+    };
+    setVaults(prev => [...prev, newVault]);
+    setChatLog(prev => [...prev, {
+      id: generateId(),
+      text: `MERCURY\n\nAEGIS\n• New Secure Vault Initialized: "${name}"\n• Status: OPEN (Ready for ingress)`,
+      isUser: false,
+      timestamp: Date.now()
+    }]);
   };
 
   const handleMoveSourceToVault = (vaultId: string, sourceIds: number[]) => {
@@ -296,7 +312,7 @@ export default function Dashboard() {
 
     setChatLog(prev => [...prev, {
       id: generateId(),
-      text: `MERCURY\n\nFINDINGS\n• Secure Transfer: ${sourcesToMove.length} item(s) moved to "${targetVault.name}".\n• Security Drop cleared.`,
+      text: `MERCURY\n\nAEGIS\n• Secure Transfer: ${sourcesToMove.length} item(s) moved to "${targetVault.name}".\n• Security Drop cleared.`,
       isUser: false,
       timestamp: Date.now()
     }]);
@@ -417,7 +433,7 @@ export default function Dashboard() {
             if (newStatus === 'open') {
               setChatLog(prev => [...prev, {
                 id: generateId(),
-                text: `MERCURY\n\nFindings\n• Vault "${vaults.find(v => v.id === editingVaultId)?.name}" access granted.\n• Context updated.`,
+                text: `MERCURY\n\nAegis\n• Vault "${vaults.find(v => v.id === editingVaultId)?.name}" access granted.\n• Context updated.`,
                 isUser: false,
                 timestamp: Date.now()
               }]);
@@ -434,6 +450,13 @@ export default function Dashboard() {
         onSave={handleSaveToVault}
       />
 
+      {/* Create Vault Modal */}
+      <CreateVaultModal
+        isOpen={isCreateVaultModalOpen}
+        onClose={() => setIsCreateVaultModalOpen(false)}
+        onCreate={handleCreateVaultSubmit}
+      />
+
       {/* Main App */}
       <div className="ragbox-app">
         <Header
@@ -441,6 +464,8 @@ export default function Dashboard() {
           toggleTheme={toggleTheme}
           searchTerm={globalSearchTerm}
           onSearchChange={setGlobalSearchTerm}
+          userImage={session?.user?.image}
+          userName={session?.user?.name}
         />
 
         {/* Dynamic Resizable Layout */}

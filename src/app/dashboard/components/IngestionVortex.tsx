@@ -3,7 +3,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 
 interface IngestionVortexProps {
-  onFileDrop: (file: File) => void;
+  onFileDrop: (files: File[]) => void;
 }
 
 const IngestionVortex: React.FC<IngestionVortexProps> = ({ onFileDrop }) => {
@@ -15,7 +15,7 @@ const IngestionVortex: React.FC<IngestionVortexProps> = ({ onFileDrop }) => {
   const [isImploding, setIsImploding] = useState(false);
 
   useEffect(() => {
-    audioRef.current = new Audio("https://storage.googleapis.com/connexusai-assets/sub-bass-short-impact-davies-aguirre-1-00-00.mp3");
+    audioRef.current = new Audio("https://storage.googleapis.com/connexusai-assets/trailer-transition-double-crushing-impact-epic-stock-media-1-00-09.mp3");
     audioRef.current.volume = 0.5;
   }, []);
 
@@ -46,7 +46,9 @@ const IngestionVortex: React.FC<IngestionVortexProps> = ({ onFileDrop }) => {
         videoRef.current.play().catch(err => console.log("Video play failed", err));
       }
 
-      onFileDrop(e.dataTransfer.files[0]);
+      // Convert FileList to array and pass all files
+      const filesArray = Array.from(e.dataTransfer.files);
+      onFileDrop(filesArray);
 
       setTimeout(() => {
         setIsImploding(false);
@@ -55,13 +57,14 @@ const IngestionVortex: React.FC<IngestionVortexProps> = ({ onFileDrop }) => {
   };
 
   const handleClick = () => {
-    // Open file picker on click
+    // Open file picker on click with multiple selection
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '*/*';
+    input.multiple = true;
     input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
+      const files = (e.target as HTMLInputElement).files;
+      if (files && files.length > 0) {
         setIsImploding(true);
 
         if (audioRef.current) {
@@ -74,7 +77,9 @@ const IngestionVortex: React.FC<IngestionVortexProps> = ({ onFileDrop }) => {
           videoRef.current.play().catch(err => console.log("Video play failed", err));
         }
 
-        onFileDrop(file);
+        // Convert FileList to array and pass all files
+        const filesArray = Array.from(files);
+        onFileDrop(filesArray);
 
         setTimeout(() => {
           setIsImploding(false);

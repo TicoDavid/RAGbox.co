@@ -71,7 +71,7 @@ const ChatMessageItem: React.FC<{ message: ChatMessage }> = ({ message }) => {
 
   const flushSection = () => {
     if (currentSectionTitle || currentSectionContent.length > 0) {
-      const isFindings = currentSectionTitle?.toUpperCase() === 'FINDINGS';
+      const isFindings = currentSectionTitle?.toUpperCase() === 'AEGIS';
       sections.push(
         <div key={sections.length} className="mercury-section">
           {currentSectionTitle && (
@@ -91,7 +91,7 @@ const ChatMessageItem: React.FC<{ message: ChatMessage }> = ({ message }) => {
     const trimmed = line.trim();
     if (!trimmed) return;
     if (trimmed === 'MERCURY') return;
-    if (trimmed.match(/^(Summary|Findings|Sources)$/i)) {
+    if (trimmed.match(/^(Summary|Aegis|Sources)$/i)) {
       flushSection();
       currentSectionTitle = trimmed.toUpperCase();
     } else if (trimmed.startsWith('•') || trimmed.startsWith('-')) {

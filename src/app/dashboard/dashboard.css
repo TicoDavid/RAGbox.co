@@ -424,15 +424,16 @@
 }
 
 .status-indicator {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 0.75rem; color: var(--text-secondary);
-    background: rgba(0,0,0,0.05); padding: 4px 10px; border-radius: 99px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 0.9rem; color: var(--text-secondary);
+    background: rgba(0,0,0,0.05); padding: 6px 14px; border-radius: 99px;
     border: 1px solid var(--border-color);
+    font-weight: 500;
 }
 .status-dot {
-    width: 6px; height: 6px; background: #06b6d4;
+    width: 10px; height: 10px; background: #06b6d4;
     border-radius: 50%;
-    box-shadow: 0 0 8px #06b6d4;
+    box-shadow: 0 0 12px #06b6d4;
     animation: pulseDot 2s infinite;
 }
 @keyframes pulseDot {
@@ -504,7 +505,7 @@
 }
 
 .chat-label {
-    font-size: 0.7rem;
+    font-size: 0.8rem;
     letter-spacing: 0.1em;
     font-weight: 700;
     text-transform: uppercase;

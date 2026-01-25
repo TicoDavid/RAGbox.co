@@ -48,6 +48,10 @@ export interface Vault {
   id: string;
   name: string;
   status: VaultStatus;
+  tenantId: string;
+  documentCount: number;
+  storageUsedBytes: number;
+  createdAt: Date;
 }
 
 export interface ChatMessage {

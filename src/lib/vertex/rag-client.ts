@@ -33,7 +33,7 @@ QUESTION: ${question}
 ANSWER:`;
 
     const result = await model.generateContent(prompt);
-    const answer = result.response.text() || '';
+    const answer = result.response.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
     return {
       answer,

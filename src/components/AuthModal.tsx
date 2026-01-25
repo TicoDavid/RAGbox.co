@@ -27,9 +27,9 @@ export function AuthModal({ isOpen, onClose, context = 'signin' }: AuthModalProp
   const [devOtp, setDevOtp] = useState(''); // For dev mode display
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Sound: The "Vault Door" - heavy impact on successful login
+  // Sound: Sci-fi whoosh on successful login
   const [playSuccess] = useSound(
-    'https://storage.googleapis.com/connexusai-assets/trailer-transition-double-crushing-impact-epic-stock-media-1-00-09.mp3',
+    'https://storage.googleapis.com/connexusai-assets/sci-fi-whoosh-ui-click-brukowskij-1-00-02.mp3',
     { volume: 0.4 }
   );
 

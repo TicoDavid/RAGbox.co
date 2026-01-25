@@ -7,7 +7,7 @@ import IngestionVortex from './IngestionVortex';
 
 interface SecurityDropProps {
   sources: Source[];
-  onFileDrop: (file: File) => void;
+  onFileDrop: (files: File[]) => void;
 }
 
 const SecurityDrop: React.FC<SecurityDropProps> = ({ sources, onFileDrop }) => {
