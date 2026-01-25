@@ -123,9 +123,10 @@ const Header: React.FC<HeaderProps> = ({
             className="ragbox-logo"
           />
         </div>
-        <div className="breadcrumb">
-          <span className="breadcrumb-separator">/</span>
-          <span className="breadcrumb-item">Secure Workspace</span>
+        {/* System Designation - Military-grade branding */}
+        <div className="system-designation">
+          <div className="designation-divider" />
+          <span className="designation-text">SOVEREIGN IDENTITY SYSTEM</span>
         </div>
       </div>
 

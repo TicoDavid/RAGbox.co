@@ -146,18 +146,47 @@
 }
 
 .logo-container {
-    height: 32px;
+    height: 36px;
     display: flex; align-items: center;
 }
 .ragbox-logo {
     height: 100%; width: auto; object-fit: contain;
 }
 
-.breadcrumb {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 0.9rem; color: var(--text-secondary);
+/* System Designation - Military-grade branding */
+.system-designation {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
-.breadcrumb-separator { color: var(--text-tertiary); }
+
+.designation-divider {
+    width: 1px;
+    height: 24px;
+    background: #3F3F46;
+}
+
+.designation-text {
+    font-family: 'Space Grotesk', var(--font-sans);
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #A1A1AA;
+}
+
+/* Light mode adjustments for system designation */
+.dashboard-root.light .designation-divider,
+[data-theme='light'] .dashboard-root .designation-divider,
+.light .dashboard-root .designation-divider {
+    background: #CBD5E1;
+}
+
+.dashboard-root.light .designation-text,
+[data-theme='light'] .dashboard-root .designation-text,
+.light .dashboard-root .designation-text {
+    color: #64748B;
+}
 
 .header-btn {
     background: transparent; border: 1px solid transparent;
