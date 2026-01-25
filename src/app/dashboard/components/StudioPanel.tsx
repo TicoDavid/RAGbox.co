@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import type { Artifact, StudioMode } from '../types';
+import type { Artifact, StudioMode, ForgeContext } from '../types';
 import {
   SparklesIcon,
   CodeIcon,
@@ -15,6 +15,7 @@ import {
   Layout4Icon
 } from './Icons';
 import ArtifactCard from './ArtifactCard';
+import { getInsightTypeName } from '../insight-detection';
 
 interface StudioPanelProps {
   artifacts: Artifact[];
@@ -22,6 +23,7 @@ interface StudioPanelProps {
   gridColumns: 1 | 2 | 4;
   focusedArtifactIndex: number | null;
   isLoading: boolean;
+  forgeContext?: ForgeContext;
   onStudioModeChange: (mode: StudioMode) => void;
   onGridColumnsChange: (cols: 1 | 2 | 4) => void;
   onArtifactClick: (index: number) => void;
@@ -128,6 +130,59 @@ const CrucibleIcon = () => (
   </svg>
 );
 
+// Intel Received Animation Component
+interface IntelReceivedAnimationProps {
+  title: string;
+  progress: number;
+  insightType?: string;
+}
+
+const getStatusText = (progress: number): string => {
+  if (progress < 20) return 'Receiving intelligence data...';
+  if (progress < 40) return 'Parsing insight context...';
+  if (progress < 60) return 'Initializing artifact forge...';
+  if (progress < 80) return 'Generating artifact...';
+  if (progress < 100) return 'Finalizing output...';
+  return 'Complete';
+};
+
+const IntelReceivedAnimation: React.FC<IntelReceivedAnimationProps> = ({ title, progress, insightType }) => {
+  return (
+    <div className="forge-intel-received">
+      {/* Pulse ring effect */}
+      <div className="intel-pulse-container">
+        <div className="intel-pulse-ring" />
+        <div className="intel-pulse-ring delay-1" />
+        <div className="intel-pulse-ring delay-2" />
+      </div>
+
+      {/* Data streams */}
+      <div className="intel-data-streams">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="intel-data-stream" style={{ animationDelay: `${i * 0.2}s` }} />
+        ))}
+      </div>
+
+      {/* Main content */}
+      <div className="intel-content">
+        <h2 className="intel-headline">INTEL RECEIVED</h2>
+        {insightType && (
+          <div className="intel-source-badge">
+            FROM: {getInsightTypeName(insightType as any).toUpperCase()}
+          </div>
+        )}
+        <h3 className="intel-title">FORGING ARTIFACT: {title}</h3>
+        <div className="intel-progress-bar">
+          <div className="intel-progress-fill" style={{ width: `${progress}%` }} />
+          <div className="intel-progress-shimmer" />
+        </div>
+        <p className="intel-status">{getStatusText(progress)}</p>
+        <div className="intel-percentage">{Math.round(progress)}%</div>
+      </div>
+    </div>
+  );
+};
+
 // Module definitions
 const FORGE_MODULES = [
   {
@@ -180,6 +235,7 @@ const StudioPanel: React.FC<StudioPanelProps> = ({
   gridColumns,
   focusedArtifactIndex,
   isLoading,
+  forgeContext,
   onStudioModeChange,
   onGridColumnsChange,
   onArtifactClick,
@@ -187,6 +243,11 @@ const StudioPanel: React.FC<StudioPanelProps> = ({
   onShowCode,
   onSendDesignPrompt
 }) => {
+  // Determine what to show based on forge state
+  const showIntelAnimation = forgeContext && (forgeContext.state === 'receiving_intel' || forgeContext.state === 'forging');
+  const showEmptyState = artifacts.length === 0 && !showIntelAnimation;
+  const showArtifacts = artifacts.length > 0 && !showIntelAnimation;
+
   return (
     <div className="panel studio-panel sovereign-forge">
       {/* Circuit board background pattern */}
@@ -261,7 +322,17 @@ const StudioPanel: React.FC<StudioPanelProps> = ({
       </div>
 
       <div className="studio-content forge-content">
-        {artifacts.length === 0 ? (
+        {/* Intel Received Animation */}
+        {showIntelAnimation && forgeContext && (
+          <IntelReceivedAnimation
+            title={forgeContext.animationTitle}
+            progress={forgeContext.progress}
+            insightType={forgeContext.incomingPayload?.context_data.insight_type}
+          />
+        )}
+
+        {/* Empty State */}
+        {showEmptyState && (
           <div className="forge-empty-state">
             {/* Hero Section */}
             <div className="forge-hero">
@@ -291,10 +362,18 @@ const StudioPanel: React.FC<StudioPanelProps> = ({
               ))}
             </div>
           </div>
-        ) : (
+        )}
+
+        {/* Artifacts Grid */}
+        {showArtifacts && (
           <div className={`studio-grid cols-${gridColumns}`}>
             {artifacts.map((art, index) => (
-              <div key={art.id} className="studio-item-wrapper">
+              <div key={art.id} className={`studio-item-wrapper ${art.sourceInsightId ? 'from-insight' : ''}`}>
+                {art.sourceInsightId && (
+                  <div className="artifact-source-badge">
+                    <SparklesIcon /> Forged from Insight
+                  </div>
+                )}
                 <ArtifactCard
                   artifact={art}
                   isFocused={focusedArtifactIndex === index}

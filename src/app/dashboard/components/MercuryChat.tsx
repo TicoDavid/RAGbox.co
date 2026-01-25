@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect, useMemo } from 'react';
-import type { ChatMessage, Vault, Source, SystemAuditEvent } from '../types';
+import type { ChatMessage, Vault, Source, SystemAuditEvent, ParsedInsight, InsightHandoffPayload, ArtifactType } from '../types';
 import {
   PlusIcon,
   HistoryIcon,
@@ -11,9 +11,12 @@ import {
   CopyIcon,
   MaximizeIcon,
   DownloadIcon,
-  GlobeIcon
+  GlobeIcon,
+  InsightTypeIcon,
+  InsightActionIcon
 } from './Icons';
 import ContextBar from './ContextBar';
+import { detectInsights, getActionsForInsight, getInsightColor, getInsightTypeName } from '../insight-detection';
 
 interface MercuryChatProps {
   chatLog: ChatMessage[];
@@ -28,6 +31,7 @@ interface MercuryChatProps {
   onShowHistory: () => void;
   onSaveToVault: () => void;
   onDeleteSession: () => void;
+  onInsightAction?: (payload: InsightHandoffPayload) => void;
 }
 
 // Helper to highlight citations in text
@@ -41,8 +45,81 @@ const renderTextWithCitations = (text: string) => {
   });
 };
 
+// Insight Block Component
+interface InsightBlockProps {
+  insight: ParsedInsight;
+  onAction: (payload: InsightHandoffPayload) => void;
+}
+
+const InsightBlock: React.FC<InsightBlockProps> = ({ insight, onAction }) => {
+  const actions = getActionsForInsight(insight.type);
+  const color = getInsightColor(insight.type);
+  const typeName = getInsightTypeName(insight.type);
+
+  const handleAction = (actionId: string, artifactType: ArtifactType) => {
+    const payload: InsightHandoffPayload = {
+      source_insight_id: insight.id,
+      artifact_type: artifactType,
+      context_data: {
+        title: insight.title,
+        key_datapoints: insight.keyDatapoints,
+        summary_text: insight.content,
+        source_citations: insight.sourceCitations,
+        insight_type: insight.type
+      },
+      requested_at: Date.now()
+    };
+    onAction(payload);
+  };
+
+  return (
+    <div
+      className="insight-block"
+      data-insight-type={insight.type}
+      style={{ '--insight-color': color } as React.CSSProperties}
+    >
+      <div className="insight-header">
+        <div className="insight-type-badge" style={{ backgroundColor: `${color}20`, color }}>
+          <InsightTypeIcon type={insight.type} />
+          <span>{typeName}</span>
+        </div>
+        <span className="insight-title">{insight.title}</span>
+      </div>
+      <div className="insight-content">
+        {renderTextWithCitations(insight.content)}
+      </div>
+      {insight.keyDatapoints && Object.keys(insight.keyDatapoints).length > 0 && (
+        <div className="insight-datapoints">
+          {Object.entries(insight.keyDatapoints).map(([key, value]) => (
+            <span key={key} className="insight-datapoint">
+              <strong>{key}:</strong> {value}
+            </span>
+          ))}
+        </div>
+      )}
+      <div className="insight-action-bar">
+        {actions.map(action => (
+          <button
+            key={action.id}
+            className="insight-action-btn"
+            onClick={() => handleAction(action.id, action.artifactType)}
+          >
+            <InsightActionIcon icon={action.icon} />
+            {action.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // Chat Message Component
-const ChatMessageItem: React.FC<{ message: ChatMessage }> = ({ message }) => {
+interface ChatMessageItemProps {
+  message: ChatMessage;
+  onInsightAction?: (payload: InsightHandoffPayload) => void;
+}
+
+const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ message, onInsightAction }) => {
   if (message.isUser) {
     return (
       <div className="chat-message user">
@@ -65,6 +142,9 @@ const ChatMessageItem: React.FC<{ message: ChatMessage }> = ({ message }) => {
     );
   }
 
+  // Detect insights from message text
+  const insights = useMemo(() => detectInsights(message.id, message.text), [message.id, message.text]);
+
   const lines = message.text.split('\n');
   const sections: React.ReactNode[] = [];
   let currentSectionTitle: string | null = null;
@@ -72,7 +152,7 @@ const ChatMessageItem: React.FC<{ message: ChatMessage }> = ({ message }) => {
 
   const flushSection = () => {
     if (currentSectionTitle || currentSectionContent.length > 0) {
-      const isFindings = currentSectionTitle?.toUpperCase() === 'AEGIS';
+      const isFindings = currentSectionTitle?.toUpperCase() === 'AEGIS' || currentSectionTitle?.toUpperCase() === 'FINDINGS';
       sections.push(
         <div key={sections.length} className="mercury-section">
           {currentSectionTitle && (
@@ -92,7 +172,7 @@ const ChatMessageItem: React.FC<{ message: ChatMessage }> = ({ message }) => {
     const trimmed = line.trim();
     if (!trimmed) return;
     if (trimmed === 'MERCURY') return;
-    if (trimmed.match(/^(Summary|Aegis|Sources)$/i)) {
+    if (trimmed.match(/^(Summary|Aegis|Sources|Findings)$/i)) {
       flushSection();
       currentSectionTitle = trimmed.toUpperCase();
     } else if (trimmed.startsWith('•') || trimmed.startsWith('-')) {
@@ -133,11 +213,37 @@ const ChatMessageItem: React.FC<{ message: ChatMessage }> = ({ message }) => {
     );
   }
 
+  // Default handler for insights if no handler provided
+  const handleInsightAction = (payload: InsightHandoffPayload) => {
+    if (onInsightAction) {
+      onInsightAction(payload);
+    }
+  };
+
   return (
     <div className="chat-message mercury">
       <span className="chat-label mercury">MERCURY</span>
       <div className="mercury-content">
         {sections}
+
+        {/* Render detected insights */}
+        {insights.length > 0 && onInsightAction && (
+          <div className="insights-section">
+            <div className="mercury-section-header insights-header">
+              ACTIONABLE INSIGHTS
+            </div>
+            <div className="insights-grid">
+              {insights.map(insight => (
+                <InsightBlock
+                  key={insight.id}
+                  insight={insight}
+                  onAction={handleInsightAction}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         {groundingSources}
         <div className="response-actions">
           <button className="response-action-btn" title="Copy to Studio"><CopyIcon /> Copy to Studio</button>
@@ -161,7 +267,8 @@ const MercuryChat: React.FC<MercuryChatProps> = ({
   onNewSession,
   onShowHistory,
   onSaveToVault,
-  onDeleteSession
+  onDeleteSession,
+  onInsightAction
 }) => {
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -214,7 +321,7 @@ const MercuryChat: React.FC<MercuryChatProps> = ({
 
       <div className="chat-area" ref={chatScrollRef}>
         {filteredChatLog.map(msg => (
-          <ChatMessageItem key={msg.id} message={msg} />
+          <ChatMessageItem key={msg.id} message={msg} onInsightAction={onInsightAction} />
         ))}
         {isLoading && (
           <div className="chat-message mercury">

@@ -18,7 +18,9 @@ import type {
   DrawerState,
   StudioMode,
   ComponentVariation,
-  SystemAuditEvent
+  SystemAuditEvent,
+  ForgeContext,
+  InsightHandoffPayload
 } from './types';
 
 // Import utilities
@@ -82,6 +84,14 @@ export default function Dashboard() {
 
   // System Audit Events (separate from chat)
   const [auditEvents, setAuditEvents] = useState<SystemAuditEvent[]>([]);
+
+  // Forge context for insight-to-artifact workflow
+  const [forgeContext, setForgeContext] = useState<ForgeContext>({
+    state: 'idle',
+    incomingPayload: null,
+    animationTitle: '',
+    progress: 0
+  });
 
   // Helper to add audit event
   const addAuditEvent = useCallback((category: SystemAuditEvent['category'], message: string) => {
@@ -356,6 +366,161 @@ export default function Dashboard() {
     }, 1000);
   }, []);
 
+  // Handle insight action from Mercury chat - orchestrates the insight-to-artifact workflow
+  const handleInsightAction = useCallback((payload: InsightHandoffPayload) => {
+    // Set initial state - receiving intel
+    setForgeContext({
+      state: 'receiving_intel',
+      incomingPayload: payload,
+      animationTitle: payload.context_data.title,
+      progress: 0
+    });
+
+    // Add audit event
+    addAuditEvent('SYSTEM', `Insight handoff initiated: "${payload.context_data.title}" -> ${payload.artifact_type.toUpperCase()} artifact`);
+
+    // After 500ms: Set to forging state
+    setTimeout(() => {
+      setForgeContext(prev => ({
+        ...prev,
+        state: 'forging',
+        progress: 10
+      }));
+    }, 500);
+
+    // Animate progress from 10 to 100 over 2 seconds
+    const progressInterval = setInterval(() => {
+      setForgeContext(prev => {
+        if (prev.progress >= 100) {
+          clearInterval(progressInterval);
+          return prev;
+        }
+        return {
+          ...prev,
+          progress: Math.min(prev.progress + 5, 100)
+        };
+      });
+    }, 100);
+
+    // At 2.5s: Create the artifact
+    setTimeout(() => {
+      clearInterval(progressInterval);
+
+      // Generate artifact content based on type
+      const artifactContent = generateArtifactFromInsight(payload);
+
+      const newArtifact: Artifact = {
+        id: generateId(),
+        type: payload.artifact_type,
+        styleName: `Generated ${payload.artifact_type.toUpperCase()}`,
+        title: payload.context_data.title,
+        content: artifactContent,
+        status: 'complete',
+        sourceInsightId: payload.source_insight_id,
+        handoffPayload: payload
+      };
+
+      setArtifacts(prev => [newArtifact, ...prev]);
+
+      // Set forge state to complete
+      setForgeContext(prev => ({
+        ...prev,
+        state: 'complete',
+        progress: 100
+      }));
+
+      // Add audit event
+      addAuditEvent('SYSTEM', `Artifact forged from insight: "${payload.context_data.title}" (${payload.artifact_type})`);
+
+      // Reset to idle after 1 second
+      setTimeout(() => {
+        setForgeContext({
+          state: 'idle',
+          incomingPayload: null,
+          animationTitle: '',
+          progress: 0
+        });
+      }, 1000);
+    }, 2500);
+  }, [addAuditEvent]);
+
+  // Generate artifact content from insight payload
+  const generateArtifactFromInsight = (payload: InsightHandoffPayload): string => {
+    const { artifact_type, context_data } = payload;
+    const { title, summary_text, key_datapoints, insight_type } = context_data;
+
+    switch (artifact_type) {
+      case 'chart':
+        return `
+<div style="padding: 24px; background: linear-gradient(135deg, #0a0a0f 0%, #131316 100%); border-radius: 12px; font-family: system-ui; color: white; border: 1px solid rgba(0,0,255,0.2);">
+  <h2 style="margin: 0 0 16px 0; font-size: 1.2rem; color: #0000FF; text-transform: uppercase; letter-spacing: 0.1em;">${title}</h2>
+  <div style="background: rgba(0,0,255,0.05); padding: 16px; border-radius: 8px; border: 1px solid rgba(0,0,255,0.1);">
+    <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+      ${key_datapoints ? Object.entries(key_datapoints).map(([k, v]) => `
+        <div style="text-align: center;">
+          <div style="font-size: 1.5rem; color: #0000FF; font-weight: bold;">${v}</div>
+          <div style="font-size: 0.75rem; color: #888; text-transform: uppercase;">${k}</div>
+        </div>
+      `).join('') : ''}
+    </div>
+    <div style="height: 120px; background: linear-gradient(to right, rgba(0,0,255,0.1), rgba(0,0,255,0.3)); border-radius: 4px; position: relative;">
+      <div style="position: absolute; bottom: 0; left: 10%; width: 15%; height: 60%; background: #0000FF; border-radius: 4px 4px 0 0;"></div>
+      <div style="position: absolute; bottom: 0; left: 30%; width: 15%; height: 80%; background: #0000FF; border-radius: 4px 4px 0 0;"></div>
+      <div style="position: absolute; bottom: 0; left: 50%; width: 15%; height: 45%; background: #0000FF; border-radius: 4px 4px 0 0;"></div>
+      <div style="position: absolute; bottom: 0; left: 70%; width: 15%; height: 95%; background: #0000FF; border-radius: 4px 4px 0 0;"></div>
+    </div>
+  </div>
+  <p style="margin: 16px 0 0 0; font-size: 0.85rem; color: #888; line-height: 1.5;">${summary_text.substring(0, 150)}${summary_text.length > 150 ? '...' : ''}</p>
+</div>`;
+
+      case 'ui':
+        if (insight_type === 'risk_assessment') {
+          return `
+<div style="padding: 24px; background: linear-gradient(135deg, #0a0a0f 0%, #1a0a0a 100%); border-radius: 12px; font-family: system-ui; color: white; border: 1px solid rgba(255,61,0,0.3);">
+  <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+    <div style="width: 40px; height: 40px; background: rgba(255,61,0,0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FF3D00" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    </div>
+    <h2 style="margin: 0; font-size: 1.1rem; color: #FF3D00; text-transform: uppercase; letter-spacing: 0.1em;">Risk Alert</h2>
+  </div>
+  <h3 style="margin: 0 0 12px 0; font-size: 1rem; color: white;">${title}</h3>
+  <p style="margin: 0 0 16px 0; font-size: 0.9rem; color: #ccc; line-height: 1.6;">${summary_text}</p>
+  <div style="display: flex; gap: 12px;">
+    <button style="flex: 1; padding: 12px; background: rgba(255,61,0,0.1); border: 1px solid rgba(255,61,0,0.3); border-radius: 6px; color: #FF3D00; font-weight: 600; cursor: pointer;">Review Now</button>
+    <button style="flex: 1; padding: 12px; background: transparent; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #888; cursor: pointer;">Dismiss</button>
+  </div>
+</div>`;
+        }
+        return `
+<div style="padding: 24px; background: linear-gradient(135deg, #0a0a0f 0%, #131316 100%); border-radius: 12px; font-family: system-ui; color: white; border: 1px solid rgba(0,0,255,0.2);">
+  <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+    <div style="width: 40px; height: 40px; background: rgba(0,0,255,0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0000FF" stroke-width="2"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+    </div>
+    <h2 style="margin: 0; font-size: 1.1rem; color: #0000FF; text-transform: uppercase; letter-spacing: 0.1em;">${insight_type === 'recommendation' ? 'Recommendation' : 'Insight'}</h2>
+  </div>
+  <h3 style="margin: 0 0 12px 0; font-size: 1rem; color: white;">${title}</h3>
+  <p style="margin: 0 0 16px 0; font-size: 0.9rem; color: #ccc; line-height: 1.6;">${summary_text}</p>
+  ${key_datapoints ? `
+  <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+    ${Object.entries(key_datapoints).map(([k, v]) => `
+      <div style="background: rgba(0,0,255,0.05); padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(0,0,255,0.1);">
+        <div style="font-size: 0.7rem; color: #888; text-transform: uppercase;">${k}</div>
+        <div style="font-size: 0.9rem; color: #0000FF; font-weight: 600;">${v}</div>
+      </div>
+    `).join('')}
+  </div>` : ''}
+</div>`;
+
+      default:
+        return `
+<div style="padding: 24px; background: linear-gradient(135deg, #131316 0%, #1a1a1f 100%); border-radius: 12px; font-family: system-ui; color: white; border: 1px solid rgba(0,0,255,0.2);">
+  <h2 style="margin: 0 0 16px 0; font-size: 1.2rem; color: #0000FF;">${title}</h2>
+  <p style="margin: 0; font-size: 0.95rem; color: #ccc; line-height: 1.6;">${summary_text}</p>
+</div>`;
+    }
+  };
+
   // Filtering logic
   const filteredVaults = vaults.filter(v => v.name.toLowerCase().includes(globalSearchTerm.toLowerCase()));
   const filteredSources = sources.filter(s => s.title.toLowerCase().includes(globalSearchTerm.toLowerCase()));
@@ -496,6 +661,7 @@ export default function Dashboard() {
             onShowHistory={() => setDrawerState({ isOpen: true, mode: 'history', title: 'Session Archives', data: null })}
             onSaveToVault={() => setIsSaveModalOpen(true)}
             onDeleteSession={handleDeleteSession}
+            onInsightAction={handleInsightAction}
           />
           <div className="resizer" onMouseDown={() => handleMouseDown(2)}></div>
 
@@ -506,6 +672,7 @@ export default function Dashboard() {
             gridColumns={gridColumns}
             focusedArtifactIndex={focusedArtifactIndex}
             isLoading={isLoading}
+            forgeContext={forgeContext}
             onStudioModeChange={setStudioMode}
             onGridColumnsChange={setGridColumns}
             onArtifactClick={setFocusedArtifactIndex}
