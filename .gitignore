@@ -1,5 +1,9 @@
 # Dependencies
 /node_modules
+/cli/node_modules
+
+# CLI build output
+/cli/dist
 /.pnp
 .pnp.js
 .yarn/install-state.gz
