@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { getDocumentStore, Document } from '../../route'
+import { getDocumentStore, type Document } from '@/lib/documents/store'
 
 interface RouteParams {
   params: Promise<{ id: string }>

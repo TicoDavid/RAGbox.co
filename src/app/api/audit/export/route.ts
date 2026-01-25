@@ -213,8 +213,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const dateStr = new Date().toISOString().split('T')[0]
     const filename = `ragbox_audit_report_${dateStr}.pdf`
 
-    // Return PDF response
-    return new NextResponse(pdfBuffer, {
+    // Return PDF response (convert Buffer to Uint8Array for NextResponse)
+    return new NextResponse(new Uint8Array(pdfBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',

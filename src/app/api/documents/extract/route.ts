@@ -8,8 +8,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import pdfParse from 'pdf-parse';
-import mammoth from 'mammoth';
+import { PDFParse } from 'pdf-parse';
+import * as mammothModule from 'mammoth';
+
+// Handle mammoth ESM/CJS exports
+const mammoth = (mammothModule as unknown as { default?: typeof mammothModule }).default || mammothModule;
 
 export const runtime = 'nodejs';
 
@@ -33,7 +36,8 @@ async function extractText(buffer: Buffer, mimeType: string, fileName: string): 
   // PDF files
   if (mimeType === 'application/pdf' || fileName.endsWith('.pdf')) {
     try {
-      const pdfData = await pdfParse(buffer);
+      const pdfParser = new PDFParse(buffer);
+      const pdfData = await pdfParser.getText();
       return pdfData.text;
     } catch (error) {
       console.error('[Extract] PDF parse error:', error);

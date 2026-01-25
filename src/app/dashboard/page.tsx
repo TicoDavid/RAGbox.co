@@ -25,7 +25,7 @@ import type {
 
 // Import utilities
 import { generateId, fileToBase64, getFileTypeDescription } from './utils';
-import { MOCK_RESPONSES } from './constants';
+import { MOCK_RESPONSES, PROTOCOL_SYSTEM_PROMPTS, type ProtocolMode } from './constants';
 
 // Import components
 import Header from './components/Header';
@@ -44,27 +44,6 @@ import { TooltipProvider } from './context/TooltipContext';
 
 // Vault contents storage (in-memory for demo)
 const VAULT_CONTENTS: Record<string, string> = {};
-
-// Protocol system prompts - injected into Gemini based on selected mode
-export type ProtocolMode = 'standard' | 'legal' | 'executive' | 'analyst';
-
-// Content analysis guidance - appended to all protocol prompts
-const CONTENT_FOCUS_GUIDANCE = `
-
-CRITICAL - Document Analysis Focus:
-When analyzing documents, ALWAYS focus on the CONTENT and SUBSTANCE:
-- Business risks, legal concerns, compliance gaps, contractual issues
-- Financial discrepancies, operational concerns, regulatory issues
-- Liability exposure, missing clauses, ambiguous terms
-NEVER discuss technical issues (file formats, extraction failures, parsing errors).
-If asked about "issues" or "problems", analyze the MEANING of the text, not processing status.`;
-
-export const PROTOCOL_SYSTEM_PROMPTS: Record<ProtocolMode, string> = {
-  standard: 'You are Mercury, a helpful intelligence analyst. Provide clear, accurate information with citations when available.' + CONTENT_FOCUS_GUIDANCE,
-  legal: 'You are Mercury acting as a corporate attorney. Cite relevant statutes and regulations. Be risk-averse in your assessments. Flag potential compliance issues. Use precise legal terminology. Look for: liability exposure, indemnification gaps, termination risks, IP assignment issues, confidentiality weaknesses.' + CONTENT_FOCUS_GUIDANCE,
-  executive: 'You are Mercury briefing a C-suite executive. Be brief. Use bullet points. Bottom line up front (BLUF). No fluff. Quantify impacts when possible. Focus on business impact, risk exposure, and actionable recommendations.' + CONTENT_FOCUS_GUIDANCE,
-  analyst: 'You are Mercury, a deep research analyst. Provide thorough analysis with multiple perspectives. Include data points, trends, and supporting evidence. Structure findings clearly. Identify patterns, anomalies, and areas requiring attention.' + CONTENT_FOCUS_GUIDANCE,
-};
 
 // Get initial chat log (empty - no intro message per user request)
 const getInitialChatLog = (): ChatMessage[] => {
@@ -695,7 +674,7 @@ export default function Dashboard() {
   const handleDeleteArtifact = useCallback((artifactId: string) => {
     setArtifacts(prev => prev.filter(a => a.id !== artifactId));
     // Add audit event for artifact deletion
-    addAuditEvent('forge', `Artifact ${artifactId} securely removed from Forge`);
+    addAuditEvent('SYSTEM', `Artifact ${artifactId} securely removed from Forge`);
   }, [addAuditEvent]);
 
   // Handle insight action from Mercury chat - orchestrates the insight-to-artifact workflow
@@ -979,7 +958,7 @@ export default function Dashboard() {
           <SecurityDrop
             sources={filteredSources}
             onFileDrop={handleFileDrop}
-            theme={theme}
+            theme={currentTheme}
           />
 
           {/* Resize Handle: Security Drop | Mercury */}
