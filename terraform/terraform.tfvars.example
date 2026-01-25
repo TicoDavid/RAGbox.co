@@ -1,0 +1,62 @@
+# RAGbox.co - Terraform Variables Example
+# Copy this file to terraform.tfvars and update with your values
+
+# Required: GCP Project ID
+project_id = "your-gcp-project-id"
+
+# Optional: Region (default: us-central1)
+region = "us-central1"
+
+# Optional: Environment (dev, staging, prod)
+environment = "prod"
+
+# Optional: Custom domain (leave empty if not using custom domain)
+domain_name = ""
+
+# ========================================
+# Cloud Run Configuration
+# ========================================
+
+# CPU allocation (1, 2, 4, 8)
+cloud_run_cpu = "2"
+
+# Memory allocation (512Mi, 1Gi, 2Gi, 4Gi, 8Gi)
+cloud_run_memory = "2Gi"
+
+# Minimum instances (0 for scale to zero)
+cloud_run_min_instances = 0
+
+# Maximum instances
+cloud_run_max_instances = 100
+
+# ========================================
+# Database Configuration
+# ========================================
+
+# Machine tier (see: https://cloud.google.com/sql/pricing)
+# Dev:  db-f1-micro (shared vCPU, 614MB RAM)
+# Prod: db-custom-2-4096 (2 vCPU, 4GB RAM)
+db_tier = "db-custom-2-4096"
+
+# Disk size in GB
+db_disk_size = 100
+
+# Enable automated backups
+db_backup_enabled = true
+
+# ========================================
+# Security Configuration
+# ========================================
+
+# Enable high availability (Regional DB, replicas)
+enable_high_availability = true
+
+# Enable deletion protection (prevent accidental deletion)
+enable_deletion_protection = true
+
+# ========================================
+# Audit Configuration
+# ========================================
+
+# Audit log retention in days (default: 7 years = 2557 days)
+audit_retention_days = 2557

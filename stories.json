@@ -90,7 +90,7 @@
       "id": "S002",
       "epic": "E1",
       "title": "Set Up GCP Project and Enable APIs",
-      "status": "todo",
+      "status": "done",
       "priority": "critical",
       "story_points": 3,
       "description": "Create GCP project and enable all required APIs for RAGbox.",
@@ -111,7 +111,7 @@
       "id": "S003",
       "epic": "E1",
       "title": "Create Terraform Infrastructure",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "story_points": 5,
       "description": "Define infrastructure as code for reproducible GCP deployment.",
@@ -141,7 +141,7 @@
       "id": "S004",
       "epic": "E1",
       "title": "Configure Cloud Build CI/CD",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "story_points": 3,
       "description": "Set up automated deployment pipeline from GitHub to Cloud Run.",
@@ -162,7 +162,7 @@
       "id": "S005",
       "epic": "E2",
       "title": "Implement Firebase Authentication",
-      "status": "todo",
+      "status": "done",
       "priority": "critical",
       "story_points": 5,
       "description": "Replace placeholder auth with Firebase Authentication.",
@@ -191,7 +191,7 @@
       "id": "S006",
       "epic": "E3",
       "title": "Implement Cloud Storage File Upload",
-      "status": "todo",
+      "status": "done",
       "priority": "critical",
       "story_points": 4,
       "description": "Replace mock file upload with real Cloud Storage integration.",
@@ -217,7 +217,7 @@
       "id": "S007",
       "epic": "E3",
       "title": "Implement Document AI Text Extraction",
-      "status": "todo",
+      "status": "done",
       "priority": "critical",
       "story_points": 5,
       "description": "Extract text from uploaded documents using Document AI.",
@@ -241,7 +241,7 @@
       "id": "S008",
       "epic": "E4",
       "title": "Set Up AlloyDB with pgvector",
-      "status": "todo",
+      "status": "done",
       "priority": "critical",
       "story_points": 5,
       "description": "Replace Qdrant placeholder with AlloyDB PostgreSQL + pgvector.",
@@ -266,7 +266,7 @@
       "id": "S009",
       "epic": "E4",
       "title": "Implement Vertex AI Embeddings",
-      "status": "todo",
+      "status": "done",
       "priority": "critical",
       "story_points": 4,
       "description": "Generate vector embeddings using Vertex AI text-embedding-004.",
@@ -288,7 +288,7 @@
       "id": "S010",
       "epic": "E4",
       "title": "Migrate LLM from OpenRouter to Vertex AI",
-      "status": "todo",
+      "status": "done",
       "priority": "critical",
       "story_points": 5,
       "description": "Replace OpenRouter with Vertex AI Gemini 1.5 Pro for RAG generation.",
@@ -314,7 +314,7 @@
       "id": "S011",
       "epic": "E4",
       "title": "Implement Full RAG Pipeline with Citations",
-      "status": "todo",
+      "status": "done",
       "priority": "critical",
       "story_points": 8,
       "description": "Complete RAG pipeline: query → embed → retrieve → generate with citations.",
@@ -343,7 +343,7 @@
       "id": "S012",
       "epic": "E4",
       "title": "Implement Silence Protocol",
-      "status": "todo",
+      "status": "done",
       "priority": "critical",
       "story_points": 3,
       "description": "Refuse to answer when confidence is below 85% threshold.",
@@ -367,7 +367,7 @@
       "id": "S013",
       "epic": "E5",
       "title": "Implement Privilege Toggle Backend Logic",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "story_points": 4,
       "description": "Connect existing privilege toggle UI to backend logic.",
@@ -393,7 +393,7 @@
       "id": "S014",
       "epic": "E5",
       "title": "Implement Document Privilege Tagging",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "story_points": 3,
       "description": "Allow marking individual documents as privileged.",
@@ -410,13 +410,14 @@
       ],
       "files_to_create": [
         "src/app/api/documents/[id]/privilege/route.ts"
-      ]
+      ],
+      "notes": "Full per-document privilege tagging with context menu, confirmation dialog, safety checks (cannot unmark in privileged mode), and API integration"
     },
     {
       "id": "S015",
       "epic": "E6",
       "title": "Implement Veritas Audit Logging",
-      "status": "todo",
+      "status": "done",
       "priority": "critical",
       "story_points": 5,
       "description": "Create immutable audit trail of all system activities.",
@@ -433,13 +434,14 @@
         "src/lib/audit/logger.ts",
         "src/lib/audit/types.ts",
         "src/lib/gcp/bigquery.ts"
-      ]
+      ],
+      "notes": "Full audit system with Cloud Logging, BigQuery (7-year retention), and database logging; SHA-256 hash verification, convenience functions for all event types"
     },
     {
       "id": "S016",
       "epic": "E6",
       "title": "Build Audit Log Viewer Page",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "story_points": 4,
       "description": "Create UI for viewing audit trail (Truth & Audit nav item).",
@@ -460,13 +462,14 @@
         "src/app/dashboard/audit/page.tsx",
         "src/components/audit/AuditTimeline.tsx",
         "src/components/audit/AuditEntry.tsx"
-      ]
+      ],
+      "notes": "Full audit log viewer with blockchain-inspired timeline, filtering (action, severity, date range), search, pagination, and detail modal with integrity verification"
     },
     {
       "id": "S017",
       "epic": "E6",
       "title": "Implement Audit Report PDF Export",
-      "status": "todo",
+      "status": "done",
       "priority": "medium",
       "story_points": 3,
       "description": "Export audit logs as watermarked PDF for regulators.",
@@ -482,13 +485,14 @@
       "files_to_create": [
         "src/lib/audit/pdfExport.ts",
         "src/app/api/audit/export/route.ts"
-      ]
+      ],
+      "notes": "Full PDF export with watermark, header/footer, SHA-256 hash verification, date filtering support, and audit logging of export action"
     },
     {
       "id": "S018",
       "epic": "E3",
       "title": "Update Vault to Show Real Documents",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "story_points": 3,
       "description": "Replace mock data in Vault with real documents from database.",
@@ -507,13 +511,14 @@
         "src/app/api/documents/route.ts",
         "src/app/api/documents/[id]/route.ts",
         "src/hooks/useDocuments.ts"
-      ]
+      ],
+      "notes": "Complete document management with API routes, useDocuments hook, loading/error states, file type icons, upload date display, and real document CRUD operations"
     },
     {
       "id": "S019",
       "epic": "E0",
       "title": "Implement One-Click Data Export",
-      "status": "todo",
+      "status": "done",
       "priority": "medium",
       "story_points": 3,
       "description": "Allow users to export all their data (anti-lock-in).",
@@ -529,13 +534,14 @@
       "files_to_create": [
         "src/app/dashboard/settings/page.tsx",
         "src/app/api/export/route.ts"
-      ]
+      ],
+      "notes": "Full data export with settings page, ZIP archive format, document/query/profile export, manifest with SHA-256 hash, audit logging"
     },
     {
       "id": "S020",
       "epic": "E0",
       "title": "Implement Health Check and Monitoring",
-      "status": "todo",
+      "status": "done",
       "priority": "medium",
       "story_points": 2,
       "description": "Add health check endpoint and basic monitoring.",
@@ -548,7 +554,8 @@
       ],
       "files_to_create": [
         "src/app/api/health/route.ts"
-      ]
+      ],
+      "notes": "Comprehensive health check with environment, database, Cloud Storage, Vertex AI, and memory checks; latency tracking, structured metrics logging, proper HTTP status codes"
     }
   ]
 }
