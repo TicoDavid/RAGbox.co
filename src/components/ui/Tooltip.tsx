@@ -18,34 +18,17 @@ export function Tooltip({
   delay = 500,
   maxWidth = 200
 }: TooltipProps) {
+  // All hooks must be called BEFORE any conditional returns
   const [show, setShow] = useState(false);
   const [actualPosition, setActualPosition] = useState(position);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Don't render tooltip wrapper if disabled
-  if (!enabled) return <>{children}</>;
-
-  const handleMouseEnter = () => {
-    timeoutRef.current = setTimeout(() => {
-      setShow(true);
-    }, delay);
-  };
-
-  const handleMouseLeave = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-    setShow(false);
-  };
-
   // Check if tooltip would overflow viewport and adjust position
   useEffect(() => {
     if (show && tooltipRef.current && containerRef.current) {
       const tooltip = tooltipRef.current.getBoundingClientRect();
-      const container = containerRef.current.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
 
@@ -62,6 +45,35 @@ export function Tooltip({
       }
     }
   }, [show, position, actualPosition]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleMouseEnter = () => {
+    if (!enabled) return; // Guard inside handler, not early return
+    timeoutRef.current = setTimeout(() => {
+      setShow(true);
+    }, delay);
+  };
+
+  const handleMouseLeave = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    setShow(false);
+  };
+
+  // If disabled, just render children without tooltip wrapper
+  if (!enabled) {
+    return <>{children}</>;
+  }
 
   const positionClasses = {
     top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
