@@ -36,7 +36,9 @@ async function extractText(buffer: Buffer, mimeType: string, fileName: string): 
   // PDF files
   if (mimeType === 'application/pdf' || fileName.endsWith('.pdf')) {
     try {
-      const pdfParser = new PDFParse(buffer);
+      // pdf-parse v2.4.5 requires Uint8Array, not Buffer
+      const uint8Array = new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+      const pdfParser = new PDFParse(uint8Array);
       const pdfData = await pdfParser.getText();
       return pdfData.text;
     } catch (error) {

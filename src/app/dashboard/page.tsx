@@ -329,6 +329,10 @@ export default function Dashboard() {
     const openVaultCount = vaults.filter(v => v.status === 'open' && VAULT_CONTENTS[v.id]).length;
     const lockedVaultCount = vaults.filter(v => v.status !== 'open' && VAULT_CONTENTS[v.id]).length;
     console.log(`[Mercury Context] Security Drop: ${sources.length} files, Open Vaults: ${openVaultCount}, Locked Vaults (excluded): ${lockedVaultCount}`);
+    console.log(`[Mercury Context] Total context size: ${contextDocuments.reduce((sum, d) => sum + d.length, 0)} chars`);
+    if (contextDocuments.length > 0) {
+      console.log(`[Mercury Context] First 200 chars of context:`, contextDocuments[0]?.substring(0, 200));
+    }
 
     const botMsgId = generateId();
     const useStreaming = contextDocuments.length === 0; // Stream for direct chat, non-stream for RAG

@@ -7,35 +7,18 @@ interface IngestionVortexProps {
   theme?: 'dark' | 'light';
 }
 
-// Clay Render Document Stack - Light Mode Asset
-const ClayRenderStack: React.FC<{ isDragging: boolean; isImploding: boolean }> = ({ isDragging, isImploding }) => (
-  <div className={`clay-render-stack ${isDragging ? 'hover' : ''} ${isImploding ? 'imploding' : ''}`}>
-    {/* Stacked paper layers with clay/3D effect */}
-    <div className="clay-paper clay-paper-back" />
-    <div className="clay-paper clay-paper-mid" />
-    <div className="clay-paper clay-paper-front">
-      {/* Document icon */}
-      <svg className="clay-doc-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" fill="#E2E8F0" stroke="#94A3B8" strokeWidth="1.5"/>
-        <path d="M14 2v6h6" fill="#F1F5F9" stroke="#94A3B8" strokeWidth="1.5"/>
-        <line x1="8" y1="13" x2="16" y2="13" stroke="#CBD5E1" strokeWidth="1.5" strokeLinecap="round"/>
-        <line x1="8" y1="17" x2="13" y2="17" stroke="#CBD5E1" strokeWidth="1.5" strokeLinecap="round"/>
-      </svg>
-    </div>
-    {/* Upload arrow */}
-    <div className="clay-upload-indicator">
-      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    </div>
-  </div>
-);
+// Video URLs for theme-aware vault animations
+const DARK_MODE_VIDEO_URL = "https://storage.googleapis.com/connexusai-assets/RAGbox%20Vault%20video.mp4";
+const LIGHT_MODE_VIDEO_URL = "https://storage.googleapis.com/connexusai-assets/RAGbox.co_vortex_light_mode.mp4";
 
 const IngestionVortex: React.FC<IngestionVortexProps> = ({ onFileDrop, theme = 'dark' }) => {
   const isLightMode = theme === 'light';
   const containerRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Select video URL based on theme
+  const videoUrl = isLightMode ? LIGHT_MODE_VIDEO_URL : DARK_MODE_VIDEO_URL;
 
   const [isDragging, setIsDragging] = useState(false);
   const [isImploding, setIsImploding] = useState(false);
@@ -82,8 +65,60 @@ const IngestionVortex: React.FC<IngestionVortexProps> = ({ onFileDrop, theme = '
     }
   };
 
-  const handleClick = () => {
-    // Open file picker on click with multiple selection
+  const handleClick = async () => {
+    // Try modern File System Access API first (remembers last directory)
+    if ('showOpenFilePicker' in window) {
+      try {
+        const fileHandles = await (window as Window & { showOpenFilePicker: (options?: object) => Promise<FileSystemFileHandle[]> }).showOpenFilePicker({
+          multiple: true,
+          types: [
+            {
+              description: 'Documents',
+              accept: {
+                'application/pdf': ['.pdf'],
+                'application/msword': ['.doc'],
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+                'application/vnd.ms-excel': ['.xls'],
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+                'text/plain': ['.txt'],
+                'text/csv': ['.csv'],
+                'application/json': ['.json'],
+              },
+            },
+          ],
+          excludeAcceptAllOption: false, // Shows "All Files" option
+        });
+
+        if (fileHandles.length > 0) {
+          setIsImploding(true);
+
+          if (audioRef.current) {
+            audioRef.current.currentTime = 0;
+            audioRef.current.play().catch(err => console.log("Audio play failed", err));
+          }
+
+          if (videoRef.current) {
+            videoRef.current.currentTime = 0;
+            videoRef.current.play().catch(err => console.log("Video play failed", err));
+          }
+
+          // Convert file handles to File objects
+          const files = await Promise.all(fileHandles.map(handle => handle.getFile()));
+          onFileDrop(files);
+
+          setTimeout(() => {
+            setIsImploding(false);
+          }, 1000);
+        }
+        return;
+      } catch (err) {
+        // User cancelled or API not supported - fall back to input
+        if ((err as Error).name === 'AbortError') return;
+        console.log('File System Access API failed, using fallback', err);
+      }
+    }
+
+    // Fallback: standard file input
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '*/*';
@@ -124,18 +159,14 @@ const IngestionVortex: React.FC<IngestionVortexProps> = ({ onFileDrop, theme = '
       onDrop={handleDrop}
       onClick={handleClick}
     >
-      {/* Theme-aware asset switching */}
-      {isLightMode ? (
-        <ClayRenderStack isDragging={isDragging} isImploding={isImploding} />
-      ) : (
-        <video
-          ref={videoRef}
-          src="https://storage.googleapis.com/connexusai-assets/RAGbox%20Vault%20video.mp4"
-          className={`vortex-video-element ${isImploding ? 'imploding' : ''}`}
-          muted
-          playsInline
-        />
-      )}
+      {/* Theme-aware vault video - same component, different asset */}
+      <video
+        ref={videoRef}
+        src={videoUrl}
+        className={`vortex-video-element ${isImploding ? 'imploding' : ''} ${isLightMode ? 'light-mode-video' : ''}`}
+        muted
+        playsInline
+      />
 
       <div className={`vortex-overlay ${isDragging ? 'active' : ''}`}>
         {/* Frosted glass pill for text readability in light mode */}
