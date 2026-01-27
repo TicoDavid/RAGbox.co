@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Background: OLED Black -->
+  <rect width="64" height="64" rx="8" fill="#000000"/>
+  
+  <!-- Stylized "böx" mark in Electric Blue -->
+  <text x="32" y="46" 
+        font-family="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" 
+        font-size="32" 
+        font-weight="700" 
+        fill="#0000FF"
+        text-anchor="middle">böx</text>
+</svg>
