@@ -142,7 +142,9 @@ async function getAccessToken(): Promise<string> {
   const { GoogleAuth } = await import('google-auth-library')
   const auth = new GoogleAuth({
     scopes: ['https://www.googleapis.com/auth/cloud-platform'],
-    keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+    ...(process.env.GOOGLE_APPLICATION_CREDENTIALS
+      ? { keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS }
+      : {}),
   })
   const client = await auth.getClient()
   const tokenResponse = await client.getAccessToken()

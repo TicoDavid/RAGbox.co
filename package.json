@@ -16,7 +16,7 @@
     "db:migrate:dev": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "db:seed": "npx ts-node scripts/seed.ts",
+    "db:seed": "npx tsx prisma/seed.ts",
     "cli:build": "cd cli && npm run build",
     "cli:dev": "cd cli && npm run dev",
     "cli:install": "cd cli && npm install",
@@ -79,7 +79,11 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
     "postcss": "^8.5.6",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.53.1"
+  },
+  "prisma": {
+    "seed": "npx tsx prisma/seed.ts"
   }
 }

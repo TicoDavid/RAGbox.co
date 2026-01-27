@@ -982,6 +982,11 @@ export default function Dashboard() {
               sources={filteredSources}
               onFileDrop={handleFileDrop}
               theme={currentTheme}
+              onSourceDelete={(id) => setSources(prev => prev.filter(s => s.id !== id))}
+              onTierChange={(sourceId, newTier) => {
+                setSources(prev => prev.map(s => s.id === sourceId ? { ...s, securityTier: newTier } : s));
+                addAuditEvent('SECURITY', `Document tier changed to Tier ${newTier}`);
+              }}
             />
           )}
 

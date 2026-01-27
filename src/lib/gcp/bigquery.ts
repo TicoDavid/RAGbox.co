@@ -22,7 +22,9 @@ function getClient(): BigQuery {
     }
     bigQueryClient = new BigQuery({
       projectId: PROJECT_ID,
-      keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+      ...(process.env.GOOGLE_APPLICATION_CREDENTIALS
+        ? { keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS }
+        : {}),
     })
   }
   return bigQueryClient

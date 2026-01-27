@@ -1,0 +1,12 @@
+.git
+.next
+node_modules
+nul
+test-document.txt
+.env
+.env.local
+secrets/
+*.log
+coverage/
+.turbo/
+RAGbox.co
