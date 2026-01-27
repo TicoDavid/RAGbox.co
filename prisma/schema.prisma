@@ -1,0 +1,294 @@
+// RAGbox.co - Prisma Schema
+// PostgreSQL with pgvector extension for embeddings
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+// ============================================
+// User & Authentication
+// ============================================
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  image     String?
+  role      UserRole @default(Associate)
+  status    UserStatus @default(Active)
+  createdAt DateTime @default(now()) @map("created_at")
+  lastLoginAt DateTime? @map("last_login_at")
+
+  // Relations
+  vaults    Vault[]
+  documents Document[]
+  queries   Query[]
+  auditLogs AuditLog[]
+  folders   Folder[]
+  templates Template[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  Partner
+  Associate
+  Auditor
+}
+
+enum UserStatus {
+  Active
+  Suspended
+}
+
+// ============================================
+// Vault (Document Container)
+// ============================================
+
+model Vault {
+  id               String   @id @default(cuid())
+  name             String
+  userId           String   @map("user_id")
+  status           VaultStatus @default(open)
+  documentCount    Int      @default(0) @map("document_count")
+  storageUsedBytes BigInt   @default(0) @map("storage_used_bytes")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user      User       @relation(fields: [userId], references: [id])
+  documents Document[]
+
+  @@map("vaults")
+}
+
+enum VaultStatus {
+  open
+  closed
+  secure
+}
+
+// ============================================
+// Document
+// ============================================
+
+model Document {
+  id              String         @id @default(cuid())
+  vaultId         String?        @map("vault_id")
+  userId          String         @map("user_id")
+  filename        String
+  originalName    String         @map("original_name")
+  mimeType        String         @map("mime_type")
+  fileType        String         @map("file_type")
+  sizeBytes       Int            @map("size_bytes")
+  storageUri      String?        @map("storage_uri")
+  storagePath     String?        @map("storage_path")
+  extractedText   String?        @map("extracted_text")
+  indexStatus     IndexStatus    @default(Pending) @map("index_status")
+  deletionStatus  DeletionStatus @default(Active) @map("deletion_status")
+  isPrivileged    Boolean        @default(false) @map("is_privileged")
+  securityTier    Int            @default(0) @map("security_tier")
+  chunkCount      Int            @default(0) @map("chunk_count")
+  checksum        String?
+  folderId        String?        @map("folder_id")
+  metadata        Json?
+  deletedAt       DateTime?      @map("deleted_at")
+  hardDeleteAt    DateTime?      @map("hard_delete_at")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  vault    Vault?          @relation(fields: [vaultId], references: [id])
+  user     User            @relation(fields: [userId], references: [id])
+  folder   Folder?         @relation(fields: [folderId], references: [id])
+  chunks   DocumentChunk[]
+  citations Citation[]
+
+  @@index([userId, deletionStatus])
+  @@index([vaultId])
+  @@index([securityTier])
+  @@index([folderId])
+  @@map("documents")
+}
+
+enum IndexStatus {
+  Pending
+  Processing
+  Indexed
+  Failed
+}
+
+enum DeletionStatus {
+  Active
+  SoftDeleted
+  HardDeleted
+}
+
+// ============================================
+// Document Chunk (with pgvector embedding)
+// ============================================
+
+model DocumentChunk {
+  id          String   @id @default(cuid())
+  documentId  String   @map("document_id")
+  chunkIndex  Int      @map("chunk_index")
+  content     String
+  contentHash String   @map("content_hash")
+  tokenCount  Int      @default(0) @map("token_count")
+  embedding   Unsupported("vector(768)")?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  document  Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  citations Citation[]
+
+  @@index([documentId])
+  @@map("document_chunks")
+}
+
+// ============================================
+// Query & Answer
+// ============================================
+
+model Query {
+  id              String       @id @default(cuid())
+  userId          String       @map("user_id")
+  queryText       String       @map("query_text")
+  confidenceScore Float?       @map("confidence_score")
+  outcome         QueryOutcome @default(Answered)
+  privilegeMode   Boolean      @default(false) @map("privilege_mode")
+  chunksUsed      Int          @default(0) @map("chunks_used")
+  latencyMs       Int?         @map("latency_ms")
+  model           String?
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  // Relations
+  user    User     @relation(fields: [userId], references: [id])
+  answer  Answer?
+
+  @@index([userId])
+  @@map("queries")
+}
+
+enum QueryOutcome {
+  Answered
+  Refused
+}
+
+model Answer {
+  id         String   @id @default(cuid())
+  queryId    String   @unique @map("query_id")
+  answerText String   @map("answer_text")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relations
+  query     Query     @relation(fields: [queryId], references: [id], onDelete: Cascade)
+  citations Citation[]
+
+  @@map("answers")
+}
+
+// ============================================
+// Citation
+// ============================================
+
+model Citation {
+  id             String @id @default(cuid())
+  answerId       String @map("answer_id")
+  documentId     String @map("document_id")
+  chunkId        String? @map("chunk_id")
+  relevanceScore Float  @map("relevance_score")
+  excerpt        String?
+  citationIndex  Int    @map("citation_index")
+
+  // Relations
+  answer   Answer        @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  document Document      @relation(fields: [documentId], references: [id])
+  chunk    DocumentChunk? @relation(fields: [chunkId], references: [id])
+
+  @@map("citations")
+}
+
+// ============================================
+// Audit Log
+// ============================================
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  userId       String?  @map("user_id")
+  action       String
+  resourceId   String?  @map("resource_id")
+  resourceType String?  @map("resource_type")
+  severity     String   @default("INFO")
+  details      Json?
+  detailsHash  String?  @map("details_hash")
+  ipAddress    String?  @map("ip_address")
+  userAgent    String?  @map("user_agent")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ============================================
+// Folder (for Drop Zone file explorer)
+// ============================================
+
+model Folder {
+  id        String   @id @default(cuid())
+  name      String
+  userId    String   @map("user_id")
+  parentId  String?  @map("parent_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user      User       @relation(fields: [userId], references: [id])
+  parent    Folder?    @relation("FolderTree", fields: [parentId], references: [id])
+  children  Folder[]   @relation("FolderTree")
+  documents Document[]
+
+  @@index([userId])
+  @@index([parentId])
+  @@map("folders")
+}
+
+// ============================================
+// Template (FORGE system)
+// ============================================
+
+model Template {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  userId      String   @default("system") @map("user_id")
+  category    String?
+  sections    Json?    // Template section definitions
+  fields      Json?    // Template field definitions
+  structure   Json?    // Document structure analysis
+  confidence  Float?   @default(0.5) // Analysis confidence score
+  sourceFile  String?  @map("source_file")
+  storageUri  String?  @map("storage_uri")
+  thumbnail   String?
+  usageCount  Int      @default(0) @map("usage_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("templates")
+}

@@ -20,6 +20,10 @@ import {
 import ContextBar from './ContextBar';
 import { detectInsights, getActionsForInsight, getInsightColor, getInsightTypeName } from '../insight-detection';
 import { useVoiceChat, GeminiVoice } from '../hooks/useVoiceChat';
+import ForgeButton from '@/components/forge/ForgeButton';
+import ReasoningPanel from '@/components/mercury/ReasoningPanel';
+import CitationChip from '@/components/mercury/CitationChip';
+import ConfidenceBadge from '@/components/mercury/ConfidenceBadge';
 
 // Custom markdown components for styled rendering
 const markdownComponents: Components = {
@@ -40,7 +44,14 @@ const markdownComponents: Components = {
   h2: ({ children }) => <h2 className="mercury-h2">{children}</h2>,
   h3: ({ children }) => <h3 className="mercury-h3">{children}</h3>,
   h4: ({ children }) => <h4 className="mercury-h4">{children}</h4>,
-  p: ({ children }) => <p className="mercury-paragraph">{children}</p>,
+  p: ({ children }) => {
+    // Check if this paragraph contains confidence or sources metadata
+    const childText = String(children);
+    if (childText.includes('📊 Confidence:') || childText.includes('📚 Sources:')) {
+      return <p className="mercury-metadata">{children}</p>;
+    }
+    return <p className="mercury-paragraph">{children}</p>;
+  },
   strong: ({ children }) => <strong className="mercury-strong">{children}</strong>,
   em: ({ children }) => <em className="mercury-em">{children}</em>,
   code: ({ children, className }) => {
@@ -81,6 +92,8 @@ interface MercuryChatProps {
   getDocumentContext?: () => string[];  // Document context for voice chat
   getChatHistory?: () => ChatHistoryMessage[];  // Chat history for voice context
   getSystemPrompt?: () => string;  // Current protocol system prompt
+  onExpand?: () => void;  // Expand Mercury window
+  isExpanded?: boolean;  // Whether Mercury is currently expanded
 }
 
 // Helper to highlight citations in text
@@ -240,6 +253,37 @@ const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ message, onInsightAct
           </ReactMarkdown>
         </div>
 
+        {/* Confidence Badge */}
+        {message.confidence !== undefined && (
+          <div className="mt-2 flex items-center gap-2">
+            <ConfidenceBadge confidence={message.confidence} />
+          </div>
+        )}
+
+        {/* Structured Citations */}
+        {message.citations && message.citations.length > 0 && (
+          <div className="mt-2">
+            <div className="text-[10px] text-[#666] mb-1">Sources</div>
+            <div className="flex flex-wrap gap-1">
+              {message.citations.map(citation => (
+                <CitationChip
+                  key={citation.citationIndex}
+                  index={citation.citationIndex}
+                  documentName={citation.documentName}
+                  excerpt={citation.excerpt}
+                  relevanceScore={citation.relevanceScore}
+                  securityTier={citation.securityTier}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Reasoning Trace */}
+        {message.reasoningTrace && (
+          <ReasoningPanel trace={message.reasoningTrace} />
+        )}
+
         {/* Render detected insights */}
         {insights.length > 0 && onInsightAction && (
           <div className="insights-section">
@@ -263,6 +307,7 @@ const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ message, onInsightAct
           <button className="response-action-btn" title="Copy to Studio"><CopyIcon /> Copy to Studio</button>
           <button className="response-action-btn" title="Expand Analysis"><MaximizeIcon /> Expand</button>
           <button className="response-action-btn" title="Export Findings"><DownloadIcon /> Export</button>
+          <ForgeButton responseText={cleanedText} />
         </div>
       </div>
     </div>
@@ -286,7 +331,9 @@ const MercuryChat: React.FC<MercuryChatProps> = ({
   onVoiceTranscript,
   getDocumentContext,
   getChatHistory,
-  getSystemPrompt
+  getSystemPrompt,
+  onExpand,
+  isExpanded
 }) => {
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -348,16 +395,73 @@ const MercuryChat: React.FC<MercuryChatProps> = ({
         textareaRef.current.style.height = 'auto';
       }
     }
+
+    // Shift+Enter: continue bullet point if on a bullet line
+    if (e.key === 'Enter' && e.shiftKey && textareaRef.current) {
+      const textarea = textareaRef.current;
+      const cursorPos = textarea.selectionStart;
+      const value = textarea.value;
+
+      // Find the current line
+      const beforeCursor = value.substring(0, cursorPos);
+      const lineStart = beforeCursor.lastIndexOf('\n') + 1;
+      const currentLine = beforeCursor.substring(lineStart);
+
+      // Check if current line starts with a bullet point
+      const bulletMatch = currentLine.match(/^(\s*)• /);
+      if (bulletMatch) {
+        e.preventDefault();
+        const leadingSpaces = bulletMatch[1];
+        const afterCursor = value.substring(cursorPos);
+        const newValue = beforeCursor + '\n' + leadingSpaces + '• ' + afterCursor;
+
+        onInputChange(newValue);
+
+        // Set cursor position after the new bullet
+        setTimeout(() => {
+          const newCursorPos = cursorPos + 1 + leadingSpaces.length + 2;
+          textarea.setSelectionRange(newCursorPos, newCursorPos);
+          // Trigger resize
+          textarea.style.height = 'auto';
+          textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+        }, 0);
+      }
+    }
   };
 
   // Auto-resize textarea as user types
   const handleTextareaInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const textarea = e.target;
+    let value = textarea.value;
+    const cursorPos = textarea.selectionStart;
+
+    // Check if user typed "-" at start of line (convert to bullet point)
+    // Match "-" at the very beginning or after a newline
+    const beforeCursor = value.substring(0, cursorPos);
+    const afterCursor = value.substring(cursorPos);
+
+    // Check if the character just before cursor is "-" and it's at line start
+    if (beforeCursor.endsWith('-')) {
+      const lineStart = beforeCursor.lastIndexOf('\n') + 1;
+      const lineContent = beforeCursor.substring(lineStart);
+
+      // If the line only contains "-" (possibly with leading spaces), convert to bullet
+      if (lineContent.trim() === '-') {
+        const leadingSpaces = lineContent.match(/^\s*/)?.[0] || '';
+        value = beforeCursor.substring(0, lineStart) + leadingSpaces + '• ' + afterCursor;
+
+        // Update textarea and restore cursor position after bullet
+        textarea.value = value;
+        const newCursorPos = lineStart + leadingSpaces.length + 2; // "• " is 2 chars
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
+      }
+    }
+
     // Reset height to auto to get accurate scrollHeight
     textarea.style.height = 'auto';
     // Set height to scrollHeight, capped at max-height (200px)
     textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
-    onInputChange(textarea.value);
+    onInputChange(value);
   };
 
   return (
@@ -371,7 +475,7 @@ const MercuryChat: React.FC<MercuryChatProps> = ({
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             </svg>
-            <span>SOVEREIGN ENVIRONMENT</span>
+            <span>Veritas Audit Log</span>
           </div>
         </div>
         <div className="grid-selector">
@@ -387,6 +491,11 @@ const MercuryChat: React.FC<MercuryChatProps> = ({
           <button className="icon-btn" title="Clear Session" onClick={onDeleteSession}>
             <TrashIcon />
           </button>
+          {onExpand && (
+            <button className="icon-btn" title={isExpanded ? "Collapse" : "Expand"} onClick={onExpand}>
+              <MaximizeIcon />
+            </button>
+          )}
         </div>
       </div>
 

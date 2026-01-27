@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { getDocumentStore, type Document } from '@/lib/documents/store'
+import { getDocument, setDocument, type Document } from '@/lib/documents/store'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -51,8 +51,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const store = getDocumentStore()
-    const document = store.get(documentId)
+    const document = await getDocument(documentId)
 
     if (!document) {
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
@@ -87,7 +86,7 @@ export async function PATCH(
       updatedAt: new Date().toISOString(),
     }
 
-    store.set(documentId, updatedDocument)
+    await setDocument(updatedDocument)
 
     return NextResponse.json({
       success: true,

@@ -6,6 +6,7 @@ import { LockIcon, UnlockIcon, MenuIcon, PlusIcon } from './Icons';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { useTooltips } from '../context/TooltipContext';
 import { TOOLTIPS } from '../constants/tooltips';
+import TierBadge from '@/components/ui/TierBadge';
 
 interface VaultPanelProps {
   vaults: Vault[];
@@ -194,7 +195,7 @@ const VaultPanel: React.FC<VaultPanelProps> = ({
       <div className="vault-circuit-bg" aria-hidden="true" />
 
       <div className="panel-header vault-header">
-        <h3 className="panel-title">SECURE VAULTS</h3>
+        <h3 className="panel-title">The Vault</h3>
         <button className="icon-btn"><MenuIcon /></button>
       </div>
 
@@ -229,7 +230,11 @@ const VaultPanel: React.FC<VaultPanelProps> = ({
               <div className="vault-module-info">
                 <div className="vault-module-name">{vault.name}</div>
                 <div className="vault-module-meta">
-                  {vault.documentCount} {vault.documentCount === 1 ? 'document' : 'documents'}
+                  <span>{vault.documentCount} {vault.documentCount === 1 ? 'document' : 'documents'}</span>
+                  <TierBadge
+                    tier={vault.status === 'secure' ? 3 : vault.status === 'closed' ? 2 : 1}
+                    size="sm"
+                  />
                 </div>
               </div>
 
@@ -246,7 +251,7 @@ const VaultPanel: React.FC<VaultPanelProps> = ({
         {vaults.length === 0 && (
           <div className="vault-empty-state">
             <EmptyVaultIcon />
-            <h4 className="vault-empty-title">NO SECURE VAULTS INITIALIZED</h4>
+            <h4 className="vault-empty-title">NO VAULT INITIALIZED</h4>
             <p className="vault-empty-subtitle">
               Initialize a new sovereign container above.
             </p>

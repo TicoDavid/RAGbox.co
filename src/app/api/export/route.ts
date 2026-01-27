@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createHash } from 'crypto'
-import { getDocumentStore, type Document } from '@/lib/documents/store'
+import { getDocumentsForUser, type Document } from '@/lib/documents/store'
 import { logDataExport } from '@/lib/audit'
 
 /**
@@ -317,8 +317,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     // Get user's documents
-    const documentStore = getDocumentStore()
-    const documents = Array.from(documentStore.values()).filter((doc) => doc.userId === userId)
+    const documents = await getDocumentsForUser(userId)
 
     // Generate query history (in production, fetch from database)
     const queryHistory = generateDemoQueryHistory(userId)

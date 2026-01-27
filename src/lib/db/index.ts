@@ -1,24 +1,11 @@
 /**
- * Database Stub - RAGbox.co
+ * Database Layer - RAGbox.co
  *
- * Placeholder for Prisma database operations.
- * TODO: Connect to real database when Prisma schema is configured.
+ * Provides Prisma-backed audit log operations.
+ * Replaces the previous in-memory stub.
  */
 
-// In-memory store for audit logs (demo purposes)
-const auditLogStore: AuditLogEntry[] = [];
-
-export interface AuditLogEntry {
-  id: string;
-  userId?: string;
-  action: AuditAction;
-  resourceId?: string;
-  resourceType?: string;
-  details?: Record<string, unknown>;
-  ipAddress?: string;
-  userAgent?: string;
-  createdAt: Date;
-}
+import prisma from '@/lib/prisma'
 
 export type AuditAction =
   | 'LOGIN'
@@ -32,63 +19,106 @@ export type AuditAction =
   | 'PRIVILEGE_MODE_CHANGE'
   | 'DOCUMENT_PRIVILEGE_CHANGE'
   | 'DATA_EXPORT'
-  | 'ERROR';
+  | 'ERROR'
+
+export interface AuditLogEntry {
+  id: string
+  userId?: string
+  action: AuditAction
+  resourceId?: string
+  resourceType?: string
+  details?: Record<string, unknown>
+  ipAddress?: string
+  userAgent?: string
+  createdAt: Date
+}
 
 export interface CreateAuditLogInput {
-  userId?: string;
-  action: AuditAction;
-  resourceId?: string;
-  resourceType?: string;
-  details?: Record<string, unknown>;
-  ipAddress?: string;
-  userAgent?: string;
+  userId?: string
+  action: AuditAction
+  resourceId?: string
+  resourceType?: string
+  details?: Record<string, unknown>
+  ipAddress?: string
+  userAgent?: string
 }
 
 /**
- * Create an audit log entry (in-memory stub)
+ * Create an audit log entry via Prisma
  */
 export async function createAuditLog(input: CreateAuditLogInput): Promise<AuditLogEntry> {
-  const entry: AuditLogEntry = {
-    id: `audit_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
-    ...input,
-    createdAt: new Date(),
-  };
+  try {
+    const entry = await prisma.auditLog.create({
+      data: {
+        userId: input.userId ?? null,
+        action: input.action,
+        resourceId: input.resourceId ?? null,
+        resourceType: input.resourceType ?? null,
+        severity: 'INFO',
+        details: input.details ? JSON.parse(JSON.stringify(input.details)) : undefined,
+        ipAddress: input.ipAddress ?? null,
+        userAgent: input.userAgent ?? null,
+      },
+    })
 
-  auditLogStore.push(entry);
-
-  // Keep only last 1000 entries in memory
-  if (auditLogStore.length > 1000) {
-    auditLogStore.shift();
+    return {
+      id: entry.id,
+      userId: entry.userId ?? undefined,
+      action: entry.action as AuditAction,
+      resourceId: entry.resourceId ?? undefined,
+      resourceType: entry.resourceType ?? undefined,
+      details: entry.details as Record<string, unknown> | undefined,
+      ipAddress: entry.ipAddress ?? undefined,
+      userAgent: entry.userAgent ?? undefined,
+      createdAt: entry.createdAt,
+    }
+  } catch (error) {
+    // Fallback: log to console if DB is unavailable
+    console.error('Database audit log failed, logging to console:', error)
+    const fallbackEntry: AuditLogEntry = {
+      id: `audit_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
+      ...input,
+      createdAt: new Date(),
+    }
+    return fallbackEntry
   }
-
-  return entry;
 }
 
 /**
- * Get audit logs (in-memory stub)
+ * Get audit logs via Prisma
  */
 export async function getAuditLogs(
   userId?: string,
   limit: number = 100
 ): Promise<AuditLogEntry[]> {
-  let logs = [...auditLogStore];
+  try {
+    const logs = await prisma.auditLog.findMany({
+      where: userId ? { userId } : undefined,
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    })
 
-  if (userId) {
-    logs = logs.filter(log => log.userId === userId);
+    return logs.map(entry => ({
+      id: entry.id,
+      userId: entry.userId ?? undefined,
+      action: entry.action as AuditAction,
+      resourceId: entry.resourceId ?? undefined,
+      resourceType: entry.resourceType ?? undefined,
+      details: entry.details as Record<string, unknown> | undefined,
+      ipAddress: entry.ipAddress ?? undefined,
+      userAgent: entry.userAgent ?? undefined,
+      createdAt: entry.createdAt,
+    }))
+  } catch (error) {
+    console.error('Database audit query failed:', error)
+    return []
   }
-
-  return logs
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    .slice(0, limit);
 }
 
-/**
- * Prisma client stub - returns null until Prisma is configured
- */
-export const prisma = null;
+export { prisma }
 
 export default {
   createAuditLog,
   getAuditLogs,
   prisma,
-};
+}

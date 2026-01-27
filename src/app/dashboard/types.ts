@@ -42,6 +42,7 @@ export interface Source {
   content?: string; // Text content
   base64?: string; // Image content
   mimeType?: string;
+  securityTier?: number; // 0-4 security tier
 }
 
 export type VaultStatus = 'secure' | 'open' | 'closed';
@@ -63,8 +64,17 @@ export interface ChatMessage {
   text: string;
   isUser: boolean;
   timestamp: number;
-  type?: ChatMessageType; // system_event messages go to audit log
+  type?: ChatMessageType;
   groundingMetadata?: GroundingMetadata;
+  reasoningTrace?: import('@/types/reasoning').ReasoningTrace;
+  citations?: Array<{
+    citationIndex: number;
+    documentName: string;
+    excerpt: string;
+    relevanceScore: number;
+    securityTier: number;
+  }>;
+  confidence?: number;
 }
 
 export interface SystemAuditEvent {

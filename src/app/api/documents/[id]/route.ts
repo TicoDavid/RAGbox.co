@@ -8,16 +8,13 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { getDocumentStore, type Document } from '@/lib/documents/store'
+import { getDocument, setDocument, deleteDocument } from '@/lib/documents/store'
 import { logDocumentDelete } from '@/lib/audit'
 
 interface RouteParams {
   params: Promise<{ id: string }>
 }
 
-/**
- * Extract user ID from request
- */
 async function getUserId(request: NextRequest): Promise<string | null> {
   const sessionCookie = (await cookies()).get('session')
   if (sessionCookie?.value) {
@@ -29,23 +26,14 @@ async function getUserId(request: NextRequest): Promise<string | null> {
     return authHeader.slice(7)
   }
 
-  // Demo fallback
   return 'demo_user'
 }
 
-/**
- * Extract client IP for audit logging
- */
 function getClientIP(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for')
   return forwarded?.split(',')[0] || 'unknown'
 }
 
-/**
- * GET /api/documents/[id]
- *
- * Returns a specific document by ID.
- */
 export async function GET(
   request: NextRequest,
   { params }: RouteParams
@@ -62,14 +50,12 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const store = getDocumentStore()
-    const document = store.get(documentId)
+    const document = await getDocument(documentId)
 
     if (!document) {
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
-    // Verify ownership
     if (document.userId !== userId) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
@@ -81,19 +67,6 @@ export async function GET(
   }
 }
 
-/**
- * PATCH /api/documents/[id]
- *
- * Updates document metadata.
- *
- * Request body:
- * {
- *   "name"?: string,
- *   "status"?: 'pending' | 'processing' | 'ready' | 'error',
- *   "chunkCount"?: number,
- *   "metadata"?: Record<string, unknown>
- * }
- */
 export async function PATCH(
   request: NextRequest,
   { params }: RouteParams
@@ -110,24 +83,22 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const store = getDocumentStore()
-    const document = store.get(documentId)
+    const document = await getDocument(documentId)
 
     if (!document) {
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
-    // Verify ownership
     if (document.userId !== userId) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
-    // Parse request body
     let body: {
       name?: string
       status?: 'pending' | 'processing' | 'ready' | 'error'
       chunkCount?: number
       metadata?: Record<string, unknown>
+      isPrivileged?: boolean
     }
     try {
       body = await request.json()
@@ -135,17 +106,17 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
     }
 
-    // Update document
-    const updatedDocument: Document = {
+    const updatedDocument = {
       ...document,
       ...(body.name && { name: body.name }),
       ...(body.status && { status: body.status }),
       ...(body.chunkCount !== undefined && { chunkCount: body.chunkCount }),
+      ...(body.isPrivileged !== undefined && { isPrivileged: body.isPrivileged }),
       ...(body.metadata && { metadata: { ...document.metadata, ...body.metadata } }),
       updatedAt: new Date().toISOString(),
     }
 
-    store.set(documentId, updatedDocument)
+    await setDocument(updatedDocument)
 
     return NextResponse.json({ document: updatedDocument })
   } catch (error) {
@@ -154,12 +125,6 @@ export async function PATCH(
   }
 }
 
-/**
- * DELETE /api/documents/[id]
- *
- * Soft-deletes a document (marks as SoftDeleted, schedules hard delete for 30 days).
- * Document remains in store but is excluded from queries.
- */
 export async function DELETE(
   request: NextRequest,
   { params }: RouteParams
@@ -176,33 +141,18 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const store = getDocumentStore()
-    const document = store.get(documentId)
+    const document = await getDocument(documentId)
 
     if (!document) {
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
-    // Verify ownership
     if (document.userId !== userId) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
-    // Soft-delete: Set deletion status and schedule hard delete for 30 days
-    const now = new Date()
-    const hardDeleteDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+    await deleteDocument(documentId)
 
-    const updatedDocument: Document = {
-      ...document,
-      deletionStatus: 'SoftDeleted',
-      deletedAt: now.toISOString(),
-      hardDeleteScheduledAt: hardDeleteDate.toISOString(),
-      updatedAt: now.toISOString(),
-    }
-
-    store.set(documentId, updatedDocument)
-
-    // Log to audit trail
     const ipAddress = getClientIP(request)
     try {
       await logDocumentDelete(userId, documentId, document.name, ipAddress)
@@ -213,8 +163,6 @@ export async function DELETE(
     return NextResponse.json({
       success: true,
       message: 'Document moved to trash. Will be permanently deleted in 30 days.',
-      deletedAt: updatedDocument.deletedAt,
-      hardDeleteScheduledAt: updatedDocument.hardDeleteScheduledAt,
     })
   } catch (error) {
     console.error('Error deleting document:', error)
@@ -222,9 +170,6 @@ export async function DELETE(
   }
 }
 
-/**
- * OPTIONS /api/documents/[id]
- */
 export async function OPTIONS(): Promise<NextResponse> {
   return new NextResponse(null, {
     status: 204,

@@ -65,6 +65,9 @@ export default function Dashboard() {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Mercury expanded state
+  const [isMercuryExpanded, setIsMercuryExpanded] = useState(false);
+
   // Vault state
   const [vaults, setVaults] = useState<Vault[]>([]);
   const [editingVaultId, setEditingVaultId] = useState<string | null>(null);
@@ -269,7 +272,8 @@ export default function Dashboard() {
         isNew: true,
         content: content,
         base64: base64,
-        mimeType: file.type
+        mimeType: file.type,
+        securityTier: 0,
       };
 
       newSources.push(newSource);
@@ -399,15 +403,22 @@ export default function Dashboard() {
                   addAuditEvent('SYSTEM', `Query failed: ${data.message}`);
                 } else if (data.type === 'complete') {
                   // RAG complete response
-                  let responseText = data.answer;
-                  if (data.confidence) {
-                    responseText += `\n\n📊 Confidence: ${Math.round(data.confidence * 100)}%`;
-                  }
-                  if (data.citations?.length > 0) {
-                    responseText += `\n\n📚 Sources: ${data.citations.length} document(s) referenced`;
-                  }
+                  const responseText = data.answer;
+                  const streamCitations = data.citations?.map((c: { documentName?: string; excerpt?: string; relevanceScore?: number; securityTier?: number }, i: number) => ({
+                    citationIndex: i + 1,
+                    documentName: c.documentName || `Document ${i + 1}`,
+                    excerpt: c.excerpt || '',
+                    relevanceScore: c.relevanceScore || 0,
+                    securityTier: c.securityTier || 0,
+                  })) || undefined;
                   setChatLog(prev => prev.map(msg =>
-                    msg.id === botMsgId ? { ...msg, text: responseText } : msg
+                    msg.id === botMsgId ? {
+                      ...msg,
+                      text: responseText,
+                      confidence: data.confidence || undefined,
+                      citations: streamCitations,
+                      reasoningTrace: data.reasoningTrace || undefined,
+                    } : msg
                   ));
                   addAuditEvent('TRANSFER', `Query processed via Gemini API - Confidence: ${Math.round((data.confidence || 0) * 100)}%`);
                 }
@@ -441,28 +452,31 @@ export default function Dashboard() {
           }]);
           addAuditEvent('SYSTEM', `Query failed: ${errorText}`);
         } else {
-          const { answer, confidence, silenceProtocol, citations } = result.data;
+          const { answer, confidence, silenceProtocol, citations, reasoningTrace } = result.data;
 
           let responseText = answer;
-
-          if (confidence) {
-            const confidencePercent = Math.round(confidence * 100);
-            responseText += `\n\n📊 Confidence: ${confidencePercent}%`;
-          }
-
-          if (citations && citations.length > 0) {
-            responseText += `\n\n📚 Sources: ${citations.length} document(s) referenced`;
-          }
 
           if (silenceProtocol) {
             addAuditEvent('SECURITY', 'Silence Protocol triggered - confidence below threshold');
           }
 
+          // Build structured citations for the message
+          const structuredCitations = citations?.map((c: { documentName?: string; excerpt?: string; relevanceScore?: number; securityTier?: number }, i: number) => ({
+            citationIndex: i + 1,
+            documentName: c.documentName || `Document ${i + 1}`,
+            excerpt: c.excerpt || '',
+            relevanceScore: c.relevanceScore || 0,
+            securityTier: c.securityTier || 0,
+          })) || undefined;
+
           setChatLog(prev => [...prev, {
             id: botMsgId,
             text: responseText,
             isUser: false,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            confidence: confidence || undefined,
+            citations: structuredCitations,
+            reasoningTrace: reasoningTrace || undefined,
           }]);
 
           addAuditEvent('TRANSFER', `Query processed via Gemini API - Confidence: ${Math.round((confidence || 0) * 100)}%`);
@@ -945,28 +959,36 @@ export default function Dashboard() {
         {/* Dynamic Resizable Layout - Mercury (1fr) is the hero */}
         {/* Vaults: 260px FIXED | Security Drop: resizable | Mercury: flex | Forge: resizable */}
         <div
-          className="ragbox-layout"
+          className={`ragbox-layout ${isMercuryExpanded ? 'mercury-expanded' : ''}`}
           style={{
-            gridTemplateColumns: `260px ${colWidths.securityDrop}px 4px 1fr 4px ${colWidths.forge}px`
+            gridTemplateColumns: isMercuryExpanded
+              ? '1fr'
+              : `260px ${colWidths.securityDrop}px 4px 1fr 4px ${colWidths.forge}px`
           }}
         >
           {/* Column 1: Vault - FIXED WIDTH, NO RESIZE */}
-          <VaultPanel
-            vaults={filteredVaults}
-            onVaultClick={setEditingVaultId}
-            onSourceDrop={handleMoveSourceToVault}
-            onCreateVault={handleCreateVault}
-          />
+          {!isMercuryExpanded && (
+            <VaultPanel
+              vaults={filteredVaults}
+              onVaultClick={setEditingVaultId}
+              onSourceDrop={handleMoveSourceToVault}
+              onCreateVault={handleCreateVault}
+            />
+          )}
 
           {/* Column 2: Security Drop - RESIZABLE */}
-          <SecurityDrop
-            sources={filteredSources}
-            onFileDrop={handleFileDrop}
-            theme={currentTheme}
-          />
+          {!isMercuryExpanded && (
+            <SecurityDrop
+              sources={filteredSources}
+              onFileDrop={handleFileDrop}
+              theme={currentTheme}
+            />
+          )}
 
           {/* Resize Handle: Security Drop | Mercury */}
-          <div className="resizer" onMouseDown={() => handleMouseDown('securityDrop')}></div>
+          {!isMercuryExpanded && (
+            <div className="resizer" onMouseDown={() => handleMouseDown('securityDrop')}></div>
+          )}
 
           {/* Column 3: Mercury Chat - FLEX (fills remaining space) */}
           <MercuryChat
@@ -987,27 +1009,33 @@ export default function Dashboard() {
             getDocumentContext={getDocumentContext}
             getChatHistory={getChatHistory}
             getSystemPrompt={getSystemPrompt}
+            onExpand={() => setIsMercuryExpanded(!isMercuryExpanded)}
+            isExpanded={isMercuryExpanded}
           />
 
           {/* Resize Handle: Mercury | Forge */}
-          <div className="resizer" onMouseDown={() => handleMouseDown('forge')}></div>
+          {!isMercuryExpanded && (
+            <div className="resizer" onMouseDown={() => handleMouseDown('forge')}></div>
+          )}
 
           {/* Column 4: Forge/Studio - RESIZABLE */}
-          <StudioPanel
-            artifacts={artifacts}
-            studioMode={studioMode}
-            gridColumns={gridColumns}
-            focusedArtifactIndex={focusedArtifactIndex}
-            isLoading={isLoading}
-            forgeContext={forgeContext}
-            onStudioModeChange={setStudioMode}
-            onGridColumnsChange={setGridColumns}
-            onArtifactClick={setFocusedArtifactIndex}
-            onGenerateVariations={handleGenerateVariations}
-            onShowCode={(content) => setDrawerState({ isOpen: true, mode: 'code', title: 'Source Code', data: content })}
-            onSendDesignPrompt={(prompt) => handleSendMessage('design', prompt)}
-            onDeleteArtifact={handleDeleteArtifact}
-          />
+          {!isMercuryExpanded && (
+            <StudioPanel
+              artifacts={artifacts}
+              studioMode={studioMode}
+              gridColumns={gridColumns}
+              focusedArtifactIndex={focusedArtifactIndex}
+              isLoading={isLoading}
+              forgeContext={forgeContext}
+              onStudioModeChange={setStudioMode}
+              onGridColumnsChange={setGridColumns}
+              onArtifactClick={setFocusedArtifactIndex}
+              onGenerateVariations={handleGenerateVariations}
+              onShowCode={(content) => setDrawerState({ isOpen: true, mode: 'code', title: 'Source Code', data: content })}
+              onSendDesignPrompt={(prompt) => handleSendMessage('design', prompt)}
+              onDeleteArtifact={handleDeleteArtifact}
+            />
+          )}
         </div>
       </div>
     </div>

@@ -40,6 +40,7 @@ export interface Document {
   deleted_at: Date | null
   hard_delete_scheduled_at: Date | null
   checksum: string
+  security_tier: number
 }
 
 export interface DocumentChunk {

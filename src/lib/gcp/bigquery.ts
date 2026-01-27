@@ -3,95 +3,95 @@
  *
  * Provides BigQuery integration for audit logging.
  * Supports append-only writes for WORM compliance.
+ * Lazy-initializes dataset and table on first insert.
  */
 
 import { BigQuery, Table } from '@google-cloud/bigquery'
 
-// Configuration from environment
-const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT
+const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCP_PROJECT_ID
 const DATASET_ID = process.env.BIGQUERY_DATASET || 'ragbox_audit'
 const TABLE_ID = process.env.BIGQUERY_TABLE || 'audit_log'
 
-// BigQuery client singleton
 let bigQueryClient: BigQuery | null = null
+let tableInitialized = false
 
-/**
- * Get BigQuery client instance
- */
 function getClient(): BigQuery {
   if (!bigQueryClient) {
     if (!PROJECT_ID) {
-      throw new Error('GOOGLE_CLOUD_PROJECT environment variable is required')
+      throw new Error('GOOGLE_CLOUD_PROJECT or GCP_PROJECT_ID environment variable is required')
     }
-    bigQueryClient = new BigQuery({ projectId: PROJECT_ID })
+    bigQueryClient = new BigQuery({
+      projectId: PROJECT_ID,
+      keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+    })
   }
   return bigQueryClient
 }
 
-/**
- * Audit log table schema
- */
 const AUDIT_TABLE_SCHEMA = [
-  { name: 'event_id', type: 'STRING', mode: 'REQUIRED' },
-  { name: 'timestamp', type: 'TIMESTAMP', mode: 'REQUIRED' },
-  { name: 'user_id', type: 'STRING', mode: 'NULLABLE' },
-  { name: 'action', type: 'STRING', mode: 'REQUIRED' },
-  { name: 'resource_id', type: 'STRING', mode: 'NULLABLE' },
-  { name: 'resource_type', type: 'STRING', mode: 'NULLABLE' },
-  { name: 'severity', type: 'STRING', mode: 'REQUIRED' },
-  { name: 'details', type: 'STRING', mode: 'NULLABLE' }, // JSON string
-  { name: 'details_hash', type: 'STRING', mode: 'REQUIRED' },
-  { name: 'ip_address', type: 'STRING', mode: 'NULLABLE' },
-  { name: 'user_agent', type: 'STRING', mode: 'NULLABLE' },
-  { name: 'session_id', type: 'STRING', mode: 'NULLABLE' },
-  { name: 'inserted_at', type: 'TIMESTAMP', mode: 'REQUIRED' },
+  { name: 'event_id', type: 'STRING', mode: 'REQUIRED' as const },
+  { name: 'timestamp', type: 'TIMESTAMP', mode: 'REQUIRED' as const },
+  { name: 'user_id', type: 'STRING', mode: 'NULLABLE' as const },
+  { name: 'action', type: 'STRING', mode: 'REQUIRED' as const },
+  { name: 'resource_id', type: 'STRING', mode: 'NULLABLE' as const },
+  { name: 'resource_type', type: 'STRING', mode: 'NULLABLE' as const },
+  { name: 'severity', type: 'STRING', mode: 'REQUIRED' as const },
+  { name: 'details', type: 'STRING', mode: 'NULLABLE' as const },
+  { name: 'details_hash', type: 'STRING', mode: 'REQUIRED' as const },
+  { name: 'ip_address', type: 'STRING', mode: 'NULLABLE' as const },
+  { name: 'user_agent', type: 'STRING', mode: 'NULLABLE' as const },
+  { name: 'session_id', type: 'STRING', mode: 'NULLABLE' as const },
+  { name: 'inserted_at', type: 'TIMESTAMP', mode: 'REQUIRED' as const },
 ]
 
 /**
- * Ensure dataset and table exist
+ * Lazy-init: ensure dataset and table exist on first use
  */
-export async function ensureAuditTable(): Promise<void> {
-  const client = getClient()
+async function ensureTableExists(): Promise<void> {
+  if (tableInitialized) return
 
-  // Create dataset if it doesn't exist
-  const dataset = client.dataset(DATASET_ID)
-  const [datasetExists] = await dataset.exists()
+  try {
+    const client = getClient()
 
-  if (!datasetExists) {
-    await client.createDataset(DATASET_ID, {
-      location: 'US',
-    })
-    console.log(`Created BigQuery dataset: ${DATASET_ID}`)
-  }
+    const dataset = client.dataset(DATASET_ID)
+    const [datasetExists] = await dataset.exists()
 
-  // Create table if it doesn't exist
-  const table = dataset.table(TABLE_ID)
-  const [tableExists] = await table.exists()
+    if (!datasetExists) {
+      await client.createDataset(DATASET_ID, { location: 'US' })
+      console.log(`[BigQuery] Created dataset: ${DATASET_ID}`)
+    }
 
-  if (!tableExists) {
-    await dataset.createTable(TABLE_ID, {
-      schema: AUDIT_TABLE_SCHEMA,
-      timePartitioning: {
-        type: 'DAY',
-        field: 'timestamp',
-        expirationMs: String(7 * 365 * 24 * 60 * 60 * 1000), // 7 years retention
-      },
-    })
-    console.log(`Created BigQuery table: ${DATASET_ID}.${TABLE_ID}`)
+    const table = dataset.table(TABLE_ID)
+    const [tableExists] = await table.exists()
+
+    if (!tableExists) {
+      await dataset.createTable(TABLE_ID, {
+        schema: AUDIT_TABLE_SCHEMA,
+        timePartitioning: {
+          type: 'DAY',
+          field: 'timestamp',
+          expirationMs: String(7 * 365 * 24 * 60 * 60 * 1000),
+        },
+      })
+      console.log(`[BigQuery] Created table: ${DATASET_ID}.${TABLE_ID}`)
+    }
+
+    tableInitialized = true
+  } catch (error) {
+    console.error('[BigQuery] Table initialization failed:', error)
+    throw error
   }
 }
 
-/**
- * Get audit table reference
- */
+export async function ensureAuditTable(): Promise<void> {
+  return ensureTableExists()
+}
+
 function getAuditTable(): Table {
   const client = getClient()
   return client.dataset(DATASET_ID).table(TABLE_ID)
 }
 
-/**
- * BigQuery audit row type
- */
 export interface BigQueryAuditRow {
   event_id: string
   timestamp: string
@@ -109,11 +109,12 @@ export interface BigQueryAuditRow {
 }
 
 /**
- * Insert a single audit row
+ * Insert a single audit row (lazy-inits table)
  */
 export async function insertAuditRow(row: BigQueryAuditRow): Promise<void> {
-  const table = getAuditTable()
+  await ensureTableExists()
 
+  const table = getAuditTable()
   await table.insert([row], {
     skipInvalidRows: false,
     ignoreUnknownValues: false,
@@ -126,17 +127,15 @@ export async function insertAuditRow(row: BigQueryAuditRow): Promise<void> {
 export async function insertAuditRows(rows: BigQueryAuditRow[]): Promise<void> {
   if (rows.length === 0) return
 
-  const table = getAuditTable()
+  await ensureTableExists()
 
+  const table = getAuditTable()
   await table.insert(rows, {
     skipInvalidRows: false,
     ignoreUnknownValues: false,
   })
 }
 
-/**
- * Query audit logs with filters
- */
 export interface AuditQueryOptions {
   userId?: string
   action?: string
@@ -148,9 +147,6 @@ export interface AuditQueryOptions {
   offset?: number
 }
 
-/**
- * Query audit logs
- */
 export async function queryAuditLogs(
   options: AuditQueryOptions = {}
 ): Promise<BigQueryAuditRow[]> {
@@ -201,17 +197,10 @@ export async function queryAuditLogs(
     OFFSET ${offset}
   `
 
-  const [rows] = await client.query({
-    query,
-    params,
-  })
-
+  const [rows] = await client.query({ query, params })
   return rows as BigQueryAuditRow[]
 }
 
-/**
- * Get audit statistics
- */
 export interface AuditStats {
   totalEvents: number
   eventsByAction: Record<string, number>
@@ -219,9 +208,6 @@ export interface AuditStats {
   uniqueUsers: number
 }
 
-/**
- * Get audit statistics for a time period
- */
 export async function getAuditStats(
   startDate: Date,
   endDate: Date
@@ -238,10 +224,7 @@ export async function getAuditStats(
 
   const [rows] = await client.query({
     query,
-    params: {
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-    },
+    params: { startDate: startDate.toISOString(), endDate: endDate.toISOString() },
   })
 
   const actionQuery = `
@@ -253,10 +236,7 @@ export async function getAuditStats(
 
   const [actionRows] = await client.query({
     query: actionQuery,
-    params: {
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-    },
+    params: { startDate: startDate.toISOString(), endDate: endDate.toISOString() },
   })
 
   const severityQuery = `
@@ -268,10 +248,7 @@ export async function getAuditStats(
 
   const [severityRows] = await client.query({
     query: severityQuery,
-    params: {
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-    },
+    params: { startDate: startDate.toISOString(), endDate: endDate.toISOString() },
   })
 
   const eventsByAction: Record<string, number> = {}
@@ -292,9 +269,6 @@ export async function getAuditStats(
   }
 }
 
-/**
- * Check BigQuery health
- */
 export async function checkBigQueryHealth(): Promise<boolean> {
   try {
     const client = getClient()

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import type { Source } from '../types';
 import { MenuIcon, PhotoIcon, FileTextIcon } from './Icons';
 import IngestionVortex from './IngestionVortex';
+import TierBadge from '@/components/ui/TierBadge';
 
 interface SecurityDropProps {
   sources: Source[];
@@ -39,7 +40,7 @@ const SecurityDrop: React.FC<SecurityDropProps> = ({ sources, onFileDrop, theme 
   return (
     <div className="panel sources-panel">
       <div className="panel-header">
-        <h3 className="panel-title">SECURITY DROP</h3>
+        <h3 className="panel-title">The Drop Zone....Feed the box</h3>
         <button className="icon-btn"><MenuIcon /></button>
       </div>
       <IngestionVortex onFileDrop={onFileDrop} theme={theme} />
@@ -64,7 +65,12 @@ const SecurityDrop: React.FC<SecurityDropProps> = ({ sources, onFileDrop, theme 
                   {source.type === 'image' ? <PhotoIcon /> : <FileTextIcon />}
                 </div>
                 <div className="source-card-details">
-                  <div className="source-card-title">{source.title}</div>
+                  <div className="source-card-title">
+                    {source.title}
+                    {source.securityTier !== undefined && (
+                      <TierBadge tier={source.securityTier} size="sm" showLabel={true} />
+                    )}
+                  </div>
                   <div className="source-card-time">{source.time}</div>
                 </div>
               </div>
