@@ -50,7 +50,11 @@ const CreateVaultModal: React.FC<CreateVaultModalProps> = ({
         style={{ maxWidth: '360px' }}
       >
         <div className="security-header">
-          <div className="security-shield"><FolderIcon /></div>
+          <img
+            src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
+            alt="RAGbox.co Logo"
+            style={{ width: '120px', height: 'auto', marginBottom: '16px' }}
+          />
           <h2>Create New Vault</h2>
           <p>Initialize a secure document container</p>
         </div>
