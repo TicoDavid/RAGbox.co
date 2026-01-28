@@ -1,5 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import AzureADProvider from "next-auth/providers/azure-ad";
 import CredentialsProvider from "next-auth/providers/credentials";
 
 // Global OTP store - use globalThis to persist across hot reloads
@@ -49,6 +50,13 @@ export const authOptions: NextAuthOptions = {
           response_type: "code"
         }
       }
+    }),
+
+    // Microsoft Azure AD OAuth
+    AzureADProvider({
+      clientId: process.env.AZURE_AD_CLIENT_ID || "",
+      clientSecret: process.env.AZURE_AD_CLIENT_SECRET || "",
+      tenantId: process.env.AZURE_AD_TENANT_ID || "common",
     }),
 
     // Email OTP (Credentials-based for custom UI)

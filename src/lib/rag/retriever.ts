@@ -60,7 +60,7 @@ export async function retrieveChunks(
       where: { id: { in: docIds } },
       select: { id: true, filename: true, securityTier: true },
     })
-    const docMap = new Map(documents.map(d => [d.id, d]))
+    const docMap = new Map(documents.map((d): [string, typeof d] => [d.id, d]))
 
     return results.map(r => ({
       chunkId: r.id,

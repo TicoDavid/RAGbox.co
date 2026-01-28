@@ -98,7 +98,7 @@ export async function getAuditLogs(
       take: limit,
     })
 
-    return logs.map(entry => ({
+    return logs.map((entry): AuditLogEntry => ({
       id: entry.id,
       userId: entry.userId ?? undefined,
       action: entry.action as AuditAction,

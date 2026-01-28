@@ -164,10 +164,9 @@ export function AuthModal({ isOpen, onClose, context = 'signin' }: AuthModalProp
     signIn('google', { callbackUrl: '/dashboard' });
   };
 
-  // 5. Microsoft Sign In (placeholder - needs Azure AD setup)
+  // 5. Microsoft Sign In (Azure AD)
   const handleMicrosoftSignIn = () => {
-    // TODO: Add Microsoft provider to NextAuth config
-    setError('Microsoft sign-in coming soon');
+    signIn('azure-ad', { callbackUrl: '/dashboard' });
   };
 
   return (
