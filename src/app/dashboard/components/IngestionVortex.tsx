@@ -7,18 +7,13 @@ interface IngestionVortexProps {
   theme?: 'dark' | 'light';
 }
 
-// Video URLs for theme-aware vault animations
-const DARK_MODE_VIDEO_URL = "https://storage.googleapis.com/connexusai-assets/RAGbox%20Vault%20video.mp4";
-const LIGHT_MODE_VIDEO_URL = "https://storage.googleapis.com/connexusai-assets/RAGbox.co_vortex_light_mode.mp4";
+// Image URL for vault drop zone
+const VAULT_IMAGE_URL = "https://storage.googleapis.com/connexusai-assets/RAGbox%20ICON_Chrome.png";
 
 const IngestionVortex: React.FC<IngestionVortexProps> = ({ onFileDrop, theme = 'dark' }) => {
   const isLightMode = theme === 'light';
   const containerRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-
-  // Select video URL based on theme
-  const videoUrl = isLightMode ? LIGHT_MODE_VIDEO_URL : DARK_MODE_VIDEO_URL;
 
   const [isDragging, setIsDragging] = useState(false);
   const [isImploding, setIsImploding] = useState(false);
@@ -50,10 +45,7 @@ const IngestionVortex: React.FC<IngestionVortexProps> = ({ onFileDrop, theme = '
         audioRef.current.play().catch(err => console.log("Audio play failed (interaction policy)", err));
       }
 
-      if (videoRef.current) {
-        videoRef.current.currentTime = 0;
-        videoRef.current.play().catch(err => console.log("Video play failed", err));
-      }
+
 
       // Convert FileList to array and pass all files
       const filesArray = Array.from(e.dataTransfer.files);
@@ -97,11 +89,6 @@ const IngestionVortex: React.FC<IngestionVortexProps> = ({ onFileDrop, theme = '
             audioRef.current.play().catch(err => console.log("Audio play failed", err));
           }
 
-          if (videoRef.current) {
-            videoRef.current.currentTime = 0;
-            videoRef.current.play().catch(err => console.log("Video play failed", err));
-          }
-
           // Convert file handles to File objects
           const files = await Promise.all(fileHandles.map(handle => handle.getFile()));
           onFileDrop(files);
@@ -133,11 +120,6 @@ const IngestionVortex: React.FC<IngestionVortexProps> = ({ onFileDrop, theme = '
           audioRef.current.play().catch(err => console.log("Audio play failed", err));
         }
 
-        if (videoRef.current) {
-          videoRef.current.currentTime = 0;
-          videoRef.current.play().catch(err => console.log("Video play failed", err));
-        }
-
         // Convert FileList to array and pass all files
         const filesArray = Array.from(files);
         onFileDrop(filesArray);
@@ -159,13 +141,12 @@ const IngestionVortex: React.FC<IngestionVortexProps> = ({ onFileDrop, theme = '
       onDrop={handleDrop}
       onClick={handleClick}
     >
-      {/* Theme-aware vault video - same component, different asset */}
-      <video
-        ref={videoRef}
-        src={videoUrl}
+      {/* Vault icon image */}
+      <img
+        src={VAULT_IMAGE_URL}
+        alt="RAGbox Vault"
         className={`vortex-video-element ${isImploding ? 'imploding' : ''} ${isLightMode ? 'light-mode-video' : ''}`}
-        muted
-        playsInline
+        draggable={false}
       />
 
       <div className={`vortex-overlay ${isDragging ? 'active' : ''}`}>
