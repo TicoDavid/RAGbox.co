@@ -11,19 +11,37 @@
     --border-color: #27272a;
     --border-active: #3f3f46;
 
-    --text-primary: #ffffff;
-    --text-secondary: #a1a1aa;
-    --text-tertiary: #71717a;
+    /* Directive 4: Grayscale Hierarchy */
+    --text-primary: #FFFFFF;      /* Headers/Primary Info */
+    --text-secondary: #A1A1AA;    /* Secondary Info/Timestamps */
+    --text-tertiary: #52525B;     /* Tertiary/Placeholder Text */
 
     --accent: #ffffff;
     --accent-bg: #3f3f46;
-    --electric-blue: #0000FF;
-    --electric-blue-hover: #0000CC;
 
-    /* Lock State Colors */
-    --status-secure: #ef4444;
-    --status-open: #10b981;
-    --status-closed: #f59e0b;
+    /* Directive 4: Electric Blue with gradient support */
+    --electric-blue: #0000FF;
+    --electric-blue-light: #4040FF;   /* Lit-from-above gradient top */
+    --electric-blue-hover: #0000CC;
+    --electric-blue-glow: rgba(0, 0, 255, 0.4);
+
+    /* Directive 4: Sovereign Gold for critical alerts */
+    --sovereign-gold: #FACC15;
+    --sovereign-gold-glow: rgba(250, 204, 21, 0.5);
+
+    /* Danger colors */
+    --danger-red: #FF3D00;
+
+    /* Lock State Colors - Traffic Light Protocol */
+    /* SECURE (Lockdown): Armed, Fortified, No Entry */
+    --status-secure: #DC2626;
+    --status-secure-glow: rgba(220, 38, 38, 0.4);
+    /* OPEN (Active): Online, Ready, Working */
+    --status-open: #0000FF;
+    --status-open-glow: rgba(0, 0, 255, 0.4);
+    /* CLOSED (Archived): Offline, Cold Storage, Inactive */
+    --status-closed: #71717A;
+    --status-closed-glow: rgba(113, 113, 122, 0.3);
 
     /* Semantic Variables */
     --bg-chat-panel: linear-gradient(180deg, #18181b 0%, #09090b 100%);
@@ -43,36 +61,53 @@
     --header-height: 60px;
 }
 
-/* Light Theme Override */
+/* Light Theme Override - "Aerospace Platinum" Aesthetic */
 .dashboard-root.light,
-[data-theme='light'] .dashboard-root,
+.light .dashboard-root,
 .light .dashboard-root {
-    --bg-app: #f4f4f5;
-    --bg-panel: #ffffff;
-    --bg-input: #e4e4e7;
-    --bg-hover: #f4f4f5;
+    /* Aerospace Platinum - Cool Silver/Grey base, not paper white */
+    --bg-app: #F1F5F9;           /* Cool Silver - main app background */
+    --bg-panel: #F8FAFC;         /* Alice Blue/Grey - panel backgrounds */
+    --bg-panel-alt: #FFFFFF;     /* Pure white for cards/modules */
+    --bg-input: #FFFFFF;
+    --bg-hover: #F1F5F9;
 
-    --border-color: #e4e4e7;
-    --border-active: #d4d4d8;
+    /* Steel borders for definition */
+    --border-color: #E2E8F0;     /* Light Steel */
+    --border-active: #CBD5E1;    /* Slate 300 */
 
-    --text-primary: #18181b;
-    --text-secondary: #52525b;
-    --text-tertiary: #a1a1aa;
+    /* Slate text hierarchy */
+    --text-primary: #0F172A;     /* Slate 900 - Headers */
+    --text-secondary: #475569;   /* Slate 600 - Body */
+    --text-tertiary: #94A3B8;    /* Slate 400 - Muted */
 
-    --accent: #18181b;
-    --accent-bg: #e4e4e7;
+    --accent: #0F172A;
+    --accent-bg: #E2E8F0;
 
+    /* Electric Blue pops beautifully on platinum */
     --electric-blue: #0000FF;
+    --electric-blue-hover: #0000CC;
 
-    --bg-chat-panel: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
-    --bg-vault-item: linear-gradient(145deg, #ffffff, #f0f0f0);
-    --border-vault-item: #e4e4e7;
-    --bg-modal: #ffffff;
-    --bg-chat-input: rgba(255, 255, 255, 0.7);
-    --border-chat-input: rgba(0, 0, 0, 0.1);
-    --text-chat-placeholder: #a1a1aa;
-    --bg-source-card: #ffffff;
-    --shadow-vault-item: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+    /* Sovereign Gold - Darker for light mode readability */
+    --sovereign-gold: #B45309;           /* Dark Amber for text */
+    --sovereign-gold-bg: rgba(245, 158, 11, 0.1);  /* Subtle amber fill */
+    --sovereign-gold-border: #B45309;
+
+    /* Panel backgrounds - unified platinum workspace */
+    --bg-chat-panel: #F8FAFC;    /* Off-white, not pure white */
+    --bg-forge-panel: #F1F5F9;   /* Cool Silver for Forge */
+    --bg-vault-item: #FFFFFF;
+    --border-vault-item: #E2E8F0;
+    --bg-modal: #FFFFFF;
+    --bg-chat-input: #FFFFFF;
+    --border-chat-input: #E2E8F0;
+    --text-chat-placeholder: #94A3B8;
+    --bg-source-card: #FFFFFF;
+
+    /* Physical shadows for depth */
+    --shadow-vault-item: 0 1px 2px rgba(0,0,0,0.05);
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-module: 0 2px 4px rgba(0,0,0,0.06);
 }
 
 /* --- Header --- */
@@ -111,18 +146,47 @@
 }
 
 .logo-container {
-    height: 32px;
+    height: 36px;
     display: flex; align-items: center;
 }
 .ragbox-logo {
     height: 100%; width: auto; object-fit: contain;
 }
 
-.breadcrumb {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 0.9rem; color: var(--text-secondary);
+/* System Designation - Military-grade branding */
+.system-designation {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
-.breadcrumb-separator { color: var(--text-tertiary); }
+
+.designation-divider {
+    width: 1px;
+    height: 24px;
+    background: #3F3F46;
+}
+
+.designation-text {
+    font-family: 'Space Grotesk', var(--font-sans);
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #A1A1AA;
+}
+
+/* Light mode adjustments for system designation */
+.dashboard-root.light .designation-divider,
+.light .dashboard-root .designation-divider,
+.light .dashboard-root .designation-divider {
+    background: #CBD5E1;
+}
+
+.dashboard-root.light .designation-text,
+.light .dashboard-root .designation-text,
+.light .dashboard-root .designation-text {
+    color: #64748B;
+}
 
 .header-btn {
     background: transparent; border: 1px solid transparent;
@@ -135,14 +199,72 @@
 }
 .header-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
 
+/* Help Toggle Button - Amber accent when active */
+.header-btn.help-toggle {
+    padding: 6px;
+    min-width: 32px;
+    justify-content: center;
+}
+.header-btn.help-toggle.active {
+    color: #FCD34D;
+    background: rgba(252, 211, 77, 0.1);
+    border-color: rgba(252, 211, 77, 0.3);
+}
+.header-btn.help-toggle.active:hover {
+    background: rgba(252, 211, 77, 0.15);
+}
+.header-btn.help-toggle svg {
+    width: 16px;
+    height: 16px;
+}
+
 .user-avatar-video {
     width: 36px; height: 36px;
     border-radius: 50%;
     object-fit: cover;
     border: 1px solid var(--border-color);
-    background: #000;
+    background: var(--bg-app);
 }
 
+/* User Avatar - Sovereign Styling */
+.user-avatar-container {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.user-avatar-container.authenticated {
+    border: 2px solid #0000FF;
+    box-shadow: 0 0 12px rgba(0, 0, 255, 0.4), 0 0 24px rgba(0, 0, 255, 0.2);
+    animation: avatarPulse 3s ease-in-out infinite;
+}
+
+@keyframes avatarPulse {
+    0%, 100% { box-shadow: 0 0 12px rgba(0, 0, 255, 0.4), 0 0 24px rgba(0, 0, 255, 0.2); }
+    50% { box-shadow: 0 0 16px rgba(0, 0, 255, 0.6), 0 0 32px rgba(0, 0, 255, 0.3); }
+}
+
+.user-avatar-container.placeholder {
+    background: transparent;
+}
+
+.user-avatar-image {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.sovereign-avatar-placeholder {
+    filter: drop-shadow(0 0 4px rgba(0, 0, 255, 0.3));
+}
+
+/* Legacy support */
 .user-avatar-placeholder {
     width: 40px; height: 40px;
     border-radius: 50%;
@@ -153,6 +275,29 @@
 }
 
 /* --- Layout (Dynamic Resizable) --- */
+
+/* Column Width Defaults - Sovereign Dashboard Proportions */
+:root {
+    /* Vaults: FIXED - No resize */
+    --col-vaults: 260px;
+
+    /* Security Drop: Resizable */
+    --col-security-drop: 260px;
+    --col-security-drop-min: 200px;
+    --col-security-drop-max: 500px;
+
+    /* Mercury: Flex (fills remaining) */
+    --col-mercury-min: 350px;
+
+    /* Forge: Resizable - 3x larger than before */
+    --col-forge: 480px;
+    --col-forge-min: 300px;
+    --col-forge-max: 800px;
+
+    --resizer-width: 4px;
+    --layout-gap: 0;
+}
+
 .ragbox-app {
     flex: 1; display: flex; flex-direction: column; height: 100%;
     background-color: var(--bg-app);
@@ -163,29 +308,103 @@
 .ragbox-layout {
     flex: 1;
     display: grid;
-    padding: 16px;
+    padding: 12px;
+    gap: var(--layout-gap);
     box-sizing: border-box;
     height: calc(100vh - var(--header-height));
     overflow: hidden;
 }
 
-/* Resizer Handle */
-.resizer {
-    width: 16px;
-    cursor: col-resize;
-    display: flex; align-items: center; justify-content: center;
-    transition: background 0.2s;
-}
-.resizer::after {
-    content: "";
-    width: 2px; height: 24px;
-    background: var(--border-color);
-    border-radius: 1px;
-}
-.resizer:hover::after, .resizer:active::after {
-    background: var(--electric-blue);
+/* Panel Column Constraints */
+.ragbox-layout > .panel.vault-panel {
+    width: var(--col-vaults);
+    flex-shrink: 0;
+    /* FIXED - no resize */
 }
 
+.ragbox-layout > .panel.sources-panel {
+    min-width: var(--col-security-drop-min);
+    max-width: var(--col-security-drop-max);
+    flex-shrink: 0;
+}
+
+.ragbox-layout > .panel.chat-panel {
+    min-width: var(--col-mercury-min);
+    flex: 1;
+    /* Mercury is the hero - fills remaining space */
+}
+
+.ragbox-layout > .panel.studio-panel {
+    min-width: var(--col-forge-min);
+    max-width: var(--col-forge-max);
+    flex-shrink: 0;
+}
+
+/* Each column scrolls independently */
+.ragbox-layout > .panel {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Resizer Handle - Draggable Divider */
+.resizer {
+    width: var(--resizer-width);
+    cursor: col-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease;
+    position: relative;
+    flex-shrink: 0;
+    z-index: 10;
+}
+
+/* Vertical line divider */
+.resizer::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+    background: #27272a;
+    transform: translateX(-50%);
+    transition: background 0.15s ease, width 0.15s ease;
+}
+
+/* Hover: Highlight the divider */
+.resizer:hover::before {
+    width: 2px;
+    background: var(--electric-blue);
+    box-shadow: 0 0 8px var(--electric-blue-glow);
+}
+
+/* Active/Dragging state */
+.resizer:active::before {
+    width: 3px;
+    background: var(--electric-blue);
+    box-shadow: 0 0 12px var(--electric-blue-glow);
+}
+
+/* Grip indicator on hover */
+.resizer::after {
+    content: "";
+    width: 4px;
+    height: 40px;
+    background: transparent;
+    border-radius: 2px;
+    opacity: 0;
+    transition: opacity 0.15s ease, background 0.15s ease;
+    z-index: 1;
+}
+
+.resizer:hover::after {
+    opacity: 1;
+    background: rgba(0, 0, 255, 0.3);
+}
+
+/* Directive 4: Enhanced Panel Styling with Depth */
 .panel {
     background: var(--bg-panel);
     border: 1px solid var(--border-color);
@@ -193,6 +412,30 @@
     display: flex; flex-direction: column;
     overflow: hidden;
     height: 100%;
+    position: relative;
+    /* Beveled edge lighting effect */
+    box-shadow:
+        inset 1px 1px 0 rgba(64, 64, 255, 0.08),
+        inset -1px -1px 0 rgba(0, 0, 0, 0.3),
+        0 4px 20px rgba(0, 0, 0, 0.4);
+}
+/* Subtle blue reflection on top edge */
+.panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(64, 64, 255, 0.3) 20%,
+        rgba(64, 64, 255, 0.5) 50%,
+        rgba(64, 64, 255, 0.3) 80%,
+        transparent 100%
+    );
+    pointer-events: none;
+    z-index: 10;
 }
 
 .panel-header {
@@ -206,7 +449,73 @@
     margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--text-primary);
 }
 
-/* Shimmering Mercury Text */
+/* Unified Panel Title - CAPS, consistent size and style */
+.panel-title {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+/* Sovereign Environment Badge - Gold Compliance Indicator */
+.sovereign-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border: 1px solid #FACC15;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: #FACC15;
+    background: rgba(250, 204, 21, 0.08);
+    box-shadow: 0 0 12px rgba(250, 204, 21, 0.15);
+}
+.sovereign-badge svg {
+    width: 12px;
+    height: 12px;
+    stroke: #FACC15;
+    fill: rgba(250, 204, 21, 0.2);
+}
+
+/* Protocol Selector in Header */
+.protocol-selector {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-secondary);
+}
+.protocol-selector svg {
+    color: var(--electric-blue);
+}
+.protocol-dropdown {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+    padding-right: 16px;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right center;
+}
+.protocol-dropdown option {
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    padding: 8px;
+}
+
+/* Shimmering Mercury Text - no longer used, kept for reference */
 .mercury-logo-text {
     background: linear-gradient(110deg, #9ca3af 20%, #ffffff 40%, #9ca3af 60%);
     background-size: 200% auto;
@@ -252,12 +561,508 @@
 }
 .icon-btn:hover { color: var(--text-primary); background: var(--bg-hover); }
 
-/* --- Vault Panel --- */
-.vault-content {
-    padding: 16px; display: flex; flex-direction: column; gap: 12px;
-    overflow-y: auto; flex: 1;
+/* ============================================
+   SOVEREIGN VAULT PANEL - Digital Fort Knox
+   ============================================ */
+
+.sovereign-vault-panel {
+    position: relative;
+    background: #131316;
 }
 
+/* Directive 4: Enhanced Circuit board background for panels */
+.vault-circuit-bg,
+.forge-circuit-bg,
+.mercury-circuit-bg {
+    position: absolute;
+    inset: 0;
+    opacity: 0.06;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%230000FF' stroke-width='0.5'%3E%3Cpath d='M0 30h20M40 30h20M30 0v20M30 40v20'/%3E%3Cpath d='M15 15h10M35 15h10M15 45h10M35 45h10' stroke-dasharray='2 2'/%3E%3Ccircle cx='30' cy='30' r='3'/%3E%3Ccircle cx='10' cy='30' r='2'/%3E%3Ccircle cx='50' cy='30' r='2'/%3E%3Ccircle cx='30' cy='10' r='2'/%3E%3Ccircle cx='30' cy='50' r='2'/%3E%3Ccircle cx='15' cy='15' r='1.5'/%3E%3Ccircle cx='45' cy='15' r='1.5'/%3E%3Ccircle cx='15' cy='45' r='1.5'/%3E%3Ccircle cx='45' cy='45' r='1.5'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 60px 60px;
+}
+
+/* Vault Panel Header */
+.vault-header {
+    background: var(--bg-panel);
+    border-bottom: 1px solid rgba(0, 0, 255, 0.15);
+}
+
+.vault-panel-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-primary);
+    background: linear-gradient(110deg, #9ca3af 20%, #ffffff 50%, #9ca3af 80%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shine 5s linear infinite;
+}
+
+/* --- Vault Content --- */
+.vault-content {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+    flex: 1;
+    position: relative;
+    z-index: 1;
+}
+
+/* --- Create Vault Button (Master Key) --- */
+.create-vault-btn {
+    position: relative;
+    width: 100%;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, #000066 0%, #0000FF 50%, #0000CC 100%);
+    border: 1px solid rgba(0, 0, 255, 0.5);
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    box-shadow:
+        0 0 15px rgba(0, 0, 255, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    font-family: var(--font-sans);
+}
+
+.create-vault-btn:hover {
+    background: linear-gradient(135deg, #0000AA 0%, #0000FF 50%, #3333FF 100%);
+    border-color: #0000FF;
+    box-shadow:
+        0 0 25px rgba(0, 0, 255, 0.5),
+        0 0 50px rgba(0, 0, 255, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+}
+
+.create-vault-btn:active {
+    transform: translateY(0);
+    box-shadow:
+        0 0 10px rgba(0, 0, 255, 0.3),
+        inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.create-vault-btn svg {
+    width: 18px;
+    height: 18px;
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.5));
+}
+
+/* Glow effect behind button */
+.create-vault-glow {
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(45deg, #0000FF, #3333FF, #0000FF);
+    border-radius: 10px;
+    opacity: 0;
+    z-index: -1;
+    transition: opacity 0.3s;
+    filter: blur(8px);
+}
+
+.create-vault-btn:hover .create-vault-glow {
+    opacity: 0.6;
+    animation: pulseGlow 2s infinite;
+}
+
+/* Shine effect on button */
+.create-vault-shine {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.15),
+        transparent
+    );
+    transition: left 0.5s;
+}
+
+.create-vault-btn:hover .create-vault-shine {
+    left: 100%;
+}
+
+/* --- Vault Items Container --- */
+.vault-items-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* --- Vault Module (Individual Vault Item) --- */
+.vault-module {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: linear-gradient(145deg, #1a1a1f 0%, #111114 100%);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    overflow: hidden;
+
+    /* Metallic depth effect */
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.03),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+        0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.vault-module:hover {
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.05),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+        0 4px 16px rgba(0, 0, 0, 0.5);
+    transform: translateY(-1px);
+}
+
+/* Vault module shine effect */
+.vault-module-shine {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.02) 0%,
+        transparent 100%
+    );
+    pointer-events: none;
+}
+
+/* Status Indicator (Left Side) */
+.vault-status-indicator {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Vault Door Icon */
+.vault-door-icon {
+    transition: all 0.3s ease;
+}
+
+/* Traffic Light Protocol - Vault Door Icon Glows */
+.vault-door-icon.active {
+    filter: drop-shadow(0 0 6px var(--status-open-glow));
+}
+
+.vault-door-icon.inactive {
+    filter: drop-shadow(0 0 6px var(--status-secure-glow));
+}
+
+/* Fine-grained control via parent status */
+.vault-module.secure .vault-door-icon {
+    filter: drop-shadow(0 0 6px var(--status-secure-glow));
+}
+
+.vault-module.open .vault-door-icon {
+    filter: drop-shadow(0 0 6px var(--status-open-glow));
+}
+
+.vault-module.closed .vault-door-icon {
+    filter: none;
+}
+
+/* Vault Module Info */
+.vault-module-info {
+    flex: 1;
+    min-width: 0;
+    z-index: 1;
+}
+
+.vault-module-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.vault-module-meta {
+    font-size: 0.7rem;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+}
+
+/* Lock Status Container (Right Side) */
+.lock-status-container {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+/* Traffic Light Protocol - Lock Status States */
+.lock-status-container.status-secure {
+    color: var(--status-secure);
+    filter: drop-shadow(0 0 4px var(--status-secure-glow));
+}
+
+.lock-status-container.status-open {
+    color: var(--status-open);
+    filter: drop-shadow(0 0 4px var(--status-open-glow));
+}
+
+.lock-status-container.status-closed {
+    color: var(--status-closed);
+    filter: none;
+}
+
+.lock-status-container.animating {
+    animation: lockDisengage 0.6s ease;
+}
+
+@keyframes lockDisengage {
+    0% { transform: rotate(0deg); }
+    25% { transform: rotate(-10deg); }
+    50% { transform: rotate(10deg) scale(1.1); }
+    75% { transform: rotate(-5deg); }
+    100% { transform: rotate(0deg); }
+}
+
+.lock-icon-svg {
+    transition: all 0.3s ease;
+}
+
+/* Traffic Light Protocol - Vault Module States */
+
+/* SECURE (Red) - Armed, Fortified, No Entry */
+.vault-module.secure {
+    border-color: var(--status-secure);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.03),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+        0 0 8px var(--status-secure-glow),
+        0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.vault-module.secure:hover {
+    border-color: var(--status-secure);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.05),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+        0 0 15px var(--status-secure-glow),
+        0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+/* OPEN (Blue) - Online, Ready, Working */
+.vault-module.open {
+    border-color: var(--status-open);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.03),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+        0 0 8px var(--status-open-glow),
+        0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.vault-module.open:hover {
+    border-color: var(--status-open);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.05),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+        0 0 15px var(--status-open-glow),
+        0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+/* CLOSED (Grey) - Offline, Cold Storage, Inactive */
+.vault-module.closed {
+    border-color: var(--status-closed);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.03),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+        0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.vault-module.closed:hover {
+    border-color: var(--status-closed);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.05),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+        0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+/* Click Animation */
+.vault-module.clicked {
+    animation: vaultActivate 0.6s ease;
+}
+
+@keyframes vaultActivate {
+    0% {
+        border-color: rgba(255, 61, 0, 0.3);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.05),
+            0 0 10px rgba(255, 61, 0, 0.2);
+    }
+    50% {
+        border-color: rgba(0, 0, 255, 0.5);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.1),
+            0 0 25px rgba(0, 0, 255, 0.4);
+    }
+    100% {
+        border-color: rgba(0, 0, 255, 0.2);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.05),
+            0 0 15px rgba(0, 0, 255, 0.2);
+    }
+}
+
+/* Drag Target State */
+.vault-module.drag-target {
+    border-color: #FFAB00;
+    box-shadow:
+        0 0 20px rgba(255, 171, 0, 0.3),
+        inset 0 0 15px rgba(255, 171, 0, 0.1);
+    transform: scale(1.02);
+}
+
+/* --- Empty State --- */
+.vault-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+    flex: 1;
+}
+
+.empty-vault-icon {
+    margin-bottom: 20px;
+    filter: drop-shadow(0 0 15px rgba(0, 0, 255, 0.3));
+}
+
+.vault-empty-title {
+    margin: 0 0 8px 0;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--connexus-blue, #0000FF);
+    text-shadow: 0 0 10px rgba(0, 0, 255, 0.3);
+}
+
+.vault-empty-subtitle {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+    max-width: 200px;
+    line-height: 1.5;
+}
+
+/* ============================================
+   PLATINUM FLIP - Light Mode Vault Panel
+   ============================================ */
+
+/* 1. Base Panel Background (The Platinum Flip) */
+.light .sovereign-vault-panel,
+:root.light .sovereign-vault-panel {
+    background-color: #F1F5F9 !important; /* Platinum Grey */
+    border-right: 1px solid #E2E8F0;      /* Structural Divider */
+}
+
+/* 2. Headers and Titles (Contrast Fix) */
+.light .vault-header,
+:root.light .vault-header {
+    background: #E2E8F0;
+    border-bottom: 1px solid #CBD5E1;
+}
+
+.light .vault-panel-title,
+:root.light .vault-panel-title {
+    background: linear-gradient(110deg, #334155 20%, #0F172A 50%, #334155 80%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.light .vault-empty-title,
+:root.light .vault-empty-title {
+    color: #0000FF !important; /* Electric Blue on Platinum - Aerospace aesthetic */
+    text-shadow: none;
+}
+
+.light .vault-empty-subtitle,
+:root.light .vault-empty-subtitle {
+    color: #64748B !important; /* Muted Slate */
+}
+
+/* 3. The Circuit Background (Subtle Texture) */
+.light .vault-circuit-bg,
+:root.light .vault-circuit-bg {
+    opacity: 0.04; /* Very faint so it doesn't look dirty */
+}
+
+/* 4. Vault Content Area */
+.light .vault-content,
+:root.light .vault-content {
+    background: transparent;
+}
+
+/* 5. Vault Cards in Light Mode */
+.light .vault-card,
+:root.light .vault-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.light .vault-card:hover,
+:root.light .vault-card:hover {
+    border-color: #0000FF;
+    box-shadow: 0 4px 12px rgba(0, 0, 255, 0.1);
+}
+
+.light .vault-card-title,
+:root.light .vault-card-title {
+    color: #0F172A;
+}
+
+.light .vault-card-meta,
+:root.light .vault-card-meta {
+    color: #64748B;
+}
+
+/* 6. Empty State Icon - Electric Blue on Platinum Grey (Perfect) */
+.light .empty-vault-icon,
+:root.light .empty-vault-icon {
+    filter: drop-shadow(0 0 10px rgba(0, 0, 255, 0.2));
+}
+
+/* Legacy support - keeping old class names working */
 .add-source-btn {
     width: 100%;
     background: var(--bg-input);
@@ -279,7 +1084,7 @@
     color: var(--text-primary);
 }
 
-/* Metallic Vault Item Styling */
+/* Legacy vault-item for other panels */
 .vault-item {
     display: flex; align-items: center; justify-content: space-between;
     padding: 12px 14px;
@@ -329,7 +1134,7 @@
 .ingestion-vortex-container {
     width: 100%;
     aspect-ratio: 1/1;
-    background: #000000;
+    background: var(--bg-app);
     position: relative;
     overflow: hidden;
     cursor: pointer;
@@ -370,6 +1175,67 @@
 }
 .vortex-title { display: block; font-weight: 700; font-size: 0.9rem; letter-spacing: 0.05em; }
 .vortex-subtitle { display: block; font-size: 0.7rem; color: #aaa; margin-top: 4px; }
+
+/* === PLATINUM SOVEREIGN - Light Mode Asset === */
+/* The Cleanroom Vault: Video-based light mode */
+.ingestion-vortex-container.light-mode {
+    /* Clean, pure background - no grey box */
+    background: #F8FAFC;
+}
+
+/* Light mode video styling */
+.vortex-video-element.light-mode-video {
+    /* Realistic grounding shadow for light mode */
+    filter: drop-shadow(0 20px 30px rgba(0, 0, 0, 0.12))
+            drop-shadow(0 8px 16px rgba(0, 0, 0, 0.08));
+    transition: filter 0.3s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.ingestion-vortex-container.light-mode:hover .vortex-video-element.light-mode-video {
+    filter: drop-shadow(0 25px 40px rgba(0, 0, 0, 0.15))
+            drop-shadow(0 10px 20px rgba(0, 0, 0, 0.1))
+            drop-shadow(0 0 60px rgba(0, 0, 255, 0.08));
+}
+
+/* === FROSTED GLASS PILL - Light Mode Text === */
+/* Positioned to overlap bottom 15% of vault for depth */
+.vortex-text.frosted-pill {
+    position: relative;
+    z-index: 10;
+    margin-top: -30px; /* Overlap the vault image */
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.08),
+        0 1px 3px rgba(0, 0, 0, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    padding: 14px 24px;
+    border-radius: 28px;
+}
+
+.vortex-text.frosted-pill .vortex-title {
+    color: #0F172A;
+    text-shadow: none;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+
+.vortex-text.frosted-pill .vortex-subtitle {
+    color: #475569;
+    font-weight: 500;
+}
+
+/* Light mode hover state */
+.ingestion-vortex-container.light-mode:hover .vortex-text.frosted-pill {
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.1),
+        0 2px 6px rgba(0, 0, 0, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 1),
+        0 0 0 1px rgba(0, 0, 255, 0.08);
+}
 
 /* --- Sources List (RAG.box) --- */
 .sources-content {
@@ -424,15 +1290,16 @@
 }
 
 .status-indicator {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 0.75rem; color: var(--text-secondary);
-    background: rgba(0,0,0,0.05); padding: 4px 10px; border-radius: 99px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 0.9rem; color: var(--text-secondary);
+    background: rgba(0,0,0,0.05); padding: 6px 14px; border-radius: 99px;
     border: 1px solid var(--border-color);
+    font-weight: 500;
 }
 .status-dot {
-    width: 6px; height: 6px; background: #06b6d4;
+    width: 10px; height: 10px; background: #06b6d4;
     border-radius: 50%;
-    box-shadow: 0 0 8px #06b6d4;
+    box-shadow: 0 0 12px #06b6d4;
     animation: pulseDot 2s infinite;
 }
 @keyframes pulseDot {
@@ -461,6 +1328,8 @@
 .context-header:hover { color: var(--text-primary); }
 
 .context-label { font-weight: 500; letter-spacing: 0.02em; }
+.context-protected { color: #FF3D00; font-size: 0.75rem; opacity: 0.8; }
+.context-locked-info { color: #FFAB00; font-size: 0.75rem; opacity: 0.9; }
 .context-summary { display: flex; align-items: center; gap: 6px; }
 .separator { opacity: 0.3; }
 .chevron { transition: transform 0.2s; display: flex; align-items: center; }
@@ -484,6 +1353,137 @@
 .context-item.vault .dot { background: var(--status-open); box-shadow: 0 0 4px var(--status-open); }
 .context-item.source .dot { background: var(--electric-blue); box-shadow: 0 0 4px var(--electric-blue); }
 
+/* --- System Audit Log --- */
+.audit-log-bar {
+    background: rgba(0, 0, 0, 0.4);
+    border-bottom: 1px solid rgba(0, 0, 255, 0.15);
+}
+.audit-log-bar.expanded {
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.audit-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+}
+.audit-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+}
+.audit-header-left svg {
+    opacity: 0.7;
+}
+.audit-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.7rem;
+}
+.audit-event-count {
+    color: rgba(0, 0, 255, 0.8);
+    font-weight: 500;
+}
+.audit-toggle-hint {
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+
+.audit-log-drawer {
+    border-top: 1px solid rgba(0, 0, 255, 0.1);
+    animation: slideDown 0.2s ease;
+}
+.audit-log-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    background: rgba(0, 0, 255, 0.05);
+    border-bottom: 1px solid rgba(0, 0, 255, 0.1);
+}
+.audit-log-title {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: rgba(0, 0, 255, 0.9);
+}
+.audit-log-subtitle {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+.audit-log-content {
+    max-height: 160px;
+    overflow-y: auto;
+    padding: 8px 16px;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.7rem;
+}
+.audit-log-empty {
+    color: var(--text-secondary);
+    opacity: 0.5;
+    padding: 12px 0;
+    text-align: center;
+}
+/* Matrix Terminal Audit Log Styling */
+.audit-log-entry {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 4px 0;
+    font-family: 'JetBrains Mono', 'SF Mono', 'Monaco', monospace;
+    font-size: 0.8rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+.audit-log-entry:last-of-type {
+    border-bottom: none;
+}
+/* Dim grey timestamp */
+.audit-timestamp {
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+    opacity: 0.6;
+}
+/* Neon colored action verb */
+.audit-category {
+    font-weight: 700;
+    flex-shrink: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+/* White message text */
+.audit-message {
+    color: var(--text-primary);
+}
+
+/* Audit Category Colors - Neon Matrix Terminal */
+.audit-category-security .audit-category {
+    color: var(--sovereign-gold);
+    text-shadow: 0 0 8px var(--sovereign-gold-glow);
+}
+.audit-category-vault .audit-category {
+    color: #0000FF;
+    text-shadow: 0 0 8px rgba(0, 0, 255, 0.5);
+}
+.audit-category-ingest .audit-category {
+    color: #10B981;
+    text-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+}
+.audit-category-transfer .audit-category {
+    color: #0000FF;
+    text-shadow: 0 0 8px rgba(0, 0, 255, 0.5);
+}
+.audit-category-system .audit-category {
+    color: var(--text-secondary);
+}
+.audit-category-forge .audit-category {
+    color: #0000FF;
+    text-shadow: 0 0 8px rgba(0, 0, 255, 0.5);
+}
+
 
 .chat-area {
     flex: 1; overflow-y: auto; padding: 32px 24px;
@@ -504,7 +1504,7 @@
 }
 
 .chat-label {
-    font-size: 0.7rem;
+    font-size: 0.8rem;
     letter-spacing: 0.1em;
     font-weight: 700;
     text-transform: uppercase;
@@ -529,6 +1529,180 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
+}
+
+/* Mercury Markdown Rendering */
+.mercury-markdown {
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: var(--text-primary);
+}
+
+.mercury-markdown > *:first-child {
+    margin-top: 0;
+}
+
+.mercury-markdown > *:last-child {
+    margin-bottom: 0;
+}
+
+/* Markdown Tables */
+.mercury-table-wrapper {
+    overflow-x: auto;
+    margin: 16px 0;
+    border-radius: 8px;
+    border: 1px solid rgba(100, 100, 100, 0.3);
+}
+
+.mercury-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.mercury-thead {
+    background: rgba(0, 0, 100, 0.3);
+}
+
+.mercury-th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary);
+    border-bottom: 2px solid rgba(100, 100, 100, 0.4);
+    white-space: nowrap;
+}
+
+.mercury-tbody .mercury-tr:nth-child(odd) {
+    background: rgba(50, 50, 50, 0.2);
+}
+
+.mercury-tbody .mercury-tr:nth-child(even) {
+    background: rgba(30, 30, 30, 0.3);
+}
+
+.mercury-tbody .mercury-tr:hover {
+    background: rgba(0, 0, 255, 0.08);
+}
+
+.mercury-td {
+    padding: 10px 16px;
+    color: var(--text-secondary);
+    border-bottom: 1px solid rgba(100, 100, 100, 0.2);
+}
+
+/* Markdown Lists */
+.mercury-ul, .mercury-ol {
+    margin: 12px 0;
+    padding-left: 24px;
+}
+
+.mercury-ul {
+    list-style-type: disc;
+}
+
+.mercury-ol {
+    list-style-type: decimal;
+}
+
+.mercury-li {
+    margin: 6px 0;
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+.mercury-li::marker {
+    color: var(--electric-blue);
+}
+
+/* Markdown Headers */
+.mercury-h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 24px 0 12px;
+    color: var(--text-primary);
+    border-bottom: 1px solid rgba(100, 100, 100, 0.3);
+    padding-bottom: 8px;
+}
+
+.mercury-h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 20px 0 10px;
+    color: var(--text-primary);
+}
+
+.mercury-h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 16px 0 8px;
+    color: var(--text-primary);
+}
+
+.mercury-h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 12px 0 6px;
+    color: var(--text-secondary);
+}
+
+/* Markdown Text Formatting */
+.mercury-strong {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.mercury-em {
+    font-style: italic;
+    color: var(--text-secondary);
+}
+
+.mercury-link {
+    color: var(--electric-blue);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s;
+}
+
+.mercury-link:hover {
+    border-bottom-color: var(--electric-blue);
+}
+
+/* Markdown Code */
+.mercury-code-inline {
+    background: rgba(0, 0, 100, 0.15);
+    color: #00CFFF;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85em;
+}
+
+.mercury-pre {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(100, 100, 100, 0.3);
+    border-radius: 8px;
+    padding: 16px;
+    overflow-x: auto;
+    margin: 12px 0;
+}
+
+.mercury-code-block {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: #E0E0E0;
+}
+
+/* Markdown Blockquote */
+.mercury-blockquote {
+    border-left: 3px solid var(--electric-blue);
+    margin: 16px 0;
+    padding: 12px 20px;
+    background: rgba(0, 0, 100, 0.08);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-secondary);
+    font-style: italic;
 }
 
 .mercury-section {
@@ -557,6 +1731,14 @@
     font-size: 0.95rem;
     line-height: 1.6;
     color: var(--text-primary);
+}
+
+.mercury-metadata {
+    margin: 0;
+    font-size: 0.7rem;
+    line-height: 1.4;
+    color: var(--text-tertiary, #666);
+    opacity: 0.7;
 }
 
 .mercury-list-item {
@@ -685,63 +1867,336 @@
     background: var(--bg-panel);
     z-index: 2;
 }
+.chat-input-row {
+    display: flex;
+    align-items: flex-end; /* Align to bottom for growing textarea */
+    gap: 16px;
+}
 .chat-input-wrapper {
+    flex: 1;
     background: var(--bg-chat-input);
     backdrop-filter: blur(10px);
     border: 1px solid var(--border-chat-input);
     box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
-    border-radius: 8px;
-    padding: 10px 10px 10px 20px;
-    display: flex; align-items: center; gap: 12px;
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: flex-end; /* Align to bottom for growing textarea */
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 .chat-input-wrapper:focus-within {
     border-color: var(--electric-blue);
     box-shadow: inset 0 2px 4px rgba(0,0,0,0.05), 0 0 0 1px rgba(0, 0, 255, 0.1);
 }
+
+/* Auto-expanding textarea - Claude.ai style */
+.mercury-textarea {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-family: var(--font-sans);
+    line-height: 1.5;
+    min-height: 24px; /* Single line height */
+    max-height: 200px; /* ~8-10 lines */
+    overflow-y: auto;
+    resize: none;
+    padding: 0;
+    margin: 0;
+}
+.mercury-textarea::placeholder {
+    color: var(--text-tertiary);
+    font-style: italic;
+}
+/* Custom scrollbar for textarea */
+.mercury-textarea::-webkit-scrollbar {
+    width: 6px;
+}
+.mercury-textarea::-webkit-scrollbar-track {
+    background: transparent;
+}
+.mercury-textarea::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+.mercury-textarea::-webkit-scrollbar-thumb:hover {
+    background: var(--text-tertiary);
+}
+
+/* Legacy input styles (keeping for compatibility) */
 .chat-input-wrapper input {
     flex: 1; background: transparent; border: none; outline: none;
     color: var(--text-primary); font-size: 1rem;
     font-family: var(--font-sans);
 }
-.chat-input-wrapper input::placeholder { color: var(--text-chat-placeholder); font-style: italic; }
+.chat-input-wrapper input::placeholder { color: var(--text-tertiary); font-style: italic; }
 
-.send-btn {
-    width: 36px; height: 36px; border-radius: 6px; border: none;
-    background: var(--bg-hover); color: var(--text-secondary);
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; transition: all 0.2s;
+/* Voice Selector Dropdown */
+.voice-selector {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--electric-blue);
+    background: linear-gradient(180deg, #1a1a2e 0%, #0d0d15 100%);
+    color: var(--electric-blue);
+    font-size: 0.75rem;
+    font-family: var(--font-mono);
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
-.send-btn:hover:not(:disabled) { background: var(--electric-blue); color: #fff; }
+.voice-selector:hover {
+    background: linear-gradient(180deg, #252545 0%, #151525 100%);
+    box-shadow: 0 0 10px rgba(0, 0, 255, 0.3);
+}
+.voice-selector:focus {
+    box-shadow: 0 0 15px rgba(0, 0, 255, 0.5);
+}
+.voice-selector option {
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    padding: 8px;
+}
 
-/* Voice Button Style */
-.voice-btn {
-    width: 36px; height: 36px;
-    border: none; background: transparent;
-    cursor: pointer; padding: 0;
-    display: flex; align-items: center; justify-content: center;
+/* Directive 3: Realtime Secure Voice Button — Three-State: OFF / ON / MUTE */
+.realtime-voice-btn {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: 2px solid var(--electric-blue);
+    background: linear-gradient(180deg, #1a1a2e 0%, #0d0d15 100%);
+    color: var(--electric-blue);
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow:
+        0 0 12px var(--electric-blue-glow),
+        inset 0 1px 0 rgba(255,255,255,0.1);
+    flex-shrink: 0;
 }
-.voice-icon-image {
-    width: 28px; height: 28px;
-    object-fit: contain;
-    transition: all 0.2s;
-    opacity: 0.8;
-}
-.voice-btn:hover .voice-icon-image {
-    opacity: 1;
-    transform: scale(1.1);
-    filter: drop-shadow(0 0 4px rgba(0, 0, 255, 0.5));
+.realtime-voice-btn:hover {
+    transform: scale(1.05);
+    box-shadow:
+        0 0 20px var(--electric-blue-glow),
+        0 0 40px rgba(0, 0, 255, 0.2),
+        inset 0 1px 0 rgba(255,255,255,0.1);
 }
 
-/* Design Button */
-.send-btn.design-btn {
-    background: linear-gradient(135deg, #0000FF, #0000CC);
+/* ON state — green bg, gentle pulse */
+.realtime-voice-btn.voice-on {
+    background: linear-gradient(180deg, #2e7d32 0%, #1b5e20 100%);
+    border-color: #4CAF50;
     color: #fff;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    animation: voiceOnPulse 2s ease-in-out infinite;
+    box-shadow:
+        0 0 20px rgba(76, 175, 80, 0.4),
+        0 0 40px rgba(76, 175, 80, 0.2);
 }
-.send-btn.design-btn:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 255, 0.4);
+.realtime-voice-btn.voice-on:hover {
+    box-shadow:
+        0 0 30px rgba(76, 175, 80, 0.6),
+        0 0 60px rgba(76, 175, 80, 0.3);
+}
+@keyframes voiceOnPulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(76, 175, 80, 0.4); }
+    50% { transform: scale(1.04); box-shadow: 0 0 30px rgba(76, 175, 80, 0.6); }
+}
+
+/* MUTE state — amber bg, static (no pulse) */
+.realtime-voice-btn.voice-mute {
+    background: linear-gradient(180deg, #5d4800 0%, #4a3800 100%);
+    border-color: #FFAB00;
+    color: #FFAB00;
+    animation: none;
+    box-shadow:
+        0 0 12px rgba(255, 171, 0, 0.3),
+        inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.realtime-voice-btn.voice-mute:hover {
+    box-shadow:
+        0 0 20px rgba(255, 171, 0, 0.5),
+        0 0 40px rgba(255, 171, 0, 0.2);
+}
+
+/* Processing state — amber pulse while waiting for AI response */
+.realtime-voice-btn.processing {
+    background: linear-gradient(180deg, #5d4800 0%, #4a3800 100%);
+    border-color: #FFAB00;
+    color: #FFAB00;
+    animation: processingPulse 1s ease-in-out infinite;
+}
+@keyframes processingPulse {
+    0%, 100% { box-shadow: 0 0 15px rgba(255, 171, 0, 0.3); }
+    50% { box-shadow: 0 0 30px rgba(255, 171, 0, 0.6); }
+}
+
+/* Speaking state — green, faster pulse */
+.realtime-voice-btn.speaking {
+    background: linear-gradient(180deg, #00c853 0%, #00a041 100%);
+    border-color: #00c853;
+    color: #fff;
+    animation: speakingPulse 0.6s ease-in-out infinite;
+}
+@keyframes speakingPulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(0, 200, 83, 0.5); }
+    50% { box-shadow: 0 0 40px rgba(0, 200, 83, 0.8); }
+}
+
+.voice-waveform-icon {
+    width: 24px;
+    height: 24px;
+    z-index: 2;
+}
+.realtime-voice-btn.voice-on .voice-waveform-icon {
+    animation: waveformPulse 0.5s ease-in-out infinite alternate;
+}
+@keyframes waveformPulse {
+    from { opacity: 0.8; }
+    to { opacity: 1; }
+}
+
+/* Voice ripple effect */
+.voice-ripple {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 2px solid var(--electric-blue);
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Green ripples for ON state */
+.realtime-voice-btn.voice-on .voice-ripple.on {
+    border-color: #4CAF50;
+    animation: greenRipple 2s ease-out infinite;
+}
+.realtime-voice-btn.voice-on .voice-ripple.on.delay-1 {
+    animation-delay: 0.7s;
+}
+.realtime-voice-btn.voice-on .voice-ripple.on.delay-2 {
+    animation-delay: 1.4s;
+}
+@keyframes greenRipple {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.4;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(2.5);
+        opacity: 0;
+    }
+}
+
+/* Speaking ripples */
+.realtime-voice-btn.speaking .voice-ripple.speaking {
+    border-color: #00c853;
+    animation: voiceRipple 1s ease-out infinite;
+}
+.realtime-voice-btn.speaking .voice-ripple.speaking.delay-1 {
+    animation-delay: 0.5s;
+}
+@keyframes voiceRipple {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.6;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(2.5);
+        opacity: 0;
+    }
+}
+
+.voice-status-text {
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+    animation: textPulse 1s ease-in-out infinite;
+}
+/* Color the status text based on state */
+.realtime-voice-btn.voice-on .voice-status-text {
+    color: #4CAF50;
+}
+.realtime-voice-btn.voice-mute .voice-status-text {
+    color: #FFAB00;
+    animation: none;
+}
+.realtime-voice-btn.speaking .voice-status-text {
+    color: #00c853;
+}
+.realtime-voice-btn.processing .voice-status-text {
+    color: #FFAB00;
+}
+@keyframes textPulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+}
+
+/* Voice error display */
+.voice-error-text {
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.55rem;
+    font-weight: 600;
+    color: var(--danger-red);
+    white-space: nowrap;
+    background: rgba(255, 61, 0, 0.2);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* Voice transcript preview */
+.voice-transcript-preview {
+    position: absolute;
+    bottom: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid var(--electric-blue-light);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    max-width: 300px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 255, 0.2);
+    animation: transcriptFadeIn 0.2s ease-out;
+    z-index: 100;
+}
+@keyframes transcriptFadeIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* Voice mode indicator in chat area */
+.voice-mode-active-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 255, 0.05);
+    pointer-events: none;
+    border: 2px solid var(--electric-blue);
+    border-radius: inherit;
+    animation: voiceModeGlow 2s ease-in-out infinite;
+}
+@keyframes voiceModeGlow {
+    0%, 100% { box-shadow: inset 0 0 20px rgba(0, 0, 255, 0.1); }
+    50% { box-shadow: inset 0 0 40px rgba(0, 0, 255, 0.2); }
 }
 
 .chat-footer-info {
@@ -836,23 +2291,46 @@
 }
 
 .artifact-card {
-    height: 300px;
+    min-height: 400px;
+    height: 400px;
     width: 100%;
     position: relative;
-    background: #000;
+    background: var(--bg-app);
+    border-radius: 0 0 12px 12px;
+    overflow: hidden;
 }
+
+/* Single column view - larger artifacts */
+.studio-grid.cols-1 .artifact-card {
+    min-height: 500px;
+    height: auto;
+}
+
 .artifact-iframe, .artifact-media {
-    width: 100%; height: 100%;
+    width: 100%;
+    height: 100%;
     border: none;
     display: block;
     object-fit: contain;
-    background: #111;
+    background: var(--bg-panel);
 }
+
+/* Scaled preview for UI components */
 .artifact-iframe {
-    width: 200%; height: 200%;
-    transform: scale(0.5); transform-origin: top left;
+    width: 150%;
+    height: 150%;
+    transform: scale(0.667);
+    transform-origin: top left;
     background: #fff;
     pointer-events: none;
+}
+
+/* Full size for single column */
+.studio-grid.cols-1 .artifact-iframe {
+    width: 100%;
+    height: 100%;
+    transform: none;
+    pointer-events: auto;
 }
 
 .artifact-style-tag {
@@ -897,6 +2375,45 @@
 }
 .studio-action-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
 
+/* Danger button with secure erasure animation */
+.studio-action-btn-danger {
+    flex: 0 0 auto;
+    background: rgba(255, 61, 0, 0.1);
+    color: var(--danger-red);
+    position: relative;
+    overflow: hidden;
+}
+.studio-action-btn-danger:hover {
+    background: rgba(255, 61, 0, 0.25);
+    color: #ff5722;
+}
+.studio-action-btn-danger::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 61, 0, 0.3),
+        rgba(255, 61, 0, 0.5),
+        rgba(255, 61, 0, 0.3),
+        transparent
+    );
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+.studio-action-btn-danger:hover::before {
+    opacity: 1;
+    animation: secure-erase 0.8s ease-in-out infinite;
+}
+@keyframes secure-erase {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
 /* --- Studio Mode Selector --- */
 .studio-mode-selector {
     display: flex; align-items: center; gap: 4px;
@@ -915,6 +2432,298 @@
 .mode-btn.active {
     background: var(--electric-blue); color: #fff;
     box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+/* ============================================
+   SOVEREIGN ARTIFACT FORGE - Digital Fort Knox
+   ============================================ */
+
+/* Sovereign Theme Variables */
+.sovereign-forge {
+    --sovereign-bg-deep: #09090b;
+    --sovereign-bg-panel: #131316;
+    --connexus-blue: #0000FF;
+    --connexus-blue-glow: 0 0 15px rgba(0, 0, 255, 0.6);
+    --connexus-blue-subtle: rgba(0, 0, 255, 0.1);
+
+    position: relative;
+    background: var(--sovereign-bg-deep);
+}
+
+/* Forge Header */
+.forge-header {
+    background: var(--sovereign-bg-panel);
+    border-bottom: 1px solid rgba(0, 0, 255, 0.15);
+    z-index: 1;
+}
+
+.forge-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--connexus-blue);
+    text-shadow: var(--connexus-blue-glow);
+}
+
+/* Forge Mode Selector - Blue Glow States */
+.forge-mode-selector .mode-btn:hover {
+    color: var(--connexus-blue);
+    filter: drop-shadow(0 0 4px rgba(0, 0, 255, 0.5));
+}
+
+.forge-mode-selector .mode-btn.active {
+    background: var(--connexus-blue);
+    box-shadow: var(--connexus-blue-glow);
+}
+
+/* Forge Content Area */
+.forge-content {
+    background: var(--sovereign-bg-deep);
+    position: relative;
+    z-index: 1;
+}
+
+/* Forge Empty State */
+.forge-empty-state {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 24px;
+    gap: 32px;
+}
+
+/* Forge Hero Section */
+.forge-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+}
+
+.forge-crucible-icon {
+    width: 100px;
+    height: 100px;
+    color: var(--connexus-blue);
+    filter: drop-shadow(0 0 20px rgba(0, 0, 255, 0.4));
+    animation: cruciblePulse 3s ease-in-out infinite;
+}
+
+@keyframes cruciblePulse {
+    0%, 100% { filter: drop-shadow(0 0 15px rgba(0, 0, 255, 0.3)); }
+    50% { filter: drop-shadow(0 0 30px rgba(0, 0, 255, 0.6)); }
+}
+
+.forge-hero-title {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #fff;
+    text-shadow: 0 0 20px rgba(0, 0, 255, 0.5), 0 0 40px rgba(0, 0, 255, 0.3);
+}
+
+.forge-hero-subtitle {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    max-width: 320px;
+    line-height: 1.5;
+}
+
+/* Forge Module Grid */
+.forge-module-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    width: 100%;
+    max-width: 600px;
+}
+
+/* =========================================================
+   DIRECTIVE 4: Gradient Buttons & Sovereign Gold Alerts
+   ========================================================= */
+
+/* Lit-from-above gradient for primary action buttons */
+.btn-gradient-primary,
+.security-action-btn,
+.send-btn:hover:not(:disabled),
+.icon-btn.active {
+    background: linear-gradient(180deg, var(--electric-blue-light) 0%, var(--electric-blue) 100%) !important;
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.1) inset,
+        0 4px 12px rgba(0, 0, 255, 0.3);
+}
+.btn-gradient-primary:hover,
+.security-action-btn:hover {
+    background: linear-gradient(180deg, var(--electric-blue) 0%, var(--electric-blue-hover) 100%) !important;
+    transform: translateY(-1px);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.15) inset,
+        0 6px 20px rgba(0, 0, 255, 0.4);
+}
+
+/* Sovereign Gold Alert System - Critical Risk Styling */
+.alert-critical,
+.insight-block[data-insight-type="critical_risk"],
+.vault-lockdown-alert {
+    border-color: var(--sovereign-gold) !important;
+    box-shadow: 0 0 20px var(--sovereign-gold-glow);
+    animation: sovereignFlash 1s ease-in-out infinite alternate;
+}
+@keyframes sovereignFlash {
+    from {
+        box-shadow: 0 0 15px var(--sovereign-gold-glow);
+        border-color: var(--sovereign-gold);
+    }
+    to {
+        box-shadow: 0 0 30px var(--sovereign-gold-glow), 0 0 60px rgba(250, 204, 21, 0.3);
+        border-color: #fde047;
+    }
+}
+
+.alert-critical-text,
+.sovereign-gold-text {
+    color: var(--sovereign-gold);
+    text-shadow: 0 0 10px var(--sovereign-gold-glow);
+}
+
+/* Critical insight badge */
+.insight-badge-critical {
+    background: linear-gradient(180deg, #fde047 0%, var(--sovereign-gold) 100%);
+    color: #000;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    animation: badgePulse 2s ease-in-out infinite;
+}
+@keyframes badgePulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Grayscale Text Hierarchy Utility Classes */
+.text-primary { color: var(--text-primary) !important; }   /* #FFFFFF */
+.text-secondary { color: var(--text-secondary) !important; } /* #A1A1AA */
+.text-tertiary { color: var(--text-tertiary) !important; }  /* #52525B */
+
+@media (min-width: 900px) {
+    .forge-module-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Forge Module Card */
+.forge-module-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 24px 16px;
+    background: var(--sovereign-bg-panel);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    overflow: hidden;
+
+    /* Hardware-like inset depth */
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.04),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2),
+        0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.forge-module-card:hover {
+    border-color: var(--connexus-blue);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.04),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2),
+        0 0 20px rgba(0, 0, 255, 0.3),
+        0 4px 16px rgba(0, 0, 0, 0.4);
+    transform: translateY(-2px);
+}
+
+.forge-module-card:hover .forge-module-glow {
+    opacity: 1;
+}
+
+.forge-module-card:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Module Glow Effect */
+.forge-module-glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(0, 0, 255, 0.08) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+}
+
+/* Module Icon Wrapper */
+.forge-module-icon-wrapper {
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: rgba(0, 0, 255, 0.08);
+    border: 1px solid rgba(0, 0, 255, 0.15);
+    transition: all 0.3s;
+}
+
+.forge-module-card:hover .forge-module-icon-wrapper {
+    background: rgba(0, 0, 255, 0.15);
+    border-color: var(--connexus-blue);
+    box-shadow: 0 0 15px rgba(0, 0, 255, 0.3);
+}
+
+.forge-module-icon {
+    width: 32px;
+    height: 32px;
+    color: var(--connexus-blue);
+    transition: all 0.3s;
+}
+
+.forge-module-card:hover .forge-module-icon {
+    filter: drop-shadow(0 0 6px rgba(0, 0, 255, 0.6));
+}
+
+/* Module Title */
+.forge-module-title {
+    margin: 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-primary);
+    line-height: 1.3;
+}
+
+.forge-module-card:hover .forge-module-title {
+    color: var(--connexus-blue);
+    text-shadow: 0 0 10px rgba(0, 0, 255, 0.4);
+}
+
+/* Module Description */
+.forge-module-desc {
+    margin: 0;
+    font-size: 0.7rem;
+    color: var(--text-tertiary);
+    line-height: 1.4;
 }
 
 /* --- Drawer & Overlays --- */
@@ -951,7 +2760,7 @@
 }
 
 .code-block {
-    background: #000; border-color: var(--border-color); color: #0f0;
+    background: var(--bg-app); border-color: var(--border-color); color: var(--text-primary);
     padding: 16px; margin: 0; border-radius: 8px; overflow: auto;
     font-family: var(--font-mono); font-size: 0.85rem;
 }
@@ -973,24 +2782,53 @@
     padding: 40px; color: var(--text-secondary);
 }
 
-/* --- Security Modal --- */
+/* --- Security Modal - Frosted Glass Premium Styling --- */
 .security-modal-overlay {
     position: fixed; inset: 0;
-    background: rgba(0,0,0,0.8);
-    backdrop-filter: blur(8px);
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(12px);
     z-index: 200;
     display: flex; align-items: center; justify-content: center;
 }
 .security-modal {
-    background: var(--bg-modal);
-    border: 1px solid var(--border-color);
+    background: rgba(9, 9, 11, 0.95);
+    backdrop-filter: blur(20px);
+    /* Bevel border - highlight on top, dark on bottom */
+    border: 1px solid transparent;
+    border-image: linear-gradient(
+        180deg,
+        rgba(64, 64, 255, 0.4) 0%,
+        rgba(255, 255, 255, 0.15) 20%,
+        rgba(255, 255, 255, 0.05) 50%,
+        rgba(0, 0, 0, 0.3) 100%
+    ) 1;
     border-radius: 16px;
     width: 420px;
     padding: 32px;
     position: relative;
-    box-shadow: 0 0 60px rgba(0,0,0,0.8), 0 0 20px rgba(0, 0, 255, 0.1);
+    box-shadow:
+        0 0 80px rgba(0,0,0,0.9),
+        0 0 40px rgba(0, 0, 255, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
     display: flex; flex-direction: column; gap: 24px;
     text-align: center;
+}
+/* Top highlight line */
+.security-modal::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 20%;
+    right: 20%;
+    height: 1px;
+    background: linear-gradient(90deg,
+        transparent,
+        rgba(64, 64, 255, 0.6),
+        rgba(255, 255, 255, 0.3),
+        rgba(64, 64, 255, 0.6),
+        transparent
+    );
+    border-radius: 16px 16px 0 0;
 }
 .security-header h2 {
     margin: 0 0 8px 0; font-size: 1.5rem; color: var(--text-primary);
@@ -1014,39 +2852,1184 @@
     cursor: pointer; font-weight: 600; font-size: 0.85rem;
     transition: all 0.2s;
 }
+/* Traffic Light Protocol - Modal Status Buttons */
 .status-btn.active { background: var(--bg-panel); color: var(--text-primary); }
-.status-btn.active.secure { color: var(--status-secure); background: rgba(239, 68, 68, 0.1); }
-.status-btn.active.open { color: var(--status-open); background: rgba(16, 185, 129, 0.1); }
-.status-btn.active.closed { color: var(--status-closed); background: rgba(245, 158, 11, 0.1); }
+.status-btn.active.secure {
+    color: var(--status-secure);
+    background: rgba(220, 38, 38, 0.15);
+    border: 1px solid var(--status-secure);
+    box-shadow: 0 0 8px var(--status-secure-glow);
+}
+.status-btn.active.open {
+    color: var(--status-open);
+    background: rgba(0, 0, 255, 0.1);
+    border: 1px solid var(--status-open);
+    box-shadow: 0 0 8px var(--status-open-glow);
+}
+.status-btn.active.closed {
+    color: var(--status-closed);
+    background: rgba(113, 113, 122, 0.15);
+    border: 1px solid var(--status-closed);
+}
 
 .security-form {
     display: flex; flex-direction: column; gap: 16px;
 }
+/* Recessed input fields */
 .security-input {
-    background: var(--bg-input); border: 1px solid var(--border-color);
-    color: var(--text-primary); padding: 14px; border-radius: 8px;
-    font-size: 1rem; width: 100%; box-sizing: border-box;
-    transition: border-color 0.2s;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 14px;
+    border-radius: 8px;
+    font-size: 1rem;
+    width: 100%;
+    box-sizing: border-box;
+    transition: all 0.2s;
     font-family: var(--font-sans);
+    /* Recessed inner shadow - metal plate effect */
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
 }
-.security-input:focus { border-color: var(--electric-blue); outline: none; }
+.security-input:focus {
+    border-color: var(--electric-blue);
+    outline: none;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5), 0 0 0 1px rgba(0, 0, 255, 0.2);
+}
 
+/* Button group layout */
+.security-button-group {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+/* Base button styling */
 .security-action-btn {
-    background: var(--electric-blue); border: none;
-    color: #fff; padding: 14px; border-radius: 8px;
-    font-weight: 600; font-size: 1rem; cursor: pointer;
-    transition: background 0.2s;
+    flex: 1;
+    background: var(--electric-blue);
+    border: none;
+    color: #fff;
+    padding: 14px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.2s;
     font-family: var(--font-sans);
 }
-.security-action-btn:hover { background: var(--electric-blue-hover); }
+.security-action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
 
-/* Responsive */
-@media (max-width: 1024px) {
+/* Traffic Light Protocol - Dynamic Action Button Colors */
+.security-action-btn.action-secure {
+    background: linear-gradient(180deg, #EF4444 0%, var(--status-secure) 100%);
+    box-shadow:
+        0 0 15px var(--status-secure-glow),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.security-action-btn.action-secure:hover {
+    background: linear-gradient(180deg, var(--status-secure) 0%, #B91C1C 100%);
+    box-shadow:
+        0 0 25px var(--status-secure-glow),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.security-action-btn.action-open {
+    background: linear-gradient(180deg, var(--electric-blue-light) 0%, var(--status-open) 100%);
+    box-shadow:
+        0 0 15px var(--status-open-glow),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.security-action-btn.action-open:hover {
+    background: linear-gradient(180deg, var(--status-open) 0%, var(--electric-blue-hover) 100%);
+    box-shadow:
+        0 0 25px var(--status-open-glow),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.security-action-btn.action-closed {
+    background: linear-gradient(180deg, #A1A1AA 0%, var(--status-closed) 100%);
+    box-shadow:
+        0 0 10px var(--status-closed-glow),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+.security-action-btn.action-closed:hover {
+    background: linear-gradient(180deg, var(--status-closed) 0%, #52525B 100%);
+    box-shadow:
+        0 0 15px var(--status-closed-glow),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Primary button - INITIALIZE CONTAINER style */
+.security-btn-primary {
+    background: linear-gradient(180deg, var(--electric-blue-light) 0%, var(--electric-blue) 100%);
+    box-shadow:
+        0 0 20px rgba(0, 0, 255, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.security-btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow:
+        0 0 30px rgba(0, 0, 255, 0.5),
+        0 4px 15px rgba(0, 0, 255, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Abort button - ghost style with red hover */
+.security-btn-abort {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-tertiary);
+}
+.security-btn-abort:hover {
+    background: rgba(255, 61, 0, 0.1);
+    border-color: var(--danger-red);
+    color: var(--danger-red);
+}
+
+/* ============================================
+   INSIGHT BLOCKS & ACTION BAR
+   ============================================ */
+
+/* Insights Section */
+.insights-section {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+.insights-header {
+    color: var(--connexus-blue, #0000FF) !important;
+    margin-bottom: 12px;
+}
+
+.insights-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Insight Block - High-Tech Projection Glassmorphism */
+.insight-block {
+    background: rgba(0, 0, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-left: 3px solid var(--insight-color, #0000FF);
+    border-radius: 10px;
+    padding: 16px;
+    transition: all 0.3s ease;
+    box-shadow:
+        0 0 20px rgba(var(--insight-color-rgb, 0, 0, 255), 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.insight-block:hover {
+    background: rgba(0, 0, 255, 0.08);
+    border-left-width: 4px;
+    transform: translateX(2px);
+    box-shadow:
+        0 0 30px rgba(var(--insight-color-rgb, 0, 0, 255), 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.insight-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.insight-type-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.insight-type-badge svg {
+    width: 12px;
+    height: 12px;
+}
+
+.insight-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.insight-content {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+
+.insight-datapoints {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.insight-datapoint {
+    background: rgba(0, 0, 255, 0.05);
+    border: 1px solid rgba(0, 0, 255, 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.insight-datapoint strong {
+    color: var(--connexus-blue, #0000FF);
+    font-weight: 500;
+}
+
+/* Insight Action Bar */
+.insight-action-bar {
+    display: flex;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Ghost Buttons - Transparent with glowing borders */
+.insight-action-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 12px;
+    background: transparent;
+    border: 1px solid var(--insight-color, rgba(0, 0, 255, 0.4));
+    border-radius: 6px;
+    color: var(--insight-color, #0000FF);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-shadow: 0 0 8px rgba(var(--insight-color-rgb, 0, 0, 255), 0.4);
+}
+
+.insight-action-btn:hover {
+    background: rgba(var(--insight-color-rgb, 0, 0, 255), 0.1);
+    border-color: var(--insight-color, #0000FF);
+    box-shadow: 0 0 15px rgba(var(--insight-color-rgb, 0, 0, 255), 0.3);
+    text-shadow: 0 0 12px rgba(var(--insight-color-rgb, 0, 0, 255), 0.6);
+    transform: translateY(-1px);
+}
+
+.insight-action-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Insight Type Color Variants - Military Intelligence Readouts */
+.insight-block[data-insight-type="data_trend"] {
+    --insight-color: #0000FF;
+    --insight-color-rgb: 0, 0, 255;
+}
+
+.insight-block[data-insight-type="risk_assessment"] {
+    --insight-color: #FF3D00;
+    --insight-color-rgb: 255, 61, 0;
+}
+
+.insight-block[data-insight-type="key_clause"] {
+    --insight-color: #FACC15;  /* Sovereign Gold */
+    --insight-color-rgb: 250, 204, 21;
+}
+
+.insight-block[data-insight-type="comparison"] {
+    --insight-color: #0000FF;  /* Electric Blue, not cyan */
+    --insight-color-rgb: 0, 0, 255;
+}
+
+.insight-block[data-insight-type="recommendation"] {
+    --insight-color: #10B981;
+    --insight-color-rgb: 16, 185, 129;
+}
+
+/* ============================================
+   INTEL RECEIVED ANIMATION
+   ============================================ */
+
+.forge-intel-received {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at center, rgba(0, 0, 255, 0.05) 0%, transparent 70%);
+    overflow: hidden;
+}
+
+/* Pulse Rings */
+.intel-pulse-container {
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.intel-pulse-ring {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border: 2px solid rgba(0, 0, 255, 0.3);
+    border-radius: 50%;
+    animation: pulseExpand 2s ease-out infinite;
+}
+
+.intel-pulse-ring.delay-1 {
+    animation-delay: 0.6s;
+}
+
+.intel-pulse-ring.delay-2 {
+    animation-delay: 1.2s;
+}
+
+@keyframes pulseExpand {
+    0% {
+        transform: scale(0.5);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
+}
+
+/* Data Streams */
+.intel-data-streams {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.intel-data-stream {
+    position: absolute;
+    top: -20px;
+    width: 2px;
+    height: 20px;
+    background: linear-gradient(to bottom, transparent, var(--connexus-blue, #0000FF), transparent);
+    animation: dataStreamFall 1.5s linear infinite;
+}
+
+.intel-data-stream:nth-child(1) { left: 15%; animation-delay: 0s; }
+.intel-data-stream:nth-child(2) { left: 30%; animation-delay: 0.3s; }
+.intel-data-stream:nth-child(3) { left: 45%; animation-delay: 0.1s; }
+.intel-data-stream:nth-child(4) { left: 60%; animation-delay: 0.5s; }
+.intel-data-stream:nth-child(5) { left: 75%; animation-delay: 0.2s; }
+.intel-data-stream:nth-child(6) { left: 85%; animation-delay: 0.4s; }
+
+@keyframes dataStreamFall {
+    0% {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+    }
+    90% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(calc(100vh + 20px));
+        opacity: 0;
+    }
+}
+
+/* Intel Content */
+.intel-content {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    padding: 40px;
+}
+
+.intel-headline {
+    margin: 0 0 8px 0;
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--connexus-blue, #0000FF);
+    text-shadow: 0 0 30px rgba(0, 0, 255, 0.6), 0 0 60px rgba(0, 0, 255, 0.3);
+    animation: textFlicker 3s ease-in-out infinite;
+}
+
+@keyframes textFlicker {
+    0%, 100% { opacity: 1; }
+    92% { opacity: 1; }
+    93% { opacity: 0.8; }
+    94% { opacity: 1; }
+    95% { opacity: 0.9; }
+    96% { opacity: 1; }
+}
+
+.intel-source-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    background: rgba(0, 0, 255, 0.1);
+    border: 1px solid rgba(0, 0, 255, 0.3);
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--connexus-blue, #0000FF);
+    letter-spacing: 0.1em;
+    margin-bottom: 16px;
+}
+
+.intel-title {
+    margin: 0 0 24px 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 0.05em;
+}
+
+/* Progress Bar */
+.intel-progress-bar {
+    position: relative;
+    width: 300px;
+    height: 8px;
+    background: rgba(0, 0, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 0 auto 16px;
+}
+
+.intel-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #0000CC, #0000FF, #3333FF);
+    border-radius: 4px;
+    transition: width 0.1s linear;
+    box-shadow: 0 0 10px rgba(0, 0, 255, 0.5);
+}
+
+.intel-progress-shimmer {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent
+    );
+    animation: progressShimmer 1.5s infinite;
+}
+
+@keyframes progressShimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+.intel-status {
+    margin: 0 0 8px 0;
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+}
+
+.intel-percentage {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--connexus-blue, #0000FF);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* Artifact Source Badge */
+.studio-item-wrapper.from-insight {
+    border-color: rgba(0, 0, 255, 0.3);
+}
+
+.artifact-source-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px;
+    background: rgba(0, 0, 255, 0.08);
+    border-bottom: 1px solid rgba(0, 0, 255, 0.15);
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--connexus-blue, #0000FF);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.artifact-source-badge svg {
+    width: 12px;
+    height: 12px;
+}
+
+/* ============================================
+   RESPONSIVE BREAKPOINTS - Sovereign Dashboard
+   ============================================ */
+
+/* Large screens (< 1400px): Forge shrinks */
+@media (max-width: 1400px) {
+    .ragbox-layout > .panel.studio-panel {
+        min-width: 280px;
+    }
+}
+
+/* Medium-large screens (< 1200px): Forge collapses */
+@media (max-width: 1200px) {
+    .ragbox-layout {
+        grid-template-columns: var(--col-vaults) var(--col-security-drop) var(--resizer-width) 1fr !important;
+    }
+    .ragbox-layout > .panel.studio-panel {
+        display: none;
+    }
+    .ragbox-layout > .resizer:last-of-type {
+        display: none;
+    }
+}
+
+/* Medium screens (< 900px): Security Drop collapses */
+@media (max-width: 900px) {
+    .ragbox-layout {
+        grid-template-columns: var(--col-vaults) 1fr !important;
+    }
+    .ragbox-layout > .panel.sources-panel,
+    .ragbox-layout > .panel.studio-panel {
+        display: none;
+    }
+    .ragbox-layout > .resizer {
+        display: none;
+    }
+}
+
+/* Small screens (< 600px): Mobile single column */
+@media (max-width: 600px) {
     .ragbox-layout {
         grid-template-columns: 1fr !important;
-        grid-template-rows: auto 1fr auto;
+        grid-template-rows: 1fr;
+        padding: 8px;
     }
-    .sources-panel, .studio-panel, .panel.vault-panel { display: none; }
-    .chat-panel { height: 100%; border: none; border-radius: 0; }
-    .resizer { display: none; }
+    .ragbox-layout > .panel.vault-panel,
+    .ragbox-layout > .panel.sources-panel,
+    .ragbox-layout > .panel.studio-panel {
+        display: none;
+    }
+    .ragbox-layout > .panel.chat-panel {
+        height: 100%;
+        border-radius: 8px;
+        min-width: unset;
+    }
+    .resizer {
+        display: none;
+    }
+
+    /* Header adjustments for mobile */
+    .app-header {
+        padding: 8px 12px;
+    }
+    .header-left .breadcrumb {
+        display: none;
+    }
+    .global-search-container {
+        display: none;
+    }
+    .protocol-selector {
+        display: none;
+    }
+}
+
+/* =============================================================================
+   AEROSPACE PLATINUM - LIGHT MODE COMPONENT OVERRIDES
+   Dr. Insane's Prescription: Eliminate Dark-Light-Light-Dark fragmentation
+   ============================================================================= */
+
+/* --- 1. THE FORGE (Right Panel) - Platinum Laboratory --- */
+.dashboard-root.light .studio-panel,
+.light .dashboard-root .studio-panel,
+.light .dashboard-root .studio-panel,
+.dashboard-root.light .panel.studio-panel,
+.light .dashboard-root .panel.studio-panel,
+.light .dashboard-root .panel.studio-panel {
+    background: #F1F5F9 !important;
+    border-color: #E2E8F0 !important;
+}
+
+.dashboard-root.light .forge-content,
+.light .dashboard-root .forge-content,
+.light .dashboard-root .forge-content {
+    background: #F1F5F9 !important;
+}
+
+.dashboard-root.light .forge-header,
+.light .dashboard-root .forge-header,
+.light .dashboard-root .forge-header {
+    background: #F8FAFC !important;
+    border-bottom: 1px solid #E2E8F0 !important;
+}
+
+.dashboard-root.light .forge-title,
+.light .dashboard-root .forge-title,
+.light .dashboard-root .forge-title {
+    color: #0000FF !important;
+    text-shadow: none !important;
+}
+
+.dashboard-root.light .forge-hero-title,
+.light .dashboard-root .forge-hero-title,
+.light .dashboard-root .forge-hero-title {
+    color: #0F172A !important;
+    text-shadow: 0 0 20px rgba(0, 0, 255, 0.2) !important;
+}
+
+.dashboard-root.light .forge-hero-subtitle,
+.light .dashboard-root .forge-hero-subtitle,
+.light .dashboard-root .forge-hero-subtitle {
+    color: #475569 !important;
+}
+
+/* Forge Module Cards - White with silver border */
+.dashboard-root.light .forge-module-card,
+.light .dashboard-root .forge-module-card,
+.light .dashboard-root .forge-module-card {
+    background: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.06) !important;
+}
+
+.dashboard-root.light .forge-module-card:hover,
+.light .dashboard-root .forge-module-card:hover,
+.light .dashboard-root .forge-module-card:hover {
+    border-color: #0000FF !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 255, 0.15) !important;
+}
+
+.dashboard-root.light .forge-module-title,
+.light .dashboard-root .forge-module-title,
+.light .dashboard-root .forge-module-title {
+    color: #0F172A !important;
+}
+
+.dashboard-root.light .forge-module-desc,
+.light .dashboard-root .forge-module-desc,
+.light .dashboard-root .forge-module-desc {
+    color: #475569 !important;
+}
+
+.dashboard-root.light .forge-crucible-icon,
+.light .dashboard-root .forge-crucible-icon,
+.light .dashboard-root .forge-crucible-icon {
+    filter: drop-shadow(0 0 15px rgba(0, 0, 255, 0.3)) !important;
+}
+
+/* Artifact cards in light mode */
+.dashboard-root.light .artifact-card,
+.light .dashboard-root .artifact-card,
+.light .dashboard-root .artifact-card {
+    background: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04) !important;
+}
+
+.dashboard-root.light .artifact-card:hover,
+.light .dashboard-root .artifact-card:hover,
+.light .dashboard-root .artifact-card:hover {
+    border-color: #0000FF !important;
+}
+
+/* --- 2. MERCURY (Center Panel) - Glare Reduction --- */
+.dashboard-root.light .chat-panel,
+.light .dashboard-root .chat-panel,
+.light .dashboard-root .chat-panel,
+.dashboard-root.light .panel.chat-panel,
+.light .dashboard-root .panel.chat-panel,
+.light .dashboard-root .panel.chat-panel {
+    background: #F8FAFC !important;
+}
+
+.dashboard-root.light .mercury-chat-container,
+.light .dashboard-root .mercury-chat-container,
+.light .dashboard-root .mercury-chat-container,
+.dashboard-root.light .chat-messages-area,
+.light .dashboard-root .chat-messages-area,
+.light .dashboard-root .chat-messages-area {
+    background: #F8FAFC !important;
+}
+
+.dashboard-root.light .chat-input-container,
+.light .dashboard-root .chat-input-container,
+.light .dashboard-root .chat-input-container {
+    background: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+}
+
+.dashboard-root.light .chat-input-wrapper,
+.light .dashboard-root .chat-input-wrapper,
+.light .dashboard-root .chat-input-wrapper {
+    background: #FFFFFF !important;
+    border-color: #E2E8F0 !important;
+}
+
+.dashboard-root.light .chat-bubble.assistant,
+.light .dashboard-root .chat-bubble.assistant,
+.light .dashboard-root .chat-bubble.assistant {
+    background: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+    color: #0F172A !important;
+}
+
+.dashboard-root.light .chat-bubble.user,
+.light .dashboard-root .chat-bubble.user,
+.light .dashboard-root .chat-bubble.user {
+    background: #0000FF !important;
+    color: #FFFFFF !important;
+}
+
+/* --- 3. SECURITY DROP (2nd Column) - Match Mercury --- */
+.dashboard-root.light .sources-panel,
+.light .dashboard-root .sources-panel,
+.light .dashboard-root .sources-panel,
+.dashboard-root.light .panel.sources-panel,
+.light .dashboard-root .panel.sources-panel,
+.light .dashboard-root .panel.sources-panel {
+    background: #F8FAFC !important;
+}
+
+/* File cards - Physical border */
+.dashboard-root.light .source-card,
+.light .dashboard-root .source-card,
+.light .dashboard-root .source-card,
+.dashboard-root.light .document-card,
+.light .dashboard-root .document-card,
+.light .dashboard-root .document-card,
+.dashboard-root.light .file-card,
+.light .dashboard-root .file-card,
+.light .dashboard-root .file-card {
+    background: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+}
+
+.dashboard-root.light .source-card:hover,
+.light .dashboard-root .source-card:hover,
+.light .dashboard-root .source-card:hover,
+.dashboard-root.light .document-card:hover,
+.light .dashboard-root .document-card:hover,
+.light .dashboard-root .document-card:hover,
+.dashboard-root.light .file-card:hover,
+.light .dashboard-root .file-card:hover,
+.light .dashboard-root .file-card:hover {
+    border-color: #0000FF !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 255, 0.1) !important;
+}
+
+/* --- 4. SOVEREIGN GOLD BADGE - Light Mode Readability --- */
+.dashboard-root.light .sovereign-badge,
+.light .dashboard-root .sovereign-badge,
+.light .dashboard-root .sovereign-badge {
+    color: #B45309 !important;
+    border-color: #B45309 !important;
+    background: rgba(245, 158, 11, 0.1) !important;
+    box-shadow: none !important;
+}
+
+.dashboard-root.light .sovereign-badge svg,
+.light .dashboard-root .sovereign-badge svg,
+.light .dashboard-root .sovereign-badge svg {
+    stroke: #B45309 !important;
+    fill: rgba(180, 83, 9, 0.15) !important;
+}
+
+/* --- 5. HEADER - Platinum aesthetic --- */
+.dashboard-root.light .app-header,
+.light .dashboard-root .app-header,
+.light .dashboard-root .app-header {
+    background: #F8FAFC !important;
+    border-bottom-color: #E2E8F0 !important;
+}
+
+.dashboard-root.light .protocol-selector,
+.light .dashboard-root .protocol-selector,
+.light .dashboard-root .protocol-selector {
+    background: #FFFFFF !important;
+    border-color: #E2E8F0 !important;
+}
+
+.dashboard-root.light .global-search-container input,
+.light .dashboard-root .global-search-container input,
+.light .dashboard-root .global-search-container input {
+    background: #FFFFFF !important;
+    border-color: #E2E8F0 !important;
+    color: #0F172A !important;
+}
+
+/* --- 6. CONTEXT BAR - Mercury context indicator --- */
+.dashboard-root.light .context-bar,
+.light .dashboard-root .context-bar,
+.light .dashboard-root .context-bar,
+.dashboard-root.light .mercury-context-bar,
+.light .dashboard-root .mercury-context-bar,
+.light .dashboard-root .mercury-context-bar {
+    background: #FFFFFF !important;
+    border-color: #E2E8F0 !important;
+}
+
+/* --- 7. INSIGHT BLOCKS - Maintain color coding with light bg --- */
+.dashboard-root.light .insight-block,
+.light .dashboard-root .insight-block,
+.light .dashboard-root .insight-block {
+    background: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+}
+
+.dashboard-root.light .insight-action-bar,
+.light .dashboard-root .insight-action-bar,
+.light .dashboard-root .insight-action-bar {
+    background: rgba(241, 245, 249, 0.8) !important;
+    border-top: 1px solid #E2E8F0 !important;
+}
+
+/* --- 8. AUDIT LOG - Steel frame --- */
+.dashboard-root.light .audit-log-panel,
+.light .dashboard-root .audit-log-panel,
+.light .dashboard-root .audit-log-panel,
+.dashboard-root.light .system-audit-log,
+.light .dashboard-root .system-audit-log,
+.light .dashboard-root .system-audit-log {
+    background: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+}
+
+.dashboard-root.light .audit-log-entry,
+.light .dashboard-root .audit-log-entry,
+.light .dashboard-root .audit-log-entry {
+    border-bottom-color: #E2E8F0 !important;
+}
+
+/* --- 9. MODALS - Clean white with steel frame --- */
+.dashboard-root.light .modal-content,
+.light .dashboard-root .modal-content,
+.light .dashboard-root .modal-content,
+.dashboard-root.light .side-drawer-content,
+.light .dashboard-root .side-drawer-content,
+.light .dashboard-root .side-drawer-content {
+    background: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+}
+
+/* --- 10. INTEL RECEIVED ANIMATION - Adapt for light --- */
+.dashboard-root.light .forge-intel-received,
+.light .dashboard-root .forge-intel-received,
+.light .dashboard-root .forge-intel-received {
+    background: linear-gradient(180deg, #F1F5F9 0%, #F8FAFC 100%) !important;
+}
+
+.dashboard-root.light .intel-headline,
+.light .dashboard-root .intel-headline,
+.light .dashboard-root .intel-headline {
+    color: #0000FF !important;
+    text-shadow: 0 0 20px rgba(0, 0, 255, 0.3) !important;
+}
+
+.dashboard-root.light .intel-progress-bar,
+.light .dashboard-root .intel-progress-bar,
+.light .dashboard-root .intel-progress-bar {
+    background: #E2E8F0 !important;
+}
+
+/* --- 11. VAULTS SIDEBAR - PLATINUM MODE --- */
+/* Left sidebar gets the Platinum Grey treatment in Light Mode */
+.dashboard-root.light .sovereign-vault-panel,
+.light .dashboard-root .sovereign-vault-panel,
+html.light .sovereign-vault-panel {
+    background: #F1F5F9 !important;
+    border-right: 1px solid #E2E8F0 !important;
+}
+
+.dashboard-root.light .vault-header,
+.light .dashboard-root .vault-header,
+html.light .vault-header {
+    background: #E2E8F0 !important;
+    border-bottom: 1px solid #CBD5E1 !important;
+}
+
+.dashboard-root.light .vault-panel-title,
+.light .dashboard-root .vault-panel-title,
+html.light .vault-panel-title {
+    background: linear-gradient(110deg, #334155 20%, #0F172A 50%, #334155 80%) !important;
+    background-size: 200% auto !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    color: transparent !important;
+}
+
+.dashboard-root.light .vault-empty-title,
+.light .dashboard-root .vault-empty-title,
+html.light .vault-empty-title {
+    color: #0000FF !important;
+    text-shadow: none !important;
+}
+
+.dashboard-root.light .vault-empty-subtitle,
+.light .dashboard-root .vault-empty-subtitle,
+html.light .vault-empty-subtitle {
+    color: #64748B !important;
+}
+
+.dashboard-root.light .vault-circuit-bg,
+.light .dashboard-root .vault-circuit-bg,
+html.light .vault-circuit-bg {
+    opacity: 0.03 !important;
+}
+
+.dashboard-root.light .vault-card,
+.light .dashboard-root .vault-card,
+html.light .vault-card {
+    background: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+.dashboard-root.light .vault-card:hover,
+.light .dashboard-root .vault-card:hover,
+html.light .vault-card:hover {
+    border-color: #0000FF !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 255, 0.1) !important;
+}
+
+.dashboard-root.light .vault-card-title,
+.light .dashboard-root .vault-card-title,
+html.light .vault-card-title {
+    color: #0F172A !important;
+}
+
+.dashboard-root.light .vault-card-meta,
+.light .dashboard-root .vault-card-meta,
+html.light .vault-card-meta {
+    color: #64748B !important;
+}
+
+/* --- 12. PANEL HEADERS - Platinum Mode --- */
+.dashboard-root.light .panel-header,
+.light .dashboard-root .panel-header,
+html.light .panel-header {
+    background: #E2E8F0 !important;
+    border-bottom: 1px solid #CBD5E1 !important;
+}
+
+.dashboard-root.light .panel-title,
+.light .dashboard-root .panel-title,
+html.light .panel-title {
+    color: #0F172A !important;
+}
+
+/* --- 13. SOURCE CARDS - Security Drop Light Mode --- */
+.dashboard-root.light .source-card-new,
+.light .dashboard-root .source-card-new,
+html.light .source-card-new {
+    background: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+}
+
+.dashboard-root.light .source-card-new:hover,
+.light .dashboard-root .source-card-new:hover,
+html.light .source-card-new:hover {
+    border-color: #0000FF !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 255, 0.1) !important;
+}
+
+.dashboard-root.light .source-card-title,
+.light .dashboard-root .source-card-title,
+html.light .source-card-title {
+    color: #0F172A !important;
+}
+
+.dashboard-root.light .source-card-time,
+.light .dashboard-root .source-card-time,
+html.light .source-card-time {
+    color: #64748B !important;
+}
+
+/* --- VAULT MODULES - Light Mode Platinum Cards --- */
+/* The individual vault cards in the Secure Vaults panel */
+
+.dashboard-root.light .vault-module,
+.light .dashboard-root .vault-module,
+html.light .vault-module {
+    background: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+.dashboard-root.light .vault-module:hover,
+.light .dashboard-root .vault-module:hover,
+html.light .vault-module:hover {
+    background: #F8FAFC !important;
+    border-color: #CBD5E1 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+    transform: translateY(-1px);
+}
+
+/* Vault module shine - hide in light mode */
+.dashboard-root.light .vault-module-shine,
+.light .dashboard-root .vault-module-shine,
+html.light .vault-module-shine {
+    display: none !important;
+}
+
+/* Vault name text - dark for readability */
+.dashboard-root.light .vault-module-name,
+.light .dashboard-root .vault-module-name,
+html.light .vault-module-name {
+    color: #0F172A !important;
+}
+
+/* Vault document count text */
+.dashboard-root.light .vault-module-meta,
+.light .dashboard-root .vault-module-meta,
+html.light .vault-module-meta {
+    color: #64748B !important;
+}
+
+/* Status-specific borders in light mode */
+/* SECURE (Red) - Armed vault */
+.dashboard-root.light .vault-module.secure,
+.light .dashboard-root .vault-module.secure,
+html.light .vault-module.secure {
+    background: #FFFFFF !important;
+    border: 1px solid #DC2626 !important;
+    box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.1), 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+.dashboard-root.light .vault-module.secure:hover,
+.light .dashboard-root .vault-module.secure:hover,
+html.light .vault-module.secure:hover {
+    background: #FEF2F2 !important;
+    border-color: #DC2626 !important;
+    box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.15), 0 4px 12px rgba(220, 38, 38, 0.1) !important;
+}
+
+/* OPEN (Blue) - Active vault */
+.dashboard-root.light .vault-module.open,
+.light .dashboard-root .vault-module.open,
+html.light .vault-module.open {
+    background: #FFFFFF !important;
+    border: 1px solid #0000FF !important;
+    box-shadow: 0 0 0 1px rgba(0, 0, 255, 0.1), 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+.dashboard-root.light .vault-module.open:hover,
+.light .dashboard-root .vault-module.open:hover,
+html.light .vault-module.open:hover {
+    background: #EEF2FF !important;
+    border-color: #0000FF !important;
+    box-shadow: 0 0 0 2px rgba(0, 0, 255, 0.15), 0 4px 12px rgba(0, 0, 255, 0.1) !important;
+}
+
+/* CLOSED (Grey) - Cold storage */
+.dashboard-root.light .vault-module.closed,
+.light .dashboard-root .vault-module.closed,
+html.light .vault-module.closed {
+    background: #FFFFFF !important;
+    border: 1px solid #71717A !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+.dashboard-root.light .vault-module.closed:hover,
+.light .dashboard-root .vault-module.closed:hover,
+html.light .vault-module.closed:hover {
+    background: #F4F4F5 !important;
+    border-color: #71717A !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Drag target state in light mode */
+.dashboard-root.light .vault-module.drag-target,
+.light .dashboard-root .vault-module.drag-target,
+html.light .vault-module.drag-target {
+    background: #FFFBEB !important;
+    border-color: #FFAB00 !important;
+    box-shadow: 0 0 0 2px rgba(255, 171, 0, 0.2), 0 4px 12px rgba(255, 171, 0, 0.15) !important;
+}
+
+/* Lock status container background in light mode */
+.dashboard-root.light .lock-status-container,
+.light .dashboard-root .lock-status-container,
+html.light .lock-status-container {
+    background: transparent !important;
+}
+
+/* Vault items container */
+.dashboard-root.light .vault-items-container,
+.light .dashboard-root .vault-items-container,
+html.light .vault-items-container {
+    background: transparent !important;
+}
+
+/* --- 14. PANEL DIVIDERS - Structural Integrity (Light Mode Only) --- */
+/* Vertical dividers between panels to create clear visual separation */
+.dashboard-root.light .panel,
+.light .dashboard-root .panel,
+.light .dashboard-root .panel {
+    position: relative;
+}
+
+/* Add right border to all panels except the last (Studio) */
+.dashboard-root.light .vault-panel,
+.dashboard-root.light .sources-panel,
+.dashboard-root.light .chat-panel,
+.light .dashboard-root .vault-panel,
+.light .dashboard-root .sources-panel,
+.light .dashboard-root .chat-panel,
+.light .dashboard-root .vault-panel,
+.light .dashboard-root .sources-panel,
+.light .dashboard-root .chat-panel {
+    border-right: 1px solid #CBD5E1 !important;
+}
+
+/* Light mode resizers - more visible */
+.dashboard-root.light .resizer,
+.light .dashboard-root .resizer,
+.light .dashboard-root .resizer {
+    background: transparent;
+}
+
+.dashboard-root.light .resizer::before,
+.light .dashboard-root .resizer::before,
+.light .dashboard-root .resizer::before {
+    background: #CBD5E1 !important;
+    opacity: 1 !important;
+}
+
+.dashboard-root.light .resizer:hover::before,
+.light .dashboard-root .resizer:hover::before,
+.light .dashboard-root .resizer:hover::before {
+    background: #0000FF !important;
+    box-shadow: 0 0 8px rgba(0, 0, 255, 0.3) !important;
+}
+
+/* Security Drop panel in light mode - subtle background */
+.dashboard-root.light .ingestion-vortex-container,
+.light .dashboard-root .ingestion-vortex-container,
+.light .dashboard-root .ingestion-vortex-container {
+    border-bottom: 1px solid #E2E8F0 !important;
 }

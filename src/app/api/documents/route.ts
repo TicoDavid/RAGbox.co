@@ -8,107 +8,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { logDocumentUpload } from '@/lib/audit'
-
-export interface Document {
-  id: string
-  name: string
-  originalName: string
-  size: number
-  type: string
-  mimeType: string
-  storagePath: string
-  uploadedAt: string
-  updatedAt: string
-  userId: string
-  isPrivileged: boolean
-  chunkCount: number
-  status: 'pending' | 'processing' | 'ready' | 'error'
-  metadata?: Record<string, unknown>
-}
-
-// In-memory document store (replace with database in production)
-// Shared across requests via module scope
-const documentStore = new Map<string, Document>()
-
-// Initialize with demo documents
-function initDemoDocuments() {
-  if (documentStore.size > 0) return
-
-  const demoUserId = 'demo_user'
-  const documents: Document[] = [
-    {
-      id: 'doc_1',
-      name: 'Contract_NDA_2024.pdf',
-      originalName: 'Contract_NDA_2024.pdf',
-      size: 2450000,
-      type: 'pdf',
-      mimeType: 'application/pdf',
-      storagePath: `users/${demoUserId}/documents/doc_1.pdf`,
-      uploadedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-      updatedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-      userId: demoUserId,
-      isPrivileged: false,
-      chunkCount: 15,
-      status: 'ready',
-    },
-    {
-      id: 'doc_2',
-      name: 'Financial_Statement_Q4.xlsx',
-      originalName: 'Financial_Statement_Q4.xlsx',
-      size: 1200000,
-      type: 'xlsx',
-      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      storagePath: `users/${demoUserId}/documents/doc_2.xlsx`,
-      uploadedAt: new Date(Date.now() - 86400000).toISOString(),
-      updatedAt: new Date(Date.now() - 86400000).toISOString(),
-      userId: demoUserId,
-      isPrivileged: true,
-      chunkCount: 8,
-      status: 'ready',
-    },
-    {
-      id: 'doc_3',
-      name: 'Legal_Brief_v3.docx',
-      originalName: 'Legal_Brief_v3.docx',
-      size: 890000,
-      type: 'docx',
-      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      storagePath: `users/${demoUserId}/documents/doc_3.docx`,
-      uploadedAt: new Date(Date.now() - 3600000).toISOString(),
-      updatedAt: new Date(Date.now() - 3600000).toISOString(),
-      userId: demoUserId,
-      isPrivileged: false,
-      chunkCount: 12,
-      status: 'ready',
-    },
-    {
-      id: 'doc_4',
-      name: 'Attorney_Client_Memo.pdf',
-      originalName: 'Attorney_Client_Memo.pdf',
-      size: 456000,
-      type: 'pdf',
-      mimeType: 'application/pdf',
-      storagePath: `users/${demoUserId}/documents/doc_4.pdf`,
-      uploadedAt: new Date(Date.now() - 7200000).toISOString(),
-      updatedAt: new Date(Date.now() - 7200000).toISOString(),
-      userId: demoUserId,
-      isPrivileged: true,
-      chunkCount: 6,
-      status: 'ready',
-    },
-  ]
-
-  documents.forEach((doc) => documentStore.set(doc.id, doc))
-}
-
-// Initialize demo data
-initDemoDocuments()
-
-// Export for use by other API routes
-export function getDocumentStore(): Map<string, Document> {
-  initDemoDocuments()
-  return documentStore
-}
+import {
+  getDocumentsForUser,
+  setDocument,
+  STORAGE_LIMITS,
+  type Document,
+} from '@/lib/documents/store'
 
 /**
  * Extract user ID from request
@@ -124,7 +29,6 @@ async function getUserId(request: NextRequest): Promise<string | null> {
     return authHeader.slice(7)
   }
 
-  // Demo fallback
   return 'demo_user'
 }
 
@@ -138,12 +42,6 @@ function getClientIP(request: NextRequest): string {
 
 /**
  * GET /api/documents
- *
- * Query parameters:
- * - sort: 'name' | 'date' | 'size' (default 'date')
- * - order: 'asc' | 'desc' (default 'desc')
- * - privileged: 'true' | 'false' | 'all' (default 'all')
- * - status: 'pending' | 'processing' | 'ready' | 'error' | 'all' (default 'all')
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -153,40 +51,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     const { searchParams } = new URL(request.url)
-    const sort = searchParams.get('sort') || 'date'
-    const order = searchParams.get('order') || 'desc'
+    const sort = (searchParams.get('sort') || 'date') as 'name' | 'date' | 'size'
+    const order = (searchParams.get('order') || 'desc') as 'asc' | 'desc'
     const privilegedFilter = searchParams.get('privileged') || 'all'
     const statusFilter = searchParams.get('status') || 'all'
 
-    // Get user's documents
-    let documents = Array.from(documentStore.values()).filter((doc) => doc.userId === userId)
-
-    // Apply filters
-    if (privilegedFilter !== 'all') {
-      const isPrivileged = privilegedFilter === 'true'
-      documents = documents.filter((doc) => doc.isPrivileged === isPrivileged)
-    }
-
-    if (statusFilter !== 'all') {
-      documents = documents.filter((doc) => doc.status === statusFilter)
-    }
-
-    // Apply sorting
-    documents.sort((a, b) => {
-      let comparison = 0
-      switch (sort) {
-        case 'name':
-          comparison = a.name.localeCompare(b.name)
-          break
-        case 'size':
-          comparison = a.size - b.size
-          break
-        case 'date':
-        default:
-          comparison = new Date(a.uploadedAt).getTime() - new Date(b.uploadedAt).getTime()
-          break
-      }
-      return order === 'desc' ? -comparison : comparison
+    const documents = await getDocumentsForUser(userId, {
+      sort,
+      order,
+      privileged: privilegedFilter !== 'all' ? privilegedFilter === 'true' : undefined,
+      status: statusFilter !== 'all' ? statusFilter : undefined,
     })
 
     return NextResponse.json({
@@ -201,16 +75,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 /**
  * POST /api/documents
- *
- * Create a new document record after file upload.
- *
- * Request body:
- * {
- *   "name": string,
- *   "size": number,
- *   "mimeType": string,
- *   "storagePath": string
- * }
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -224,6 +88,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       size?: number
       mimeType?: string
       storagePath?: string
+      storageUri?: string
+      vaultId?: string
     }
     try {
       body = await request.json()
@@ -231,7 +97,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
     }
 
-    // Validate required fields
     if (!body.name || !body.size || !body.mimeType || !body.storagePath) {
       return NextResponse.json(
         { error: 'Missing required fields: name, size, mimeType, storagePath' },
@@ -239,7 +104,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       )
     }
 
-    // Extract file type from mime type
+    if (body.size > STORAGE_LIMITS.MAX_FILE_SIZE_BYTES) {
+      return NextResponse.json(
+        {
+          error: `File size exceeds maximum allowed size of ${STORAGE_LIMITS.MAX_FILE_SIZE_BYTES / (1024 * 1024)}MB`,
+          code: 'FILE_TOO_LARGE',
+          maxSize: STORAGE_LIMITS.MAX_FILE_SIZE_BYTES,
+        },
+        { status: 413 }
+      )
+    }
+
     const typeMap: Record<string, string> = {
       'application/pdf': 'pdf',
       'application/msword': 'doc',
@@ -251,7 +126,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
     const fileType = typeMap[body.mimeType] || body.mimeType.split('/')[1] || 'file'
 
-    // Generate document ID
     const docId = `doc_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
     const now = new Date().toISOString()
 
@@ -263,20 +137,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       type: fileType,
       mimeType: body.mimeType,
       storagePath: body.storagePath,
+      storageUri: body.storageUri,
       uploadedAt: now,
       updatedAt: now,
       userId,
       isPrivileged: false,
+      securityTier: 0,
       chunkCount: 0,
       status: 'pending',
+      deletionStatus: 'Active',
+      deletedAt: null,
+      hardDeleteScheduledAt: null,
+      vaultId: body.vaultId,
     }
 
-    documentStore.set(docId, document)
+    await setDocument(document)
 
-    // Log to audit trail
     const ipAddress = getClientIP(request)
     try {
-      await logDocumentUpload(userId, docId, body.name, ipAddress)
+      await logDocumentUpload(userId, docId, body.name, body.size, ipAddress)
     } catch (auditError) {
       console.error('Failed to log document upload:', auditError)
     }
@@ -288,9 +167,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-/**
- * OPTIONS /api/documents
- */
 export async function OPTIONS(): Promise<NextResponse> {
   return new NextResponse(null, {
     status: 204,

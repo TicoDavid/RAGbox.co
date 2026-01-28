@@ -374,7 +374,8 @@ export async function logDocumentPrivilegeChange(
  */
 export async function logDataExport(
   userId: string,
-  exportType: 'full' | 'documents' | 'audit',
+  exportType: string,
+  itemCount?: number,
   ipAddress?: string
 ): Promise<AuditEvent> {
   return logAuditEvent({
@@ -383,6 +384,7 @@ export async function logDataExport(
     severity: 'WARNING',
     details: {
       exportType,
+      itemCount,
       exportedAt: new Date().toISOString(),
     },
     ipAddress,

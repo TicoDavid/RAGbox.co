@@ -53,19 +53,14 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
           animate={{ opacity: 1, x: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         >
-          {mounted && (
-            <img
-              src={isDark
-                ? "https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
-                : "https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_white.jpg"
-              }
-              alt="RAGbox.co"
-              className={cn(
-                'h-12 md:h-14 lg:h-16 w-auto',
-                'transition-all duration-300'
-              )}
-            />
-          )}
+          <img
+            src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
+            alt="RAGbox.co"
+            className={cn(
+              'h-12 md:h-14 lg:h-16 w-auto',
+              'transition-all duration-300'
+            )}
+          />
         </motion.div>
 
         {/* Right Controls */}

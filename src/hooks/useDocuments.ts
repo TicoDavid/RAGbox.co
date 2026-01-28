@@ -3,6 +3,11 @@
 import { useState, useCallback, useEffect } from 'react'
 
 /**
+ * Deletion status for soft-delete lifecycle
+ */
+export type DeletionStatus = 'Active' | 'SoftDeleted' | 'HardDeleted'
+
+/**
  * Document interface matching the API response
  */
 export interface Document {
@@ -20,6 +25,9 @@ export interface Document {
   chunkCount: number
   status: 'pending' | 'processing' | 'ready' | 'error'
   metadata?: Record<string, unknown>
+  deletionStatus: DeletionStatus
+  deletedAt: string | null
+  hardDeleteScheduledAt: string | null
 }
 
 /**

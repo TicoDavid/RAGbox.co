@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 100" width="360" height="100">
+  <defs>
+    <!-- Electric Blue Glow Filter -->
+    <filter id="blueGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" 
+        values="0 0 0 0 0
+                0 0 0 0 0
+                0 0 0 0 1
+                0 0 0 0.3 0" result="colorBlur"/>
+      <feMerge>
+        <feMergeNode in="colorBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background: OLED Black -->
+  <rect width="360" height="100" fill="#000000"/>
+  
+  <!-- Main Logo Text: Electric Blue #0000FF -->
+  <g filter="url(#blueGlow)">
+    <!-- RAG -->
+    <text x="20" y="68" 
+          font-family="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" 
+          font-size="52" 
+          font-weight="700" 
+          fill="#0000FF"
+          letter-spacing="-1">RAG</text>
+    
+    <!-- böx with umlaut -->
+    <text x="138" y="68" 
+          font-family="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" 
+          font-size="52" 
+          font-weight="700" 
+          fill="#0000FF"
+          letter-spacing="-1">böx</text>
+    
+    <!-- .co -->
+    <text x="248" y="68" 
+          font-family="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" 
+          font-size="52" 
+          font-weight="700" 
+          fill="#0000FF"
+          letter-spacing="-1">.co</text>
+  </g>
+  
+  <!-- Registered trademark symbol -->
+  <text x="340" y="35" 
+        font-family="Arial, sans-serif" 
+        font-size="14" 
+        fill="#0000FF">®</text>
+</svg>

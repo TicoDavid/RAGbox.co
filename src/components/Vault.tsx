@@ -106,7 +106,7 @@ export function Vault() {
     setIsDragOver(false)
   }, [])
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragOver(false)
 

@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createHash } from 'crypto'
-import { getDocumentStore, Document } from '@/app/api/documents/route'
+import { getDocumentsForUser, type Document } from '@/lib/documents/store'
 import { logDataExport } from '@/lib/audit'
 
 /**
@@ -317,8 +317,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     // Get user's documents
-    const documentStore = getDocumentStore()
-    const documents = Array.from(documentStore.values()).filter((doc) => doc.userId === userId)
+    const documents = await getDocumentsForUser(userId)
 
     // Generate query history (in production, fetch from database)
     const queryHistory = generateDemoQueryHistory(userId)
@@ -380,8 +379,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const dateStr = new Date().toISOString().split('T')[0]
     const filename = `ragbox_export_${dateStr}.zip`
 
-    // Return ZIP response
-    return new NextResponse(archiveBuffer, {
+    // Return ZIP response (convert Buffer to Uint8Array for NextResponse)
+    return new NextResponse(new Uint8Array(archiveBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/zip',

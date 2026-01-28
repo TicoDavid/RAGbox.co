@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateOTP } from "@/lib/auth";
+import { generateOTP, debugOTPStore } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,11 +12,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const otp = generateOTP(email);
+    // Normalize email
+    const normalizedEmail = email.toLowerCase().trim();
+    const otp = generateOTP(normalizedEmail);
 
     // In production, send email via SendGrid/Resend/etc
     // For development, log to console
-    console.log(`\n🔐 OTP for ${email}: ${otp}\n`);
+    console.log(`\n🔐 OTP for ${normalizedEmail}: ${otp}\n`);
+
+    // Debug: show all stored OTPs
+    if (process.env.NODE_ENV === "development") {
+      debugOTPStore();
+    }
 
     // For demo: return OTP in response (REMOVE IN PRODUCTION)
     return NextResponse.json({

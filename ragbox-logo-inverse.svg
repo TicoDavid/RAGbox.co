@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 100" width="360" height="100">
+  <!-- Background: White -->
+  <rect width="360" height="100" fill="#FFFFFF"/>
+  
+  <!-- Main Logo Text: Electric Blue #0000FF -->
+  <g>
+    <!-- RAGböx.co -->
+    <text x="20" y="68" 
+          font-family="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" 
+          font-size="52" 
+          font-weight="700" 
+          fill="#0000FF"
+          letter-spacing="-1">RAGböx.co</text>
+  </g>
+  
+  <!-- Registered trademark symbol -->
+  <text x="340" y="35" 
+        font-family="Arial, sans-serif" 
+        font-size="14" 
+        fill="#0000FF">®</text>
+</svg>

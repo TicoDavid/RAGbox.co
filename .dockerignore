@@ -74,3 +74,16 @@ scripts
 cli
 RAGbox.co
 ragbox-co
+
+# Agent/build plan files
+ralph.js
+ralph-v2.js
+stories.json
+progress.txt
+agents.md
+nul
+test-document.txt
+*.jsonl
+
+# Claude config
+.claude

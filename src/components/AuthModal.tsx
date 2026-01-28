@@ -27,9 +27,9 @@ export function AuthModal({ isOpen, onClose, context = 'signin' }: AuthModalProp
   const [devOtp, setDevOtp] = useState(''); // For dev mode display
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Sound: The "Vault Door" - heavy impact on successful login
+  // Sound: Sci-fi whoosh on successful login
   const [playSuccess] = useSound(
-    'https://storage.googleapis.com/connexusai-assets/trailer-transition-double-crushing-impact-epic-stock-media-1-00-09.mp3',
+    'https://storage.googleapis.com/connexusai-assets/sci-fi-whoosh-ui-click-brukowskij-1-00-02.mp3',
     { volume: 0.4 }
   );
 
@@ -100,6 +100,14 @@ export function AuthModal({ isOpen, onClose, context = 'signin' }: AuthModalProp
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
     if (e.key === 'Backspace' && !otp[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
+    }
+    // Submit on Enter if all digits are filled
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const otpCode = otp.join('');
+      if (otpCode.length === 6 && !isLoading) {
+        handleVerify();
+      }
     }
   };
 
@@ -186,15 +194,13 @@ export function AuthModal({ isOpen, onClose, context = 'signin' }: AuthModalProp
 
           {/* LOGO & HEADER */}
           <div className="text-center mb-8">
-            {/* The White "App Icon" Container */}
-            <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-white shadow-lg shadow-blue-900/10 mb-6">
-              {/* Use the BLUE logo for contrast on white */}
-              <img
-                src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
-                className="w-20 h-auto"
-                alt="Logo"
-              />
-            </div>
+            {/* Official RAGbox.co Logo - Direct on dark background */}
+            <img
+              src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
+              className="w-[200px] h-auto mx-auto mb-6"
+              style={{ filter: 'drop-shadow(0 0 8px rgba(0, 0, 255, 0.4))' }}
+              alt="RAGbox.co"
+            />
 
             <h2 className="text-2xl font-bold text-white tracking-tight">
               {step === 'email' ? HEADERS[context].title : 'Verify Identity'}
