@@ -1,22 +1,33 @@
 import type { Metadata } from 'next'
-import { Outfit } from 'next/font/google'
+import { Space_Grotesk, Inter, JetBrains_Mono } from 'next/font/google'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { AuthProvider } from '@/components/providers/AuthProvider'
 import './globals.css'
 
-// Outfit - Rounded, modern font that matches the RAGbox logo
-const outfit = Outfit({
+// 1. Authority (Headers)
+const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
-  variable: '--font-outfit',
+  variable: '--font-space',
+  display: 'swap',
+})
+
+// 2. Readability (Body)
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+})
+
+// 3. Truth (Code/Logs)
+const jetbrains = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-jetbrains',
   display: 'swap',
 })
 
 export const metadata: Metadata = {
-  title: 'RAGbox - Sovereign Document Intelligence',
-  description:
-    'A Digital Fort Knox for private knowledge. Interrogate your documents with confidence.',
-  keywords: ['RAG', 'document intelligence', 'legal tech', 'AI', 'secure'],
+  title: 'RAGböx | Sovereign Intelligence',
+  description: 'Digital Fort Knox for Compliance-Sensitive Data',
 }
 
 export default function RootLayout({
@@ -25,10 +36,17 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning className={outfit.variable}>
-      <body className="font-outfit antialiased">
+    <html lang="en" suppressHydrationWarning className="dark">
+      <body className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrains.variable} font-sans bg-oled text-gray-200 antialiased overflow-hidden`}>
         <AuthProvider>
-          <ThemeProvider>{children}</ThemeProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem={false}
+            forcedTheme="dark"
+          >
+            {children}
+          </ThemeProvider>
         </AuthProvider>
       </body>
     </html>
