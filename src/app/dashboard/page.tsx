@@ -611,6 +611,16 @@ export default function Dashboard() {
     return PROTOCOL_SYSTEM_PROMPTS[protocolMode];
   }, [protocolMode]);
 
+  // Get page context for voice chat awareness
+  const getPageContext = useCallback(() => {
+    return {
+      activePanel: isMercuryExpanded ? 'mercury-expanded' : 'dashboard',
+      activeDocument: sources.length > 0 ? sources[0].title : null,
+      documentCount: sources.length,
+      searchQuery: globalSearchTerm,
+    };
+  }, [isMercuryExpanded, sources, globalSearchTerm]);
+
   const handleCreateVault = () => {
     setIsCreateVaultModalOpen(true);
   };
@@ -1014,6 +1024,7 @@ export default function Dashboard() {
             getDocumentContext={getDocumentContext}
             getChatHistory={getChatHistory}
             getSystemPrompt={getSystemPrompt}
+            getPageContext={getPageContext}
             onExpand={() => setIsMercuryExpanded(!isMercuryExpanded)}
             isExpanded={isMercuryExpanded}
           />
