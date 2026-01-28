@@ -108,42 +108,15 @@ export class VertexLlamaProvider implements LLMProvider {
     context: string[],
     systemPrompt: string = RAGBOX_SYSTEM_PROMPT
   ): AsyncIterable<LLMStreamChunk> {
-    // Vertex AI Llama endpoints support streaming via serverStreamingPredict
-    const fullPrompt = this.formatPrompt(prompt, context, systemPrompt)
+    // Vertex AI Model Garden endpoints don't support true streaming for Llama
+    // Fall back to generating full response and yielding it
+    const response = await this.generate(prompt, context, systemPrompt)
 
-    const request = {
-      endpoint: this.endpointPath,
-      inputs: [
-        {
-          structValue: {
-            fields: {
-              prompt: { stringValue: fullPrompt },
-              max_tokens: { numberValue: 2048 },
-              temperature: { numberValue: 0.3 },
-              top_p: { numberValue: 0.95 },
-              stream: { boolValue: true },
-            },
-          },
-        },
-      ],
-    }
-
-    const stream = this.client.serverStreamingPredict(request)
-
-    for await (const chunk of stream) {
-      const outputs = chunk.outputs ?? []
-      for (const output of outputs) {
-        let text = ''
-        if (output?.structValue?.fields?.content?.stringValue) {
-          text = output.structValue.fields.content.stringValue
-        } else if (output?.stringValue) {
-          text = output.stringValue
-        }
-
-        if (text) {
-          yield { text, done: false }
-        }
-      }
+    // Simulate streaming by yielding the response in chunks
+    const chunkSize = 50
+    for (let i = 0; i < response.text.length; i += chunkSize) {
+      const chunk = response.text.slice(i, i + chunkSize)
+      yield { text: chunk, done: false }
     }
 
     yield { text: '', done: true }
