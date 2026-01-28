@@ -1,65 +1,19 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { DeepgramClient } from '@/lib/voice/deepgram-client';
+import { AudioCapture } from '@/lib/voice/audio-capture';
+import { AudioPlayback } from '@/lib/voice/audio-playback';
+import { InworldClient } from '@/lib/voice/inworld-client';
+import type { ResponseContext } from '@/lib/voice/types';
 
-// Web Speech API type declarations
-interface SpeechRecognitionEvent extends Event {
-  resultIndex: number;
-  results: SpeechRecognitionResultList;
-}
-
-interface SpeechRecognitionResultList {
-  length: number;
-  item(index: number): SpeechRecognitionResult;
-  [index: number]: SpeechRecognitionResult;
-}
-
-interface SpeechRecognitionResult {
-  isFinal: boolean;
-  length: number;
-  item(index: number): SpeechRecognitionAlternative;
-  [index: number]: SpeechRecognitionAlternative;
-}
-
-interface SpeechRecognitionAlternative {
-  transcript: string;
-  confidence: number;
-}
-
-interface SpeechRecognitionErrorEvent extends Event {
-  error: string;
-  message?: string;
-}
-
-interface SpeechRecognitionInterface extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  onstart: (() => void) | null;
-  onresult: ((event: SpeechRecognitionEvent) => void) | null;
-  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
-  onend: (() => void) | null;
-  start(): void;
-  stop(): void;
-  abort(): void;
-}
-
-type SpeechRecognitionConstructor = new () => SpeechRecognitionInterface;
-
-declare global {
-  interface Window {
-    SpeechRecognition?: SpeechRecognitionConstructor;
-    webkitSpeechRecognition?: SpeechRecognitionConstructor;
-  }
-}
-
-// Google Cloud TTS voices (Neural2 - most natural)
+// Voice type kept for API compatibility (Inworld voices)
 export type TTSVoice = 'aria' | 'luke' | 'nova' | 'echo' | 'sage';
 
 export interface VoiceChatState {
   isConnected: boolean;
   isListening: boolean;
-  isRecording: boolean;  // New: tracks active recording state
+  isRecording: boolean;
   isSpeaking: boolean;
   transcript: string;
   error: string | null;
@@ -69,7 +23,7 @@ export interface VoiceChatState {
 export interface UseVoiceChatReturn extends VoiceChatState {
   startVoiceChat: () => Promise<void>;
   stopVoiceChat: () => void;
-  toggleRecording: () => void;  // New: manual toggle for recording
+  toggleRecording: () => void;
   interrupt: () => void;
   setVoice: (voice: TTSVoice) => void;
 }
@@ -80,34 +34,27 @@ export interface ChatHistoryMessage {
 }
 
 export interface VoiceChatOptions {
-  getContext?: () => string[];  // Function to get current document context
-  getChatHistory?: () => ChatHistoryMessage[];  // Function to get chat history for context
-  getSystemPrompt?: () => string;  // Function to get current protocol system prompt
+  getContext?: () => string[];
+  getChatHistory?: () => ChatHistoryMessage[];
+  getSystemPrompt?: () => string;
 }
 
-// Check if Speech Recognition is available
-const getSpeechRecognition = (): SpeechRecognitionConstructor | null => {
-  if (typeof window === 'undefined') return null;
-  return window.SpeechRecognition || window.webkitSpeechRecognition || null;
-};
-
-// Silence detection timeout (2 seconds)
+// Silence detection timeout (2 seconds after last speech)
 const SILENCE_TIMEOUT_MS = 2000;
 
 /**
- * Voice chat hook using Web Speech API (STT) + Google Cloud TTS
+ * Voice chat hook using Deepgram STT + Inworld TTS
  *
- * NEW: Manual Toggle Mode
- * - Click mic to START recording
+ * Manual Toggle Mode:
+ * - Click mic to START voice session + recording
  * - Click mic again to STOP recording (or wait 2s silence)
- * - No more premature cutoffs mid-sentence
+ * - Right-click to end session entirely
  *
  * Flow:
- * 1. User clicks mic -> Recording starts (continuous mode)
- * 2. User speaks -> Transcript accumulates
- * 3. User clicks stop OR 2s silence -> Recording stops
- * 4. Full transcript sent to /api/chat WITH context + history + system prompt
- * 5. Response played via TTS
+ * 1. User clicks mic -> Deepgram connects, mic captures audio
+ * 2. User speaks -> Deepgram streams transcript in real-time
+ * 3. Utterance ends (1.5s silence) OR user clicks stop -> transcript sent to /api/chat
+ * 4. Response synthesized via Inworld TTS and played back
  */
 export function useVoiceChat(
   onTranscript?: (userText: string, aiResponse: string) => void,
@@ -125,14 +72,25 @@ export function useVoiceChat(
     voice: 'aria',
   });
 
-  const recognitionRef = useRef<SpeechRecognitionInterface | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const deepgramRef = useRef<DeepgramClient | null>(null);
+  const captureRef = useRef<AudioCapture | null>(null);
+  const playbackRef = useRef<AudioPlayback | null>(null);
+  const inworldRef = useRef<InworldClient | null>(null);
   const isActiveRef = useRef(false);
-  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const accumulatedTranscriptRef = useRef('');
   const isRecordingRef = useRef(false);
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const accumulatedTranscriptRef = useRef('');
 
-  // Clear silence timer
+  // Initialize playback + inworld clients once
+  useEffect(() => {
+    playbackRef.current = new AudioPlayback();
+    inworldRef.current = new InworldClient();
+
+    return () => {
+      playbackRef.current?.dispose();
+    };
+  }, []);
+
   const clearSilenceTimer = useCallback(() => {
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
@@ -140,81 +98,27 @@ export function useVoiceChat(
     }
   }, []);
 
-  // Play audio from base64 MP3
-  const playAudio = useCallback((base64Audio: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      try {
-        const audio = new Audio(`data:audio/mp3;base64,${base64Audio}`);
-        audioRef.current = audio;
-
-        audio.onplay = () => {
-          setState(prev => ({ ...prev, isSpeaking: true }));
-        };
-
-        audio.onended = () => {
-          setState(prev => ({ ...prev, isSpeaking: false }));
-          audioRef.current = null;
-          resolve();
-        };
-
-        audio.onerror = () => {
-          setState(prev => ({ ...prev, isSpeaking: false }));
-          audioRef.current = null;
-          reject(new Error('Audio playback failed'));
-        };
-
-        audio.play().catch(reject);
-      } catch (error) {
-        reject(error);
-      }
-    });
-  }, []);
-
-  // Convert text to speech using Google Cloud TTS
-  const textToSpeech = useCallback(async (text: string): Promise<string> => {
-    const response = await fetch('/api/tts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        text,
-        voice: state.voice,
-        speakingRate: 1.1,
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'TTS failed');
-    }
-
-    const data = await response.json();
-    return data.audio;
-  }, [state.voice]);
-
-  // Process the accumulated transcript
+  // Process the accumulated transcript — send to RAG + TTS
   const processTranscript = useCallback(async (text: string) => {
     if (!text.trim()) return;
 
-    console.log('[VoiceChat] Processing full transcript:', text);
+    console.log('[VoiceChat] Processing transcript:', text);
     setState(prev => ({ ...prev, isRecording: false, isListening: false }));
 
     try {
-      // Get document context (same as text chat uses)
       const context = getContext?.() || [];
       const chatHistory = getChatHistory?.() || [];
       const systemPrompt = getSystemPrompt?.();
 
-      console.log(`[VoiceChat] Context: ${context.length} docs, History: ${chatHistory.length} turns, Protocol: ${systemPrompt ? 'yes' : 'no'}`);
-
-      // Get AI response from Gemini WITH full context
+      // Get AI response from RAG pipeline
       const chatResponse = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query: text,
-          context: context,
+          context,
           history: chatHistory,
-          systemPrompt: systemPrompt,
+          systemPrompt,
         }),
       });
 
@@ -228,21 +132,67 @@ export function useVoiceChat(
       }
 
       const aiResponse = chatData.data.answer;
+      const confidence = chatData.data.confidence ?? 0.9;
 
       // Notify parent component
       onTranscript?.(text, aiResponse);
 
-      // Convert response to speech
-      if (isActiveRef.current) {
-        console.log('[VoiceChat] Converting to speech...');
-        const audioBase64 = await textToSpeech(aiResponse);
+      // Synthesize and play via Inworld TTS
+      if (isActiveRef.current && inworldRef.current && playbackRef.current) {
+        console.log('[VoiceChat] Synthesizing with Inworld TTS...');
 
-        if (isActiveRef.current) {
-          await playAudio(audioBase64);
+        const responseContext: ResponseContext = {
+          confidence,
+          isGreeting: /^(hi|hello|hey|good morning|good afternoon)/i.test(text),
+          hasWarning: confidence < 0.85,
+          isError: false,
+          isPrivilegeFiltered: false,
+        };
+
+        // Prepare emotion-tagged text
+        const preparedText = inworldRef.current.prepareTextForTTS(aiResponse, responseContext);
+
+        setState(prev => ({ ...prev, isSpeaking: true }));
+
+        try {
+          const audioData = await inworldRef.current.synthesize({ text: preparedText });
+
+          if (isActiveRef.current) {
+            await playbackRef.current.play(
+              audioData,
+              () => {
+                setState(prev => ({ ...prev, isSpeaking: false }));
+              }
+            );
+          }
+        } catch (ttsError) {
+          console.warn('[VoiceChat] Inworld TTS failed, falling back to Google TTS:', ttsError);
+          // Fallback to Google TTS if Inworld fails
+          try {
+            const fallbackResponse = await fetch('/api/tts', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ text: aiResponse, voice: state.voice, speakingRate: 1.1 }),
+            });
+
+            if (fallbackResponse.ok) {
+              const fallbackData = await fallbackResponse.json();
+              if (fallbackData.audio && isActiveRef.current) {
+                const audio = new Audio(`data:audio/mp3;base64,${fallbackData.audio}`);
+                audio.onended = () => setState(prev => ({ ...prev, isSpeaking: false }));
+                audio.onerror = () => setState(prev => ({ ...prev, isSpeaking: false }));
+                await audio.play();
+              }
+            } else {
+              setState(prev => ({ ...prev, isSpeaking: false }));
+            }
+          } catch {
+            setState(prev => ({ ...prev, isSpeaking: false }));
+          }
         }
       }
 
-      // Ready for next recording (but don't auto-start)
+      // Ready for next recording
       setState(prev => ({ ...prev, transcript: '' }));
       accumulatedTranscriptRef.current = '';
 
@@ -250,19 +200,23 @@ export function useVoiceChat(
       console.error('[VoiceChat] Error:', error);
       setState(prev => ({
         ...prev,
+        isSpeaking: false,
         error: error instanceof Error ? error.message : 'Processing failed',
       }));
     }
-  }, [onTranscript, textToSpeech, playAudio, getContext, getChatHistory, getSystemPrompt]);
+  }, [onTranscript, getContext, getChatHistory, getSystemPrompt, state.voice]);
 
-  // Stop recording and process
+  // Stop recording and process transcript
   const stopRecording = useCallback(() => {
     clearSilenceTimer();
     isRecordingRef.current = false;
 
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    }
+    // Stop mic capture
+    captureRef.current?.stop();
+
+    // Disconnect Deepgram
+    deepgramRef.current?.disconnect();
+    deepgramRef.current = null;
 
     const finalTranscript = accumulatedTranscriptRef.current.trim();
     if (finalTranscript) {
@@ -272,9 +226,9 @@ export function useVoiceChat(
     }
   }, [clearSilenceTimer, processTranscript]);
 
-  // Start recording
-  const startRecording = useCallback(() => {
-    if (!recognitionRef.current || isRecordingRef.current) return;
+  // Start recording with Deepgram
+  const startRecording = useCallback(async () => {
+    if (isRecordingRef.current) return;
 
     clearSilenceTimer();
     accumulatedTranscriptRef.current = '';
@@ -283,11 +237,77 @@ export function useVoiceChat(
     setState(prev => ({ ...prev, isRecording: true, transcript: '', error: null }));
 
     try {
-      recognitionRef.current.start();
-    } catch (e) {
-      console.warn('[VoiceChat] Recognition start failed:', e);
+      // Create Deepgram client with callbacks
+      const deepgram = new DeepgramClient({
+        onTranscriptInterim: (text) => {
+          // Reset silence timer on interim results
+          clearSilenceTimer();
+          const display = accumulatedTranscriptRef.current + text;
+          setState(prev => ({ ...prev, transcript: display }));
+        },
+        onTranscriptFinal: (text) => {
+          clearSilenceTimer();
+          accumulatedTranscriptRef.current += text + ' ';
+          setState(prev => ({ ...prev, transcript: accumulatedTranscriptRef.current.trim() }));
+
+          // Start silence timer
+          if (isRecordingRef.current) {
+            silenceTimerRef.current = setTimeout(() => {
+              console.log('[VoiceChat] Silence detected (2s) - auto-stopping');
+              stopRecording();
+            }, SILENCE_TIMEOUT_MS);
+          }
+        },
+        onUtteranceEnd: () => {
+          // Deepgram detected end of utterance (1.5s silence)
+          // Start our own timer as a backup
+          if (isRecordingRef.current && accumulatedTranscriptRef.current.trim()) {
+            clearSilenceTimer();
+            silenceTimerRef.current = setTimeout(() => {
+              console.log('[VoiceChat] Utterance end + silence - auto-stopping');
+              stopRecording();
+            }, SILENCE_TIMEOUT_MS);
+          }
+        },
+        onConnectionChange: (connState) => {
+          console.log('[VoiceChat] Deepgram connection:', connState);
+          if (connState === 'error') {
+            setState(prev => ({ ...prev, error: 'Voice connection error' }));
+          }
+        },
+        onError: (error) => {
+          console.error('[VoiceChat] Deepgram error:', error);
+          setState(prev => ({ ...prev, error: error.message }));
+        },
+      });
+
+      deepgramRef.current = deepgram;
+
+      // Connect to Deepgram WebSocket
+      await deepgram.connect();
+
+      // Start audio capture, piping chunks to Deepgram
+      const capture = new AudioCapture();
+      captureRef.current = capture;
+
+      await capture.start(
+        (audioData) => deepgram.sendAudio(audioData)
+      );
+
+      setState(prev => ({ ...prev, isListening: true }));
+      console.log('[VoiceChat] Recording started with Deepgram STT');
+
+    } catch (error) {
+      console.error('[VoiceChat] Start recording error:', error);
+      isRecordingRef.current = false;
+      setState(prev => ({
+        ...prev,
+        isRecording: false,
+        isListening: false,
+        error: error instanceof Error ? error.message : 'Failed to start recording',
+      }));
     }
-  }, [clearSilenceTimer]);
+  }, [clearSilenceTimer, stopRecording]);
 
   // Toggle recording (manual control)
   const toggleRecording = useCallback(() => {
@@ -302,109 +322,21 @@ export function useVoiceChat(
 
   // Start voice chat session
   const startVoiceChat = useCallback(async () => {
-    const SpeechRecognitionAPI = getSpeechRecognition();
-
-    if (!SpeechRecognitionAPI) {
-      setState(prev => ({
-        ...prev,
-        error: 'Speech recognition not supported. Try Chrome.',
-      }));
-      return;
-    }
-
     try {
       // Request microphone permission
-      await navigator.mediaDevices.getUserMedia({ audio: true });
+      const capture = new AudioCapture();
+      const permission = await capture.requestPermission();
+
+      if (permission === 'denied') {
+        setState(prev => ({
+          ...prev,
+          error: 'Microphone access denied.',
+          isConnected: false,
+        }));
+        return;
+      }
 
       isActiveRef.current = true;
-
-      // Set up speech recognition with CONTINUOUS mode
-      const recognition = new SpeechRecognitionAPI();
-      recognitionRef.current = recognition;
-
-      recognition.continuous = true;  // KEY: Keep listening until manual stop
-      recognition.interimResults = true;
-      recognition.lang = 'en-US';
-
-      recognition.onstart = () => {
-        console.log('[VoiceChat] Recording started...');
-        setState(prev => ({ ...prev, isListening: true, isRecording: true, error: null }));
-      };
-
-      recognition.onresult = (event: SpeechRecognitionEvent) => {
-        // Reset silence timer on any speech
-        clearSilenceTimer();
-
-        let interimTranscript = '';
-        let sessionTranscript = '';
-
-        for (let i = 0; i < event.results.length; i++) {
-          const result = event.results[i];
-          if (result.isFinal) {
-            sessionTranscript += result[0].transcript + ' ';
-          } else {
-            interimTranscript += result[0].transcript;
-          }
-        }
-
-        // Update accumulated transcript
-        accumulatedTranscriptRef.current = sessionTranscript.trim();
-
-        // Show current state to user
-        const displayTranscript = (sessionTranscript + interimTranscript).trim();
-        setState(prev => ({ ...prev, transcript: displayTranscript }));
-
-        // Start silence timer (2 seconds of no speech = auto-stop)
-        if (isRecordingRef.current) {
-          silenceTimerRef.current = setTimeout(() => {
-            console.log('[VoiceChat] Silence detected (2s) - auto-stopping');
-            stopRecording();
-          }, SILENCE_TIMEOUT_MS);
-        }
-      };
-
-      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-        console.error('[VoiceChat] Recognition error:', event.error);
-
-        if (event.error === 'not-allowed') {
-          setState(prev => ({
-            ...prev,
-            error: 'Microphone access denied.',
-            isListening: false,
-            isRecording: false,
-            isConnected: false,
-          }));
-          isActiveRef.current = false;
-        } else if (event.error === 'no-speech') {
-          // No speech detected - just wait, don't error
-          if (isRecordingRef.current) {
-            try {
-              recognition.start();
-            } catch (e) {
-              // Ignore
-            }
-          }
-        } else if (event.error !== 'aborted') {
-          setState(prev => ({
-            ...prev,
-            error: `Recognition error: ${event.error}`,
-          }));
-        }
-      };
-
-      recognition.onend = () => {
-        console.log('[VoiceChat] Recognition ended');
-        setState(prev => ({ ...prev, isListening: false }));
-
-        // If still recording (not manual stop), restart
-        if (isRecordingRef.current && isActiveRef.current && !state.isSpeaking) {
-          try {
-            recognition.start();
-          } catch (e) {
-            // Ignore
-          }
-        }
-      };
 
       setState(prev => ({
         ...prev,
@@ -415,12 +347,23 @@ export function useVoiceChat(
         transcript: '',
       }));
 
-      // Welcome message via TTS
-      try {
-        const welcomeAudio = await textToSpeech('Voice mode active. Click the microphone to speak.');
-        await playAudio(welcomeAudio);
-      } catch (e) {
-        console.warn('[VoiceChat] Welcome message failed:', e);
+      // Welcome message via Inworld TTS
+      if (inworldRef.current && playbackRef.current) {
+        try {
+          setState(prev => ({ ...prev, isSpeaking: true }));
+          const welcomeText = inworldRef.current.prepareTextForTTS(
+            'Voice mode active. Click the microphone to speak.',
+            { confidence: 1.0, isGreeting: true }
+          );
+          const audioData = await inworldRef.current.synthesize({ text: welcomeText });
+          await playbackRef.current.play(
+            audioData,
+            () => setState(prev => ({ ...prev, isSpeaking: false }))
+          );
+        } catch (e) {
+          console.warn('[VoiceChat] Welcome TTS failed:', e);
+          setState(prev => ({ ...prev, isSpeaking: false }));
+        }
       }
 
     } catch (error) {
@@ -431,7 +374,7 @@ export function useVoiceChat(
         isConnected: false,
       }));
     }
-  }, [state.isSpeaking, textToSpeech, playAudio, clearSilenceTimer, stopRecording]);
+  }, []);
 
   // Stop voice chat session completely
   const stopVoiceChat = useCallback(() => {
@@ -439,15 +382,13 @@ export function useVoiceChat(
     isRecordingRef.current = false;
     clearSilenceTimer();
 
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
-    }
+    captureRef.current?.stop();
+    captureRef.current = null;
 
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
+    deepgramRef.current?.disconnect();
+    deepgramRef.current = null;
+
+    playbackRef.current?.stop();
 
     accumulatedTranscriptRef.current = '';
 
@@ -464,14 +405,11 @@ export function useVoiceChat(
 
   // Interrupt current speech
   const interrupt = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
+    playbackRef.current?.stop();
     setState(prev => ({ ...prev, isSpeaking: false }));
   }, []);
 
-  // Set voice (called from settings)
+  // Set voice
   const setVoice = useCallback((voice: TTSVoice) => {
     setState(prev => ({ ...prev, voice }));
   }, []);
@@ -482,12 +420,9 @@ export function useVoiceChat(
       isActiveRef.current = false;
       isRecordingRef.current = false;
       clearSilenceTimer();
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
+      captureRef.current?.stop();
+      deepgramRef.current?.disconnect();
+      playbackRef.current?.dispose();
     };
   }, [clearSilenceTimer]);
 
