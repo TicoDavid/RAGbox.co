@@ -29,8 +29,8 @@ export async function getAccessibleDocumentIds(
 
     // Filter by queryability rules
     return documents
-      .filter(doc => isQueryable(doc.securityTier, privilegeMode))
-      .map(doc => doc.id)
+      .filter((doc): doc is typeof doc => isQueryable(doc.securityTier, privilegeMode))
+      .map((doc) => doc.id)
   } catch (error) {
     console.error('[TierFilter] Failed to get accessible documents:', error)
     return []

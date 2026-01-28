@@ -23,6 +23,8 @@ model User {
   image     String?
   role      UserRole @default(Associate)
   status    UserStatus @default(Active)
+  privilegeModeEnabled Boolean @default(false) @map("privilege_mode_enabled")
+  privilegeModeChangedAt DateTime? @map("privilege_mode_changed_at")
   createdAt DateTime @default(now()) @map("created_at")
   lastLoginAt DateTime? @map("last_login_at")
 
@@ -291,4 +293,19 @@ model Template {
 
   @@index([userId])
   @@map("templates")
+}
+
+// ============================================
+// Waitlist (Pioneer Program Signups)
+// ============================================
+
+model WaitlistEntry {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  source    String?  // landing, blog, referral, etc.
+  referrer  String?
+  ipAddress String?  @map("ip_address")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("waitlist_entries")
 }

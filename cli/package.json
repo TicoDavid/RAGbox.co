@@ -34,6 +34,7 @@
   "devDependencies": {
     "@types/inquirer": "^9.0.7",
     "@types/node": "^22.0.0",
+    "@types/node-fetch": "^2.6.13",
     "typescript": "^5.5.0"
   },
   "engines": {
