@@ -19,7 +19,8 @@ import {
 } from './Icons';
 import ContextBar from './ContextBar';
 import { detectInsights, getActionsForInsight, getInsightColor, getInsightTypeName } from '../insight-detection';
-import { useVoiceChat, GeminiVoice } from '../hooks/useVoiceChat';
+import { useVoiceChat } from '../hooks/useVoiceChat';
+import type { PageContext } from '../hooks/useVoiceChat';
 import ForgeButton from '@/components/forge/ForgeButton';
 import ReasoningPanel from '@/components/mercury/ReasoningPanel';
 import CitationChip from '@/components/mercury/CitationChip';
@@ -92,6 +93,7 @@ interface MercuryChatProps {
   getDocumentContext?: () => string[];  // Document context for voice chat
   getChatHistory?: () => ChatHistoryMessage[];  // Chat history for voice context
   getSystemPrompt?: () => string;  // Current protocol system prompt
+  getPageContext?: () => PageContext;  // Page awareness for voice chat
   onExpand?: () => void;  // Expand Mercury window
   isExpanded?: boolean;  // Whether Mercury is currently expanded
 }
@@ -332,14 +334,14 @@ const MercuryChat: React.FC<MercuryChatProps> = ({
   getDocumentContext,
   getChatHistory,
   getSystemPrompt,
+  getPageContext,
   onExpand,
   isExpanded
 }) => {
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Voice chat hook - Manual Toggle Mode
-  // Click mic to START recording, click again to STOP (or wait 2s silence)
+  // Voice chat hook — Three-state: OFF / ON / MUTE
   const voiceChat = useVoiceChat(
     useCallback((userText: string, aiResponse: string) => {
       if (onVoiceTranscript) {
@@ -350,27 +352,50 @@ const MercuryChat: React.FC<MercuryChatProps> = ({
       getContext: getDocumentContext,
       getChatHistory: getChatHistory,
       getSystemPrompt: getSystemPrompt,
+      getPageContext: getPageContext,
     }
   );
 
-  // Voice button click handler - context-aware
-  const handleVoiceClick = useCallback(async () => {
-    if (!voiceChat.isConnected) {
-      // Not in voice mode - start session
-      await voiceChat.startVoiceChat();
-    } else if (voiceChat.isSpeaking) {
-      // AI is speaking - interrupt
-      voiceChat.interrupt();
-    } else {
-      // In voice mode - toggle recording
-      voiceChat.toggleRecording();
+  // Long-press detection (600ms)
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didLongPressRef = useRef(false);
+
+  const handlePointerDown = useCallback(() => {
+    didLongPressRef.current = false;
+    if (voiceChat.mode === 'on' || voiceChat.mode === 'mute') {
+      longPressTimerRef.current = setTimeout(() => {
+        didLongPressRef.current = true;
+        voiceChat.turnOff();
+      }, 600);
     }
   }, [voiceChat]);
 
-  // Long press to end voice session
-  const handleVoiceLongPress = useCallback(() => {
-    if (voiceChat.isConnected) {
-      voiceChat.stopVoiceChat();
+  const handlePointerUp = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+
+  const handlePointerLeave = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+
+  // Voice button click handler: OFF->ON, ON->MUTE, MUTE->ON, speaking->interrupt
+  const handleVoiceClick = useCallback(async () => {
+    // If long-press already fired, skip the click
+    if (didLongPressRef.current) return;
+
+    if (voiceChat.isSpeaking) {
+      voiceChat.interrupt();
+    } else if (voiceChat.mode === 'off') {
+      await voiceChat.turnOn();
+    } else {
+      // ON -> MUTE or MUTE -> ON
+      voiceChat.toggleMute();
     }
   }, [voiceChat]);
 
@@ -524,9 +549,11 @@ const MercuryChat: React.FC<MercuryChatProps> = ({
               onChange={handleTextareaInput}
               onKeyDown={handleKeyDown}
               placeholder={
-                voiceChat.transcript ? `🎤 ${voiceChat.transcript}` :
-                voiceChat.isRecording ? "🎤 Recording... click mic to stop" :
-                voiceChat.isConnected ? "🎤 Voice mode active - click mic to record" :
+                voiceChat.transcript ? voiceChat.transcript :
+                voiceChat.isSpeaking ? "Mercury is speaking..." :
+                voiceChat.isProcessing ? "Mercury is thinking..." :
+                voiceChat.mode === 'on' ? "Listening... speak or type here" :
+                voiceChat.mode === 'mute' ? "Voice paused \u2014 click mic to resume" :
                 "Request verified intelligence..."
               }
               disabled={isLoading}
@@ -535,27 +562,31 @@ const MercuryChat: React.FC<MercuryChatProps> = ({
             />
           </div>
 
-          {/* Voice Button - Manual Toggle Mode */}
-          {/* Click: Start session / Toggle recording / Interrupt speech */}
-          {/* Long press: End session */}
+          {/* Voice Button — Three-state: OFF / ON / MUTE */}
+          {/* Click: OFF->ON, ON->MUTE, MUTE->ON, speaking->interrupt */}
+          {/* Long-press (600ms): ON->OFF, MUTE->OFF */}
           <button
-            className={`realtime-voice-btn ${voiceChat.isConnected ? 'active' : ''} ${voiceChat.isRecording ? 'recording' : ''} ${voiceChat.isSpeaking ? 'speaking' : ''}`}
+            className={`realtime-voice-btn ${voiceChat.mode === 'on' ? 'voice-on' : ''} ${voiceChat.mode === 'mute' ? 'voice-mute' : ''} ${voiceChat.isSpeaking ? 'speaking' : ''} ${voiceChat.isProcessing ? 'processing' : ''}`}
             onClick={handleVoiceClick}
-            onContextMenu={(e) => { e.preventDefault(); handleVoiceLongPress(); }}
+            onPointerDown={handlePointerDown}
+            onPointerUp={handlePointerUp}
+            onPointerLeave={handlePointerLeave}
+            onContextMenu={(e) => e.preventDefault()}
             title={
-              !voiceChat.isConnected ? 'START VOICE MODE' :
-              voiceChat.isRecording ? 'STOP RECORDING' :
               voiceChat.isSpeaking ? 'INTERRUPT' :
-              'START RECORDING (right-click to exit)'
+              voiceChat.isProcessing ? 'THINKING...' :
+              voiceChat.mode === 'off' ? 'START VOICE MODE' :
+              voiceChat.mode === 'on' ? 'MUTE (long-press to turn off)' :
+              'UNMUTE (long-press to turn off)'
             }
             disabled={isLoading}
           >
-            {/* Pulse rings for recording state */}
-            {voiceChat.isRecording && (
+            {/* Pulse rings for ON state */}
+            {voiceChat.mode === 'on' && !voiceChat.isSpeaking && !voiceChat.isProcessing && (
               <>
-                <div className="voice-ripple recording" />
-                <div className="voice-ripple recording delay-1" />
-                <div className="voice-ripple recording delay-2" />
+                <div className="voice-ripple on" />
+                <div className="voice-ripple on delay-1" />
+                <div className="voice-ripple on delay-2" />
               </>
             )}
             {voiceChat.isSpeaking && (
@@ -570,18 +601,17 @@ const MercuryChat: React.FC<MercuryChatProps> = ({
               <path d="M5 10V11C5 14.866 8.13401 18 12 18C15.866 18 19 14.866 19 11V10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               <line x1="12" y1="18" x2="12" y2="22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               <line x1="8" y1="22" x2="16" y2="22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              {/* Recording indicator - pulsing dot */}
-              {voiceChat.isRecording && (
-                <circle cx="12" cy="7" r="2" fill="#FF3D00">
-                  <animate attributeName="opacity" values="1;0.3;1" dur="0.8s" repeatCount="indefinite"/>
-                </circle>
+              {/* Mute slash indicator */}
+              {voiceChat.mode === 'mute' && (
+                <line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
               )}
             </svg>
-            {voiceChat.isConnected && (
+            {voiceChat.mode !== 'off' && (
               <span className="voice-status-text">
                 {voiceChat.isSpeaking ? 'SPEAKING...' :
-                 voiceChat.isRecording ? 'RECORDING...' :
-                 'READY'}
+                 voiceChat.isProcessing ? 'THINKING...' :
+                 voiceChat.mode === 'on' ? 'LISTENING' :
+                 'MUTED'}
               </span>
             )}
             {voiceChat.error && (

@@ -1961,7 +1961,7 @@
     padding: 8px;
 }
 
-/* Directive 3: Realtime Secure Voice Button */
+/* Directive 3: Realtime Secure Voice Button — Three-State: OFF / ON / MUTE */
 .realtime-voice-btn {
     width: 52px;
     height: 52px;
@@ -1987,17 +1987,65 @@
         0 0 40px rgba(0, 0, 255, 0.2),
         inset 0 1px 0 rgba(255,255,255,0.1);
 }
-.realtime-voice-btn.active {
-    background: var(--electric-blue);
+
+/* ON state — green bg, gentle pulse */
+.realtime-voice-btn.voice-on {
+    background: linear-gradient(180deg, #2e7d32 0%, #1b5e20 100%);
+    border-color: #4CAF50;
     color: #fff;
-    animation: voicePulse 1s ease-in-out infinite;
+    animation: voiceOnPulse 2s ease-in-out infinite;
     box-shadow:
-        0 0 30px var(--electric-blue),
-        0 0 60px rgba(0, 0, 255, 0.4);
+        0 0 20px rgba(76, 175, 80, 0.4),
+        0 0 40px rgba(76, 175, 80, 0.2);
 }
-@keyframes voicePulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.08); }
+.realtime-voice-btn.voice-on:hover {
+    box-shadow:
+        0 0 30px rgba(76, 175, 80, 0.6),
+        0 0 60px rgba(76, 175, 80, 0.3);
+}
+@keyframes voiceOnPulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(76, 175, 80, 0.4); }
+    50% { transform: scale(1.04); box-shadow: 0 0 30px rgba(76, 175, 80, 0.6); }
+}
+
+/* MUTE state — amber bg, static (no pulse) */
+.realtime-voice-btn.voice-mute {
+    background: linear-gradient(180deg, #5d4800 0%, #4a3800 100%);
+    border-color: #FFAB00;
+    color: #FFAB00;
+    animation: none;
+    box-shadow:
+        0 0 12px rgba(255, 171, 0, 0.3),
+        inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.realtime-voice-btn.voice-mute:hover {
+    box-shadow:
+        0 0 20px rgba(255, 171, 0, 0.5),
+        0 0 40px rgba(255, 171, 0, 0.2);
+}
+
+/* Processing state — amber pulse while waiting for AI response */
+.realtime-voice-btn.processing {
+    background: linear-gradient(180deg, #5d4800 0%, #4a3800 100%);
+    border-color: #FFAB00;
+    color: #FFAB00;
+    animation: processingPulse 1s ease-in-out infinite;
+}
+@keyframes processingPulse {
+    0%, 100% { box-shadow: 0 0 15px rgba(255, 171, 0, 0.3); }
+    50% { box-shadow: 0 0 30px rgba(255, 171, 0, 0.6); }
+}
+
+/* Speaking state — green, faster pulse */
+.realtime-voice-btn.speaking {
+    background: linear-gradient(180deg, #00c853 0%, #00a041 100%);
+    border-color: #00c853;
+    color: #fff;
+    animation: speakingPulse 0.6s ease-in-out infinite;
+}
+@keyframes speakingPulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(0, 200, 83, 0.5); }
+    50% { box-shadow: 0 0 40px rgba(0, 200, 83, 0.8); }
 }
 
 .voice-waveform-icon {
@@ -2005,7 +2053,7 @@
     height: 24px;
     z-index: 2;
 }
-.realtime-voice-btn.active .voice-waveform-icon {
+.realtime-voice-btn.voice-on .voice-waveform-icon {
     animation: waveformPulse 0.5s ease-in-out infinite alternate;
 }
 @keyframes waveformPulse {
@@ -2026,14 +2074,36 @@
     opacity: 0;
     pointer-events: none;
 }
-.realtime-voice-btn.active .voice-ripple {
-    animation: voiceRipple 1.5s ease-out infinite;
+
+/* Green ripples for ON state */
+.realtime-voice-btn.voice-on .voice-ripple.on {
+    border-color: #4CAF50;
+    animation: greenRipple 2s ease-out infinite;
 }
-.realtime-voice-btn.active .voice-ripple.delay-1 {
+.realtime-voice-btn.voice-on .voice-ripple.on.delay-1 {
+    animation-delay: 0.7s;
+}
+.realtime-voice-btn.voice-on .voice-ripple.on.delay-2 {
+    animation-delay: 1.4s;
+}
+@keyframes greenRipple {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.4;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(2.5);
+        opacity: 0;
+    }
+}
+
+/* Speaking ripples */
+.realtime-voice-btn.speaking .voice-ripple.speaking {
+    border-color: #00c853;
+    animation: voiceRipple 1s ease-out infinite;
+}
+.realtime-voice-btn.speaking .voice-ripple.speaking.delay-1 {
     animation-delay: 0.5s;
-}
-.realtime-voice-btn.active .voice-ripple.delay-2 {
-    animation-delay: 1s;
 }
 @keyframes voiceRipple {
     0% {
@@ -2054,71 +2124,26 @@
     font-size: 0.6rem;
     font-weight: 700;
     letter-spacing: 0.1em;
-    color: var(--electric-blue);
     white-space: nowrap;
     animation: textPulse 1s ease-in-out infinite;
+}
+/* Color the status text based on state */
+.realtime-voice-btn.voice-on .voice-status-text {
+    color: #4CAF50;
+}
+.realtime-voice-btn.voice-mute .voice-status-text {
+    color: #FFAB00;
+    animation: none;
+}
+.realtime-voice-btn.speaking .voice-status-text {
+    color: #00c853;
+}
+.realtime-voice-btn.processing .voice-status-text {
+    color: #FFAB00;
 }
 @keyframes textPulse {
     0%, 100% { opacity: 0.7; }
     50% { opacity: 1; }
-}
-
-/* Voice chat - speaking state */
-.realtime-voice-btn.speaking {
-    background: linear-gradient(180deg, #00c853 0%, #00a041 100%);
-    border-color: #00c853;
-    color: #fff;
-    animation: speakingPulse 0.6s ease-in-out infinite;
-}
-.realtime-voice-btn.speaking .voice-ripple {
-    border-color: #00c853;
-    animation: voiceRipple 1s ease-out infinite;
-}
-@keyframes speakingPulse {
-    0%, 100% { box-shadow: 0 0 20px rgba(0, 200, 83, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(0, 200, 83, 0.8); }
-}
-
-/* Voice chat - listening state */
-.realtime-voice-btn.listening {
-    background: var(--electric-blue);
-    color: #fff;
-}
-
-/* Voice chat - recording state (RED pulsing) */
-.realtime-voice-btn.recording {
-    background: linear-gradient(180deg, #FF3D00 0%, #D32F2F 100%);
-    border-color: #FF3D00;
-    color: #fff;
-    animation: recordingPulse 0.8s ease-in-out infinite;
-}
-.realtime-voice-btn.recording .voice-ripple.recording {
-    border-color: #FF3D00;
-    animation: recordingRipple 1.2s ease-out infinite;
-}
-.realtime-voice-btn.recording .voice-ripple.recording.delay-1 {
-    animation-delay: 0.4s;
-}
-.realtime-voice-btn.recording .voice-ripple.recording.delay-2 {
-    animation-delay: 0.8s;
-}
-@keyframes recordingPulse {
-    0%, 100% {
-        box-shadow: 0 0 20px rgba(255, 61, 0, 0.5), inset 0 0 10px rgba(255, 61, 0, 0.3);
-    }
-    50% {
-        box-shadow: 0 0 40px rgba(255, 61, 0, 0.8), inset 0 0 20px rgba(255, 61, 0, 0.5);
-    }
-}
-@keyframes recordingRipple {
-    0% {
-        transform: scale(1);
-        opacity: 0.6;
-    }
-    100% {
-        transform: scale(2);
-        opacity: 0;
-    }
 }
 
 /* Voice error display */
