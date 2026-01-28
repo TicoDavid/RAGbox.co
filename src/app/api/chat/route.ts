@@ -10,6 +10,8 @@ import { ragClient } from '@/lib/vertex/rag-client'
 import { executeRAGPipeline } from '@/lib/rag/pipeline'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { MERCURY_SYSTEM_PROMPT } from '@/mercury/systemPrompt'
+import { sanitizeMercuryOutput, sanitizeChunk } from '@/mercury/outputFirewall'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -64,17 +66,22 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Chat API] Query: "${query.substring(0, 50)}..." | Context: ${context.length} docs | History: ${history.length} turns | Vector: ${useVectorPipeline} | Stream: ${stream}`)
 
+    // Enforce Mercury system prompt on every call
+    const effectiveSystemPrompt = MERCURY_SYSTEM_PROMPT + (systemPrompt ? `\n\n${systemPrompt}` : '')
+
     // GREETING FILTER
     if (isGreeting(query)) {
       const response = await ragClient.chat(query, {
-        systemPrompt: systemPrompt || 'You are Mercury, a helpful intelligence assistant. Respond naturally to greetings.',
+        systemPrompt: effectiveSystemPrompt,
         history,
       })
+
+      const fw = sanitizeMercuryOutput(response.answer)
 
       return NextResponse.json({
         success: true,
         data: {
-          answer: response.answer,
+          answer: fw.sanitized,
           confidence: 1.0,
           citations: [],
           silenceProtocol: false,
@@ -89,20 +96,21 @@ export async function POST(request: NextRequest) {
         userId,
         privilegeMode,
         maxTier,
-        systemPrompt,
+        systemPrompt: effectiveSystemPrompt,
         history,
       })
+
+      const fw = sanitizeMercuryOutput(result.answer)
 
       return NextResponse.json({
         success: true,
         data: {
-          answer: result.answer,
+          answer: fw.sanitized,
           confidence: result.confidence,
           citations: result.citations,
           silenceProtocol: result.silenceProtocol,
           chunksUsed: result.chunksUsed,
           latencyMs: result.latencyMs,
-          model: result.model,
           retrievedChunks: result.retrievedChunks.map(c => ({
             documentName: c.documentName,
             similarity: c.similarity,
@@ -119,22 +127,25 @@ export async function POST(request: NextRequest) {
         async start(controller) {
           try {
             if (context.length > 0) {
-              const response = await ragClient.query(query, context, { systemPrompt, history })
+              const response = await ragClient.query(query, context, { systemPrompt: effectiveSystemPrompt, history })
+              const fw = sanitizeMercuryOutput(response.answer)
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                 type: 'complete',
-                answer: response.answer,
+                answer: fw.sanitized,
                 confidence: response.confidence,
                 citations: response.citations,
               })}\n\n`))
             } else {
               await ragClient.chatStream(query, {
-                systemPrompt,
+                systemPrompt: effectiveSystemPrompt,
                 history,
                 onToken: (token) => {
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'token', content: token })}\n\n`))
+                  const clean = sanitizeChunk(token)
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'token', content: clean })}\n\n`))
                 },
                 onComplete: (fullText) => {
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done', fullText })}\n\n`))
+                  const fw = sanitizeMercuryOutput(fullText)
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done', fullText: fw.sanitized })}\n\n`))
                 },
                 onError: (error) => {
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`))
@@ -161,13 +172,13 @@ export async function POST(request: NextRequest) {
 
     // CONTEXT-BASED RAG (legacy mode)
     if (context.length > 0) {
-      const response = await ragClient.query(query, context, { systemPrompt, history })
+      const response = await ragClient.query(query, context, { systemPrompt: effectiveSystemPrompt, history })
 
       const confidenceThreshold = parseFloat(process.env.AEGIS_CONFIDENCE_THRESHOLD || '0.85')
       const hasHistory = history.length > 0
-      const effectiveThreshold = hasHistory ? confidenceThreshold * 0.8 : confidenceThreshold
+      const effectiveConfidenceThreshold = hasHistory ? confidenceThreshold * 0.8 : confidenceThreshold
 
-      if (response.confidence < effectiveThreshold) {
+      if (response.confidence < effectiveConfidenceThreshold) {
         return NextResponse.json({
           success: true,
           data: {
@@ -179,10 +190,12 @@ export async function POST(request: NextRequest) {
         })
       }
 
+      const fw = sanitizeMercuryOutput(response.answer)
+
       return NextResponse.json({
         success: true,
         data: {
-          answer: response.answer,
+          answer: fw.sanitized,
           confidence: response.confidence,
           citations: response.citations,
           silenceProtocol: false,
@@ -191,16 +204,16 @@ export async function POST(request: NextRequest) {
     }
 
     // DIRECT CHAT MODE
-    const response = await ragClient.chat(query, { systemPrompt, history })
+    const response = await ragClient.chat(query, { systemPrompt: effectiveSystemPrompt, history })
+    const fw = sanitizeMercuryOutput(response.answer)
 
     return NextResponse.json({
       success: true,
       data: {
-        answer: response.answer,
+        answer: fw.sanitized,
         confidence: 0.95,
         citations: [],
         silenceProtocol: false,
-        model: response.model,
       },
     })
   } catch (error) {
