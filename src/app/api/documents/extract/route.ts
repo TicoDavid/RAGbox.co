@@ -1,53 +1,51 @@
-/**
- * Document Text Extraction API
- *
- * POST /api/documents/extract
- *
- * Extracts text content from uploaded files (PDF, DOCX, TXT)
- * Uploads original file to GCS, returns extracted text for RAG indexing
- */
-
+// src/app/api/documents/extract/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { PDFParse } from 'pdf-parse'
-import * as mammothModule from 'mammoth'
+import mammoth from 'mammoth'
 import { storageClient } from '@/lib/gcp/storage-client'
-import { cookies } from 'next/headers'
 
-const mammoth = (mammothModule as unknown as { default?: typeof mammothModule }).default || mammothModule
-
+// Runtime configuration for Node.js
 export const runtime = 'nodejs'
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024
-
-async function getUserId(): Promise<string> {
+async function getUserId() {
+  const { cookies } = await import('next/headers')
   const sessionCookie = (await cookies()).get('session')
-  if (sessionCookie?.value) {
-    return sessionCookie.value
-  }
-  return 'demo_user'
+  return sessionCookie?.value ? sessionCookie.value : 'demo_user'
 }
 
-async function extractText(buffer: Buffer, mimeType: string, fileName: string): Promise<string> {
-  if (mimeType === 'text/plain' || fileName.endsWith('.txt')) {
+async function extractTextFromPDF(buffer: Buffer): Promise<string> {
+  // Dynamic import for pdf-parse (handles both CJS and ESM)
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string }>
+  const data = await pdfParse(buffer)
+  return data.text
+}
+
+async function extractText(
+  buffer: Buffer,
+  mimeType: string,
+  fileName: string
+): Promise<string> {
+  // Plain text and CSV
+  if (
+    mimeType === 'text/plain' ||
+    fileName.endsWith('.txt') ||
+    mimeType === 'text/csv' ||
+    fileName.endsWith('.csv')
+  ) {
     return buffer.toString('utf-8')
   }
 
-  if (mimeType === 'text/csv' || fileName.endsWith('.csv')) {
-    return buffer.toString('utf-8')
-  }
-
+  // PDF
   if (mimeType === 'application/pdf' || fileName.endsWith('.pdf')) {
     try {
-      const uint8Array = new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength)
-      const pdfParser = new PDFParse(uint8Array)
-      const pdfData = await pdfParser.getText()
-      return pdfData.text
+      return await extractTextFromPDF(buffer)
     } catch (error) {
       console.error('[Extract] PDF parse error:', error)
       throw new Error('Failed to extract text from PDF')
     }
   }
 
+  // DOCX
   if (
     mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
     fileName.endsWith('.docx')
@@ -61,18 +59,22 @@ async function extractText(buffer: Buffer, mimeType: string, fileName: string): 
     }
   }
 
+  // Legacy DOC
   if (mimeType === 'application/msword' || fileName.endsWith('.doc')) {
     return `[Document: ${fileName}] - Legacy .doc format. Please convert to .docx for full text extraction.`
   }
 
-  if (mimeType === 'text/markdown' || fileName.endsWith('.md')) {
+  // Markdown and JSON
+  if (
+    mimeType === 'text/markdown' ||
+    fileName.endsWith('.md') ||
+    mimeType === 'application/json' ||
+    fileName.endsWith('.json')
+  ) {
     return buffer.toString('utf-8')
   }
 
-  if (mimeType === 'application/json' || fileName.endsWith('.json')) {
-    return buffer.toString('utf-8')
-  }
-
+  // Excel files
   if (
     mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
     mimeType === 'application/vnd.ms-excel' ||
@@ -82,11 +84,51 @@ async function extractText(buffer: Buffer, mimeType: string, fileName: string): 
     return `[Spreadsheet: ${fileName}] - Excel file detected. For full text extraction, export as CSV.`
   }
 
+  // Unsupported format
   return `[File: ${fileName}] - Unsupported format (${mimeType}). Supported: PDF, DOCX, TXT, CSV, MD, JSON`
+}
+
+function splitTextIntoChunks(
+  text: string,
+  chunkSize: number,
+  overlapSize: number
+): string[] {
+  if (!text || text.length === 0) return []
+  if (text.length <= chunkSize) return [text]
+
+  const chunks: string[] = []
+  let startIndex = 0
+
+  while (startIndex < text.length) {
+    let endIndex = startIndex + chunkSize
+
+    // Try to break at natural boundaries
+    if (endIndex < text.length) {
+      const breakPoints = ['\n\n', '\n', '. ', '! ', '? ']
+      for (const breakPoint of breakPoints) {
+        const lastBreak = text.lastIndexOf(breakPoint, endIndex)
+        if (lastBreak > startIndex + chunkSize / 2) {
+          endIndex = lastBreak + breakPoint.length
+          break
+        }
+      }
+    }
+
+    chunks.push(text.slice(startIndex, endIndex).trim())
+
+    // Move forward with overlap
+    startIndex = endIndex - overlapSize
+    if (startIndex >= text.length - overlapSize) break
+  }
+
+  return chunks.filter((chunk) => chunk.length > 0)
 }
 
 /**
  * POST /api/documents/extract
+ *
+ * Extracts text content from uploaded files (PDF, DOCX, TXT)
+ * Uploads original file to GCS, returns extracted text for RAG indexing
  */
 export async function POST(request: NextRequest) {
   try {
@@ -100,23 +142,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (file.size > MAX_FILE_SIZE) {
+    // File size limit: 10MB
+    if (file.size > 10 * 1024 * 1024) {
       return NextResponse.json(
-        { success: false, error: `File too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB` },
+        { success: false, error: 'File too large. Maximum size is 10MB' },
         { status: 413 }
       )
     }
 
     console.log(`[Extract] Processing: ${file.name} (${file.type}, ${file.size} bytes)`)
 
+    // Read file into Buffer
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
-    // Upload original file to GCS
-    let gcsUri: string | undefined
-    let storagePath: string | undefined
+    // Get user ID for GCS path
     const userId = await getUserId()
 
+    // Upload to GCS
+    let gcsUri: string | undefined
+    let storagePath: string | undefined
     try {
       const uploadResult = await storageClient.uploadFile(
         buffer,
@@ -133,9 +178,13 @@ export async function POST(request: NextRequest) {
 
     // Extract text
     const extractedText = await extractText(buffer, file.type, file.name)
-    const chunks = chunkText(extractedText, 2000, 200)
 
-    console.log(`[Extract] Extracted ${extractedText.length} chars, ${chunks.length} chunks from ${file.name}`)
+    // Split into chunks for RAG
+    const chunks = splitTextIntoChunks(extractedText, 2000, 200)
+
+    console.log(
+      `[Extract] Extracted ${extractedText.length} chars, ${chunks.length} chunks from ${file.name}`
+    )
 
     return NextResponse.json({
       success: true,
@@ -151,46 +200,12 @@ export async function POST(request: NextRequest) {
         storagePath,
       },
     })
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('[Extract] Error:', error)
     const message = error instanceof Error ? error.message : 'Unknown error'
-
     return NextResponse.json(
       { success: false, error: message },
       { status: 500 }
     )
   }
-}
-
-/**
- * Split text into overlapping chunks for RAG retrieval
- */
-function chunkText(text: string, chunkSize: number, overlap: number): string[] {
-  if (!text || text.length === 0) return []
-  if (text.length <= chunkSize) return [text]
-
-  const chunks: string[] = []
-  let start = 0
-
-  while (start < text.length) {
-    let end = start + chunkSize
-
-    if (end < text.length) {
-      const breakPoints = ['\n\n', '\n', '. ', '! ', '? ']
-      for (const breakPoint of breakPoints) {
-        const lastBreak = text.lastIndexOf(breakPoint, end)
-        if (lastBreak > start + chunkSize / 2) {
-          end = lastBreak + breakPoint.length
-          break
-        }
-      }
-    }
-
-    chunks.push(text.slice(start, end).trim())
-    start = end - overlap
-
-    if (start >= text.length - overlap) break
-  }
-
-  return chunks.filter(chunk => chunk.length > 0)
 }
