@@ -220,7 +220,7 @@ const SecurityDrop: React.FC<SecurityDropProps> = ({
             style={{
               width: 160,
               minWidth: 160,
-              borderRight: '1px solid var(--border-color, #222)',
+              borderRight: '1px solid var(--border-color)',
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden',
@@ -235,7 +235,7 @@ const SecurityDrop: React.FC<SecurityDropProps> = ({
                 onRenameFolder={handleRenameFolder}
                 onDeleteFolder={handleDeleteFolder}
               />
-              <div style={{ borderTop: '1px solid #222', marginTop: 4 }}>
+              <div style={{ borderTop: '1px solid var(--border-color)', marginTop: 4 }}>
                 <QuickAccess
                   recentCount={sources.filter(s => s.isNew).length}
                   favoritesCount={0}
@@ -245,7 +245,7 @@ const SecurityDrop: React.FC<SecurityDropProps> = ({
                 />
               </div>
             </div>
-            <div style={{ borderTop: '1px solid #222' }}>
+            <div style={{ borderTop: '1px solid var(--border-color)' }}>
               <StorageIndicator usedBytes={totalStorageUsed} maxBytes={maxStorage} />
             </div>
           </div>
@@ -298,12 +298,12 @@ const SecurityDrop: React.FC<SecurityDropProps> = ({
       {/* Context Menu */}
       {contextMenu.visible && (
         <div
-          className="fixed z-50 rounded-lg border border-[#333] bg-[#111] shadow-2xl py-1"
+          className="fixed z-50 rounded-lg border dark:border-[#333] border-slate-200 dark:bg-[#111] bg-white shadow-2xl py-1"
           style={{ left: contextMenu.x, top: contextMenu.y }}
         >
           <button
             onClick={handleOpenTierDialog}
-            className="w-full text-left px-4 py-2 text-xs text-[#ccc] hover:bg-[#222] hover:text-[#00F0FF] transition-colors"
+            className="w-full text-left px-4 py-2 text-xs dark:text-[#ccc] text-slate-600 dark:hover:bg-[#222] hover:bg-slate-100 hover:text-[#00F0FF] transition-colors"
           >
             Change Security Tier
           </button>
@@ -312,7 +312,7 @@ const SecurityDrop: React.FC<SecurityDropProps> = ({
               if (contextMenu.sourceId !== null) handleDeleteDocument(String(contextMenu.sourceId));
               handleCloseContextMenu();
             }}
-            className="w-full text-left px-4 py-2 text-xs text-[#ccc] hover:bg-[#222] hover:text-red-500 transition-colors"
+            className="w-full text-left px-4 py-2 text-xs dark:text-[#ccc] text-slate-600 dark:hover:bg-[#222] hover:bg-slate-100 hover:text-red-500 transition-colors"
           >
             Delete
           </button>

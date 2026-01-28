@@ -223,7 +223,7 @@
     border-radius: 50%;
     object-fit: cover;
     border: 1px solid var(--border-color);
-    background: #000;
+    background: var(--bg-app);
 }
 
 /* User Avatar - Sovereign Styling */
@@ -584,7 +584,7 @@
 
 /* Vault Panel Header */
 .vault-header {
-    background: #0d0d10;
+    background: var(--bg-panel);
     border-bottom: 1px solid rgba(0, 0, 255, 0.15);
 }
 
@@ -1134,7 +1134,7 @@
 .ingestion-vortex-container {
     width: 100%;
     aspect-ratio: 1/1;
-    background: #000000;
+    background: var(--bg-app);
     position: relative;
     overflow: hidden;
     cursor: pointer;
@@ -1956,7 +1956,7 @@
     box-shadow: 0 0 15px rgba(0, 0, 255, 0.5);
 }
 .voice-selector option {
-    background: #0d0d15;
+    background: var(--bg-panel);
     color: var(--text-primary);
     padding: 8px;
 }
@@ -2270,7 +2270,7 @@
     height: 400px;
     width: 100%;
     position: relative;
-    background: #0a0a0a;
+    background: var(--bg-app);
     border-radius: 0 0 12px 12px;
     overflow: hidden;
 }
@@ -2287,7 +2287,7 @@
     border: none;
     display: block;
     object-fit: contain;
-    background: #0f0f0f;
+    background: var(--bg-panel);
 }
 
 /* Scaled preview for UI components */
@@ -2735,7 +2735,7 @@
 }
 
 .code-block {
-    background: #000; border-color: var(--border-color); color: #0f0;
+    background: var(--bg-app); border-color: var(--border-color); color: var(--text-primary);
     padding: 16px; margin: 0; border-radius: 8px; overflow: auto;
     font-family: var(--font-mono); font-size: 0.85rem;
 }
