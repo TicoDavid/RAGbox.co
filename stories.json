@@ -559,3 +559,118 @@
     }
   ]
 }
+{
+  "id": "S021",
+  "epic": "E4",
+  "title": "Integrate Mercury System Prompt and Output Firewall",
+  "status": "todo",
+  "priority": "critical",
+  "story_points": 4,
+  "description": "Integrate a production-grade Mercury system prompt and output firewall to enforce identity rules (Mercury only, no vendor names) and sanitize model outputs before they reach the user.",
+  "acceptance_criteria": [
+    "Create src/mercury/systemPrompt.ts defining MERCURY_SYSTEM_PROMPT with identity, safety, style and privilege instructions",
+    "Create src/mercury/outputFirewall.ts implementing sanitizeMercuryOutput() with banned patterns for vendor names (ChatGPT, Claude, Gemini, etc.)",
+    "Create src/mercury/outputFirewall.test.ts with unit tests verifying removal of vendor/model identity leakage",
+    "Update src/app/api/chat/route.ts to prepend MERCURY_SYSTEM_PROMPT to every LLM request",
+    "Update src/app/api/chat/route.ts to apply sanitizeMercuryOutput() on every model response including streaming",
+    "Log firewall violations to Veritas audit but never expose in UI responses"
+  ],
+  "files_to_create": [
+    "src/mercury/systemPrompt.ts",
+    "src/mercury/outputFirewall.ts",
+    "src/mercury/outputFirewall.test.ts"
+  ],
+  "files_to_modify": [
+    "src/app/api/chat/route.ts"
+  ]
+},
+{
+  "id": "S022",
+  "epic": "E1",
+  "title": "Create /api/about Endpoint for Architecture Info",
+  "status": "todo",
+  "priority": "high",
+  "story_points": 2,
+  "description": "Add a static API route that returns a deterministic description of the RAGbox architecture without exposing vendor model identities.",
+  "acceptance_criteria": [
+    "Create src/app/api/about/route.ts returning JSON with name, identity, architecture, compliance, and policy fields",
+    "Set runtime to 'edge' for fast global distribution",
+    "Add Cache-Control header for 1-hour caching",
+    "Ensure NO vendor model names appear (no Gemini, GPT, Claude, OpenAI, Anthropic)",
+    "Add unit test verifying the endpoint returns expected structure"
+  ],
+  "files_to_create": [
+    "src/app/api/about/route.ts"
+  ],
+  "files_to_modify": []
+},
+{
+  "id": "S023",
+  "epic": "E2",
+  "title": "Fix Google OAuth Callback and NextAuth Configuration",
+  "status": "todo",
+  "priority": "critical",
+  "story_points": 3,
+  "description": "Resolve the Google OAuth callback error (404) and ensure NextAuth is correctly configured for both local development and Cloud Run deployment. BLOCKER - users cannot sign in.",
+  "acceptance_criteria": [
+    "Identify root cause of 404 on Google OAuth callback",
+    "Update src/app/api/auth/[...nextauth]/route.ts to set trustHost: true",
+    "Export both GET and POST handlers correctly for Next.js 14 App Router",
+    "Update .env.local.example with NEXTAUTH_URL, NEXTAUTH_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET",
+    "Document required Google Cloud Console redirect URIs in comments",
+    "Add error handling to src/app/login/page.tsx with meaningful error messages"
+  ],
+  "files_to_create": [],
+  "files_to_modify": [
+    "src/app/api/auth/[...nextauth]/route.ts",
+    "src/app/login/page.tsx",
+    ".env.local.example"
+  ]
+},
+{
+  "id": "S024",
+  "epic": "E4",
+  "title": "Implement sanitizeForTTS and Improve Voice Chat Output",
+  "status": "todo",
+  "priority": "high",
+  "story_points": 3,
+  "description": "Improve text-to-speech by removing markdown artifacts and converting citations to speech-friendly phrases.",
+  "acceptance_criteria": [
+    "Create src/lib/tts/sanitize.ts with sanitizeForTTS() that strips markdown symbols and converts [1] to 'citation one'",
+    "Create src/lib/tts/sanitize.test.ts with unit tests for headings, bold, code blocks, citations, lists",
+    "Update src/components/Mercury.tsx to call sanitizeForTTS() before sending to TTS service",
+    "Visual display keeps original markdown - only TTS output is sanitized"
+  ],
+  "files_to_create": [
+    "src/lib/tts/sanitize.ts",
+    "src/lib/tts/sanitize.test.ts"
+  ],
+  "files_to_modify": [
+    "src/components/Mercury.tsx"
+  ]
+},
+{
+  "id": "S025",
+  "epic": "E0",
+  "title": "Unify Light/Dark Mode Theme Provider across UI",
+  "status": "todo",
+  "priority": "high",
+  "story_points": 3,
+  "description": "Eliminate theme inconsistencies by using next-themes with class strategy and ensuring all components respond uniformly to light/dark mode toggles.",
+  "acceptance_criteria": [
+    "Refactor src/components/providers/ThemeProvider.tsx to use next-themes with attribute='class' and defaultTheme='dark'",
+    "Ensure tailwind.config.ts has darkMode: 'class'",
+    "Remove redundant local theme state from components",
+    "Update Sidebar, Vault, Mercury, Forge to use Tailwind dark: prefix classes",
+    "Theme persists via localStorage through next-themes"
+  ],
+  "files_to_create": [],
+  "files_to_modify": [
+    "src/components/providers/ThemeProvider.tsx",
+    "src/components/Sidebar.tsx",
+    "src/components/Vault.tsx",
+    "src/components/Mercury.tsx",
+    "src/components/Forge.tsx",
+    "tailwind.config.ts"
+  ]
+}
