@@ -5,6 +5,7 @@ import { DeepgramClient } from '@/lib/voice/deepgram-client';
 import { AudioCapture } from '@/lib/voice/audio-capture';
 import { AudioPlayback } from '@/lib/voice/audio-playback';
 import { InworldClient } from '@/lib/voice/inworld-client';
+import { sanitizeForTTS } from '@/lib/voice/sanitizeForTTS';
 import type { ResponseContext } from '@/lib/voice/types';
 
 // Voice type kept for API compatibility (Inworld voices)
@@ -149,8 +150,9 @@ export function useVoiceChat(
           isPrivilegeFiltered: false,
         };
 
-        // Prepare emotion-tagged text
-        const preparedText = inworldRef.current.prepareTextForTTS(aiResponse, responseContext);
+        // Strip markdown/citations before speech synthesis
+        const spokenText = sanitizeForTTS(aiResponse);
+        const preparedText = inworldRef.current.prepareTextForTTS(spokenText, responseContext);
 
         setState(prev => ({ ...prev, isSpeaking: true }));
 
@@ -172,7 +174,7 @@ export function useVoiceChat(
             const fallbackResponse = await fetch('/api/tts', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ text: aiResponse, voice: state.voice, speakingRate: 1.1 }),
+              body: JSON.stringify({ text: spokenText, voice: state.voice, speakingRate: 1.1 }),
             });
 
             if (fallbackResponse.ok) {
