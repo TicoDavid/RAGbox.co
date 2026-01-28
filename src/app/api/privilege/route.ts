@@ -11,19 +11,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logPrivilegeModeChange } from '@/lib/audit'
 import { cookies } from 'next/headers'
+import prisma from '@/lib/prisma'
 
-// In-memory store for privilege state (per session)
-// TODO: Replace with database storage when Prisma is properly configured
-const privilegeStore = new Map<
-  string,
-  {
-    isPrivileged: boolean
-    lastChanged: Date
-    userId: string
-  }
->()
-
-// Cookie name for privilege session
+// Cookie name for privilege session (fallback for unauthenticated users)
 const PRIVILEGE_COOKIE = 'ragbox_privilege_mode'
 
 /**
@@ -71,20 +61,31 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check stored state
-    const stored = privilegeStore.get(userId)
+    // Try to get from database first
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        privilegeModeEnabled: true,
+        privilegeModeChangedAt: true,
+      },
+    })
 
-    // Also check cookie for persistence across server restarts
+    if (user) {
+      return NextResponse.json({
+        isPrivileged: user.privilegeModeEnabled,
+        lastChanged: user.privilegeModeChangedAt?.toISOString() ?? null,
+        userId,
+      })
+    }
+
+    // Fallback to cookie for unauthenticated users or demo mode
     const cookieStore = await cookies()
     const privilegeCookie = cookieStore.get(PRIVILEGE_COOKIE)
-    const cookieValue = privilegeCookie?.value === 'true'
-
-    const isPrivileged = stored?.isPrivileged ?? cookieValue ?? false
-    const lastChanged = stored?.lastChanged ?? null
+    const isPrivileged = privilegeCookie?.value === 'true'
 
     return NextResponse.json({
       isPrivileged,
-      lastChanged: lastChanged?.toISOString() ?? null,
+      lastChanged: null,
       userId,
     })
   } catch (error) {
@@ -127,31 +128,46 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       )
     }
 
-    const previousState = privilegeStore.get(userId)
-    const wasPrivileged = previousState?.isPrivileged ?? false
-
-    // Only log and update if state actually changed
-    if (wasPrivileged !== body.privileged) {
-      const ipAddress = getClientIP(request)
-
-      // Log privilege change to audit trail
-      try {
-        await logPrivilegeModeChange(userId, body.privileged, ipAddress)
-      } catch (auditError) {
-        // Log error but don't fail the request
-        console.error('Failed to log privilege change to audit:', auditError)
-      }
-    }
-
-    // Update stored state
     const now = new Date()
-    privilegeStore.set(userId, {
-      isPrivileged: body.privileged,
-      lastChanged: now,
-      userId,
+    const ipAddress = getClientIP(request)
+
+    // Try to update in database
+    const existingUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { privilegeModeEnabled: true },
     })
 
-    // Set cookie for persistence
+    if (existingUser) {
+      const wasPrivileged = existingUser.privilegeModeEnabled
+
+      // Only log and update if state actually changed
+      if (wasPrivileged !== body.privileged) {
+        // Update user in database
+        await prisma.user.update({
+          where: { id: userId },
+          data: {
+            privilegeModeEnabled: body.privileged,
+            privilegeModeChangedAt: now,
+          },
+        })
+
+        // Log privilege change to audit trail
+        try {
+          await logPrivilegeModeChange(userId, body.privileged, ipAddress)
+        } catch (auditError) {
+          console.error('Failed to log privilege change to audit:', auditError)
+        }
+      }
+
+      return NextResponse.json({
+        isPrivileged: body.privileged,
+        lastChanged: now.toISOString(),
+        userId,
+        message: body.privileged ? 'Privilege mode enabled' : 'Privilege mode disabled',
+      })
+    }
+
+    // Fallback to cookie for unauthenticated users or demo mode
     const cookieStore = await cookies()
     cookieStore.set(PRIVILEGE_COOKIE, body.privileged.toString(), {
       httpOnly: true,
@@ -160,6 +176,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       maxAge: 30 * 24 * 60 * 60, // 30 days
       path: '/',
     })
+
+    // Log even for demo users
+    try {
+      await logPrivilegeModeChange(userId, body.privileged, ipAddress)
+    } catch (auditError) {
+      console.error('Failed to log privilege change to audit:', auditError)
+    }
 
     return NextResponse.json({
       isPrivileged: body.privileged,

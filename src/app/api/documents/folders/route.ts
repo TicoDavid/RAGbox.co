@@ -33,17 +33,17 @@ export async function GET() {
       orderBy: { name: 'asc' },
     })
 
-    const mapped = folders.map(f => ({
+    const mapped = folders.map((f) => ({
       id: f.id,
       name: f.name,
       parentId: f.parentId,
       documentCount: f._count.documents,
-      children: f.children.map(c => ({
+      children: f.children.map((c) => ({
         id: c.id,
         name: c.name,
         parentId: c.parentId,
         documentCount: c._count.documents,
-        children: [],
+        children: [] as { id: string; name: string; parentId: string | null; documentCount: number; children: never[] }[],
       })),
     }))
 

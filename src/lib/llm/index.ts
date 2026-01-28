@@ -1,9 +1,13 @@
 import type { LLMProvider } from './provider'
 import { OpenRouterProvider } from './openrouter'
+import { VertexGeminiProvider } from './vertex-gemini'
+import { VertexLlamaProvider } from './vertex-llama'
 
 export type { LLMProvider } from './provider'
 export { RAGBOX_SYSTEM_PROMPT, buildRAGPrompt } from './provider'
 export { OpenRouterProvider } from './openrouter'
+export { VertexGeminiProvider } from './vertex-gemini'
+export { VertexLlamaProvider } from './vertex-llama'
 
 /**
  * Get the configured LLM provider based on environment variables
@@ -27,15 +31,24 @@ export function getLLMProvider(): LLMProvider {
     }
 
     case 'vertex-llama': {
-      // TODO: Implement VertexLlamaProvider for production
-      // This will use Llama 3.3 70B hosted on Vertex AI
-      throw new Error('Vertex Llama provider not yet implemented')
+      const projectId = process.env.GOOGLE_CLOUD_PROJECT
+      if (!projectId) {
+        throw new Error('GOOGLE_CLOUD_PROJECT environment variable is required for Vertex Llama provider')
+      }
+      const location = process.env.VERTEX_AI_LOCATION || 'us-central1'
+      const endpointId = process.env.VERTEX_LLAMA_ENDPOINT_ID
+      const llamaModel = process.env.VERTEX_LLAMA_MODEL || 'llama-3.3-70b-instruct'
+      return new VertexLlamaProvider(projectId, location, endpointId, llamaModel)
     }
 
     case 'vertex-gemini': {
-      // TODO: Implement VertexGeminiProvider as fallback
-      // This stays within GCP trust boundary
-      throw new Error('Vertex Gemini provider not yet implemented')
+      const projectId = process.env.GOOGLE_CLOUD_PROJECT
+      if (!projectId) {
+        throw new Error('GOOGLE_CLOUD_PROJECT environment variable is required for Vertex Gemini provider')
+      }
+      const location = process.env.VERTEX_AI_LOCATION || 'us-central1'
+      const geminiModel = process.env.VERTEX_AI_MODEL || 'gemini-1.5-pro'
+      return new VertexGeminiProvider(projectId, location, geminiModel)
     }
 
     default:
