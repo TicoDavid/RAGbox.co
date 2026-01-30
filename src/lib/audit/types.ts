@@ -6,27 +6,9 @@
  */
 
 import { createHash } from 'crypto'
+import type { AuditAction, AuditSeverity } from '@/types/models'
 
-/**
- * Audit event action types
- */
-export type AuditAction =
-  | 'LOGIN'
-  | 'LOGOUT'
-  | 'DOCUMENT_UPLOAD'
-  | 'DOCUMENT_DELETE'
-  | 'DOCUMENT_PRIVILEGE_CHANGE'
-  | 'QUERY_SUBMITTED'
-  | 'QUERY_RESPONSE'
-  | 'SILENCE_PROTOCOL_TRIGGERED'
-  | 'PRIVILEGE_MODE_CHANGE'
-  | 'DATA_EXPORT'
-  | 'ERROR'
-
-/**
- * Severity levels for audit events
- */
-export type AuditSeverity = 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL'
+export type { AuditAction, AuditSeverity } from '@/types/models'
 
 /**
  * Core audit event structure

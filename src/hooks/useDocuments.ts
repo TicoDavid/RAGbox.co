@@ -1,34 +1,15 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import type { DocumentDTO } from '@/types/api'
+import type { DeletionStatus } from '@/types/models'
 
 /**
- * Deletion status for soft-delete lifecycle
+ * Backwards-compatible re-exports
  */
-export type DeletionStatus = 'Active' | 'SoftDeleted' | 'HardDeleted'
-
-/**
- * Document interface matching the API response
- */
-export interface Document {
-  id: string
-  name: string
-  originalName: string
-  size: number
-  type: string
-  mimeType: string
-  storagePath: string
-  uploadedAt: string
-  updatedAt: string
-  userId: string
-  isPrivileged: boolean
-  chunkCount: number
-  status: 'pending' | 'processing' | 'ready' | 'error'
-  metadata?: Record<string, unknown>
-  deletionStatus: DeletionStatus
-  deletedAt: string | null
-  hardDeleteScheduledAt: string | null
-}
+export type { DeletionStatus } from '@/types/models'
+export type Document = DocumentDTO
+export type { DocumentDTO }
 
 /**
  * Sort options for documents
@@ -51,13 +32,13 @@ interface UseDocumentsOptions {
  * Hook return type
  */
 interface UseDocumentsReturn {
-  documents: Document[]
+  documents: DocumentDTO[]
   isLoading: boolean
   error: string | null
   total: number
   refetch: () => Promise<void>
   deleteDocument: (id: string) => Promise<boolean>
-  updateDocument: (id: string, updates: Partial<Document>) => Promise<Document | null>
+  updateDocument: (id: string, updates: Partial<DocumentDTO>) => Promise<DocumentDTO | null>
   togglePrivilege: (id: string, privileged: boolean, confirmUnmark?: boolean) => Promise<boolean>
 }
 
@@ -79,14 +60,15 @@ export function useDocuments(options: UseDocumentsOptions = {}): UseDocumentsRet
     statusFilter = 'all',
   } = options
 
-  const [documents, setDocuments] = useState<Document[]>([])
+  const [documents, setDocuments] = useState<DocumentDTO[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [total, setTotal] = useState(0)
 
-  /**
-   * Fetch documents from API
-   */
+  // Ref to track current documents, fixing stale closure in togglePrivilege
+  const documentsRef = useRef(documents)
+  documentsRef.current = documents
+
   const fetchDocuments = useCallback(async () => {
     setIsLoading(true)
     setError(null)
@@ -115,9 +97,6 @@ export function useDocuments(options: UseDocumentsOptions = {}): UseDocumentsRet
     }
   }, [sort, order, privilegedFilter, statusFilter])
 
-  /**
-   * Delete a document
-   */
   const deleteDocument = useCallback(async (id: string): Promise<boolean> => {
     try {
       const response = await fetch(`/api/documents/${id}`, {
@@ -128,7 +107,6 @@ export function useDocuments(options: UseDocumentsOptions = {}): UseDocumentsRet
         throw new Error('Failed to delete document')
       }
 
-      // Optimistically remove from local state
       setDocuments((prev) => prev.filter((doc) => doc.id !== id))
       setTotal((prev) => prev - 1)
 
@@ -139,11 +117,8 @@ export function useDocuments(options: UseDocumentsOptions = {}): UseDocumentsRet
     }
   }, [])
 
-  /**
-   * Update document metadata
-   */
   const updateDocument = useCallback(
-    async (id: string, updates: Partial<Document>): Promise<Document | null> => {
+    async (id: string, updates: Partial<DocumentDTO>): Promise<DocumentDTO | null> => {
       try {
         const response = await fetch(`/api/documents/${id}`, {
           method: 'PATCH',
@@ -158,7 +133,6 @@ export function useDocuments(options: UseDocumentsOptions = {}): UseDocumentsRet
         const data = await response.json()
         const updatedDoc = data.document
 
-        // Update local state
         setDocuments((prev) =>
           prev.map((doc) => (doc.id === id ? updatedDoc : doc))
         )
@@ -172,13 +146,11 @@ export function useDocuments(options: UseDocumentsOptions = {}): UseDocumentsRet
     []
   )
 
-  /**
-   * Toggle document privilege status
-   */
   const togglePrivilege = useCallback(
     async (id: string, privileged: boolean, confirmUnmark = false): Promise<boolean> => {
       try {
-        const document = documents.find((doc) => doc.id === id)
+        // Use ref to avoid stale closure over documents state
+        const document = documentsRef.current.find((doc) => doc.id === id)
 
         const response = await fetch(`/api/documents/${id}/privilege`, {
           method: 'PATCH',
@@ -193,21 +165,18 @@ export function useDocuments(options: UseDocumentsOptions = {}): UseDocumentsRet
         if (!response.ok) {
           const errorData = await response.json()
 
-          // Handle safety check errors
           if (errorData.code === 'PRIVILEGE_MODE_SAFETY') {
             setError('Cannot remove privilege protection while in Privileged Mode')
             return false
           }
 
           if (errorData.code === 'CONFIRM_UNMARK_REQUIRED') {
-            // Caller should handle confirmation
             return false
           }
 
           throw new Error(errorData.error || 'Failed to update privilege')
         }
 
-        // Update local state
         setDocuments((prev) =>
           prev.map((doc) =>
             doc.id === id ? { ...doc, isPrivileged: privileged } : doc
@@ -220,10 +189,9 @@ export function useDocuments(options: UseDocumentsOptions = {}): UseDocumentsRet
         return false
       }
     },
-    [documents]
+    []
   )
 
-  // Auto-fetch on mount and when options change
   useEffect(() => {
     if (autoFetch) {
       fetchDocuments()

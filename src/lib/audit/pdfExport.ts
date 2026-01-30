@@ -55,6 +55,7 @@ function getActionDisplayName(action: AuditAction): string {
     LOGOUT: 'User Logout',
     DOCUMENT_UPLOAD: 'Document Upload',
     DOCUMENT_DELETE: 'Document Deleted',
+    DOCUMENT_VIEW: 'Document Viewed',
     DOCUMENT_PRIVILEGE_CHANGE: 'Privilege Changed',
     QUERY_SUBMITTED: 'Query Submitted',
     QUERY_RESPONSE: 'Query Response',

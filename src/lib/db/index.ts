@@ -6,20 +6,9 @@
  */
 
 import prisma from '@/lib/prisma'
+import type { AuditAction } from '@/types/models'
 
-export type AuditAction =
-  | 'LOGIN'
-  | 'LOGOUT'
-  | 'DOCUMENT_UPLOAD'
-  | 'DOCUMENT_DELETE'
-  | 'DOCUMENT_VIEW'
-  | 'QUERY_SUBMITTED'
-  | 'QUERY_RESPONSE'
-  | 'SILENCE_PROTOCOL_TRIGGERED'
-  | 'PRIVILEGE_MODE_CHANGE'
-  | 'DOCUMENT_PRIVILEGE_CHANGE'
-  | 'DATA_EXPORT'
-  | 'ERROR'
+export type { AuditAction } from '@/types/models'
 
 export interface AuditLogEntry {
   id: string

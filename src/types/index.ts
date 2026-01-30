@@ -1,94 +1,57 @@
-// ===========================================
-// Core Entity Types (from PRD Section 5A)
-// ===========================================
+/**
+ * Type Barrel - RAGbox.co
+ *
+ * Re-exports canonical types from models.ts and api.ts.
+ * Non-overlapping types (LLM, Confidence, Error) remain here.
+ * Existing imports continue to work via this barrel.
+ */
 
-export type UserRole = 'Partner' | 'Associate' | 'Auditor'
-export type UserStatus = 'Active' | 'Suspended'
-export type IndexStatus = 'Pending' | 'Indexed' | 'Failed'
-export type DeletionStatus = 'Active' | 'SoftDeleted' | 'HardDeleted'
-export type QueryOutcome = 'Answered' | 'Refused'
+// ============================================
+// Re-exports from canonical modules
+// ============================================
 
-export interface User {
-  user_id: string
-  email: string
-  role: UserRole
-  status: UserStatus
-  created_at: Date
-  last_login_at: Date
-}
+export type {
+  UserRole,
+  UserStatus,
+  IndexStatus,
+  DeletionStatus,
+  VaultStatus,
+  QueryOutcome,
+  AuditAction,
+  AuditSeverity,
+  User,
+  Vault,
+  Document,
+  DocumentChunk,
+  Query,
+  Answer,
+  Citation,
+  AuditLog,
+  Folder,
+  Template,
+  WaitlistEntry,
+} from './models'
 
-export interface Vault {
-  vault_id: string
-  tenant_id: string
-  name: string
-  document_count: number
-  storage_used_bytes: number
-  created_at: Date
-}
+export type { ApiResponse } from './api'
 
-export interface Document {
-  document_id: string
-  vault_id: string
-  filename: string
-  mime_type: string
-  size_bytes: number
-  uploaded_by: string
-  uploaded_at: Date
-  storage_uri: string
-  index_status: IndexStatus
-  deletion_status: DeletionStatus
-  deleted_at: Date | null
-  hard_delete_scheduled_at: Date | null
-  checksum: string
-  security_tier: number
-}
-
-export interface DocumentChunk {
-  chunk_id: string
-  document_id: string
-  content_hash: string
-  chunk_index: number
-  // embedding_vector is never exposed to UI
-}
-
-export interface Query {
-  query_id: string
-  user_id: string
-  query_text: string
-  submitted_at: Date
-  confidence_score: number
-  outcome: QueryOutcome
-}
-
-export interface Answer {
-  answer_id: string
-  query_id: string
-  answer_text: string
-  generated_at: Date
-}
-
-export interface Citation {
-  citation_id: string
-  answer_id: string
-  document_id: string
-  chunk_id: string
-  relevance_score: number
-  excerpt?: string
-}
+// ============================================
+// Legacy PRD-style interfaces (snake_case)
+// Kept for backwards compatibility with existing code
+// ============================================
 
 export interface AuditEvent {
   event_id: string
   timestamp: Date
   user_id: string
-  role: UserRole
+  role: import('./models').UserRole
   action_type: string
   resource_id: string
   metadata: Record<string, unknown>
 }
 
-// ===========================================
+// ============================================
 // LLM Provider Types
-// ===========================================
+// ============================================
 
 export interface LLMResponse {
   text: string
@@ -113,15 +76,9 @@ export interface LLMProviderConfig {
   region?: string
 }
 
-// ===========================================
-// API Response Types
-// ===========================================
-
-export interface ApiResponse<T> {
-  success: boolean
-  data?: T
-  error?: string
-}
+// ============================================
+// API Response Types (legacy snake_case)
+// ============================================
 
 export interface QueryRequest {
   query: string
@@ -129,8 +86,8 @@ export interface QueryRequest {
 }
 
 export interface QueryResponse {
-  answer: Answer
-  citations: Citation[]
+  answer: import('./models').Answer
+  citations: import('./models').Citation[]
   confidence_score: number
   retrieval_coverage: number
   source_agreement: number
@@ -143,9 +100,9 @@ export interface RefusalResponse {
   confidence_score: number
 }
 
-// ===========================================
+// ============================================
 // Confidence Gate Types (from PRD Section 2.4)
-// ===========================================
+// ============================================
 
 export interface ConfidenceFactors {
   retrieval_coverage: number  // 0.4 weight
@@ -163,9 +120,9 @@ export function calculateConfidence(factors: ConfidenceFactors): number {
 
 export const CONFIDENCE_THRESHOLD = 0.85
 
-// ===========================================
+// ============================================
 // Error Types (from PRD Section 7)
-// ===========================================
+// ============================================
 
 export type ErrorCode =
   | 'VECTOR_DB_UNAVAILABLE'
