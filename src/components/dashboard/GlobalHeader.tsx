@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import Image from 'next/image'
 import { useSession } from 'next-auth/react'
 import { usePrivilegeStore } from '@/stores/privilegeStore'
 import {
@@ -35,13 +36,15 @@ export function GlobalHeader() {
       style={{ height: 'var(--header-height)' }}
     >
       {/* Logo */}
-      <div className="flex items-center gap-2.5 shrink-0">
-        <div className="w-8 h-8 rounded-md bg-[var(--brand-blue)] flex items-center justify-center font-bold text-white text-sm">
-          RB
-        </div>
-        <span className="font-jakarta font-bold text-base text-[var(--text-primary)] tracking-tight">
-          RAGbox
-        </span>
+      <div className="flex items-center shrink-0">
+        <Image
+          src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
+          alt="RAGbox"
+          width={120}
+          height={32}
+          className="h-8 w-auto"
+          priority
+        />
       </div>
 
       {/* Privilege Badge */}
