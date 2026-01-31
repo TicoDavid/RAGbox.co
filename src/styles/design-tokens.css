@@ -1,0 +1,98 @@
+/* ==============================================
+   RAGbox.co Design Tokens v2.0
+   Windows Explorer meets AI Chat
+   ============================================== */
+
+:root {
+  /* ===== Primary Brand ===== */
+  --brand-blue: #3b82f6;
+  --brand-blue-hover: #2563eb;
+  --brand-blue-dim: #1d4ed8;
+
+  /* ===== Status Colors ===== */
+  --success: #10b981;
+  --success-bg: #d1fae5;
+  --danger: #ef4444;
+  --danger-bg: #fee2e2;
+  --warning: #f59e0b;
+  --warning-bg: #fef3c7;
+
+  /* ===== Dark Mode (Default) ===== */
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --bg-elevated: #475569;
+  --bg-hover: #3b4a5e;
+
+  /* ===== Text ===== */
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+
+  /* ===== Borders ===== */
+  --border-default: #334155;
+  --border-subtle: #1e293b;
+  --border-strong: #475569;
+
+  /* ===== Privilege Mode (Amber Accent) ===== */
+  --privilege-color: #f59e0b;
+  --privilege-bg: #451a03;
+  --privilege-border: #b45309;
+
+  /* ===== Spacing Scale ===== */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+
+  /* ===== Typography ===== */
+  --font-body: var(--font-jakarta), -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: var(--font-jetbrains), monospace;
+
+  /* ===== Border Radius ===== */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /* ===== Transitions ===== */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+
+  /* ===== Panel Sizing ===== */
+  --header-height: 56px;
+  --rail-width: 56px;
+  --vault-expanded-width: 400px;
+}
+
+/* ===== Light Mode ===== */
+.light {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #f1f5f9;
+  --bg-tertiary: #e2e8f0;
+  --bg-elevated: #ffffff;
+  --bg-hover: #e2e8f0;
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #64748b;
+
+  --border-default: #e2e8f0;
+  --border-subtle: #f1f5f9;
+  --border-strong: #cbd5e1;
+
+  --privilege-bg: #fffbeb;
+  --privilege-border: #f59e0b;
+}
+
+/* ===== Privilege Mode Pulse ===== */
+@keyframes privilegePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.privilege-badge {
+  animation: privilegePulse 2s ease-in-out infinite;
+}

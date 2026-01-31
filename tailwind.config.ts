@@ -36,6 +36,7 @@ const config: Config = {
         header: ['var(--font-space)', 'sans-serif'], // Space Grotesk (Authority)
         sans: ['var(--font-inter)', 'sans-serif'],   // Inter (Readability)
         mono: ['var(--font-jetbrains)', 'monospace'], // JetBrains Mono (Truth/Logs)
+        jakarta: ['var(--font-jakarta)', 'sans-serif'], // Plus Jakarta Sans (Dashboard v2)
       },
       boxShadow: {
         'cyan-glow': '0 0 10px rgba(0, 240, 255, 0.3)',

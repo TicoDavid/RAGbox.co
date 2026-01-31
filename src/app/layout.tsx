@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Space_Grotesk, Inter, JetBrains_Mono } from 'next/font/google'
+import { Space_Grotesk, Inter, JetBrains_Mono, Plus_Jakarta_Sans } from 'next/font/google'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { AuthProvider } from '@/components/providers/AuthProvider'
 import './globals.css'
@@ -25,6 +25,13 @@ const jetbrains = JetBrains_Mono({
   display: 'swap',
 })
 
+// 4. Dashboard body font (v2.0)
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  variable: '--font-jakarta',
+  display: 'swap',
+})
+
 export const metadata: Metadata = {
   title: 'RAGböx | Sovereign Intelligence',
   description: 'Digital Fort Knox for Compliance-Sensitive Data',
@@ -37,7 +44,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
-      <body className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrains.variable} font-sans bg-oled text-gray-200 antialiased overflow-hidden`}>
+      <body className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrains.variable} ${jakarta.variable} font-sans bg-oled text-gray-200 antialiased overflow-hidden`}>
         <AuthProvider>
           <ThemeProvider
             attribute="class"
