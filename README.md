@@ -1,268 +1,233 @@
-# RAGbox.co - Ralph Wiggum Agent Build
+# RAGbox.co
 
-## 🎭 What is the Ralph Wiggum Agent?
+**Sovereign RAG platform for legal and financial professionals.**
 
-The Ralph Wiggum Agent is an autonomous coding workflow that:
-1. Reads a PRD (Product Requirements Document)
-2. Breaks it into small, testable user stories with acceptance criteria
-3. Iteratively implements each story using AI (Claude Code)
-4. Commits changes, updates status, and logs progress
-5. Loops until all stories are complete
+Your Files Speak. We Make Them Testify.
 
-This approach prevents "vibe coding" a massive prompt—instead, you give the agent bite-sized, verifiable tickets.
-
-## 📁 Project Structure
-
-```
-ragbox-ralph/
-├── PRD.md              # Product Requirements Document
-├── stories.json        # User stories with acceptance criteria (Kanban)
-├── agents.md           # Long-term memory (architecture decisions, patterns)
-├── progress.txt        # Short-term memory (iteration log)
-├── ralph.js            # The Ralph Wiggum runner script
-├── CLAUDE.md           # AI assistant guide for code generation
-└── ragbox-co/          # The actual codebase
-    ├── src/
-    │   ├── app/        # Next.js App Router
-    │   ├── components/ # React components
-    │   ├── lib/        # Utilities and services
-    │   ├── hooks/      # Custom React hooks
-    │   └── types/      # TypeScript types
-    ├── prisma/         # Database schema
-    ├── terraform/      # GCP infrastructure
-    └── functions/      # Cloud Functions
-```
-
-## 🚀 Quick Start
-
-### 1. Review the PRD
-
-```bash
-cat PRD.md
-```
-
-The PRD defines:
-- Product vision and target users
-- GCP architecture (Vertex AI, AlloyDB, Cloud Run, etc.)
-- Design system (Cyber-Noir theme)
-- Core features (Vault, Interrogation, Privilege, Audit)
-
-### 2. Review the Stories
-
-```bash
-cat stories.json | jq '.stories | length'  # Count stories
-cat stories.json | jq '.stories[] | select(.priority == "critical")'  # Critical path
-```
-
-Each story has:
-- Unique ID (S001, S002, ...)
-- Epic (E1: Foundation, E2: Auth, E3: Vault, E4: Query, E5: Privilege, E6: Audit)
-- Priority (critical, high, medium, low)
-- Acceptance criteria (testable requirements)
-- Files to create/modify
-
-### 3. Run Ralph (Manual Mode)
-
-```bash
-node ralph.js
-```
-
-This will:
-1. Load stories from `stories.json`
-2. Pick the next `todo` story by priority
-3. Generate a prompt for Claude Code
-4. Wait for you to implement
-
-### 4. Implement with Claude Code
-
-Copy the generated prompt into Claude Code or Claude.ai with computer use:
-
-```bash
-# In Claude Code, run:
-claude "$(cat /path/to/prompt.txt)"
-```
-
-Or paste directly into the Claude.ai interface.
-
-### 5. Update Story Status
-
-After implementing, update `stories.json`:
-
-```json
-{
-  "id": "S001",
-  "status": "done"  // was: "todo"
-}
-```
-
-### 6. Repeat
-
-Run `ralph.js` again to pick the next story.
-
-## 🏗️ GCP Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         User Browser                            │
-│                     (Next.js Frontend)                          │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      Cloud Run (API)                            │
-│                   Express/Fastify + Next.js                     │
-└─────────────────────────────────────────────────────────────────┘
-          │              │              │              │
-          ▼              ▼              ▼              ▼
-┌───────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
-│ Cloud Storage │ │  Vertex AI  │ │   AlloyDB   │ │  BigQuery   │
-│  (Documents)  │ │  (LLM/Emb)  │ │  (Vectors)  │ │   (Audit)   │
-└───────────────┘ └─────────────┘ └─────────────┘ └─────────────┘
-                         │
-                         ▼
-              ┌─────────────────────┐
-              │    Document AI      │
-              │  (PDF/OCR Extract)  │
-              └─────────────────────┘
-```
-
-### GCP Services Used
-
-| Service | Purpose |
-|---------|---------|
-| Cloud Run | Serverless containers for app hosting |
-| Cloud Storage | Document vault with CMEK encryption |
-| AlloyDB | PostgreSQL with pgvector for embeddings |
-| Vertex AI | Gemini 1.5 Pro for RAG, text-embedding-004 |
-| Document AI | PDF/image text extraction |
-| Cloud KMS | Customer-managed encryption keys |
-| BigQuery | WORM-compliant audit logging |
-| Secret Manager | Secure credential storage |
-| Identity Platform | Authentication (Firebase Auth) |
-
-## 📋 User Stories Breakdown
-
-### Epic 1: Foundation (E1)
-- S001: Initialize Next.js 14 Project [CRITICAL]
-- S002: Create Design System Components [CRITICAL]
-- S022: Set Up GCP Infrastructure with Terraform [HIGH]
-- S024: Configure CI/CD with Cloud Build [HIGH]
-
-### Epic 2: Auth & Landing (E2)
-- S003: Build Landing Page Hero Section [HIGH]
-- S004: Build Landing Page Features Section [MEDIUM]
-- S005: Implement Firebase Authentication [CRITICAL]
-- S023: Build Pioneer Waitlist Signup [MEDIUM]
-
-### Epic 3: Document Management (E3)
-- S006: Create Dashboard Layout [CRITICAL]
-- S007: Build Document Upload Drop Zone [CRITICAL]
-- S008: Implement GCP Cloud Storage Upload [CRITICAL]
-- S009: Implement Document AI Text Extraction [CRITICAL]
-- S010: Implement Vertex AI Embeddings [CRITICAL]
-- S011: Set Up AlloyDB with pgvector [CRITICAL]
-- S012: Build Document List View [HIGH]
-- S025: Implement One-Click Data Export [MEDIUM]
-
-### Epic 4: Query Engine (E4)
-- S013: Build Mercury Chat Interface [CRITICAL]
-- S014: Implement RAG Query Pipeline [CRITICAL]
-- S015: Implement Citation Highlighting [HIGH]
-- S016: Implement Silence Protocol [CRITICAL]
-
-### Epic 5: Privilege System (E5)
-- S017: Implement Privilege Toggle [CRITICAL]
-- S018: Implement Document Privilege Tagging [HIGH]
-
-### Epic 6: Audit System (E6)
-- S019: Implement Veritas Audit Log [CRITICAL]
-- S020: Build Audit Log Viewer [HIGH]
-- S021: Implement Audit Report Export [HIGH]
-
-## 🎨 Design System
-
-### Colors (Cyber-Noir)
-- Background: `#050505` (OLED Black)
-- Primary: `#00F0FF` (Electric Cyan)
-- Warning: `#FFAB00` (Amber - Low Confidence)
-- Danger: `#FF3D00` (Neon Red - Privilege Mode)
-- Border: `#333333`
-
-### Typography
-- Headers: Space Grotesk
-- Body: Inter
-- Code/Citations: JetBrains Mono
-
-### Key Visual Elements
-- Glassmorphism cards: `bg-black/50 backdrop-blur-lg border border-[#333]`
-- Glow effects: `shadow-[0_0_20px_rgba(0,240,255,0.3)]`
-- Terminal log aesthetic for ingestion
-- Citation links with Electric Cyan hover
-- Privilege mode: red border pulse
-
-## 🛡️ Security Features
-
-1. **Silence Protocol**: Refuses to answer when confidence < 85%
-2. **Privilege Toggle**: Binary mode - no partial access
-3. **CMEK Encryption**: Customer-managed keys for all documents
-4. **Veritas Audit Log**: Immutable, hash-verified activity records
-5. **Zero Data Retention**: Data deleted when user requests
-
-## 📊 Metrics
-
-| Metric | Target |
-|--------|--------|
-| Total Stories | 25 |
-| Story Points | ~95 |
-| Confidence Threshold | 85% |
-| Time to First Token | < 2s |
-| Document Ingestion | < 30s/PDF |
-| Beta Users Target | 5,000 |
-
-## 🔧 Development Commands
-
-```bash
-# Start development
-cd ragbox-co
-npm install
-npm run dev
-
-# Run linting
-npm run lint
-
-# Type check
-npm run type-check
-
-# Run tests
-npm test
-
-# Build for production
-npm run build
-
-# Deploy to GCP
-npm run deploy
-```
-
-## 📝 Contributing (Ralph Wiggum Style)
-
-1. Pick a story from `stories.json`
-2. Update status to `in_progress`
-3. Implement ALL acceptance criteria
-4. Create ALL specified files
-5. Update status to `done`
-6. Log iteration in `progress.txt`
-7. Run `ralph.js` for the next story
-
-## 🔗 Resources
-
-- [PRD Document](./PRD.md)
-- [User Stories](./stories.json)
-- [Agent Memory](./agents.md)
-- [Progress Log](./progress.txt)
-- [Claude Guide](./CLAUDE.md)
+RAGbox transforms unstructured documents into an intelligent, queryable knowledge base with verified citations, attorney-client privilege protection, and immutable audit logging.
 
 ---
 
-**RAGbox**: Your Files Speak. We Make Them Testify.
+## Tech Stack
 
-*Built with the Ralph Wiggum Agent methodology for GCP.*
+| Layer | Technology |
+|-------|------------|
+| Frontend | Next.js 14 (App Router), React 18, Tailwind CSS |
+| Backend | Node.js, TypeScript, Next.js API Routes |
+| Database | PostgreSQL with pgvector (via Prisma ORM) |
+| AI | Vertex AI (Gemini 1.5 Pro, text-embedding-004) |
+| Auth | Firebase Authentication |
+| Storage | GCP Cloud Storage with CMEK encryption |
+| Infrastructure | Cloud Run, Document AI, BigQuery, Terraform |
+| Testing | Jest 30, React Testing Library, ts-jest |
+
+## Project Structure
+
+```
+RAGbox.co/
+├── src/
+│   ├── app/                        # Next.js App Router
+│   │   ├── api/                    # API routes (see below)
+│   │   ├── dashboard/              # Protected dashboard page
+│   │   └── login/                  # Authentication page
+│   ├── components/
+│   │   ├── dashboard/
+│   │   │   ├── DashboardLayout.tsx # Three-panel layout shell
+│   │   │   ├── GlobalHeader.tsx    # Top navigation bar
+│   │   │   ├── vault/             # Document management panel
+│   │   │   ├── mercury/           # Chat/query interface
+│   │   │   └── forge/             # Asset generation panel
+│   │   ├── landing/               # Landing page components
+│   │   ├── ui/                    # Reusable primitives
+│   │   └── ...
+│   ├── stores/                    # Zustand state management
+│   │   ├── vaultStore.ts          # Document & folder state
+│   │   ├── mercuryStore.ts        # Chat/streaming state
+│   │   ├── forgeStore.ts          # Asset generation state
+│   │   └── privilegeStore.ts      # Privilege mode state
+│   ├── lib/
+│   │   ├── audit/                 # Veritas audit logging
+│   │   ├── gcp/                   # GCP service clients
+│   │   ├── rag/                   # RAG pipeline
+│   │   ├── prisma.ts              # Prisma client singleton
+│   │   └── ...
+│   ├── mercury/                   # Output firewall / safety
+│   ├── contexts/                  # React contexts
+│   ├── hooks/                     # Custom React hooks
+│   ├── types/                     # TypeScript type definitions
+│   └── styles/                    # Global styles
+├── prisma/                        # Database schema & migrations
+├── cli/                           # RAGbox CLI tool
+├── terraform/                     # GCP infrastructure as code
+├── public/                        # Static assets
+├── docs/                          # Documentation
+├── jest.config.ts                 # Jest config (node + jsdom projects)
+├── Dockerfile                     # Container build
+└── cloudbuild.yaml                # GCP Cloud Build config
+```
+
+## API Routes
+
+| Route | Method | Description |
+|-------|--------|-------------|
+| `/api/documents` | GET | List user documents |
+| `/api/documents/extract` | POST | Upload & extract document text |
+| `/api/documents/folders` | GET/POST | Manage folders |
+| `/api/documents/[id]/privilege` | GET/PATCH | Get/toggle document privilege |
+| `/api/documents/[id]/tier` | PATCH | Update document tier |
+| `/api/documents/[id]/recover` | POST | Recover deleted document |
+| `/api/documents/promote` | POST | Promote document tier |
+| `/api/chat` | POST | RAG query (SSE streaming) |
+| `/api/privilege` | GET/POST | Global privilege mode |
+| `/api/forge/generate` | POST | Generate assets (PDF, reports) |
+| `/api/templates/analyze` | POST | Analyze document templates |
+| `/api/audit` | GET | Get audit log entries |
+| `/api/audit/export` | GET | Export audit PDF |
+| `/api/export` | GET | Export all user data |
+| `/api/voice/synthesize` | POST | Text-to-speech synthesis |
+| `/api/tts` | POST | TTS endpoint |
+| `/api/health` | GET | Health check |
+| `/api/waitlist` | POST | Pioneer waitlist signup |
+| `/api/auth/send-otp` | POST | OTP authentication |
+
+## Core Features
+
+### The Vault (Document Management)
+Three-panel layout with collapsible rail, column browser for folder navigation, document preview, and storage tracking. Supports drag-and-drop upload with GCP Cloud Storage backend and Document AI text extraction.
+
+### Mercury (Query Interface)
+Streaming RAG chat powered by Vertex AI. SSE-based token streaming, confidence scoring, inline citations with source highlighting, and conversation history. Includes the Silence Protocol — refuses to answer when confidence falls below 85%.
+
+### Forge (Asset Generation)
+Template-based document generation. Produces PDFs, reports, and exports from conversation context and document data.
+
+### Privilege System
+Binary privilege toggle protecting attorney-client and work-product documents. Safety guards prevent accidental de-privileging: requires explicit confirmation and blocks unmarking while in privilege mode. Full audit trail on all privilege changes.
+
+### Veritas Audit Log
+Immutable, hash-verified audit records stored in BigQuery (WORM-compatible). Covers logins, document operations, queries, privilege changes, and data exports. PDF export for regulators.
+
+## Quick Start
+
+```bash
+# Install dependencies
+npm install
+
+# Set up environment
+cp .env.example .env.local
+# Edit .env.local with your credentials
+
+# Generate Prisma client
+npx prisma generate
+
+# Run development server
+npm run dev
+```
+
+## Development Commands
+
+```bash
+npm run dev              # Start Next.js dev server
+npm run build            # Build for production (prisma generate + next build)
+npm run lint             # Run ESLint
+npm run type-check       # TypeScript type check (tsc --noEmit)
+npm test                 # Run all tests
+npm run test:watch       # Jest watch mode
+```
+
+### Database
+
+```bash
+npm run db:generate      # Generate Prisma client
+npm run db:migrate       # Run migrations (deploy)
+npm run db:migrate:dev   # Run migrations (dev)
+npm run db:push          # Push schema to DB
+npm run db:studio        # Open Prisma Studio
+npm run db:seed          # Seed database
+```
+
+### CLI
+
+```bash
+npm run cli:install      # Install CLI dependencies
+npm run cli:build        # Build CLI
+npm run cli              # Run RAGbox CLI
+```
+
+## Testing
+
+Jest is configured with two projects:
+- **node** — Store tests, API route tests, utility tests (`*.test.ts`)
+- **jsdom** — Component tests with React Testing Library (`*.test.tsx`)
+
+Current test suite: **8 test files, 76 tests passing**.
+
+| Test File | Coverage |
+|-----------|----------|
+| `src/stores/vaultStore.test.ts` | Upload flow, folder mapping, privilege toggle |
+| `src/stores/mercuryStore.test.ts` | SSE streaming, JSON fallback, error handling |
+| `src/stores/forgeStore.test.ts` | Generation payload, response parsing, accumulation |
+| `src/app/api/documents/[id]/privilege/route.test.ts` | Prisma persistence, safety guards, audit logging |
+| `src/components/dashboard/DashboardLayout.test.tsx` | Privilege init on mount |
+| `src/components/dashboard/vault/VaultPanel.test.tsx` | Mount ordering, collapsed state |
+| `src/lib/voice/sanitizeForTTS.test.ts` | TTS text sanitization |
+| `src/mercury/outputFirewall.test.ts` | Output safety filtering |
+
+Store tests verify payload shape and state transitions via mocked fetch. The privilege route test covers backend Prisma persistence with mocked dependencies.
+
+## GCP Architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│                    User Browser                      │
+│                 (Next.js Frontend)                    │
+└─────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────┐
+│                  Cloud Run (API)                     │
+│                Next.js App Router                    │
+└─────────────────────────────────────────────────────┘
+       │            │            │            │
+       ▼            ▼            ▼            ▼
+┌────────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
+│  Cloud     │ │ Vertex   │ │ PostgreSQL│ │ BigQuery │
+│  Storage   │ │ AI       │ │ pgvector │ │ (Audit)  │
+│ (Documents)│ │ (LLM/Emb)│ │ (Prisma) │ │          │
+└────────────┘ └──────────┘ └──────────┘ └──────────┘
+                    │
+                    ▼
+          ┌──────────────────┐
+          │   Document AI    │
+          │ (PDF/OCR Extract)│
+          └──────────────────┘
+```
+
+## Security
+
+- AES-256 encryption at rest with Customer-Managed Encryption Keys (CMEK)
+- Privilege mode safety guards (PRIVILEGE_MODE_SAFETY, CONFIRM_UNMARK_REQUIRED)
+- Immutable audit logging with hash verification
+- Silence Protocol for low-confidence query suppression
+- Firebase Authentication with OTP support
+- Output firewall for response safety filtering
+
+## Environment Variables
+
+See `.env.example` for the full list. Key variables:
+
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `GOOGLE_CLOUD_PROJECT` | GCP project ID |
+| `GCS_BUCKET_NAME` | Cloud Storage bucket |
+| `VERTEX_AI_LOCATION` | Vertex AI region |
+| `NEXT_PUBLIC_FIREBASE_*` | Firebase Auth config |
+
+## License
+
+UNLICENSED — Proprietary software.
+
+---
+
+**RAGbox.co** — Your Files Speak. We Make Them Testify.
