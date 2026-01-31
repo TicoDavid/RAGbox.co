@@ -9,7 +9,7 @@
 # 5. Store secrets in Secret Manager
 
 substitutions:
-  _REGION: us-central1
+  _REGION: us-east4
   _SERVICE_NAME: ragbox-app
   _REPOSITORY: ragbox-repo
   _MIN_INSTANCES: '0'
