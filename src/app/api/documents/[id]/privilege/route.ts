@@ -11,17 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logDocumentPrivilegeChange } from '@/lib/audit'
 import { cookies } from 'next/headers'
-
-// In-memory document store (replace with database in production)
-// This simulates the document privilege state
-const documentPrivilegeStore = new Map<
-  string,
-  {
-    isPrivileged: boolean
-    lastChanged: Date
-    changedBy: string
-  }
->()
+import prisma from '@/lib/prisma'
 
 // Cookie name for privilege mode check
 const PRIVILEGE_COOKIE = 'ragbox_privilege_mode'
@@ -87,14 +77,20 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get privilege status from store
-    const stored = documentPrivilegeStore.get(documentId)
+    // Get privilege status from database
+    const document = await prisma.document.findUnique({
+      where: { id: documentId },
+      select: { isPrivileged: true, updatedAt: true },
+    })
+
+    if (!document) {
+      return NextResponse.json({ error: 'Document not found' }, { status: 404 })
+    }
 
     return NextResponse.json({
       documentId,
-      isPrivileged: stored?.isPrivileged ?? false,
-      lastChanged: stored?.lastChanged?.toISOString() ?? null,
-      changedBy: stored?.changedBy ?? null,
+      isPrivileged: document.isPrivileged,
+      lastChanged: document.updatedAt?.toISOString() ?? null,
     })
   } catch (error) {
     console.error('Error fetching document privilege:', error)
@@ -149,7 +145,16 @@ export async function PATCH(
       )
     }
 
-    const currentPrivilege = documentPrivilegeStore.get(documentId)?.isPrivileged ?? false
+    const existingDoc = await prisma.document.findUnique({
+      where: { id: documentId },
+      select: { isPrivileged: true },
+    })
+
+    if (!existingDoc) {
+      return NextResponse.json({ error: 'Document not found' }, { status: 404 })
+    }
+
+    const currentPrivilege = existingDoc.isPrivileged
     const inPrivilegeMode = await isInPrivilegeMode()
 
     // Safety check: Cannot unmark privilege when in privileged mode
@@ -189,18 +194,17 @@ export async function PATCH(
       console.error('Failed to log privilege change to audit:', auditError)
     }
 
-    // Update stored state
-    const now = new Date()
-    documentPrivilegeStore.set(documentId, {
-      isPrivileged: body.privileged,
-      lastChanged: now,
-      changedBy: userId,
+    // Persist privilege state to database
+    const updated = await prisma.document.update({
+      where: { id: documentId },
+      data: { isPrivileged: body.privileged },
+      select: { isPrivileged: true, updatedAt: true },
     })
 
     return NextResponse.json({
       documentId,
-      isPrivileged: body.privileged,
-      lastChanged: now.toISOString(),
+      isPrivileged: updated.isPrivileged,
+      lastChanged: updated.updatedAt.toISOString(),
       changedBy: userId,
       message: body.privileged
         ? 'Document marked as privileged'

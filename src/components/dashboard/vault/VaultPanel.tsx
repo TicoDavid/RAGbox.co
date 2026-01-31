@@ -15,6 +15,7 @@ export function VaultPanel() {
   const fetchFolders = useVaultStore((s) => s.fetchFolders)
   const selectedItemId = useVaultStore((s) => s.selectedItemId)
   const uploadDocument = useVaultStore((s) => s.uploadDocument)
+  const currentPath = useVaultStore((s) => s.currentPath)
   const hasFetched = useRef(false)
 
   useEffect(() => {
@@ -32,8 +33,9 @@ export function VaultPanel() {
     input.onchange = async (e) => {
       const files = (e.target as HTMLInputElement).files
       if (!files) return
+      const folderId = currentPath[currentPath.length - 1]
       for (const file of Array.from(files)) {
-        await uploadDocument(file)
+        await uploadDocument(file, folderId)
       }
     }
     input.click()

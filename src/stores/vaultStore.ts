@@ -92,12 +92,40 @@ export const useVaultStore = create<VaultState>()(
             const data = await res.json()
             const folders: Record<string, FolderNode> = {}
             for (const folder of data.folders) {
+              // Register nested children as folder entries
+              const childIds: string[] = []
+              if (Array.isArray(folder.children)) {
+                for (const child of folder.children) {
+                  if (typeof child === 'string') {
+                    childIds.push(child)
+                  } else if (child && typeof child === 'object' && child.id) {
+                    childIds.push(child.id)
+                    // Register child folder if not already present
+                    if (!folders[child.id]) {
+                      folders[child.id] = {
+                        id: child.id,
+                        name: child.name ?? '',
+                        parentId: child.parentId ?? folder.id,
+                        children: [],
+                        documents: [],
+                      }
+                    }
+                  }
+                }
+              }
+
+              // Derive documents from already-fetched documents in the store
+              const currentDocuments = get().documents
+              const folderDocIds = Object.values(currentDocuments)
+                .filter(d => d.folderId === folder.id)
+                .map(d => d.id)
+
               folders[folder.id] = {
                 id: folder.id,
                 name: folder.name,
                 parentId: folder.parentId,
-                children: folder.children ?? [],
-                documents: folder.documents ?? [],
+                children: childIds,
+                documents: folderDocIds,
               }
             }
             set({ folders })
@@ -111,12 +139,31 @@ export const useVaultStore = create<VaultState>()(
           formData.append('file', file)
           if (folderId) formData.append('folderId', folderId)
 
-          const res = await fetch('/api/documents/extract', {
+          // Step 1: Extract text and upload to GCS
+          const extractRes = await fetch('/api/documents/extract', {
             method: 'POST',
             body: formData,
           })
 
-          if (!res.ok) throw new Error('Upload failed')
+          if (!extractRes.ok) throw new Error('Upload failed')
+          const extractResult = await extractRes.json()
+
+          // Step 2: Create document record in database
+          const createRes = await fetch('/api/documents', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: file.name,
+              size: file.size,
+              mimeType: file.type,
+              storagePath: extractResult.data.storagePath,
+              storageUri: extractResult.data.gcsUri,
+              ...(folderId ? { folderId } : {}),
+            }),
+          })
+
+          if (!createRes.ok) throw new Error('Failed to create document record')
+
           get().fetchDocuments()
         },
 
@@ -156,21 +203,49 @@ export const useVaultStore = create<VaultState>()(
           const doc = get().documents[id]
           if (!doc) return
 
-          const res = await fetch(`/api/documents/${id}/privilege`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              privileged: !doc.isPrivileged,
-              filename: doc.name,
-            }),
-          })
+          const newPrivileged = !doc.isPrivileged
 
-          if (!res.ok) throw new Error('Privilege toggle failed')
+          const makeRequest = async (confirmUnmark?: boolean) => {
+            const body: { privileged: boolean; filename: string; confirmUnmark?: boolean } = {
+              privileged: newPrivileged,
+              filename: doc.name,
+            }
+            if (confirmUnmark) body.confirmUnmark = true
+
+            return fetch(`/api/documents/${id}/privilege`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body),
+            })
+          }
+
+          let res = await makeRequest()
+
+          if (!res.ok) {
+            const errorData = await res.json().catch(() => null)
+            const code = errorData?.code
+
+            if (code === 'PRIVILEGE_MODE_SAFETY') {
+              throw new Error(errorData?.message ?? 'Cannot remove privilege protection while in Privileged Mode. Exit Privileged Mode first.')
+            }
+
+            if (code === 'CONFIRM_UNMARK_REQUIRED') {
+              const confirmed = window.confirm(
+                errorData?.message ?? 'Removing privilege protection will make this document visible in normal mode. Continue?'
+              )
+              if (!confirmed) return
+
+              res = await makeRequest(true)
+              if (!res.ok) throw new Error('Privilege toggle failed')
+            } else {
+              throw new Error(errorData?.message ?? 'Privilege toggle failed')
+            }
+          }
 
           set((state) => ({
             documents: {
               ...state.documents,
-              [id]: { ...state.documents[id], isPrivileged: !doc.isPrivileged },
+              [id]: { ...state.documents[id], isPrivileged: newPrivileged },
             },
           }))
         },

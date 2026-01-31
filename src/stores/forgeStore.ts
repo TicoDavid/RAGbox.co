@@ -26,21 +26,25 @@ export const useForgeStore = create<ForgeState>()(
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            type,
-            context: conversationContext,
+            templateName: type,
+            category: 'conversation-export',
+            fields: [{ name: 'content', type: 'text', required: true }],
+            fieldValues: { content: conversationContext },
+            sourceContext: conversationContext,
           }),
         })
 
         if (!res.ok) throw new Error('Generation failed')
 
-        const data = await res.json()
+        const result = await res.json()
+        const data = result.data ?? result
 
         const newAsset: GeneratedAsset = {
           id: data.id ?? `asset-${Date.now()}`,
           type,
           filename: data.fileName ?? `generated-${type}`,
           createdAt: new Date(),
-          size: data.size ?? 0,
+          size: data.size ?? (data.content?.length ?? 0),
           downloadUrl: data.downloadUrl ?? '',
           status: 'complete',
         }

@@ -1,7 +1,8 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useVaultStore } from '@/stores/vaultStore'
+import { usePrivilegeStore } from '@/stores/privilegeStore'
 import { GlobalHeader } from './GlobalHeader'
 import { VaultPanel } from './vault/VaultPanel'
 import { MercuryPanel } from './mercury/MercuryPanel'
@@ -9,6 +10,11 @@ import { ForgePanel } from './forge/ForgePanel'
 
 export function DashboardLayout() {
   const isVaultCollapsed = useVaultStore((s) => s.isCollapsed)
+  const fetchPrivilege = usePrivilegeStore((s) => s.fetch)
+
+  useEffect(() => {
+    fetchPrivilege()
+  }, [fetchPrivilege])
 
   return (
     <div className="flex flex-col h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] overflow-hidden font-jakarta">

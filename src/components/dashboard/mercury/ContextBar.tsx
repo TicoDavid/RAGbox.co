@@ -9,7 +9,6 @@ import type { TemperaturePreset } from '@/types/ragbox'
 export function ContextBar() {
   const temperaturePreset = useMercuryStore((s) => s.temperaturePreset)
   const setTemperaturePreset = useMercuryStore((s) => s.setTemperaturePreset)
-  const openVaultIds = useMercuryStore((s) => s.openVaultIds)
   const [dropdownOpen, setDropdownOpen] = useState(false)
 
   const currentPreset = TEMPERATURE_PRESETS[temperaturePreset]
@@ -22,15 +21,7 @@ export function ContextBar() {
     <div className="shrink-0 flex items-center gap-3 px-4 py-2 border-b border-[var(--border-default)] bg-[var(--bg-secondary)]">
       {/* Vault tags */}
       <div className="flex items-center gap-1.5 flex-1 min-w-0">
-        {openVaultIds.length === 0 ? (
-          <span className="text-xs text-[var(--text-tertiary)]">All documents</span>
-        ) : (
-          openVaultIds.map(id => (
-            <span key={id} className="px-2 py-0.5 text-xs rounded-md bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
-              Vault {id.slice(0, 6)}
-            </span>
-          ))
-        )}
+        <span className="text-xs text-[var(--text-tertiary)]">All documents</span>
       </div>
 
       {/* Temperature Dropdown */}

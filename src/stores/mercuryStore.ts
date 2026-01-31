@@ -11,7 +11,6 @@ interface MercuryState {
   abortController: AbortController | null
 
   // Context
-  openVaultIds: string[]
   temperaturePreset: TemperaturePreset
 
   // Actions
@@ -19,7 +18,6 @@ interface MercuryState {
   sendMessage: (privilegeMode: boolean) => Promise<void>
   stopStreaming: () => void
   clearConversation: () => void
-  setOpenVaults: (vaultIds: string[]) => void
   setTemperaturePreset: (preset: TemperaturePreset) => void
 }
 
@@ -30,13 +28,12 @@ export const useMercuryStore = create<MercuryState>()(
     isStreaming: false,
     streamingContent: '',
     abortController: null,
-    openVaultIds: [],
     temperaturePreset: 'executive-cpo',
 
     setInputValue: (value) => set({ inputValue: value }),
 
     sendMessage: async (privilegeMode) => {
-      const { inputValue, messages, openVaultIds } = get()
+      const { inputValue, messages } = get()
       if (!inputValue.trim() || get().isStreaming) return
 
       const userMessage: ChatMessage = {
@@ -61,9 +58,11 @@ export const useMercuryStore = create<MercuryState>()(
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            message: inputValue,
+            query: inputValue,
+            stream: true,
+            useVectorPipeline: true,
             privilegeMode,
-            vaultIds: openVaultIds,
+            maxTier: 3,
             history: messages.map(m => ({ role: m.role, content: m.content })),
           }),
           signal: abortController.signal,
@@ -71,45 +70,76 @@ export const useMercuryStore = create<MercuryState>()(
 
         if (!res.ok) throw new Error('Chat request failed')
 
-        const reader = res.body?.getReader()
-        if (!reader) throw new Error('No response body')
-
-        const decoder = new TextDecoder()
+        const contentType = res.headers.get('content-type') ?? ''
         let fullContent = ''
         let confidence: number | undefined
         let citations: Citation[] | undefined
 
-        try {
-          while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
+        // Handle non-streaming JSON fallback
+        if (contentType.includes('application/json')) {
+          const json = await res.json()
+          fullContent = json.data?.answer ?? json.answer ?? 'No response generated.'
+          confidence = json.data?.confidence ?? json.confidence
+          citations = json.data?.citations ?? json.citations
+        } else {
+          // Handle SSE streaming
+          const reader = res.body?.getReader()
+          if (!reader) throw new Error('No response body')
 
-            const chunk = decoder.decode(value)
-            const lines = chunk.split('\n').filter(line => line.startsWith('data: '))
+          const decoder = new TextDecoder()
 
-            for (const line of lines) {
-              const jsonStr = line.slice(6)
-              if (jsonStr === '[DONE]') continue
+          try {
+            while (true) {
+              const { done, value } = await reader.read()
+              if (done) break
 
-              try {
-                const data = JSON.parse(jsonStr)
-                if (data.content) {
-                  fullContent += data.content
-                  set({ streamingContent: fullContent })
+              const chunk = decoder.decode(value)
+              const lines = chunk.split('\n').filter(line => line.startsWith('data: '))
+
+              for (const line of lines) {
+                const jsonStr = line.slice(6)
+                if (jsonStr === '[DONE]') continue
+
+                try {
+                  const data = JSON.parse(jsonStr)
+
+                  switch (data.type) {
+                    case 'token':
+                      fullContent += data.content
+                      set({ streamingContent: fullContent })
+                      break
+                    case 'done':
+                      fullContent = data.fullText ?? fullContent
+                      break
+                    case 'complete':
+                      fullContent = data.answer ?? fullContent
+                      confidence = data.confidence
+                      citations = data.citations
+                      break
+                    case 'error':
+                      throw new Error(data.message ?? 'Streaming error')
+                    default:
+                      // Legacy format fallback
+                      if (data.content) {
+                        fullContent += data.content
+                        set({ streamingContent: fullContent })
+                      }
+                      if (data.confidence !== undefined) confidence = data.confidence
+                      if (data.citations) citations = data.citations
+                      break
+                  }
+                } catch (parseError) {
+                  if (parseError instanceof Error && parseError.message !== 'Streaming error') {
+                    // Skip malformed JSON, but re-throw streaming errors
+                    continue
+                  }
+                  throw parseError
                 }
-                if (data.confidence !== undefined) {
-                  confidence = data.confidence
-                }
-                if (data.citations) {
-                  citations = data.citations
-                }
-              } catch {
-                // Skip malformed JSON
               }
             }
+          } finally {
+            reader.releaseLock()
           }
-        } finally {
-          reader.releaseLock()
         }
 
         const assistantMessage: ChatMessage = {
@@ -175,8 +205,6 @@ export const useMercuryStore = create<MercuryState>()(
     },
 
     clearConversation: () => set({ messages: [], streamingContent: '' }),
-
-    setOpenVaults: (vaultIds) => set({ openVaultIds: vaultIds }),
 
     setTemperaturePreset: (preset) => set({ temperaturePreset: preset }),
   }))
