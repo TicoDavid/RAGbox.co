@@ -21,8 +21,7 @@ export function VaultPanel() {
   useEffect(() => {
     if (!hasFetched.current) {
       hasFetched.current = true
-      fetchDocuments()
-      fetchFolders()
+      fetchDocuments().then(() => fetchFolders())
     }
   }, [fetchDocuments, fetchFolders])
 

@@ -1,3 +1,10 @@
+/**
+ * Store-level tests for vaultStore.
+ *
+ * These tests verify payload shape and state transitions via mocked fetch.
+ * They do NOT exercise actual API route processing. For backend route coverage,
+ * see src/app/api/documents/[id]/privilege/route.test.ts.
+ */
 import { useVaultStore } from './vaultStore'
 
 // ── Helpers ──────────────────────────────────────────────────
