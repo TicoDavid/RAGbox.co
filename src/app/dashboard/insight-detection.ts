@@ -232,7 +232,7 @@ export function detectInsights(messageId: string, text: string): ParsedInsight[]
   const insights: ParsedInsight[] = [];
 
   // Split text into logical blocks (by bullet points or paragraphs)
-  const blocks = text.split(/(?:^|\n)\s*[•\-\*]\s*/);
+  const blocks = text.split(/(?:^|\n)\s*[•\-*]\s*/);
 
   blocks.forEach((block, index) => {
     if (!block.trim() || block.length < 20) return;

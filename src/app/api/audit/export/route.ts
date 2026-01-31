@@ -4,6 +4,7 @@
  * GET /api/audit/export - Export audit logs as PDF
  */
 
+import crypto from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { AuditEvent, AuditAction, AuditSeverity } from '@/lib/audit/types'
@@ -221,7 +222,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         'Content-Disposition': `attachment; filename="${filename}"`,
         'Content-Length': pdfBuffer.length.toString(),
         'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'X-Report-Hash': require('crypto')
+        'X-Report-Hash': crypto
           .createHash('sha256')
           .update(pdfBuffer)
           .digest('hex'),

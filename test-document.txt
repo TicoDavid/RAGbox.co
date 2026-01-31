@@ -1,0 +1,37 @@
+RAGbox Company Overview - Q4 2024 Report
+
+Executive Summary:
+RAGbox is a sovereign document intelligence platform designed for SMBs in legal, financial, and healthcare sectors. Our platform transforms unstructured documents into queryable knowledge bases with verified citations and immutable audit logging.
+
+Key Metrics:
+- Annual Revenue: $2.4 million (up 34% YoY)
+- Active Customers: 847 organizations
+- Documents Processed: 12.3 million
+- Average Query Response Time: 1.2 seconds
+- Customer Satisfaction Score: 94%
+
+Product Features:
+1. The Vault - Secure document storage with AES-256 encryption
+2. Mercury AI - Natural language query interface powered by Gemini
+3. Citation System - Every response includes source references
+4. Privilege Toggle - Attorney-client privilege protection
+5. Veritas Audit Log - Immutable compliance logging
+
+Compliance Certifications:
+- SOC 2 Type II (achieved November 2024)
+- HIPAA Compliant
+- GDPR Ready
+- FedRAMP In Progress (expected Q2 2025)
+
+Leadership Team:
+- CEO: David Chen
+- CTO: Sarah Martinez
+- VP Engineering: Michael Thompson
+- VP Sales: Jennifer Williams
+
+Contact Information:
+- Website: https://ragbox.co
+- Support: support@ragbox.co
+- Sales: sales@ragbox.co
+
+This document is confidential and intended for internal use only.

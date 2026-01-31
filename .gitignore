@@ -94,3 +94,4 @@ secrets/
 *.json
 .env.local
 .env*.local
+artifacts/

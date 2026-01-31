@@ -184,6 +184,9 @@ interface ChatMessageItemProps {
 }
 
 const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ message, onInsightAction }) => {
+  // Hooks must be called unconditionally (before any early returns)
+  const insights = useMemo(() => detectInsights(message.id, message.text), [message.id, message.text]);
+
   if (message.isUser) {
     return (
       <div className="chat-message user">
@@ -205,9 +208,6 @@ const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ message, onInsightAct
       </div>
     );
   }
-
-  // Detect insights from message text
-  const insights = useMemo(() => detectInsights(message.id, message.text), [message.id, message.text]);
 
   // Clean up the message text - remove "MERCURY" prefix if present
   const cleanedText = message.text.replace(/^MERCURY\s*/i, '').trim();

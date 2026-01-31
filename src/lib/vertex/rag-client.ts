@@ -243,7 +243,7 @@ Provide a clear, well-structured answer with citations using [1], [2], etc.`;
 
       // Extract citation numbers from the answer
       const citationMatches = answer.match(/\[(\d+)\]/g) || [];
-      const citedIndices = Array.from(new Set(citationMatches.map(m => parseInt(m.replace(/[\[\]]/g, '')) - 1)));
+      const citedIndices = Array.from(new Set(citationMatches.map(m => parseInt(m.replace(/[[\]]/g, '')) - 1)));
 
       const citations = citedIndices
         .filter(i => i >= 0 && i < context.length)
