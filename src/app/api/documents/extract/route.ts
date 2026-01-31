@@ -5,6 +5,7 @@ import { storageClient } from '@/lib/gcp/storage-client'
 
 // Runtime configuration for Node.js
 export const runtime = 'nodejs'
+export const maxDuration = 60
 
 async function getUserId() {
   const { cookies } = await import('next/headers')
@@ -142,10 +143,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // File size limit: 10MB
-    if (file.size > 10 * 1024 * 1024) {
+    // File size limit: 100MB
+    if (file.size > 100 * 1024 * 1024) {
       return NextResponse.json(
-        { success: false, error: 'File too large. Maximum size is 10MB' },
+        { success: false, error: 'File too large. Maximum size is 100MB' },
         { status: 413 }
       )
     }

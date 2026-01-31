@@ -50,7 +50,7 @@ const nextConfig = {
   experimental: {
     // Enable server actions
     serverActions: {
-      bodySizeLimit: '10mb',
+      bodySizeLimit: '100mb',
     },
     // Server-side external packages (native modules that shouldn't be bundled)
     serverComponentsExternalPackages: ['ws', 'bufferutil', 'utf-8-validate', 'pdf-parse', 'mammoth'],
