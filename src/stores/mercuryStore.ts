@@ -129,8 +129,8 @@ export const useMercuryStore = create<MercuryState>()(
                       break
                   }
                 } catch (parseError) {
-                  if (parseError instanceof Error && parseError.message !== 'Streaming error') {
-                    // Skip malformed JSON, but re-throw streaming errors
+                  if (parseError instanceof SyntaxError) {
+                    // Skip malformed JSON
                     continue
                   }
                   throw parseError
