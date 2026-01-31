@@ -26,6 +26,7 @@ const LOG_NAME = 'ragbox-audit'
 // Cloud Logging client singleton
 let loggingClient: Logging | null = null
 let auditLog: Log | null = null
+let loggingDisabled = false
 
 /**
  * Get Cloud Logging client
@@ -51,6 +52,8 @@ function getAuditLog(): Log {
  * Log to Cloud Logging
  */
 async function logToCloudLogging(event: AuditEvent): Promise<void> {
+  if (loggingDisabled) return
+
   try {
     const log = getAuditLog()
 
@@ -84,8 +87,8 @@ async function logToCloudLogging(event: AuditEvent): Promise<void> {
 
     await log.write(entry)
   } catch (error) {
-    // Don't fail the operation if logging fails
-    console.error('Cloud Logging failed:', error)
+    console.warn('[Audit] Cloud Logging unavailable (disabling):', error)
+    loggingDisabled = true
   }
 }
 

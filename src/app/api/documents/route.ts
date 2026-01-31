@@ -11,6 +11,7 @@ import { logDocumentUpload } from '@/lib/audit'
 import {
   getDocumentsForUser,
   setDocument,
+  ensureUser,
   STORAGE_LIMITS,
   type Document,
 } from '@/lib/documents/store'
@@ -151,6 +152,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       vaultId: body.vaultId,
     }
 
+    await ensureUser({ id: userId, email: `${userId}@placeholder.ragbox.co` })
     await setDocument(document)
 
     const ipAddress = getClientIP(request)

@@ -14,6 +14,7 @@ const TABLE_ID = process.env.BIGQUERY_TABLE || 'audit_log'
 
 let bigQueryClient: BigQuery | null = null
 let tableInitialized = false
+let tableInitFailed = false
 
 function getClient(): BigQuery {
   if (!bigQueryClient) {
@@ -80,8 +81,9 @@ async function ensureTableExists(): Promise<void> {
 
     tableInitialized = true
   } catch (error) {
-    console.error('[BigQuery] Table initialization failed:', error)
-    throw error
+    console.warn('[BigQuery] Table initialization failed (audit writes will be skipped):', error)
+    tableInitialized = true
+    tableInitFailed = true
   }
 }
 
@@ -115,6 +117,7 @@ export interface BigQueryAuditRow {
  */
 export async function insertAuditRow(row: BigQueryAuditRow): Promise<void> {
   await ensureTableExists()
+  if (tableInitFailed) return
 
   const table = getAuditTable()
   await table.insert([row], {
@@ -130,6 +133,7 @@ export async function insertAuditRows(rows: BigQueryAuditRow[]): Promise<void> {
   if (rows.length === 0) return
 
   await ensureTableExists()
+  if (tableInitFailed) return
 
   const table = getAuditTable()
   await table.insert(rows, {
