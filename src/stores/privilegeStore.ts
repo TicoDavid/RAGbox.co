@@ -23,7 +23,7 @@ export const usePrivilegeStore = create<PrivilegeState>()(
             const res = await fetch('/api/privilege', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ enabled: newState }),
+              body: JSON.stringify({ privileged: newState }),
             })
 
             if (!res.ok) throw new Error('Privilege toggle failed')
@@ -40,7 +40,7 @@ export const usePrivilegeStore = create<PrivilegeState>()(
             const res = await fetch('/api/privilege')
             if (!res.ok) throw new Error('Failed to fetch privilege state')
             const data = await res.json()
-            set({ isEnabled: data.enabled })
+            set({ isEnabled: data.isPrivileged })
           } catch (error) {
             console.error('Failed to fetch privilege state:', error)
           }
