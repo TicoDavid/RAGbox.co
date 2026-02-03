@@ -540,7 +540,7 @@ function DropZone({
 }
 
 function WireframeCube({ isActive }: { isActive: boolean }) {
-  const strokeColor = isActive ? '#2563eb' : 'currentColor'
+  const strokeColor = isActive ? '#2463EB' : 'currentColor'
   const strokeOpacity = isActive ? 1 : 0.3
 
   return (
@@ -552,8 +552,8 @@ function WireframeCube({ isActive }: { isActive: boolean }) {
       className="dark:text-white text-black"
       animate={{
         filter: isActive
-          ? 'drop-shadow(0 0 20px rgba(37, 99, 235, 0.5))'
-          : 'drop-shadow(0 0 10px rgba(37, 99, 235, 0.2))',
+          ? 'drop-shadow(0 0 20px rgba(36, 99, 235, 0.5))'
+          : 'drop-shadow(0 0 10px rgba(36, 99, 235, 0.2))',
       }}
     >
       <motion.path
@@ -589,7 +589,7 @@ function WireframeCube({ isActive }: { isActive: boolean }) {
         cx="60"
         cy="60"
         r="3"
-        fill={isActive ? '#2563eb' : 'transparent'}
+        fill={isActive ? '#2463EB' : 'transparent'}
         opacity={isActive ? 1 : 0}
         style={{ transition: 'all 0.3s ease-out' }}
       />
@@ -927,7 +927,7 @@ function ConfirmationDialog({
               'transition-all duration-200',
               confirmVariant === 'danger'
                 ? 'bg-red-500 text-white hover:bg-red-600 shadow-[0_0_15px_rgba(239,68,68,0.3)]'
-                : 'bg-electric-500 text-white hover:bg-electric-600 shadow-[0_0_15px_rgba(37,99,235,0.3)]'
+                : 'bg-electric-500 text-white hover:bg-electric-600 shadow-[0_0_15px_rgba(36,99,235,0.3)]'
             )}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}

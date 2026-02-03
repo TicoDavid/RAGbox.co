@@ -48,7 +48,7 @@ export default function ListView({
 }: ListViewProps) {
   const SortIndicator = ({ field }: { field: string }) => {
     if (sortField !== field) return null
-    return <span className="ml-1 text-[#00F0FF]">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+    return <span className="ml-1 text-[#2463EB]">{sortOrder === 'asc' ? '↑' : '↓'}</span>
   }
 
   return (
@@ -73,7 +73,7 @@ export default function ListView({
             key={doc.id}
             onClick={() => onSelect(doc.id)}
             className={`flex items-center gap-2 px-3 py-2 cursor-pointer group transition-colors ${
-              selectedId === doc.id ? 'bg-[#00F0FF]/5' : 'hover:bg-[#111]'
+              selectedId === doc.id ? 'bg-[#2463EB]/5' : 'hover:bg-[#111]'
             }`}
           >
             <FileText size={14} className="text-[#555] flex-shrink-0" />

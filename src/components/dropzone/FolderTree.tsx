@@ -47,7 +47,7 @@ export default function FolderTree({
         <span className="text-[10px] font-semibold text-[#888] uppercase tracking-wider">Folders</span>
         <button
           onClick={() => setShowNewFolder(!showNewFolder)}
-          className="text-[10px] text-[#00F0FF] hover:text-[#00D4E0]"
+          className="text-[10px] text-[#2463EB] hover:text-[#1D4ED8]"
         >
           + New
         </button>
@@ -61,12 +61,12 @@ export default function FolderTree({
             onChange={e => setNewFolderName(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleCreate()}
             placeholder="Folder name"
-            className="flex-1 text-xs px-2 py-1 rounded bg-[#111] border border-[#333] text-white placeholder:text-[#555] focus:border-[#00F0FF] focus:outline-none"
+            className="flex-1 text-xs px-2 py-1 rounded bg-[#111] border border-[#333] text-white placeholder:text-[#555] focus:border-[#2463EB] focus:outline-none"
             autoFocus
           />
           <button
             onClick={handleCreate}
-            className="text-xs px-2 py-1 rounded bg-[#00F0FF]/20 text-[#00F0FF] hover:bg-[#00F0FF]/30"
+            className="text-xs px-2 py-1 rounded bg-[#2463EB]/20 text-[#2463EB] hover:bg-[#2463EB]/30"
           >
             Add
           </button>
@@ -76,7 +76,7 @@ export default function FolderTree({
       <button
         onClick={() => onSelectFolder(null)}
         className={`w-full text-left px-3 py-1.5 text-xs rounded transition-colors ${
-          selectedFolderId === null ? 'bg-[#00F0FF]/10 text-[#00F0FF]' : 'text-[#888] hover:text-white hover:bg-[#111]'
+          selectedFolderId === null ? 'bg-[#2463EB]/10 text-[#2463EB]' : 'text-[#888] hover:text-white hover:bg-[#111]'
         }`}
       >
         All Documents

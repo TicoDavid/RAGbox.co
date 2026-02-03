@@ -112,7 +112,7 @@ export function TheBox() {
             'bg-electric-600/30 blur-3xl',
             'pointer-events-none',
             // Layered bloom shadow for dark mode
-            'dark:shadow-[0_0_60px_-15px_rgba(37,99,235,0.6),0_0_100px_-20px_rgba(37,99,235,0.4)]'
+            'dark:shadow-[0_0_60px_-15px_rgba(36,99,235,0.6),0_0_100px_-20px_rgba(36,99,235,0.4)]'
           )}
           animate={{
             opacity: isAbsorbing ? 1 : isActive ? 0.8 : 0.5,
@@ -136,31 +136,31 @@ export function TheBox() {
             'dark:bg-white/5 dark:border-white/10 dark:shadow-black/50',
             // HOVER EFFECTS: Blue Glow (overridden by animate below for active states)
             'hover:border-electric-500/50 dark:hover:border-electric-500/50',
-            'hover:shadow-[0_0_40px_-10px_rgba(37,99,235,0.15)]',
+            'hover:shadow-[0_0_40px_-10px_rgba(36,99,235,0.15)]',
             // HIGH VOLTAGE Shadow - Layered bloom in dark mode
             isAbsorbing
-              ? 'dark:shadow-[0_0_100px_-10px_rgba(37,99,235,0.8),0_0_150px_-20px_rgba(37,99,235,0.5)] shadow-glow-intense'
+              ? 'dark:shadow-[0_0_100px_-10px_rgba(36,99,235,0.8),0_0_150px_-20px_rgba(36,99,235,0.5)] shadow-glow-intense'
               : isActive
-                ? 'dark:shadow-[0_0_60px_-15px_rgba(37,99,235,0.6),0_0_100px_-20px_rgba(37,99,235,0.4)] shadow-glow-lg'
+                ? 'dark:shadow-[0_0_60px_-15px_rgba(36,99,235,0.6),0_0_100px_-20px_rgba(36,99,235,0.4)] shadow-glow-lg'
                 : ''
           )}
           animate={
             isAbsorbing
               ? {
-                  borderColor: '#2563eb',
+                  borderColor: '#2463EB',
                   borderWidth: '2px',
                 }
               : isActive
                 ? {
-                    borderColor: '#2563eb',
+                    borderColor: '#2463EB',
                     borderWidth: '2px',
                   }
                 : {
                     // ALIVE: Subtle pulsing border opacity
                     borderColor: [
-                      'rgba(37, 99, 235, 0.2)',
-                      'rgba(37, 99, 235, 0.5)',
-                      'rgba(37, 99, 235, 0.2)',
+                      'rgba(36, 99, 235, 0.2)',
+                      'rgba(36, 99, 235, 0.5)',
+                      'rgba(36, 99, 235, 0.2)',
                     ],
                     borderWidth: '1px',
                     transition: {
@@ -239,7 +239,7 @@ export function TheBox() {
                 'text-white'
               )}
               animate={{
-                color: isActive ? '#2563eb' : undefined,
+                color: isActive ? '#2463EB' : undefined,
               }}
             >
               {isAbsorbing
@@ -271,7 +271,7 @@ function WireframeCube({
   isActive: boolean
   isAbsorbing: boolean
 }) {
-  const strokeColor = isActive || isAbsorbing ? '#2563eb' : 'currentColor'
+  const strokeColor = isActive || isAbsorbing ? '#2463EB' : 'currentColor'
   const strokeOpacity = isActive || isAbsorbing ? 1 : 0.4
   // THICKER strokes for structural weight
   const strokeWidth = 2.5
@@ -285,10 +285,10 @@ function WireframeCube({
       className={cn('dark:text-white text-slate-900', 'drop-shadow-lg')}
       animate={{
         filter: isAbsorbing
-          ? 'drop-shadow(0 0 35px rgba(37, 99, 235, 0.8))'
+          ? 'drop-shadow(0 0 35px rgba(36, 99, 235, 0.8))'
           : isActive
-            ? 'drop-shadow(0 0 25px rgba(37, 99, 235, 0.6))'
-            : 'drop-shadow(0 0 15px rgba(37, 99, 235, 0.3))',
+            ? 'drop-shadow(0 0 25px rgba(36, 99, 235, 0.6))'
+            : 'drop-shadow(0 0 15px rgba(36, 99, 235, 0.3))',
       }}
     >
       {/* Back face */}
@@ -297,10 +297,10 @@ function WireframeCube({
         stroke={strokeColor}
         strokeWidth={strokeWidth}
         strokeOpacity={strokeOpacity}
-        fill={isAbsorbing ? 'rgba(37, 99, 235, 0.1)' : 'none'}
+        fill={isAbsorbing ? 'rgba(36, 99, 235, 0.1)' : 'none'}
         strokeLinecap="round"
         strokeLinejoin="round"
-        animate={{ strokeOpacity, fill: isAbsorbing ? 'rgba(37, 99, 235, 0.2)' : 'none' }}
+        animate={{ strokeOpacity, fill: isAbsorbing ? 'rgba(36, 99, 235, 0.2)' : 'none' }}
         transition={{ duration: 0.3 }}
       />
       {/* Front edges */}
@@ -331,7 +331,7 @@ function WireframeCube({
         cx="60"
         cy="60"
         r={isAbsorbing ? 10 : isActive ? 6 : 4}
-        fill="#2563eb"
+        fill="#2463EB"
         opacity={isActive || isAbsorbing ? 1 : 0}
         style={{
           transition: 'all 0.3s ease-out',

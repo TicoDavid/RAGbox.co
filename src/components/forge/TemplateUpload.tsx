@@ -70,7 +70,7 @@ export default function TemplateUpload({ onAnalysisComplete }: TemplateUploadPro
         onDragLeave={handleDragLeave}
         className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-all cursor-pointer ${
           isDragging
-            ? 'border-[#00F0FF] bg-[#00F0FF]/5'
+            ? 'border-[#2463EB] bg-[#2463EB]/5'
             : 'border-[#333] bg-[#0a0a0a] hover:border-[#555]'
         }`}
       >
@@ -83,8 +83,8 @@ export default function TemplateUpload({ onAnalysisComplete }: TemplateUploadPro
         />
         {isAnalyzing ? (
           <div className="flex flex-col items-center gap-2">
-            <Loader2 size={24} className="text-[#00F0FF] animate-spin" />
-            <div className="text-xs text-[#00F0FF]">Analyzing template...</div>
+            <Loader2 size={24} className="text-[#2463EB] animate-spin" />
+            <div className="text-xs text-[#2463EB]">Analyzing template...</div>
             {fileName && <div className="text-[10px] text-[#666]">{fileName}</div>}
           </div>
         ) : (

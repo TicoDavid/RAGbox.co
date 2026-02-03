@@ -27,7 +27,7 @@ export default function SettingsSidebar() {
             href={href}
             className={`flex items-center gap-2.5 px-4 py-2 text-xs transition-colors ${
               isActive
-                ? 'text-[#00F0FF] bg-[#00F0FF]/10 border-r-2 border-[#00F0FF]'
+                ? 'text-[#2463EB] bg-[#2463EB]/10 border-r-2 border-[#2463EB]'
                 : 'dark:text-[#888] text-slate-500 dark:hover:text-white hover:text-slate-900 dark:hover:bg-[#111] hover:bg-slate-100'
             }`}
           >

@@ -66,10 +66,10 @@ export default function AdvancedChat() {
   };
 
   return (
-    <div className="flex flex-col h-full relative bg-slate-50 dark:bg-[#050505] transition-colors duration-300">
+    <div className="flex flex-col h-full relative bg-slate-50 dark:bg-void transition-colors duration-300">
 
       {/* 1. TOP BAR: MODE SELECTOR */}
-      <div className="p-4 border-b border-slate-200 dark:border-white/10 bg-white/80 dark:bg-[#0A0A0A]/80 backdrop-blur-md z-20 sticky top-0">
+      <div className="p-4 border-b border-slate-200 dark:border-white/10 bg-white/80 dark:bg-void-card/80 backdrop-blur-md z-20 sticky top-0">
         <div className="flex justify-between items-center mb-3">
             <label className="text-[10px] uppercase tracking-widest text-slate-500 font-bold block">Response Mode</label>
             <div className="flex items-center gap-1.5">
@@ -160,7 +160,7 @@ export default function AdvancedChat() {
       </div>
 
       {/* 3. INPUT AREA */}
-      <div className="p-6 pt-2 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent dark:from-[#050505] dark:via-[#050505] z-10">
+      <div className="p-6 pt-2 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent dark:from-void dark:via-void z-10">
         <div className="relative group">
           <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-2xl opacity-20 group-hover:opacity-40 transition duration-500 blur"></div>
           <input
@@ -169,7 +169,7 @@ export default function AdvancedChat() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask about your vault..."
-            className="relative w-full h-14 pl-5 pr-12 rounded-xl bg-white dark:bg-[#0A0A0A] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-blue-500/50 transition-all shadow-xl"
+            className="relative w-full h-14 pl-5 pr-12 rounded-xl bg-white dark:bg-void-card border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-blue-500/50 transition-all shadow-xl"
           />
           <button
             onClick={handleSend}

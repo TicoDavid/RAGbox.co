@@ -54,7 +54,7 @@ export function Sidebar() {
       className={cn(
         'h-screen w-64 flex flex-col',
         'border-r',
-        'dark:bg-void dark:border-white/10',
+        'dark:bg-void-card dark:border-sterling/10',
         'bg-ceramic border-black/5'
       )}
       initial={{ opacity: 0, x: -20 }}

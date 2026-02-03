@@ -48,7 +48,7 @@ export default function GridView({ documents, onSelect, selectedId }: GridViewPr
           onClick={() => onSelect(doc.id)}
           className={`flex flex-col items-center gap-2 p-3 rounded-lg border transition-all text-center ${
             selectedId === doc.id
-              ? 'border-[#00F0FF] bg-[#00F0FF]/5'
+              ? 'border-[#2463EB] bg-[#2463EB]/5'
               : 'border-[#222] bg-[#0a0a0a] hover:border-[#444]'
           }`}
         >

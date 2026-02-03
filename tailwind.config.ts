@@ -10,43 +10,61 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Grok-style: Pure OLED Black / Ceramic White
+        // Midnight Cobalt Background System
         void: {
-          DEFAULT: '#000000',
-          card: '#0A0A0A',
-          elevated: '#111111',
+          DEFAULT: '#0A192F',    // Midnight Cobalt - primary bg
+          card: '#0F2240',       // Deep Cobalt - secondary bg
+          elevated: '#142A4F',   // Steel Cobalt - tertiary bg
         },
+        // Legacy aliases for void backgrounds
+        oled: '#0A192F',
+        carbon: '#0F2240',
+        steel: '#142A4F',
+        // Light mode surfaces (ceramic/paper)
         ceramic: {
           DEFAULT: '#FFFFFF',
           card: '#FAFAFA',
           muted: '#F5F5F5',
         },
-        // Light mode paper colors (aliases for ceramic)
         paper: {
           DEFAULT: '#FFFFFF',
           card: '#FAFAFA',
           muted: '#F5F5F5',
         },
-        // RAGbox Electric Blue - primary brand color
+        // Royal Cobalt Primary Accent
+        cyan: {
+          DEFAULT: '#2463EB',              // Royal Cobalt - primary action
+          dim: 'rgba(36, 99, 235, 0.1)',   // Subtle highlights
+          glow: 'rgba(36, 99, 235, 0.4)',  // Box-shadow glows
+          light: '#60A5FA',                // Sky Cobalt - hover/active
+        },
+        // Electric Blue Scale (extended palette)
         electric: {
           50: '#eff6ff',
           100: '#dbeafe',
           200: '#bfdbfe',
           300: '#93c5fd',
-          400: '#60a5fa',
+          400: '#60a5fa',   // Sky Cobalt
           500: '#3b82f6',
-          600: '#2563eb',
+          600: '#2463EB',   // Royal Cobalt (primary)
           700: '#1d4ed8',
           800: '#1e40af',
           900: '#1e3a8a',
-          950: '#0044ff',
+          950: '#0A192F',   // Midnight Cobalt
         },
-        // Privilege Red - Attorney Client Privilege
+        // Text Colors - Silver System
+        frosted: '#E5E7EB',   // Primary text
+        sterling: '#C0C0C0',  // Secondary text
+        slate: '#8892A4',     // Muted text
+        // Privilege Red - Attorney Client Privilege (LOCKED)
         privilege: {
-          DEFAULT: '#dc2626',
+          DEFAULT: '#FF3D00',   // AEGIS Red
           light: '#fef2f2',
           dark: '#450a0a',
         },
+        // Semantic Colors (LOCKED)
+        amber: '#FFAB00',       // Silence Protocol warnings
+        emerald: '#10B981',     // Verified/success states
         // Trust indicators
         trust: {
           high: '#22c55e',
@@ -92,8 +110,8 @@ const config: Config = {
           '50%': { opacity: '1' },
         },
         'border-pulse': {
-          '0%, 100%': { borderColor: 'rgba(37, 99, 235, 0.4)' },
-          '50%': { borderColor: 'rgba(37, 99, 235, 1)' },
+          '0%, 100%': { borderColor: 'rgba(36, 99, 235, 0.4)' },
+          '50%': { borderColor: 'rgba(36, 99, 235, 1)' },
         },
         float: {
           '0%, 100%': { transform: 'translateY(0)' },
@@ -101,11 +119,11 @@ const config: Config = {
         },
       },
       boxShadow: {
-        'glow-sm': '0 0 15px -3px rgba(37, 99, 235, 0.3)',
-        'glow': '0 0 30px -5px rgba(37, 99, 235, 0.4)',
-        'glow-lg': '0 0 50px -10px rgba(37, 99, 235, 0.5)',
-        'glow-intense': '0 0 50px 0px rgba(37, 99, 235, 0.6)',
-        'privilege': '0 0 20px -5px rgba(220, 38, 38, 0.5)',
+        'glow-sm': '0 0 15px -3px rgba(36, 99, 235, 0.3)',
+        'glow': '0 0 30px -5px rgba(36, 99, 235, 0.4)',
+        'glow-lg': '0 0 50px -10px rgba(36, 99, 235, 0.5)',
+        'glow-intense': '0 0 50px 0px rgba(36, 99, 235, 0.6)',
+        'privilege': '0 0 20px -5px rgba(255, 61, 0, 0.5)',
       },
     },
   },

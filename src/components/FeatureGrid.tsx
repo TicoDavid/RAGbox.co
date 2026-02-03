@@ -3,7 +3,7 @@ import React from 'react';
 
 export default function FeatureGrid() {
   return (
-    <section className="py-24 px-6 relative overflow-hidden transition-colors duration-300 dark:bg-[#050505] bg-white">
+    <section className="py-24 px-6 relative overflow-hidden transition-colors duration-300 dark:bg-void bg-white">
 
       {/* 1. MASTER CLASS TEXTURE: The Grid Background */}
       <div className="absolute inset-0 pointer-events-none">
@@ -14,7 +14,7 @@ export default function FeatureGrid() {
         {/* The Horizon Glow Reflection (Gold Dust - Dark Mode Only) */}
         <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-b from-amber-500/5 to-transparent hidden dark:block" />
         {/* Radial Fade (Vignette) */}
-        <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent dark:from-[#050505] dark:via-transparent h-full" />
+        <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent dark:from-void dark:via-transparent h-full" />
       </div>
 
       <div className="max-w-7xl mx-auto relative z-10">
@@ -80,7 +80,7 @@ function FeatureCard({ icon, title, desc, tag }: { icon: React.ReactNode, title:
       bg-white border border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)]
 
       /* DARK MODE: Obsidian Black, Subtle White Border */
-      dark:bg-[#0A0A0A] dark:border-white/10 dark:shadow-none
+      dark:bg-void-card dark:border-white/10 dark:shadow-none
 
       /* HOVER: Lift up slightly */
       hover:-translate-y-1 transition-all duration-300 ease-out

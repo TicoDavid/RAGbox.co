@@ -125,8 +125,8 @@ function PillarCardComponent({ icon, title, description, tag }: PillarCard) {
         'relative group',
         'p-8 rounded-3xl',
         'transition-all duration-300',
-        // Elevated surface: #111 in dark, slate-50 in light
-        'bg-slate-50 dark:bg-[#111111]',
+        // Elevated surface: Deep Cobalt in dark, slate-50 in light
+        'bg-slate-50 dark:bg-void-card',
         // Subtle border for definition
         'border border-slate-200 dark:border-white/5',
         'hover:border-blue-500/30 dark:hover:border-blue-500/30',

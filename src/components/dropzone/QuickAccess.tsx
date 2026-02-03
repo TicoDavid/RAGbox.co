@@ -35,7 +35,7 @@ export default function QuickAccess({
             onClick={() => onSelect(activeSection === id ? null : id)}
             className={`w-full flex items-center gap-2 px-3 py-1.5 rounded text-xs transition-colors ${
               activeSection === id
-                ? 'bg-[#00F0FF]/10 text-[#00F0FF]'
+                ? 'bg-[#2463EB]/10 text-[#2463EB]'
                 : 'text-[#888] hover:text-white hover:bg-[#111]'
             }`}
           >

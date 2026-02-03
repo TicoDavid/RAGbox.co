@@ -14,7 +14,7 @@ export default function Hero({ onOpenAuth, onOpenVideo }: HeroProps) {
     { volume: 0.4 }
   );
   return (
-    <section className="relative pt-32 pb-32 flex flex-col items-center text-center px-4 overflow-hidden dark:bg-[#050505] bg-white transition-colors duration-300">
+    <section className="relative pt-32 pb-32 flex flex-col items-center text-center px-4 overflow-hidden dark:bg-void bg-white transition-colors duration-300">
 
       {/* --- BACKGROUND LAYERS --- */}
 

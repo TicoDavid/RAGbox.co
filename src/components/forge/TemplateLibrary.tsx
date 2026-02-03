@@ -40,13 +40,13 @@ export default function TemplateLibrary({ onSelect, selectedTemplateId, onUpload
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Library size={16} className="text-[#00F0FF]" />
+          <Library size={16} className="text-[#2463EB]" />
           <span className="text-sm font-medium text-white">Template Library</span>
           <span className="text-[10px] text-[#666]">({templates.length})</span>
         </div>
         <button
           onClick={onUploadClick}
-          className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium text-[#00F0FF] border border-[#00F0FF]/30 hover:bg-[#00F0FF]/10 transition-colors"
+          className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium text-[#2463EB] border border-[#2463EB]/30 hover:bg-[#2463EB]/10 transition-colors"
         >
           <Plus size={12} />
           Upload
@@ -62,7 +62,7 @@ export default function TemplateLibrary({ onSelect, selectedTemplateId, onUpload
               onClick={() => setFilter(cat)}
               className={`px-2 py-0.5 rounded text-[10px] transition-colors ${
                 filter === cat
-                  ? 'bg-[#00F0FF]/15 text-[#00F0FF] border border-[#00F0FF]/30'
+                  ? 'bg-[#2463EB]/15 text-[#2463EB] border border-[#2463EB]/30'
                   : 'bg-[#111] text-[#666] border border-[#222] hover:border-[#444]'
               }`}
             >
@@ -75,14 +75,14 @@ export default function TemplateLibrary({ onSelect, selectedTemplateId, onUpload
       {/* Template List */}
       {isLoading ? (
         <div className="flex items-center justify-center py-8">
-          <Loader2 size={20} className="text-[#00F0FF] animate-spin" />
+          <Loader2 size={20} className="text-[#2463EB] animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-8">
           <div className="text-xs text-[#666]">No templates found</div>
           <button
             onClick={onUploadClick}
-            className="mt-2 text-[10px] text-[#00F0FF] hover:underline"
+            className="mt-2 text-[10px] text-[#2463EB] hover:underline"
           >
             Upload your first template
           </button>

@@ -38,10 +38,10 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
       className={cn(
         'fixed top-0 left-0 right-0 z-50',
         'px-6 py-0.5',
-        // Ghost Strategy: Deeply transparent, floating
+        // Midnight Cobalt glass effect
         'backdrop-blur-md',
-        'dark:bg-black/50 bg-white/90',
-        'dark:border-b dark:border-white/5 border-b border-slate-200/50',
+        'dark:bg-void/80 bg-white/90',
+        'dark:border-b dark:border-sterling/10 border-b border-slate-200/50',
         'transition-colors duration-300'
       )}
     >
@@ -111,7 +111,7 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
               'px-4 py-2 rounded-2xl',
               'text-sm font-medium',
               'transition-colors duration-200',
-              'dark:text-slate-400 dark:hover:text-white',
+              'dark:text-sterling dark:hover:text-frosted',
               'text-slate-600 hover:text-slate-900'
             )}
             initial={{ opacity: 0, x: 20 }}

@@ -42,7 +42,7 @@ export default function TierPromotionDialog({
       <div className="w-full max-w-md rounded-xl border border-[#333] bg-[#0a0a0a] p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Shield size={18} className="text-[#00F0FF]" />
+            <Shield size={18} className="text-[#2463EB]" />
             <h3 className="text-sm font-semibold text-white">Change Security Tier</h3>
           </div>
           <button onClick={onClose} className="text-[#666] hover:text-white">
@@ -68,7 +68,7 @@ export default function TierPromotionDialog({
                 onClick={() => setSelectedTier(tier)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-all ${
                   selectedTier === tier
-                    ? 'border-[#00F0FF] bg-[#00F0FF]/10'
+                    ? 'border-[#2463EB] bg-[#2463EB]/10'
                     : 'border-[#222] bg-[#111] hover:border-[#444]'
                 }`}
               >
@@ -103,7 +103,7 @@ export default function TierPromotionDialog({
           <button
             onClick={handleConfirm}
             disabled={selectedTier === null || confirming}
-            className="flex-1 px-3 py-2 rounded-lg text-xs font-medium text-black bg-[#00F0FF] hover:bg-[#00D4E0] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 px-3 py-2 rounded-lg text-xs font-medium text-black bg-[#2463EB] hover:bg-[#1D4ED8] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {confirming ? 'Updating...' : 'Confirm'}
           </button>

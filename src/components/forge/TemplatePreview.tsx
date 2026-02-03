@@ -45,7 +45,7 @@ export default function TemplatePreview({ template, fieldValues, onFieldChange }
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <FileText size={16} className="text-[#00F0FF]" />
+          <FileText size={16} className="text-[#2463EB]" />
           <span className="text-sm font-medium text-white">{template.name}</span>
         </div>
         <div className="text-[10px] text-[#666]">
@@ -65,7 +65,7 @@ export default function TemplatePreview({ template, fieldValues, onFieldChange }
             className="h-full rounded-full transition-all"
             style={{
               width: `${template.confidence * 100}%`,
-              backgroundColor: template.confidence >= 0.7 ? '#00F0FF' : '#FFAB00',
+              backgroundColor: template.confidence >= 0.7 ? '#2463EB' : '#FFAB00',
             }}
           />
         </div>
@@ -131,7 +131,7 @@ export default function TemplatePreview({ template, fieldValues, onFieldChange }
                 value={fieldValues[field.name] || ''}
                 onChange={e => onFieldChange(field.name, e.target.value)}
                 placeholder={field.placeholder || field.defaultValue || `Enter ${field.name}`}
-                className="w-full ml-5 px-2 py-1.5 rounded bg-[#111] border border-[#333] text-xs text-white placeholder-[#555] focus:outline-none focus:border-[#00F0FF] transition-colors"
+                className="w-full ml-5 px-2 py-1.5 rounded bg-[#111] border border-[#333] text-xs text-white placeholder-[#555] focus:outline-none focus:border-[#2463EB] transition-colors"
                 style={{ width: 'calc(100% - 20px)' }}
               />
             )}

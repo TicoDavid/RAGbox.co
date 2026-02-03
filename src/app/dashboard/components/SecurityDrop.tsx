@@ -303,7 +303,7 @@ const SecurityDrop: React.FC<SecurityDropProps> = ({
         >
           <button
             onClick={handleOpenTierDialog}
-            className="w-full text-left px-4 py-2 text-xs dark:text-[#ccc] text-slate-600 dark:hover:bg-[#222] hover:bg-slate-100 hover:text-[#00F0FF] transition-colors"
+            className="w-full text-left px-4 py-2 text-xs dark:text-[#ccc] text-slate-600 dark:hover:bg-[#222] hover:bg-slate-100 hover:text-[#2463EB] transition-colors"
           >
             Change Security Tier
           </button>

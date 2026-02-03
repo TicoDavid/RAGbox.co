@@ -15,13 +15,13 @@ export default function SourceHighlight({ text, isHighlighted, citationIndex }: 
     <span
       className="relative text-xs px-1 py-0.5 rounded"
       style={{
-        backgroundColor: 'rgba(0, 240, 255, 0.08)',
-        borderLeft: '2px solid #00F0FF',
-        boxShadow: '0 0 12px rgba(0, 240, 255, 0.15)',
+        backgroundColor: 'rgba(36, 99, 235, 0.08)',
+        borderLeft: '2px solid #2463EB',
+        boxShadow: '0 0 12px rgba(36, 99, 235, 0.15)',
       }}
     >
       {citationIndex && (
-        <span className="absolute -top-2 -left-1 text-[8px] font-bold text-[#00F0FF]">
+        <span className="absolute -top-2 -left-1 text-[8px] font-bold text-[#2463EB]">
           [{citationIndex}]
         </span>
       )}

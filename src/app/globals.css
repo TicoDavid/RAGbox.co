@@ -3,15 +3,15 @@
 @tailwind utilities;
 
 @layer base {
-  /* Grok-style: Pure OLED Black / Ceramic White */
+  /* Midnight Cobalt Theme System */
   :root {
     --background: 255, 255, 255;
     --foreground: 0, 0, 0;
   }
 
   .dark {
-    --background: 0, 0, 0;
-    --foreground: 255, 255, 255;
+    --background: 10, 25, 47;        /* Midnight Cobalt #0A192F */
+    --foreground: 229, 231, 235;     /* Frosted Silver #E5E7EB */
   }
 
   html {
@@ -43,23 +43,23 @@
     @apply dark:border-white/10 border-black/5;
   }
 
-  /* Electric glow effect */
+  /* Royal Cobalt glow effect */
   .electric-glow {
-    box-shadow: 0 0 30px rgba(37, 99, 235, 0.4);
+    box-shadow: 0 0 30px rgba(36, 99, 235, 0.4);
   }
 
   .electric-glow-intense {
-    box-shadow: 0 0 50px rgba(37, 99, 235, 0.6);
+    box-shadow: 0 0 50px rgba(36, 99, 235, 0.6);
   }
 
-  /* Privilege glow */
+  /* AEGIS Red privilege glow */
   .privilege-glow {
-    box-shadow: 0 0 20px rgba(220, 38, 38, 0.4);
+    box-shadow: 0 0 20px rgba(255, 61, 0, 0.4);
   }
 }
 
 @layer utilities {
-  /* Custom scrollbar - Dark mode */
+  /* Custom scrollbar - Dark mode (Sterling Silver tint) */
   .dark ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -70,12 +70,12 @@
   }
 
   .dark ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(192, 192, 192, 0.15);
     border-radius: 3px;
   }
 
   .dark ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(192, 192, 192, 0.25);
   }
 
   /* Custom scrollbar - Light mode */
@@ -97,9 +97,9 @@
     background: rgba(0, 0, 0, 0.2);
   }
 
-  /* Focus states for accessibility */
+  /* Focus states for accessibility - Royal Cobalt */
   *:focus-visible {
-    outline: 2px solid rgb(37, 99, 235);
+    outline: 2px solid rgb(36, 99, 235);
     outline-offset: 2px;
   }
 
@@ -108,13 +108,13 @@
     text-wrap: balance;
   }
 
-  /* Border pulse animation */
+  /* Border pulse animation - Royal Cobalt */
   @keyframes border-pulse {
     0%, 100% {
-      border-color: rgba(37, 99, 235, 0.4);
+      border-color: rgba(36, 99, 235, 0.4);
     }
     50% {
-      border-color: rgba(37, 99, 235, 1);
+      border-color: rgba(36, 99, 235, 1);
     }
   }
 

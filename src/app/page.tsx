@@ -21,7 +21,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen dark:bg-[#050505] bg-white transition-colors duration-300">
+    <main className="min-h-screen dark:bg-void bg-white transition-colors duration-300">
       <Navbar onOpenAuth={() => openAuth('signin')} />
       <Hero onOpenAuth={() => openAuth('signup')} onOpenVideo={() => setVideoOpen(true)} />
       <FeatureGrid />

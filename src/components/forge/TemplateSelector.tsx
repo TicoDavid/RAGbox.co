@@ -108,7 +108,7 @@ export default function TemplateSelector({ sourceContext, onClose }: TemplateSel
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-[#222] bg-[#0a0a0a]">
           <div className="flex items-center gap-2">
-            <Hammer size={18} className="text-[#00F0FF]" />
+            <Hammer size={18} className="text-[#2463EB]" />
             <span className="text-sm font-semibold text-white">FORGE Document</span>
           </div>
           <button onClick={onClose} className="text-[#666] hover:text-white transition-colors">
@@ -130,7 +130,7 @@ export default function TemplateSelector({ sourceContext, onClose }: TemplateSel
             <div className="space-y-4">
               <button
                 onClick={() => setStep('select')}
-                className="text-[10px] text-[#00F0FF] hover:underline"
+                className="text-[10px] text-[#2463EB] hover:underline"
               >
                 Back to library
               </button>
@@ -142,7 +142,7 @@ export default function TemplateSelector({ sourceContext, onClose }: TemplateSel
             <div className="space-y-4">
               <button
                 onClick={() => setStep('select')}
-                className="text-[10px] text-[#00F0FF] hover:underline"
+                className="text-[10px] text-[#2463EB] hover:underline"
               >
                 Change template
               </button>
@@ -154,7 +154,7 @@ export default function TemplateSelector({ sourceContext, onClose }: TemplateSel
               <button
                 onClick={handleGenerate}
                 disabled={requiredMissing > 0}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-medium text-black bg-[#00F0FF] hover:bg-[#00D4E0] disabled:opacity-50 transition-colors"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-medium text-black bg-[#2463EB] hover:bg-[#1D4ED8] disabled:opacity-50 transition-colors"
               >
                 <Hammer size={14} />
                 {requiredMissing > 0
@@ -166,7 +166,7 @@ export default function TemplateSelector({ sourceContext, onClose }: TemplateSel
 
           {step === 'generating' && (
             <div className="flex flex-col items-center gap-3 py-12">
-              <Loader2 size={32} className="text-[#00F0FF] animate-spin" />
+              <Loader2 size={32} className="text-[#2463EB] animate-spin" />
               <div className="text-sm text-white">Forging document...</div>
               <div className="text-[10px] text-[#666]">Generating from template with AI</div>
             </div>
@@ -179,7 +179,7 @@ export default function TemplateSelector({ sourceContext, onClose }: TemplateSel
               {generatedUrl && (
                 <button
                   onClick={handleDownload}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium text-black bg-[#00F0FF] hover:bg-[#00D4E0] transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium text-black bg-[#2463EB] hover:bg-[#1D4ED8] transition-colors"
                 >
                   <Download size={14} />
                   Download
@@ -200,7 +200,7 @@ export default function TemplateSelector({ sourceContext, onClose }: TemplateSel
               <div className="text-sm text-red-400">{errorMessage || 'Something went wrong'}</div>
               <button
                 onClick={() => setStep(selectedTemplate ? 'fill' : 'select')}
-                className="text-xs text-[#00F0FF] hover:underline"
+                className="text-xs text-[#2463EB] hover:underline"
               >
                 Try again
               </button>

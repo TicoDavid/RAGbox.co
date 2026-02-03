@@ -6,7 +6,7 @@ export default function VaultSettings() {
   return (
     <div className="max-w-lg">
       <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-        <HardDrive size={16} className="text-[#00F0FF]" />
+        <HardDrive size={16} className="text-[#2463EB]" />
         Vault Settings
       </h3>
 
@@ -17,7 +17,7 @@ export default function VaultSettings() {
           <span className="text-[10px] text-[#666]">0 B / 50 GB</span>
         </div>
         <div className="w-full h-2 bg-[#222] rounded-full overflow-hidden mb-2">
-          <div className="h-full rounded-full bg-[#00F0FF]" style={{ width: '0%' }} />
+          <div className="h-full rounded-full bg-[#2463EB]" style={{ width: '0%' }} />
         </div>
         <div className="grid grid-cols-3 gap-2 text-[10px]">
           <div>
@@ -61,7 +61,7 @@ export default function VaultSettings() {
               <div className="text-xs text-white">Audit Log Retention</div>
               <div className="text-[10px] text-[#666]">WORM-compliant storage period</div>
             </div>
-            <span className="text-xs text-[#00F0FF] px-2 py-1 rounded bg-[#00F0FF]/10 border border-[#00F0FF]/30">
+            <span className="text-xs text-[#2463EB] px-2 py-1 rounded bg-[#2463EB]/10 border border-[#2463EB]/30">
               7 years
             </span>
           </div>

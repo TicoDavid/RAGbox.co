@@ -36,7 +36,7 @@ export default function FileHoverModal({ document, position }: FileHoverModalPro
       }}
     >
       <div className="flex items-center gap-2 mb-2">
-        <FileText size={16} className="text-[#00F0FF]" />
+        <FileText size={16} className="text-[#2463EB]" />
         <span className="text-xs font-medium text-white truncate">{document.name}</span>
       </div>
 

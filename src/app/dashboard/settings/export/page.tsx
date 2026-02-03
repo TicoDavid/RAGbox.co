@@ -51,7 +51,7 @@ export default function ExportSettings() {
   return (
     <div className="max-w-lg">
       <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-        <Download size={16} className="text-[#00F0FF]" />
+        <Download size={16} className="text-[#2463EB]" />
         Export Data
       </h3>
 
@@ -67,11 +67,11 @@ export default function ExportSettings() {
             onClick={() => setSelectedFormat(id)}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg border text-left transition-all ${
               selectedFormat === id
-                ? 'border-[#00F0FF] bg-[#00F0FF]/10'
+                ? 'border-[#2463EB] bg-[#2463EB]/10'
                 : 'border-[#222] bg-[#0a0a0a] hover:border-[#444]'
             }`}
           >
-            <Icon size={18} className={selectedFormat === id ? 'text-[#00F0FF]' : 'text-[#666]'} />
+            <Icon size={18} className={selectedFormat === id ? 'text-[#2463EB]' : 'text-[#666]'} />
             <div>
               <div className="text-xs font-medium text-white">{label}</div>
               <div className="text-[10px] text-[#666]">{description}</div>
@@ -84,7 +84,7 @@ export default function ExportSettings() {
       <button
         onClick={handleExport}
         disabled={isExporting}
-        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-medium text-black bg-[#00F0FF] hover:bg-[#00D4E0] disabled:opacity-50 transition-colors"
+        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-medium text-black bg-[#2463EB] hover:bg-[#1D4ED8] disabled:opacity-50 transition-colors"
       >
         {isExporting ? (
           <>
