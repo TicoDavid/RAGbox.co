@@ -42,7 +42,7 @@ export default function LoginPage() {
       </motion.div>
 
       <motion.div
-        className={cn('relative z-10 w-full max-w-md p-8 rounded-3xl backdrop-blur-xl bg-white/5 border border-white/10 shadow-[0_0_60px_-15px_rgba(37,99,235,0.3)]')}
+        className={cn('relative z-10 w-full max-w-md p-8 rounded-3xl backdrop-blur-xl bg-white/5 border border-white/10 shadow-[0_0_60px_-15px_rgba(36,99,235,0.3)]')}
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.2 }}

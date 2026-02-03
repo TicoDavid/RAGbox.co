@@ -18,7 +18,7 @@ export default function StorageIndicator({ usedBytes, maxBytes }: StorageIndicat
   const isWarning = percentage > 80
   const isCritical = percentage > 95
 
-  const barColor = isCritical ? '#FF3D00' : isWarning ? '#FFAB00' : '#00F0FF'
+  const barColor = isCritical ? '#FF3D00' : isWarning ? '#FFAB00' : '#2463EB'
 
   return (
     <div className="px-3 py-2">

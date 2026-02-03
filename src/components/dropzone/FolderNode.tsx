@@ -39,7 +39,7 @@ export default function FolderNode({
     <div>
       <div
         className={`flex items-center gap-1 px-2 py-1 rounded cursor-pointer group transition-colors ${
-          isSelected ? 'bg-[#00F0FF]/10 text-[#00F0FF]' : 'text-[#888] hover:text-white hover:bg-[#111]'
+          isSelected ? 'bg-[#2463EB]/10 text-[#2463EB]' : 'text-[#888] hover:text-white hover:bg-[#111]'
         }`}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
         onClick={() => onSelect(folder.id)}
@@ -56,7 +56,7 @@ export default function FolderNode({
         )}
 
         {isSelected || expanded ? (
-          <FolderOpen size={14} className="text-[#00F0FF] flex-shrink-0" />
+          <FolderOpen size={14} className="text-[#2463EB] flex-shrink-0" />
         ) : (
           <Folder size={14} className="flex-shrink-0" />
         )}
@@ -67,7 +67,7 @@ export default function FolderNode({
             onChange={e => setEditName(e.target.value)}
             onBlur={handleRename}
             onKeyDown={e => e.key === 'Enter' && handleRename()}
-            className="flex-1 text-xs bg-transparent border-b border-[#00F0FF] text-white focus:outline-none"
+            className="flex-1 text-xs bg-transparent border-b border-[#2463EB] text-white focus:outline-none"
             autoFocus
             onClick={e => e.stopPropagation()}
           />

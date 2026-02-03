@@ -10,7 +10,7 @@ interface ReasoningStepProps {
 export default function ReasoningStepItem({ step }: ReasoningStepProps) {
   const statusIcon = {
     pending: <Clock size={12} className="text-[#666]" />,
-    running: <Loader2 size={12} className="text-[#00F0FF] animate-spin" />,
+    running: <Loader2 size={12} className="text-[#2463EB] animate-spin" />,
     complete: <Check size={12} className="text-green-500" />,
     error: <AlertCircle size={12} className="text-red-500" />,
   }

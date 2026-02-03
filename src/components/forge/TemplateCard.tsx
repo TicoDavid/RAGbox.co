@@ -11,7 +11,7 @@ interface TemplateCardProps {
 
 const categoryColors: Record<string, string> = {
   legal: '#FFAB00',
-  financial: '#00F0FF',
+  financial: '#2463EB',
   medical: '#FF3D00',
   general: '#888',
 }
@@ -24,7 +24,7 @@ export default function TemplateCard({ template, onSelect, isSelected }: Templat
       onClick={() => onSelect(template)}
       className={`w-full text-left rounded-lg border p-4 transition-all ${
         isSelected
-          ? 'border-[#00F0FF] bg-[#00F0FF]/10 shadow-[0_0_12px_rgba(0,240,255,0.15)]'
+          ? 'border-[#2463EB] bg-[#2463EB]/10 shadow-[0_0_12px_rgba(36,99,235,0.15)]'
           : 'border-[#222] bg-[#0a0a0a] hover:border-[#444]'
       }`}
     >

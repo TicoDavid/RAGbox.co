@@ -14,7 +14,7 @@ export default function Hero({ onOpenAuth, onOpenVideo }: HeroProps) {
     { volume: 0.4 }
   );
   return (
-    <section className="relative pt-32 pb-32 flex flex-col items-center text-center px-4 overflow-hidden dark:bg-[#050505] bg-white transition-colors duration-300">
+    <section className="relative pt-32 pb-32 flex flex-col items-center text-center px-4 overflow-hidden dark:bg-void bg-white transition-colors duration-300">
 
       {/* --- BACKGROUND LAYERS --- */}
 
@@ -56,91 +56,29 @@ export default function Hero({ onOpenAuth, onOpenVideo }: HeroProps) {
         </div>
       </div>
 
-      {/* --- THE HERO ARTIFACT (The Box) --- */}
-      <div className="relative z-10 w-full max-w-lg group cursor-pointer perspective-1000">
-
-        {/* 1. THE GOLD PULSE (Replaces Blue) */}
-        <div className="
-            absolute -inset-1
-            bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-600
-            rounded-[28px] blur-lg opacity-20
-            group-hover:opacity-60
-            transition duration-700
-            animate-pulse-slow
-            pointer-events-none
-        " />
-
-        {/* 2. THE GLASS CONTAINER */}
-        <div
+      {/* CTAs - Premium Sovereign Styling */}
+      <div className="relative z-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+        {/* Primary Button - Electric Blue Gradient with Glow */}
+        <button
           onClick={onOpenAuth}
-          className="
-            relative aspect-square md:aspect-[16/10] rounded-3xl
+          className="h-14 px-8 rounded-full bg-gradient-to-b from-[#4040FF] to-[#0000FF] hover:from-[#5050FF] hover:to-[#0000DD] text-white font-bold tracking-wide shadow-[0_0_30px_rgba(0,0,255,0.5),inset_0_1px_0_rgba(255,255,255,0.2)] hover:shadow-[0_0_50px_rgba(0,0,255,0.7),0_4px_20px_rgba(0,0,255,0.4)] transition-all duration-300 w-full sm:w-auto text-sm hover:-translate-y-0.5"
+        >
+          Start Free Trial
+        </button>
 
-            /* LIGHT MODE */
-            bg-white border border-slate-200 shadow-xl
-
-            /* DARK MODE (Obsidian Glass) */
-            dark:bg-[#080808] dark:border-white/10 dark:shadow-2xl dark:shadow-black/50
-
-            flex flex-col items-center justify-center gap-5
-            transition-all duration-500
-            group-hover:scale-[1.02] group-hover:-translate-y-2
-        ">
-
-          {/* Animated Icon Container */}
-          <div className="
-            p-6 rounded-2xl mb-2 transition-all duration-500
-            bg-slate-50 text-slate-400
-            dark:bg-white/5 dark:text-amber-400
-            group-hover:bg-[#0000FF] group-hover:text-white group-hover:shadow-[0_0_30px_rgba(0,0,255,0.4)]
-          ">
-             {/* Shield Icon */}
-            <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5zm0 2.18L18 8.15V13c0 4.14-2.58 8.16-6 9.39-3.42-1.23-6-5.25-6-9.39V8.15l6-3.97z" />
-            </svg>
-          </div>
-
-          <div className="space-y-2">
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-[#0000FF] dark:group-hover:text-white transition-colors">
-              Securely Upload for Analysis
-            </h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Drag & drop or click to enter vault
-            </p>
-          </div>
-
-          {/* File Types */}
-          <div className="flex gap-2 mt-2">
-             <FileChip label="PDF" />
-             <FileChip label="DOCX" />
-             <FileChip label="TXT" />
-          </div>
-        </div>
-
-        {/* CTAs - Premium Sovereign Styling */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-12">
-          {/* Primary Button - Electric Blue Gradient with Glow */}
-          <button
-            onClick={onOpenAuth}
-            className="h-14 px-8 rounded-full bg-gradient-to-b from-[#4040FF] to-[#0000FF] hover:from-[#5050FF] hover:to-[#0000DD] text-white font-bold tracking-wide shadow-[0_0_30px_rgba(0,0,255,0.5),inset_0_1px_0_rgba(255,255,255,0.2)] hover:shadow-[0_0_50px_rgba(0,0,255,0.7),0_4px_20px_rgba(0,0,255,0.4)] transition-all duration-300 w-full sm:w-auto text-sm hover:-translate-y-0.5"
-          >
-            Start Free Trial
-          </button>
-
-          {/* Secondary Button - Glass Effect */}
-          <button
-            onClick={() => {
-              playOpen();
-              onOpenVideo();
-            }}
-            className="group h-14 px-8 rounded-full border border-slate-300 dark:border-white/20 bg-transparent text-slate-600 dark:text-white hover:border-[#0000FF] hover:text-[#0000FF] dark:hover:border-[#4040FF] dark:hover:text-[#4040FF] font-medium transition-all duration-300 w-full sm:w-auto flex items-center justify-center gap-2 text-sm hover:shadow-[0_0_20px_rgba(0,0,255,0.2)]"
-          >
-            <svg className="w-4 h-4 text-slate-400 dark:text-white/60 group-hover:text-[#0000FF] dark:group-hover:text-[#4040FF] transition-colors" fill="currentColor" viewBox="0 0 24 24">
-               <path d="M8 5v14l11-7z"/>
-            </svg>
-            See How It Works
-          </button>
-        </div>
+        {/* Secondary Button - Glass Effect */}
+        <button
+          onClick={() => {
+            playOpen();
+            onOpenVideo();
+          }}
+          className="group h-14 px-8 rounded-full border border-slate-300 dark:border-white/20 bg-transparent text-slate-600 dark:text-white hover:border-[#0000FF] hover:text-[#0000FF] dark:hover:border-[#4040FF] dark:hover:text-[#4040FF] font-medium transition-all duration-300 w-full sm:w-auto flex items-center justify-center gap-2 text-sm hover:shadow-[0_0_20px_rgba(0,0,255,0.2)]"
+        >
+          <svg className="w-4 h-4 text-slate-400 dark:text-white/60 group-hover:text-[#0000FF] dark:group-hover:text-[#4040FF] transition-colors" fill="currentColor" viewBox="0 0 24 24">
+             <path d="M8 5v14l11-7z"/>
+          </svg>
+          See How It Works
+        </button>
       </div>
     </section>
   );
@@ -156,15 +94,3 @@ function Badge({ text }: { text: string }) {
   );
 }
 
-function FileChip({ label }: { label: string }) {
-  return (
-    <span className="
-      text-[10px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-md
-      bg-slate-100 text-slate-500 border border-slate-200
-      dark:bg-black dark:text-slate-400 dark:border-white/10
-      group-hover:border-blue-200 dark:group-hover:border-blue-500/30 transition-colors
-    ">
-      {label}
-    </span>
-  );
-}

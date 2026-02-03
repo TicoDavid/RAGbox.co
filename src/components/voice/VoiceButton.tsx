@@ -36,7 +36,7 @@ export function VoiceButton({
         relative flex items-center justify-center
         w-12 h-12 rounded-full
         transition-colors duration-200
-        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#050505]
+        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#0A192F]
         ${isError
           ? 'bg-red-600/20 text-red-500 focus:ring-red-500'
           : isActive
@@ -80,7 +80,7 @@ export function VoiceButton({
       {voiceState !== 'idle' && (
         <span
           className={`
-            absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#050505]
+            absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0A192F]
             ${connectionState === 'connected' ? 'bg-green-500' :
               connectionState === 'connecting' || connectionState === 'reconnecting' ? 'bg-yellow-500 animate-pulse' :
               connectionState === 'error' ? 'bg-red-500' :

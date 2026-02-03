@@ -481,9 +481,9 @@ function EmptyState({ onChipClick }: { onChipClick: (prompt: string) => void }) 
         )}
         animate={{
           boxShadow: [
-            '0 0 0 0 rgba(37, 99, 235, 0)',
-            '0 0 0 12px rgba(37, 99, 235, 0.1)',
-            '0 0 0 0 rgba(37, 99, 235, 0)',
+            '0 0 0 0 rgba(36, 99, 235, 0)',
+            '0 0 0 12px rgba(36, 99, 235, 0.1)',
+            '0 0 0 0 rgba(36, 99, 235, 0)',
           ],
         }}
         transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}

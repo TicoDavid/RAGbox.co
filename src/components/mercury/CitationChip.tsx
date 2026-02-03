@@ -23,7 +23,7 @@ export default function CitationChip({
   return (
     <span className="relative inline-block">
       <button
-        className="inline-flex items-center justify-center min-w-[24px] h-5 px-1.5 rounded-full text-[10px] font-bold bg-[#00F0FF]/15 text-[#00F0FF] border border-[#00F0FF]/30 hover:bg-[#00F0FF]/25 transition-colors cursor-pointer"
+        className="inline-flex items-center justify-center min-w-[24px] h-5 px-1.5 rounded-full text-[10px] font-bold bg-[#2463EB]/15 text-[#2463EB] border border-[#2463EB]/30 hover:bg-[#2463EB]/25 transition-colors cursor-pointer"
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
         onClick={onClick}
@@ -34,7 +34,7 @@ export default function CitationChip({
 
       {showTooltip && (
         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-72 p-3 rounded-lg bg-[#111] border border-[#333] shadow-xl">
-          <div className="text-xs font-medium text-[#00F0FF] mb-1 truncate">{documentName}</div>
+          <div className="text-xs font-medium text-[#2463EB] mb-1 truncate">{documentName}</div>
           <div className="text-[10px] text-[#888] line-clamp-3">{excerpt}</div>
           <div className="text-[10px] text-[#555] mt-1">
             {(relevanceScore * 100).toFixed(0)}% relevance

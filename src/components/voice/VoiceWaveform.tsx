@@ -14,7 +14,7 @@ interface VoiceWaveformProps {
 export function VoiceWaveform({
   audioLevel,
   isActive,
-  color = '#00F0FF',
+  color = '#2463EB',
   barCount = 24,
   width = 120,
   height = 32,

@@ -21,7 +21,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen dark:bg-[#050505] bg-white transition-colors duration-300">
+    <main className="min-h-screen dark:bg-void bg-white transition-colors duration-300">
       <Navbar onOpenAuth={() => openAuth('signin')} />
       <Hero onOpenAuth={() => openAuth('signup')} onOpenVideo={() => setVideoOpen(true)} />
       <FeatureGrid />
@@ -35,7 +35,7 @@ export default function Home() {
           <VideoModal
             isOpen={isVideoOpen}
             onClose={() => setVideoOpen(false)}
-            videoUrl="https://storage.googleapis.com/connexusai-assets/Product%20Release%202026%20Video.mp4"
+            videoUrl="https://storage.googleapis.com/connexusai-assets/RAGbox.co.mp4"
           />
         )}
       </AnimatePresence>

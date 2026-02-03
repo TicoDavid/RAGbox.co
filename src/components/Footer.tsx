@@ -3,7 +3,7 @@ import React from 'react';
 
 export default function Footer() {
   return (
-    <footer className="border-t border-slate-200 dark:border-white/10 dark:bg-[#050505] bg-white pt-16 pb-8 text-sm transition-colors duration-300">
+    <footer className="border-t border-slate-200 dark:border-white/10 dark:bg-void bg-white pt-16 pb-8 text-sm transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-6">
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">

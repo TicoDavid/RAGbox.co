@@ -21,7 +21,7 @@ export default function ReasoningPanel({ trace, defaultExpanded = false }: Reaso
         className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[#888] hover:text-[#aaa] transition-colors"
       >
         {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        <Brain size={14} className="text-[#00F0FF]" />
+        <Brain size={14} className="text-[#2463EB]" />
         <span className="font-medium">Reasoning Trace</span>
         <span className="text-[#666]">({trace.steps.length} steps, {trace.totalDurationMs}ms)</span>
         <div className="ml-auto">
@@ -46,15 +46,15 @@ export default function ReasoningPanel({ trace, defaultExpanded = false }: Reaso
           <div className="pt-2 border-t border-[#222] grid grid-cols-3 gap-2 text-[10px]">
             <div>
               <span className="text-[#666]">Retrieval: </span>
-              <span className="text-[#00F0FF]">{(trace.confidence.retrievalCoverage * 100).toFixed(0)}%</span>
+              <span className="text-[#2463EB]">{(trace.confidence.retrievalCoverage * 100).toFixed(0)}%</span>
             </div>
             <div>
               <span className="text-[#666]">Agreement: </span>
-              <span className="text-[#00F0FF]">{(trace.confidence.sourceAgreement * 100).toFixed(0)}%</span>
+              <span className="text-[#2463EB]">{(trace.confidence.sourceAgreement * 100).toFixed(0)}%</span>
             </div>
             <div>
               <span className="text-[#666]">Certainty: </span>
-              <span className="text-[#00F0FF]">{(trace.confidence.modelCertainty * 100).toFixed(0)}%</span>
+              <span className="text-[#2463EB]">{(trace.confidence.modelCertainty * 100).toFixed(0)}%</span>
             </div>
           </div>
         </div>

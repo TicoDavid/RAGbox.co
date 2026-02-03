@@ -9,7 +9,7 @@ export default function SecuritySettings() {
   return (
     <div className="max-w-lg">
       <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-        <Shield size={16} className="text-[#00F0FF]" />
+        <Shield size={16} className="text-[#2463EB]" />
         Security Settings
       </h3>
 
@@ -17,13 +17,13 @@ export default function SecuritySettings() {
       <div className="rounded-lg border border-[#222] bg-[#0a0a0a] p-4 mb-4">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <Key size={14} className="text-[#00F0FF]" />
+            <Key size={14} className="text-[#2463EB]" />
             <span className="text-xs font-medium text-white">Two-Factor Authentication</span>
           </div>
           <button
             onClick={() => setTwoFactorEnabled(!twoFactorEnabled)}
             className={`w-10 h-5 rounded-full relative transition-colors ${
-              twoFactorEnabled ? 'bg-[#00F0FF]' : 'bg-[#333]'
+              twoFactorEnabled ? 'bg-[#2463EB]' : 'bg-[#333]'
             }`}
           >
             <span
@@ -41,7 +41,7 @@ export default function SecuritySettings() {
       {/* Active Sessions */}
       <div className="rounded-lg border border-[#222] bg-[#0a0a0a] p-4 mb-4">
         <div className="flex items-center gap-2 mb-3">
-          <Monitor size={14} className="text-[#00F0FF]" />
+          <Monitor size={14} className="text-[#2463EB]" />
           <span className="text-xs font-medium text-white">Active Sessions</span>
         </div>
         <div className="space-y-2">
@@ -67,7 +67,7 @@ export default function SecuritySettings() {
             <Key size={14} className="text-[#FFAB00]" />
             <span className="text-xs font-medium text-white">API Keys</span>
           </div>
-          <button className="text-[10px] text-[#00F0FF] hover:text-[#00D4E0]">
+          <button className="text-[10px] text-[#2463EB] hover:text-[#1D4ED8]">
             + Generate Key
           </button>
         </div>

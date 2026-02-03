@@ -29,7 +29,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const result = waitlistSchema.safeParse(body)
     if (!result.success) {
       return NextResponse.json(
-        { error: result.error.issues[0]?.message || 'Invalid input' },
+        { error: result.error.errors[0]?.message || 'Invalid input' },
         { status: 400 }
       )
     }

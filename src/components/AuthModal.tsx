@@ -183,7 +183,7 @@ export function AuthModal({ isOpen, onClose, context = 'signin' }: AuthModalProp
       <motion.div
         initial={{ scale: 0.95, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        className="relative w-full max-w-[400px] overflow-hidden rounded-3xl bg-[#0A0A0A] border border-white/10 shadow-2xl shadow-black"
+        className="relative w-full max-w-[400px] overflow-hidden rounded-3xl bg-void-card border border-white/10 shadow-2xl shadow-black"
       >
 
         {/* Top Highlight (Scanner Effect) */}
@@ -271,7 +271,7 @@ export function AuthModal({ isOpen, onClose, context = 'signin' }: AuthModalProp
                 {/* SSO SECTION */}
                 <div className="relative py-3">
                   <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10"></div></div>
-                  <div className="relative flex justify-center text-[10px] uppercase tracking-widest"><span className="bg-[#0A0A0A] px-2 text-slate-500">Or</span></div>
+                  <div className="relative flex justify-center text-[10px] uppercase tracking-widest"><span className="bg-void-card px-2 text-slate-500">Or</span></div>
                 </div>
 
                 {/* Social Buttons (Dark Mode Style) */}
@@ -342,7 +342,7 @@ export function AuthModal({ isOpen, onClose, context = 'signin' }: AuthModalProp
         </div>
 
         {/* FOOTER: Security Guarantee */}
-        <div className="bg-[#050505] p-4 text-center border-t border-white/5">
+        <div className="bg-void p-4 text-center border-t border-white/5">
           <div className="flex items-center justify-center gap-2 text-[10px] text-slate-500 uppercase tracking-wider">
             <svg className="w-3 h-3 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
             Zero Data Exfiltration Guarantee
