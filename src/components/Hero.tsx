@@ -4,9 +4,10 @@ import useSound from 'use-sound';
 
 interface HeroProps {
   onOpenAuth: () => void;
+  onOpenVideo: () => void;
 }
 
-export default function Hero({ onOpenAuth }: HeroProps) {
+export default function Hero({ onOpenAuth, onOpenVideo }: HeroProps) {
   // Sound: Glass slide swoosh for opening video modal
   const [playOpen] = useSound(
     'https://storage.googleapis.com/connexusai-assets/whoosh-high-frequency-smooth-tomas-herudek-1-00-07.mp3',
@@ -127,18 +128,18 @@ export default function Hero({ onOpenAuth }: HeroProps) {
           </button>
 
           {/* Secondary Button - Glass Effect */}
-          <a
-            href="https://storage.googleapis.com/connexusai-assets/RAGbox.co.mp4"
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => playOpen()}
+          <button
+            onClick={() => {
+              playOpen();
+              onOpenVideo();
+            }}
             className="group h-14 px-8 rounded-full border border-slate-300 dark:border-white/20 bg-transparent text-slate-600 dark:text-white hover:border-[#0000FF] hover:text-[#0000FF] dark:hover:border-[#4040FF] dark:hover:text-[#4040FF] font-medium transition-all duration-300 w-full sm:w-auto flex items-center justify-center gap-2 text-sm hover:shadow-[0_0_20px_rgba(0,0,255,0.2)]"
           >
             <svg className="w-4 h-4 text-slate-400 dark:text-white/60 group-hover:text-[#0000FF] dark:group-hover:text-[#4040FF] transition-colors" fill="currentColor" viewBox="0 0 24 24">
                <path d="M8 5v14l11-7z"/>
             </svg>
             See How It Works
-          </a>
+          </button>
         </div>
       </div>
     </section>
