@@ -74,27 +74,107 @@ ragbox-co/
 
 ## Design System
 
-### Colors (Cyber-Noir Theme)
+Design tokens defined in `src/styles/design-tokens.css`. Uses Tailwind's Slate color palette.
+
+### Colors (Slate Professional Theme)
+
+#### Brand Colors
 ```css
---background: #050505;      /* OLED Black */
---primary: #00F0FF;         /* Electric Cyan */
---warning: #FFAB00;         /* Amber */
---danger: #FF3D00;          /* Neon Red */
---border: #333333;
---text: #FFFFFF;
---text-muted: #888888;
+--brand-blue: #3b82f6;        /* Blue 500 - Primary actions */
+--brand-blue-hover: #2563eb;  /* Blue 600 - Hover state */
+--brand-blue-dim: #1d4ed8;    /* Blue 700 - Active/pressed */
+```
+
+#### Dark Mode (Default)
+```css
+--bg-primary: #0f172a;        /* Slate 900 - Main background */
+--bg-secondary: #1e293b;      /* Slate 800 - Cards, panels */
+--bg-tertiary: #334155;       /* Slate 700 - Elevated surfaces */
+--bg-elevated: #475569;       /* Slate 600 - Highest elevation */
+--bg-hover: #3b4a5e;          /* Hover states */
+
+--text-primary: #f8fafc;      /* Slate 50 - Headlines */
+--text-secondary: #94a3b8;    /* Slate 400 - Body text */
+--text-tertiary: #64748b;     /* Slate 500 - Muted text */
+
+--border-default: #334155;    /* Slate 700 */
+--border-subtle: #1e293b;     /* Slate 800 */
+--border-strong: #475569;     /* Slate 600 */
+```
+
+#### Light Mode
+```css
+--bg-primary: #f8fafc;        /* Slate 50 */
+--bg-secondary: #f1f5f9;      /* Slate 100 */
+--bg-tertiary: #e2e8f0;       /* Slate 200 */
+--bg-elevated: #ffffff;       /* White */
+
+--text-primary: #0f172a;      /* Slate 900 */
+--text-secondary: #475569;    /* Slate 600 */
+--text-tertiary: #64748b;     /* Slate 500 */
+
+--border-default: #e2e8f0;    /* Slate 200 */
+--border-subtle: #f1f5f9;     /* Slate 100 */
+--border-strong: #cbd5e1;     /* Slate 300 */
+```
+
+#### Status Colors
+```css
+--success: #10b981;           /* Emerald 500 */
+--success-bg: #d1fae5;        /* Emerald 100 */
+--danger: #ef4444;            /* Red 500 */
+--danger-bg: #fee2e2;         /* Red 100 */
+--warning: #f59e0b;           /* Amber 500 */
+--warning-bg: #fef3c7;        /* Amber 100 */
+```
+
+#### Privilege Mode (Amber Accent)
+```css
+--privilege-color: #f59e0b;   /* Amber 500 - Badge/indicator */
+--privilege-bg: #451a03;      /* Amber 950 - Dark mode bg */
+--privilege-border: #b45309;  /* Amber 700 - Border */
+/* Light mode: --privilege-bg: #fffbeb (Amber 50) */
 ```
 
 ### Typography
-- **Headers:** Space Grotesk (Google Fonts)
-- **Body:** Inter (Google Fonts)
-- **Code/Citations:** JetBrains Mono (Google Fonts)
+Fonts loaded in `src/app/layout.tsx`:
+- **Headers:** Space Grotesk (`--font-space`) - Authority, headlines
+- **Body/Dashboard:** Plus Jakarta Sans (`--font-jakarta`) - Primary body text
+- **Fallback Body:** Inter (`--font-inter`) - High readability
+- **Code/Citations:** JetBrains Mono (`--font-jetbrains`) - Monospace for data
+
+### Spacing Scale
+```css
+--space-xs: 4px;    --space-sm: 8px;    --space-md: 16px;
+--space-lg: 24px;   --space-xl: 32px;   --space-2xl: 48px;
+```
+
+### Border Radius
+```css
+--radius-sm: 4px;   --radius-md: 8px;
+--radius-lg: 12px;  --radius-xl: 16px;
+```
+
+### Layout Dimensions
+```css
+--header-height: 56px;
+--rail-width: 56px;
+--vault-expanded-width: 400px;
+```
 
 ### Component Patterns
-- Use Tailwind CSS for styling
-- Glassmorphism for cards: `bg-black/50 backdrop-blur-lg border border-[#333]`
-- Glow effects: `shadow-[0_0_20px_rgba(0,240,255,0.3)]`
-- Animations via Framer Motion
+- Use Tailwind CSS with CSS custom properties from design-tokens.css
+- Cards: `bg-white dark:bg-[#1A1A1A] border border-slate-200 dark:border-white/10`
+- Elevated surfaces: `shadow-sm` or `shadow-lg` for depth
+- Hover states: Use `hover:bg-slate-100 dark:hover:bg-white/10`
+- Focus rings: `focus:outline-none focus:ring-2 focus:ring-blue-500`
+- Animations via Framer Motion (motion.div with AnimatePresence)
+- Transitions: `transition-all` or `transition-colors duration-300`
+
+### Landing Page (Special Cases)
+- Navbar: Always dark (`bg-[#0a0a0a]`) regardless of theme
+- Auth Modal: Always white background (`bg-white`)
+- Hero glow effects: Yellow pulsating behind shield logo
 
 ## Key Features
 
@@ -114,9 +194,10 @@ ragbox-co/
 - Document preview panel
 
 ### 4. Privilege Toggle
-- Binary mode: Open (grey) / Privileged (red)
-- Screen border pulse when active
+- Binary mode: Open (grey) / Privileged (amber)
+- Amber accent with pulse animation when active
 - Privileged documents hidden in normal mode
+- Uses `--privilege-color: #f59e0b` (Amber 500)
 
 ### 5. Veritas Audit Log
 - Immutable, timestamped entries
