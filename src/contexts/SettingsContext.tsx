@@ -29,8 +29,15 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
   },
 }
 
-// Universal Connection type
-export type ConnectionType = 'openai' | 'anthropic' | 'google' | 'local' | 'custom'
+// Universal Connection type - OpenRouter is the recommended gateway
+export type ConnectionType = 'openrouter' | 'openai' | 'anthropic' | 'google' | 'local' | 'custom'
+
+// Cached model info from OpenRouter
+export interface CachedModel {
+  id: string
+  name: string
+  contextLength: number
+}
 
 export interface SecureConnection {
   id: string
@@ -40,6 +47,9 @@ export interface SecureConnection {
   apiKey: string // In production, this would be encrypted/hashed
   verified: boolean
   createdAt: string
+  // OpenRouter-specific: available models and selected model
+  availableModels?: CachedModel[]
+  selectedModel?: string
 }
 
 // Notifications
@@ -64,8 +74,12 @@ interface SettingsContextValue extends SettingsState {
   deleteConnection: (id: string) => void
   verifyConnection: (id: string) => Promise<boolean>
   setNotification: (key: keyof NotificationSettings, value: boolean) => void
+  setConnectionModel: (connectionId: string, modelId: string) => void
   isVerifying: string | null // ID of connection being verified
   hasVerifiedConnection: boolean // For UI badges like "Enhanced OCR"
+  // Active model info for header display
+  activeModel: string | null
+  activeModelProvider: string | null
 }
 
 const defaultSettings: SettingsState = {
@@ -86,11 +100,26 @@ function generateId(): string {
 // Detect connection type from endpoint
 function detectConnectionType(endpoint: string): ConnectionType {
   const lower = endpoint.toLowerCase()
+  if (lower.includes('openrouter.ai')) return 'openrouter'
   if (lower.includes('openai.com')) return 'openai'
   if (lower.includes('anthropic.com')) return 'anthropic'
   if (lower.includes('googleapis.com') || lower.includes('google')) return 'google'
   if (lower.includes('localhost') || lower.includes('127.0.0.1')) return 'local'
   return 'custom'
+}
+
+// Extract provider name from model ID (e.g., "anthropic/claude-3.5-sonnet" -> "Anthropic")
+function getProviderFromModel(modelId: string): string {
+  const parts = modelId.split('/')
+  if (parts.length < 2) return 'Unknown'
+  const providerMap: Record<string, string> = {
+    'anthropic': 'Anthropic',
+    'openai': 'OpenAI',
+    'google': 'Google',
+    'meta-llama': 'Meta',
+    'mistralai': 'Mistral',
+  }
+  return providerMap[parts[0]] || parts[0]
 }
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
@@ -231,8 +260,22 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }))
   }, [])
 
+  const setConnectionModel = useCallback((connectionId: string, modelId: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      connections: prev.connections.map((conn) =>
+        conn.id === connectionId ? { ...conn, selectedModel: modelId } : conn
+      ),
+    }))
+  }, [])
+
   // Check if any connection is verified (for UI badges)
   const hasVerifiedConnection = settings.connections.some((c) => c.verified)
+
+  // Get the active model from the first OpenRouter connection with a selected model
+  const openRouterConnection = settings.connections.find((c) => c.type === 'openrouter' && c.verified && c.selectedModel)
+  const activeModel = openRouterConnection?.selectedModel || null
+  const activeModelProvider = activeModel ? getProviderFromModel(activeModel) : null
 
   const value: SettingsContextValue = {
     ...settings,
@@ -242,8 +285,11 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     deleteConnection,
     verifyConnection,
     setNotification,
+    setConnectionModel,
     isVerifying,
     hasVerifiedConnection,
+    activeModel,
+    activeModelProvider,
   }
 
   return (
