@@ -1,20 +1,72 @@
 "use client";
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import useSound from 'use-sound';
 
 interface HeroProps {
   onOpenAuth: () => void;
-  onOpenVideo: () => void;
 }
 
-export default function Hero({ onOpenAuth, onOpenVideo }: HeroProps) {
-  // Sound: Glass slide swoosh for opening video modal
+export default function Hero({ onOpenAuth }: HeroProps) {
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const demoVideoRef = useRef<HTMLVideoElement>(null);
+
+  // Sound: Glass slide swoosh for playing video
   const [playOpen] = useSound(
     'https://storage.googleapis.com/connexusai-assets/whoosh-high-frequency-smooth-tomas-herudek-1-00-07.mp3',
     { volume: 0.4 }
   );
+
+  const handleVideoToggle = () => {
+    if (videoRef.current) {
+      if (isVideoPlaying) {
+        videoRef.current.pause();
+        setIsVideoPlaying(false);
+      } else {
+        playOpen();
+        videoRef.current.play();
+        setIsVideoPlaying(true);
+      }
+    }
+  };
+
+  const handleVideoEnded = () => {
+    setIsVideoPlaying(false);
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0;
+    }
+  };
+
+  const openDemoModal = () => {
+    playOpen();
+    setIsDemoModalOpen(true);
+  };
+
+  const closeDemoModal = () => {
+    setIsDemoModalOpen(false);
+    if (demoVideoRef.current) {
+      demoVideoRef.current.pause();
+      demoVideoRef.current.currentTime = 0;
+    }
+  };
+
+  const handleDemoVideoEnded = () => {
+    closeDemoModal();
+  };
+
+  // Close modal on Escape key
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeDemoModal();
+    };
+    if (isDemoModalOpen) {
+      window.addEventListener('keydown', handleEsc);
+    }
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isDemoModalOpen]);
   return (
-    <section className="relative pt-32 pb-32 flex flex-col items-center text-center px-4 overflow-hidden dark:bg-[#050505] bg-white transition-colors duration-300">
+    <section className="relative pt-24 sm:pt-28 md:pt-32 lg:pt-36 pb-4 flex flex-col items-center text-center px-4 overflow-hidden dark:bg-[#050505] bg-white transition-colors duration-300">
 
       {/* --- BACKGROUND LAYERS --- */}
 
@@ -30,118 +82,130 @@ export default function Hero({ onOpenAuth, onOpenVideo }: HeroProps) {
 
 
       {/* --- CONTENT --- */}
-      <div className="relative z-10 max-w-5xl mx-auto space-y-8 mb-16">
+      <div className="relative z-10 max-w-5xl mx-auto space-y-4 mb-8">
 
         {/* The Headline */}
-        <h1 className="text-5xl md:text-7xl font-bold tracking-tighter text-slate-900 dark:text-white leading-[1.1]">
-          Secure Document Intelligence <br />
+        <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold tracking-tighter text-slate-900 dark:text-white leading-[1.1]">
+          <span className="sm:whitespace-nowrap">Your Private AI. Grounded in Truth.</span> <br />
           {/* THE METALLIC GOLD GRADIENT TEXT */}
           <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#FACC15] via-[#EAB308] to-[#CA8A04] drop-shadow-[0_0_20px_rgba(250,204,21,0.4)]">
-            in a Sovereign Environment
+            Locked in a Vault.
           </span>
         </h1>
 
-        <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
-          A Digital Fort Knox for your confidential documents.
-          AI-powered answers grounded in your data, with verifiable citations.
+        <p className="text-sm sm:text-base md:text-lg lg:text-xl text-slate-600 dark:text-slate-400 max-w-5xl mx-auto leading-relaxed px-2">
+          A Digital Fort Knox for your intellectual property. Chat with your most confidential documents without fear of data leaks or AI hallucinations. Every answer is cited, verifiable, and yours alone.
         </p>
 
         {/* Trust Badges */}
-        <div className="flex items-center justify-center gap-3 text-[10px] md:text-xs font-mono text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-          <Badge text="Zero Training" />
-          <span className="text-amber-500">•</span>
-          <Badge text="SOC2 Ready" />
-          <span className="text-amber-500">•</span>
-          <Badge text="Private Vaults" />
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-[8px] sm:text-[10px] md:text-xs font-mono text-[#cccccc] uppercase tracking-widest">
+          <Badge text="Instant Utility" />
+          <span className="text-amber-500 hidden sm:inline">•</span>
+          <Badge text="Enterprise-Grade Shielding" />
+          <span className="text-amber-500 hidden sm:inline">•</span>
+          <Badge text="Total Sovereignty" />
         </div>
       </div>
 
-      {/* --- THE HERO ARTIFACT (The Box) --- */}
-      <div className="relative z-10 w-full max-w-lg group cursor-pointer perspective-1000">
+      {/* --- THE HERO ARTIFACT (Video + Logo) --- */}
+      <div className="relative z-10 w-full max-w-[200px] md:max-w-[280px] lg:max-w-[320px] group perspective-1000">
 
-        {/* 1. THE GOLD PULSE (Replaces Blue) */}
-        <div className="
-            absolute -inset-1
-            bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-600
-            rounded-[28px] blur-lg opacity-20
-            group-hover:opacity-60
-            transition duration-700
-            animate-pulse-slow
-            pointer-events-none
-        " />
-
-        {/* 2. THE GLASS CONTAINER */}
+        {/* Yellow Glow Effect - Behind the shield */}
         <div
-          onClick={onOpenAuth}
-          className="
-            relative aspect-square md:aspect-[16/10] rounded-3xl
+          className={`
+            absolute inset-0 bg-yellow-400/40 blur-[80px] rounded-full pointer-events-none -z-10
+            transition-all duration-300
+            group-hover:bg-yellow-400/60 group-hover:scale-110
+            ${isVideoPlaying ? 'animate-pulse-intense bg-yellow-400/70 scale-125' : 'animate-pulse'}
+          `}
+        />
 
-            /* LIGHT MODE */
-            bg-white border border-slate-200 shadow-xl
+        {/* Shield Logo with Background Video - 3:4 Aspect Ratio */}
+        <div
+          onClick={handleVideoToggle}
+          className="relative aspect-[3/4] rounded-2xl overflow-hidden cursor-pointer group/logo"
+        >
+          {/* Video */}
+          <video
+            ref={videoRef}
+            src="https://storage.googleapis.com/connexusai-assets/ICON_Video_RAGb%C3%B6x.mp4"
+            onEnded={handleVideoEnded}
+            playsInline
+            muted
+            className="absolute inset-0 w-full h-full object-cover rounded-2xl shadow-[0_0_40px_rgba(250,204,21,0.4)]"
+          />
 
-            /* DARK MODE (Obsidian Glass) */
-            dark:bg-[#080808] dark:border-white/10 dark:shadow-2xl dark:shadow-black/50
-
-            flex flex-col items-center justify-center gap-5
-            transition-all duration-500
-            group-hover:scale-[1.02] group-hover:-translate-y-2
-        ">
-
-          {/* Animated Icon Container */}
-          <div className="
-            p-6 rounded-2xl mb-2 transition-all duration-500
-            bg-slate-50 text-slate-400
-            dark:bg-white/5 dark:text-amber-400
-            group-hover:bg-[#0000FF] group-hover:text-white group-hover:shadow-[0_0_30px_rgba(0,0,255,0.4)]
-          ">
-             {/* Shield Icon */}
-            <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5zm0 2.18L18 8.15V13c0 4.14-2.58 8.16-6 9.39-3.42-1.23-6-5.25-6-9.39V8.15l6-3.97z" />
-            </svg>
-          </div>
-
-          <div className="space-y-2">
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-[#0000FF] dark:group-hover:text-white transition-colors">
-              Securely Upload for Analysis
-            </h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Drag & drop or click to enter vault
-            </p>
-          </div>
-
-          {/* File Types */}
-          <div className="flex gap-2 mt-2">
-             <FileChip label="PDF" />
-             <FileChip label="DOCX" />
-             <FileChip label="TXT" />
+          {/* Play/Pause Icon Overlay */}
+          <div className={`
+            absolute inset-0 flex items-center justify-center
+            transition-opacity duration-300
+            ${isVideoPlaying ? 'opacity-0 hover:opacity-100' : 'opacity-0 group-hover/logo:opacity-100'}
+          `}>
+            <div className="w-16 h-16 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center border border-white/20">
+              {isVideoPlaying ? (
+                <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                </svg>
+              ) : (
+                <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              )}
+            </div>
           </div>
         </div>
 
         {/* CTAs - Premium Sovereign Styling */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-12">
+        <div className="flex flex-col items-center justify-center gap-2 mt-6">
           {/* Primary Button - Electric Blue Gradient with Glow */}
           <button
             onClick={onOpenAuth}
-            className="h-14 px-8 rounded-full bg-gradient-to-b from-[#4040FF] to-[#0000FF] hover:from-[#5050FF] hover:to-[#0000DD] text-white font-bold tracking-wide shadow-[0_0_30px_rgba(0,0,255,0.5),inset_0_1px_0_rgba(255,255,255,0.2)] hover:shadow-[0_0_50px_rgba(0,0,255,0.7),0_4px_20px_rgba(0,0,255,0.4)] transition-all duration-300 w-full sm:w-auto text-sm hover:-translate-y-0.5"
+            className="h-12 sm:h-14 px-6 sm:px-8 rounded-full bg-gradient-to-b from-[#4040FF] to-[#0000FF] hover:from-[#5050FF] hover:to-[#0000DD] text-white font-bold tracking-wide shadow-[0_0_30px_rgba(0,0,255,0.5),inset_0_1px_0_rgba(255,255,255,0.2)] hover:shadow-[0_0_50px_rgba(0,0,255,0.7),0_4px_20px_rgba(0,0,255,0.4)] transition-all duration-300 w-full sm:w-auto text-sm sm:text-base hover:-translate-y-0.5"
           >
-            Start Free Trial
+            Secure Your First Vault
           </button>
-
-          {/* Secondary Button - Glass Effect */}
+          {/* Secondary Action Link */}
           <button
-            onClick={() => {
-              playOpen();
-              onOpenVideo();
-            }}
-            className="group h-14 px-8 rounded-full border border-slate-300 dark:border-white/20 bg-transparent text-slate-600 dark:text-white hover:border-[#0000FF] hover:text-[#0000FF] dark:hover:border-[#4040FF] dark:hover:text-[#4040FF] font-medium transition-all duration-300 w-full sm:w-auto flex items-center justify-center gap-2 text-sm hover:shadow-[0_0_20px_rgba(0,0,255,0.2)]"
+            onClick={openDemoModal}
+            className="text-base mt-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
           >
-            <svg className="w-4 h-4 text-slate-400 dark:text-white/60 group-hover:text-[#0000FF] dark:group-hover:text-[#4040FF] transition-colors" fill="currentColor" viewBox="0 0 24 24">
-               <path d="M8 5v14l11-7z"/>
-            </svg>
-            See How It Works
+            or watch the 2-minute demo
           </button>
         </div>
       </div>
+
+      {/* Demo Video Modal */}
+      {isDemoModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/90 backdrop-blur-xl cursor-pointer"
+            onClick={closeDemoModal}
+          />
+          {/* Video Container */}
+          <div className="relative w-full max-w-5xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+            {/* Close Button */}
+            <button
+              onClick={closeDemoModal}
+              className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-black/50 hover:bg-white/20 backdrop-blur-md flex items-center justify-center text-white/70 hover:text-white transition-all border border-white/10"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            {/* Video Player */}
+            <video
+              ref={demoVideoRef}
+              src="https://storage.googleapis.com/connexusai-assets/RAGbox.co.mp4"
+              autoPlay
+              controls
+              playsInline
+              onEnded={handleDemoVideoEnded}
+              className="w-full h-full object-contain"
+            />
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -150,21 +214,9 @@ export default function Hero({ onOpenAuth, onOpenVideo }: HeroProps) {
 
 function Badge({ text }: { text: string }) {
   return (
-    <span className="px-2 py-1 rounded bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5">
+    <span className="px-2 py-1 rounded bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/20 text-[#cccccc]">
       {text}
     </span>
   );
 }
 
-function FileChip({ label }: { label: string }) {
-  return (
-    <span className="
-      text-[10px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-md
-      bg-slate-100 text-slate-500 border border-slate-200
-      dark:bg-black dark:text-slate-400 dark:border-white/10
-      group-hover:border-blue-200 dark:group-hover:border-blue-500/30 transition-colors
-    ">
-      {label}
-    </span>
-  );
-}

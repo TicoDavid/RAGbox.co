@@ -179,35 +179,34 @@ export function AuthModal({ isOpen, onClose, context = 'signin' }: AuthModalProp
         className="absolute inset-0 bg-black/80 backdrop-blur-md transition-all"
       />
 
-      {/* 2. THE MODAL CARD */}
+      {/* 2. THE MODAL CARD - Always white background */}
       <motion.div
         initial={{ scale: 0.95, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        className="relative w-full max-w-[400px] overflow-hidden rounded-3xl bg-[#0A0A0A] border border-white/10 shadow-2xl shadow-black"
+        className="relative w-full max-w-[400px] overflow-hidden rounded-3xl bg-white border border-slate-200 shadow-2xl"
       >
 
         {/* Top Highlight (Scanner Effect) */}
-        <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-blue-600 to-transparent opacity-50" />
+        <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-blue-600 to-transparent opacity-70" />
 
         <div className="p-8 pt-10">
 
           {/* LOGO & HEADER */}
           <div className="text-center mb-8">
-            {/* Official RAGbox.co Logo - Direct on dark background */}
+            {/* Official RAGbox.co Logo */}
             <img
               src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
               className="w-[200px] h-auto mx-auto mb-6"
-              style={{ filter: 'drop-shadow(0 0 8px rgba(0, 0, 255, 0.4))' }}
               alt="RAGbox.co"
             />
 
-            <h2 className="text-2xl font-bold text-white tracking-tight">
+            <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
               {step === 'email' ? HEADERS[context].title : 'Verify Identity'}
             </h2>
-            <p className="text-sm text-slate-400 mt-2">
+            <p className="text-sm text-slate-500 mt-2">
               {step === 'email'
                 ? HEADERS[context].subtitle
-                : <span>Enter the code sent to <span className="text-white font-medium">{email}</span></span>
+                : <span>Enter the code sent to <span className="text-slate-900 font-medium">{email}</span></span>
               }
             </p>
           </div>
@@ -246,7 +245,7 @@ export function AuthModal({ isOpen, onClose, context = 'signin' }: AuthModalProp
               >
                 {/* Email Input */}
                 <div className="relative group">
-                  <div className="absolute left-4 top-3.5 text-slate-500">
+                  <div className="absolute left-4 top-3.5 text-slate-400">
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                   </div>
                   <input
@@ -255,7 +254,7 @@ export function AuthModal({ isOpen, onClose, context = 'signin' }: AuthModalProp
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSendCode()}
-                    className="w-full h-12 pl-12 pr-4 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                    className="w-full h-12 pl-12 pr-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
                   />
                 </div>
 
@@ -270,22 +269,22 @@ export function AuthModal({ isOpen, onClose, context = 'signin' }: AuthModalProp
 
                 {/* SSO SECTION */}
                 <div className="relative py-3">
-                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10"></div></div>
-                  <div className="relative flex justify-center text-[10px] uppercase tracking-widest"><span className="bg-[#0A0A0A] px-2 text-slate-500">Or</span></div>
+                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
+                  <div className="relative flex justify-center text-[10px] uppercase tracking-widest"><span className="bg-white px-2 text-slate-400">Or</span></div>
                 </div>
 
-                {/* Social Buttons (Dark Mode Style) */}
+                {/* Social Buttons */}
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={handleGoogleSignIn}
-                    className="h-10 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs font-medium transition-colors flex items-center justify-center gap-2"
+                    className="h-10 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-900 text-xs font-medium transition-colors flex items-center justify-center gap-2"
                   >
                      <svg className="w-4 h-4" viewBox="0 0 24 24"><path fill="currentColor" d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .533 5.333.533 12S5.867 24 12.48 24c3.44 0 6.04-1.133 8.16-3.293 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.133H12.48z"/></svg>
                      Google
                   </button>
                   <button
                     onClick={handleMicrosoftSignIn}
-                    className="h-10 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs font-medium transition-colors flex items-center justify-center gap-2"
+                    className="h-10 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-900 text-xs font-medium transition-colors flex items-center justify-center gap-2"
                   >
                      <svg className="w-4 h-4" viewBox="0 0 24 24"><path fill="currentColor" d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zM24 11.4H12.6V0H24v11.4z"/></svg>
                      Microsoft
@@ -314,7 +313,7 @@ export function AuthModal({ isOpen, onClose, context = 'signin' }: AuthModalProp
                       value={otp[i]}
                       onChange={(e) => handleOtpChange(i, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                      className="w-10 h-14 md:w-12 md:h-16 rounded-xl bg-white/5 border border-white/20 text-center text-xl text-white font-mono focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all"
+                      className="w-10 h-14 md:w-12 md:h-16 rounded-xl bg-slate-50 border border-slate-200 text-center text-xl text-slate-900 font-mono focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all"
                     />
                   ))}
                 </div>
@@ -322,7 +321,7 @@ export function AuthModal({ isOpen, onClose, context = 'signin' }: AuthModalProp
                 <button
                   onClick={handleVerify}
                   disabled={isLoading || otp.join('').length !== 6}
-                  className="w-full h-12 rounded-xl bg-[#0000FF] hover:bg-blue-600 text-white font-bold transition-all shadow-lg shadow-blue-900/30 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full h-12 rounded-xl bg-[#0000FF] hover:bg-blue-600 text-white font-bold transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? <span className="animate-spin w-5 h-5 border-2 border-white/30 border-t-white rounded-full"/> : 'Verify & Enter Vault'}
                 </button>
@@ -330,7 +329,7 @@ export function AuthModal({ isOpen, onClose, context = 'signin' }: AuthModalProp
                 <div className="text-center">
                   <button
                     onClick={() => { setStep('email'); setOtp(['', '', '', '', '', '']); setError(''); }}
-                    className="text-xs text-slate-500 hover:text-white transition-colors underline"
+                    className="text-xs text-slate-500 hover:text-slate-700 transition-colors underline"
                   >
                     Entered wrong email?
                   </button>
@@ -342,7 +341,7 @@ export function AuthModal({ isOpen, onClose, context = 'signin' }: AuthModalProp
         </div>
 
         {/* FOOTER: Security Guarantee */}
-        <div className="bg-[#050505] p-4 text-center border-t border-white/5">
+        <div className="bg-slate-50 p-4 text-center border-t border-slate-200">
           <div className="flex items-center justify-center gap-2 text-[10px] text-slate-500 uppercase tracking-wider">
             <svg className="w-3 h-3 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
             Zero Data Exfiltration Guarantee

@@ -44,6 +44,21 @@ const config: Config = {
       },
       backgroundImage: {
         'grid-pattern': "linear-gradient(to right, #1a1a1a 1px, transparent 1px), linear-gradient(to bottom, #1a1a1a 1px, transparent 1px)",
+      },
+      keyframes: {
+        'pulse-intense': {
+          '0%, 100%': {
+            opacity: '0.6',
+            transform: 'scale(1.25)',
+          },
+          '50%': {
+            opacity: '1',
+            transform: 'scale(1.4)',
+          },
+        },
+      },
+      animation: {
+        'pulse-intense': 'pulse-intense 1s ease-in-out infinite',
       }
     },
   },

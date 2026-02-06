@@ -3,7 +3,7 @@ import React from 'react';
 
 export default function FeatureGrid() {
   return (
-    <section className="py-24 px-6 relative overflow-hidden transition-colors duration-300 dark:bg-[#050505] bg-white">
+    <section className="pt-8 pb-24 px-6 relative overflow-hidden transition-colors duration-300 dark:bg-[#050505] bg-white">
 
       {/* 1. MASTER CLASS TEXTURE: The Grid Background */}
       <div className="absolute inset-0 pointer-events-none">
@@ -23,7 +23,7 @@ export default function FeatureGrid() {
         <div className="text-center mb-20 space-y-4">
           <h2 className="text-4xl md:text-6xl font-bold tracking-tighter text-slate-900 dark:text-white">
             Your Files Speak. <br/>
-            <span className="text-[#0000FF]">
+            <span className="text-[#00a8ff]">
               We Make Them Testify.
             </span>
           </h2>

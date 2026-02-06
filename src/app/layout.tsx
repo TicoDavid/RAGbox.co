@@ -43,14 +43,13 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning className="dark">
-      <body className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrains.variable} ${jakarta.variable} font-sans bg-oled text-gray-200 antialiased overflow-hidden`}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrains.variable} ${jakarta.variable} font-sans bg-white dark:bg-oled text-gray-800 dark:text-gray-200 antialiased overflow-x-hidden overflow-y-auto transition-colors duration-300`}>
         <AuthProvider>
           <ThemeProvider
             attribute="class"
             defaultTheme="dark"
-            enableSystem={false}
-            forcedTheme="dark"
+            enableSystem
           >
             {children}
           </ThemeProvider>

@@ -37,15 +37,13 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
     <nav
       className={cn(
         'fixed top-0 left-0 right-0 z-50',
-        'px-6 py-0.5',
-        // Ghost Strategy: Deeply transparent, floating
-        'backdrop-blur-md',
-        'dark:bg-black/50 bg-white/90',
-        'dark:border-b dark:border-white/5 border-b border-slate-200/50',
-        'transition-colors duration-300'
+        'px-2 sm:px-4 md:px-6 py-0.5',
+        // Solid dark background - never changes
+        'bg-[#0a0a0a]',
+        'border-b border-white/5'
       )}
     >
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <div className="flex items-center justify-between">
         {/* Logo - Theme-aware */}
         <motion.div
           className="flex items-center"
@@ -54,27 +52,25 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         >
           <img
-            src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
+            src="https://storage.googleapis.com/connexusai-assets/RAGbox_backlit.avif"
             alt="RAGbox.co"
             className={cn(
-              'h-12 md:h-14 lg:h-16 w-auto',
+              'h-16 sm:h-20 md:h-24 lg:h-28 w-auto',
               'transition-all duration-300'
             )}
           />
         </motion.div>
 
         {/* Right Controls */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           {/* Theme Toggle - Pill shaped */}
           {mounted && (
             <motion.button
               onClick={toggleTheme}
               className={cn(
-                'relative w-16 h-8 rounded-full p-1',
-                'transition-colors duration-300',
-                'dark:bg-void-elevated dark:border dark:border-white/10',
-                'bg-paper-muted border border-black/10',
-                'focus:outline-none focus:ring-2 focus:ring-electric-500/50'
+                'relative w-14 sm:w-16 h-7 sm:h-8 rounded-full p-1',
+                'bg-[#1a1a1a] border border-white/10',
+                'focus:outline-none focus:ring-2 focus:ring-blue-500/50'
               )}
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -84,35 +80,34 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
               {/* Sliding indicator */}
               <motion.div
                 className={cn(
-                  'absolute top-1 w-6 h-6 rounded-full',
+                  'absolute top-0.5 sm:top-1 w-5 sm:w-6 h-5 sm:h-6 rounded-full',
                   'flex items-center justify-center',
-                  'dark:bg-electric-600 bg-electric-500',
-                  'shadow-glow-sm'
+                  'bg-[#0066ff]',
+                  'shadow-[0_0_10px_rgba(0,102,255,0.5)]'
                 )}
                 initial={false}
                 animate={{
-                  left: isDark ? '4px' : 'calc(100% - 28px)',
+                  left: isDark ? '4px' : 'calc(100% - 24px)',
                 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               >
                 {isDark ? (
-                  <Moon className="w-3.5 h-3.5 text-white" />
+                  <Moon className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-white" />
                 ) : (
-                  <Sun className="w-3.5 h-3.5 text-white" />
+                  <Sun className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-white" />
                 )}
               </motion.div>
             </motion.button>
           )}
 
-          {/* Sign In Button */}
+          {/* Sign In Button - Hidden on very small screens */}
           <motion.button
             onClick={onOpenAuth}
             className={cn(
-              'px-4 py-2 rounded-2xl',
-              'text-sm font-medium',
+              'hidden sm:block px-3 sm:px-4 py-2 rounded-2xl',
+              'text-xs sm:text-sm font-medium',
               'transition-colors duration-200',
-              'dark:text-slate-400 dark:hover:text-white',
-              'text-slate-600 hover:text-slate-900'
+              'text-slate-400 hover:text-white'
             )}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -127,11 +122,11 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
             target="_blank"
             rel="noopener noreferrer"
             className={cn(
-              'px-5 py-2.5 rounded-2xl',
-              'text-sm font-semibold',
-              'bg-electric-600 hover:bg-electric-500',
+              'px-3 sm:px-5 py-2 sm:py-2.5 rounded-2xl',
+              'text-xs sm:text-sm font-semibold',
+              'bg-[#0066ff] hover:bg-[#0077ff]',
               'text-white',
-              'shadow-glow-sm hover:shadow-glow',
+              'shadow-[0_0_10px_rgba(0,102,255,0.5)] hover:shadow-[0_0_15px_rgba(0,102,255,0.7)]',
               'transition-all duration-200'
             )}
             initial={{ opacity: 0, x: 20 }}
