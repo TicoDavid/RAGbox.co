@@ -1,6 +1,5 @@
 "use client";
 import React, { useState, useRef, useEffect } from 'react';
-import useSound from 'use-sound';
 
 interface HeroProps {
   onOpenAuth: () => void;
@@ -12,19 +11,12 @@ export default function Hero({ onOpenAuth }: HeroProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const demoVideoRef = useRef<HTMLVideoElement>(null);
 
-  // Sound: Glass slide swoosh for playing video
-  const [playOpen] = useSound(
-    'https://storage.googleapis.com/connexusai-assets/whoosh-high-frequency-smooth-tomas-herudek-1-00-07.mp3',
-    { volume: 0.4 }
-  );
-
   const handleVideoToggle = () => {
     if (videoRef.current) {
       if (isVideoPlaying) {
         videoRef.current.pause();
         setIsVideoPlaying(false);
       } else {
-        playOpen();
         videoRef.current.play();
         setIsVideoPlaying(true);
       }
@@ -39,7 +31,6 @@ export default function Hero({ onOpenAuth }: HeroProps) {
   };
 
   const openDemoModal = () => {
-    playOpen();
     setIsDemoModalOpen(true);
   };
 

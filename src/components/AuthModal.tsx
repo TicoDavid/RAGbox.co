@@ -3,7 +3,6 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import useSound from 'use-sound';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -26,12 +25,6 @@ export function AuthModal({ isOpen, onClose, context = 'signin' }: AuthModalProp
   const [error, setError] = useState('');
   const [devOtp, setDevOtp] = useState(''); // For dev mode display
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  // Sound: Sci-fi whoosh on successful login
-  const [playSuccess] = useSound(
-    'https://storage.googleapis.com/connexusai-assets/sci-fi-whoosh-ui-click-brukowskij-1-00-02.mp3',
-    { volume: 0.4 }
-  );
 
   // Reset state when modal opens/closes
   useEffect(() => {
@@ -145,8 +138,7 @@ export function AuthModal({ isOpen, onClose, context = 'signin' }: AuthModalProp
         setOtp(['', '', '', '', '', '']);
         inputRefs.current[0]?.focus();
       } else {
-        // Success - play vault door sound and redirect
-        playSuccess();
+        // Success - redirect to dashboard
         setTimeout(() => {
           router.push('/dashboard');
           onClose();

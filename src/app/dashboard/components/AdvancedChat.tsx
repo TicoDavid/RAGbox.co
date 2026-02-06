@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import useSound from 'use-sound';
 
 // --- MOCK RAG RESPONSES ---
 const MOCK_ANSWERS = {
@@ -19,18 +18,6 @@ export default function AdvancedChat() {
   const [selectedMode, setSelectedMode] = useState('exec');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Sound: Data stream while AI is thinking
-  const [playThinking, { stop: stopThinking }] = useSound(
-    'https://storage.googleapis.com/connexusai-assets/digital-data-processing-davies-aguirre-2-2-00-03.mp3',
-    { volume: 0.1, loop: true }
-  );
-
-  // Sound: Alert ping when analysis is complete
-  const [playAlert] = useSound(
-    'https://storage.googleapis.com/connexusai-assets/low-battery-alert-notification-jeff-kaale-1-00-01.mp3',
-    { volume: 0.3 }
-  );
-
   // Auto-scroll to bottom
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -44,12 +31,9 @@ export default function AdvancedChat() {
     setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     setInput('');
     setIsThinking(true);
-    playThinking();
 
     // 2. Simulate RAG Latency (Thinking)
     setTimeout(() => {
-      stopThinking();
-      playAlert();
       setIsThinking(false);
 
       // 3. Determine Response based on Mode

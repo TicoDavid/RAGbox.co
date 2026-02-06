@@ -35,6 +35,9 @@ const jakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: 'RAGböx | Sovereign Intelligence',
   description: 'Digital Fort Knox for Compliance-Sensitive Data',
+  icons: {
+    icon: '/favicon.svg',
+  },
 }
 
 export default function RootLayout({
