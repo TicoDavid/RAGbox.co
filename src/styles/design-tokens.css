@@ -1,12 +1,12 @@
 /* ==============================================
-   RAGbox.co Design Tokens v2.0
-   Windows Explorer meets AI Chat
+   RAGbox.co Design Tokens v3.0
+   Midnight Cobalt - Sovereign Tier
    ============================================== */
 
 :root {
   /* ===== Primary Brand ===== */
-  --brand-blue: #3b82f6;
-  --brand-blue-hover: #2563eb;
+  --brand-blue: #2463EB;
+  --brand-blue-hover: #60A5FA;
   --brand-blue-dim: #1d4ed8;
 
   /* ===== Status Colors ===== */
@@ -17,22 +17,22 @@
   --warning: #f59e0b;
   --warning-bg: #fef3c7;
 
-  /* ===== Dark Mode (Default) ===== */
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-tertiary: #334155;
-  --bg-elevated: #475569;
-  --bg-hover: #3b4a5e;
+  /* ===== Dark Mode (Default) - Midnight Cobalt ===== */
+  --bg-primary: #0A192F;
+  --bg-secondary: #112240;
+  --bg-tertiary: #1B2D4B;
+  --bg-elevated: #233554;
+  --bg-hover: #1E3A8A;
 
   /* ===== Text ===== */
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-tertiary: #64748b;
+  --text-primary: #E5E7EB;
+  --text-secondary: #C0C0C0;
+  --text-tertiary: #94A3B8;
 
   /* ===== Borders ===== */
-  --border-default: #334155;
-  --border-subtle: #1e293b;
-  --border-strong: #475569;
+  --border-default: #233554;
+  --border-subtle: #162C4E;
+  --border-strong: #2D4A6F;
 
   /* ===== Privilege Mode (Amber Accent) ===== */
   --privilege-color: #f59e0b;
@@ -65,6 +65,74 @@
   --header-height: 56px;
   --rail-width: 56px;
   --vault-expanded-width: 400px;
+}
+
+/* ===== Theme: Midnight Cobalt (Default) ===== */
+[data-theme="cobalt"] {
+  --bg-primary: #0A192F;
+  --bg-secondary: #112240;
+  --bg-tertiary: #1B2D4B;
+  --bg-elevated: #233554;
+  --bg-hover: #1E3A8A;
+
+  --text-primary: #E5E7EB;
+  --text-secondary: #C0C0C0;
+  --text-tertiary: #94A3B8;
+
+  --border-default: #233554;
+  --border-subtle: #162C4E;
+  --border-strong: #2D4A6F;
+
+  --brand-blue: #2463EB;
+  --brand-blue-hover: #60A5FA;
+}
+
+/* ===== Theme: Cyber Noir (The Hacker Theme) ===== */
+[data-theme="noir"] {
+  --bg-primary: #000000;
+  --bg-secondary: #0A0A0A;
+  --bg-tertiary: #141414;
+  --bg-elevated: #1A1A1A;
+  --bg-hover: #0D2D2D;
+
+  --text-primary: #FFFFFF;
+  --text-secondary: #B0B0B0;
+  --text-tertiary: #707070;
+
+  --border-default: #333333;
+  --border-subtle: #1F1F1F;
+  --border-strong: #444444;
+
+  --brand-blue: #00F0FF;
+  --brand-blue-hover: #00D4E0;
+
+  --privilege-color: #FF3D00;
+  --privilege-bg: #1A0A00;
+  --privilege-border: #FF6B3D;
+}
+
+/* ===== Theme: Forest Dark (Military Field Ops) ===== */
+[data-theme="forest"] {
+  --bg-primary: #022c22;
+  --bg-secondary: #064e3b;
+  --bg-tertiary: #065f46;
+  --bg-elevated: #047857;
+  --bg-hover: #059669;
+
+  --text-primary: #ecfdf5;
+  --text-secondary: #a7f3d0;
+  --text-tertiary: #6ee7b7;
+
+  --border-default: #065f46;
+  --border-subtle: #064e3b;
+  --border-strong: #059669;
+
+  --brand-blue: #10b981;
+  --brand-blue-hover: #34d399;
+
+  --privilege-color: #fbbf24;
+  --privilege-bg: #1c1917;
+  --privilege-border: #d97706;
 }
 
 /* ===== Light Mode ===== */

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Space_Grotesk, Inter, JetBrains_Mono, Plus_Jakarta_Sans } from 'next/font/google'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { AuthProvider } from '@/components/providers/AuthProvider'
+import { SettingsProvider } from '@/contexts/SettingsContext'
 import './globals.css'
 
 // 1. Authority (Headers)
@@ -49,13 +50,15 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrains.variable} ${jakarta.variable} font-sans bg-white dark:bg-oled text-gray-800 dark:text-gray-200 antialiased overflow-x-hidden overflow-y-auto transition-colors duration-300`}>
         <AuthProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="dark"
-            enableSystem
-          >
-            {children}
-          </ThemeProvider>
+          <SettingsProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="dark"
+              enableSystem
+            >
+              {children}
+            </ThemeProvider>
+          </SettingsProvider>
         </AuthProvider>
       </body>
     </html>

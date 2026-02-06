@@ -10,26 +10,37 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // CYBER-NOIR PALETTE
+        // MIDNIGHT COBALT PALETTE - Sovereign Tier
         // Backgrounds
-        oled: '#050505',      // The Void (Primary BG)
-        carbon: '#0A0A0A',    // Secondary surfaces
-        steel: '#121212',     // Tertiary / Borders
+        midnight: '#0A192F',    // Primary BG - Midnight Cobalt
+        navy: '#112240',        // Secondary surfaces - Deep Navy
+        cobalt: '#1B2D4B',      // Tertiary / Inputs - Lighter Navy
+        elevated: '#233554',    // Hover states / Dropdowns
 
         // Accents
-        cyan: {
-          DEFAULT: '#00F0FF', // "Electric Cyan" - Primary Action/Focus
-          dim: 'rgba(0, 240, 255, 0.1)',
-          glow: 'rgba(0, 240, 255, 0.5)',
+        royal: {
+          DEFAULT: '#2463EB',   // Royal Cobalt - Primary Action
+          hover: '#60A5FA',     // Sky Cobalt - Hover
+          dim: 'rgba(36, 99, 235, 0.1)',
+          glow: 'rgba(36, 99, 235, 0.5)',
         },
 
         // Semantic Status
-        privilege: '#FF3D00', // "Aegis Red" - Attorney Client Privilege
-        amber: '#FFAB00',     // "Silence Protocol" - Low Confidence
-        emerald: '#10B981',   // Verified / Safe
+        privilege: '#f59e0b',   // Amber - Attorney Client Privilege
+        amber: '#f59e0b',       // Amber - Warning
+        emerald: '#10B981',     // Verified / Safe
+        danger: '#ef4444',      // Red - Error
+
+        // Text
+        frosted: '#E5E7EB',     // Frosted Silver - Primary text
+        sterling: '#C0C0C0',    // Sterling Silver - Secondary text
 
         // UI Borders
-        border: 'rgba(255, 255, 255, 0.1)',
+        border: {
+          DEFAULT: '#233554',   // Deep Cobalt Border
+          subtle: '#162C4E',
+          strong: '#2D4A6F',
+        },
       },
       fontFamily: {
         // The Typography Trinity

@@ -74,32 +74,32 @@ ragbox-co/
 
 ## Design System
 
-Design tokens defined in `src/styles/design-tokens.css`. Uses Tailwind's Slate color palette.
+Design tokens defined in `src/styles/design-tokens.css`. Uses the **Midnight Cobalt** color palette.
 
-### Colors (Slate Professional Theme)
+### Colors (Midnight Cobalt - Sovereign Tier)
 
 #### Brand Colors
 ```css
---brand-blue: #3b82f6;        /* Blue 500 - Primary actions */
---brand-blue-hover: #2563eb;  /* Blue 600 - Hover state */
+--brand-blue: #2463EB;        /* Royal Cobalt - Primary actions */
+--brand-blue-hover: #60A5FA;  /* Sky Cobalt - Hover state */
 --brand-blue-dim: #1d4ed8;    /* Blue 700 - Active/pressed */
 ```
 
 #### Dark Mode (Default)
 ```css
---bg-primary: #0f172a;        /* Slate 900 - Main background */
---bg-secondary: #1e293b;      /* Slate 800 - Cards, panels */
---bg-tertiary: #334155;       /* Slate 700 - Elevated surfaces */
---bg-elevated: #475569;       /* Slate 600 - Highest elevation */
---bg-hover: #3b4a5e;          /* Hover states */
+--bg-primary: #0A192F;        /* Midnight Cobalt - Main background */
+--bg-secondary: #112240;      /* Deep Navy - Cards, panels */
+--bg-tertiary: #1B2D4B;       /* Lighter Navy - Inputs, headers */
+--bg-elevated: #233554;       /* Hover states, dropdowns */
+--bg-hover: #1E3A8A;          /* Dark blue interaction */
 
---text-primary: #f8fafc;      /* Slate 50 - Headlines */
---text-secondary: #94a3b8;    /* Slate 400 - Body text */
---text-tertiary: #64748b;     /* Slate 500 - Muted text */
+--text-primary: #E5E7EB;      /* Frosted Silver - Headlines */
+--text-secondary: #C0C0C0;    /* Sterling Silver - Body text */
+--text-tertiary: #94A3B8;     /* Muted Blue-Grey */
 
---border-default: #334155;    /* Slate 700 */
---border-subtle: #1e293b;     /* Slate 800 */
---border-strong: #475569;     /* Slate 600 */
+--border-default: #233554;    /* Deep Cobalt Border */
+--border-subtle: #162C4E;     /* Subtle Navy */
+--border-strong: #2D4A6F;     /* Strong Cobalt */
 ```
 
 #### Light Mode

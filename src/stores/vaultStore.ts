@@ -9,6 +9,7 @@ interface VaultState {
 
   // UI State
   isCollapsed: boolean
+  isExplorerMode: boolean // Full-screen explorer mode (80% width)
   currentPath: string[]
   selectedItemId: string | null
   isLoading: boolean
@@ -19,6 +20,9 @@ interface VaultState {
 
   // Actions
   toggleCollapse: () => void
+  toggleExplorerMode: () => void
+  exitExplorerMode: () => void
+  selectAndChat: (id: string) => void // Select file and switch to chat mode
   navigate: (path: string[]) => void
   selectItem: (id: string | null) => void
 
@@ -42,6 +46,7 @@ export const useVaultStore = create<VaultState>()(
         documents: {},
         folders: {},
         isCollapsed: true,
+        isExplorerMode: false,
         currentPath: [],
         selectedItemId: null,
         isLoading: false,
@@ -49,6 +54,19 @@ export const useVaultStore = create<VaultState>()(
         storage: { used: 0, total: 1073741824 },
 
         toggleCollapse: () => set((state) => ({ isCollapsed: !state.isCollapsed })),
+
+        toggleExplorerMode: () => set((state) => ({
+          isExplorerMode: !state.isExplorerMode,
+          isCollapsed: false, // Always expand when entering explorer mode
+        })),
+
+        exitExplorerMode: () => set({ isExplorerMode: false }),
+
+        selectAndChat: (id) => set({
+          selectedItemId: id,
+          isExplorerMode: false, // Exit explorer mode
+          isCollapsed: false, // Keep vault visible but not in explorer mode
+        }),
 
         navigate: (path) => set({ currentPath: path, selectedItemId: null }),
 

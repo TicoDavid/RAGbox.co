@@ -8,11 +8,21 @@ import { useTooltips } from '../context/TooltipContext';
 import { TOOLTIPS } from '../constants/tooltips';
 import TierBadge from '@/components/ui/TierBadge';
 
+// Import Icon
+const ImportIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+    <polyline points="17 8 12 3 7 8"/>
+    <line x1="12" y1="3" x2="12" y2="15"/>
+  </svg>
+);
+
 interface VaultPanelProps {
   vaults: Vault[];
   onVaultClick: (id: string) => void;
   onSourceDrop: (vaultId: string, sourceIds: number[]) => void;
   onCreateVault: () => void;
+  onImportClick?: () => void;
 }
 
 // Traffic Light Protocol Colors
@@ -145,7 +155,8 @@ const VaultPanel: React.FC<VaultPanelProps> = ({
   vaults,
   onVaultClick,
   onSourceDrop,
-  onCreateVault
+  onCreateVault,
+  onImportClick
 }) => {
   const { tooltipsEnabled } = useTooltips();
   const [dragOverVaultId, setDragOverVaultId] = useState<string | null>(null);
@@ -196,7 +207,20 @@ const VaultPanel: React.FC<VaultPanelProps> = ({
 
       <div className="panel-header vault-header">
         <h3 className="panel-title">The Vault</h3>
-        <button className="icon-btn"><MenuIcon /></button>
+        <div className="vault-header-actions">
+          {onImportClick && (
+            <Tooltip content="Import files to vault" enabled={tooltipsEnabled} position="left">
+              <button
+                className="icon-btn import-btn"
+                onClick={onImportClick}
+                aria-label="Import files"
+              >
+                <ImportIcon />
+              </button>
+            </Tooltip>
+          )}
+          <button className="icon-btn"><MenuIcon /></button>
+        </div>
       </div>
 
       <div className="vault-content">
