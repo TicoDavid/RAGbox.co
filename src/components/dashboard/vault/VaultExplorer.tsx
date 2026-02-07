@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useMemo } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useVaultStore } from '@/stores/vaultStore'
 import {
   ChevronLeft,
@@ -12,6 +13,7 @@ import {
   Shield,
   ShieldCheck,
   ShieldAlert,
+  ShieldOff,
   Trash2,
   MessageSquare,
   Search,
@@ -25,9 +27,79 @@ import {
   X,
   Home,
   Users,
+  Globe,
+  Building,
+  Brain,
+  BrainCog,
 } from 'lucide-react'
 import IngestionModal from '@/app/dashboard/components/IngestionModal'
 import { VaultAccessModal, type ClearanceLevel, type VaultMember, type LinkExpiration } from './VaultAccessModal'
+
+// ============================================================================
+// SECURITY TIER TYPES & DEFINITIONS
+// ============================================================================
+
+export type SecurityTier = 'general' | 'internal' | 'confidential' | 'sovereign'
+
+export const SECURITY_TIERS: Record<SecurityTier, {
+  level: number
+  label: string
+  description: string
+  icon: typeof Globe
+  color: string
+  bg: string
+  border: string
+  glow?: string
+}> = {
+  general: {
+    level: 1,
+    label: 'General',
+    description: 'Public knowledge, Marketing materials',
+    icon: Globe,
+    color: 'text-emerald-400',
+    bg: 'bg-emerald-500/10',
+    border: 'border-emerald-500/20',
+  },
+  internal: {
+    level: 2,
+    label: 'Internal',
+    description: 'Standard operational docs',
+    icon: Building,
+    color: 'text-blue-400',
+    bg: 'bg-blue-500/10',
+    border: 'border-blue-500/20',
+  },
+  confidential: {
+    level: 3,
+    label: 'Confidential',
+    description: 'Client contracts, Financial drafts',
+    icon: Lock,
+    color: 'text-amber-400',
+    bg: 'bg-amber-500/10',
+    border: 'border-amber-500/20',
+  },
+  sovereign: {
+    level: 4,
+    label: 'Sovereign',
+    description: 'Eyes Only - Air-Gapped by default',
+    icon: ShieldOff,
+    color: 'text-red-400',
+    bg: 'bg-red-500/10',
+    border: 'border-red-500/20',
+    glow: 'shadow-[0_0_15px_rgba(239,68,68,0.3)]',
+  },
+}
+
+// Convert legacy numeric tier to new system
+function tierToSecurity(tier: number): SecurityTier {
+  switch (tier) {
+    case 1: return 'general'
+    case 2: return 'internal'
+    case 3: return 'confidential'
+    case 4: return 'sovereign'
+    default: return 'general'
+  }
+}
 
 // ============================================================================
 // UTILITIES
@@ -75,33 +147,189 @@ function generateHash(id: string): string {
 }
 
 // ============================================================================
-// SECURITY BADGE COMPONENT
+// SECURITY BADGE COMPONENT (4-TIER SOVEREIGN STANDARD)
 // ============================================================================
 
-function SecurityBadge({ tier, size = 'normal' }: { tier: number; size?: 'normal' | 'large' }) {
-  const configs = {
-    1: { icon: Shield, label: 'Open', color: 'text-emerald-400', bg: 'bg-emerald-900/30', border: 'border-emerald-500/30' },
-    2: { icon: Lock, label: 'Protected', color: 'text-blue-400', bg: 'bg-blue-900/30', border: 'border-blue-500/30' },
-    3: { icon: ShieldCheck, label: 'Privileged', color: 'text-amber-400', bg: 'bg-amber-900/30', border: 'border-amber-500/30' },
-    4: { icon: ShieldAlert, label: 'Restricted', color: 'text-red-400', bg: 'bg-red-900/30', border: 'border-red-500/30' },
-  }
-  const config = configs[tier as keyof typeof configs] || configs[1]
+interface SecurityBadgeProps {
+  security: SecurityTier
+  size?: 'normal' | 'large'
+  showPulse?: boolean
+}
+
+function SecurityBadge({ security, size = 'normal', showPulse = true }: SecurityBadgeProps) {
+  const config = SECURITY_TIERS[security]
   const Icon = config.icon
+  const isSovereign = security === 'sovereign'
 
   if (size === 'large') {
     return (
-      <div className={`flex items-center gap-2 px-4 py-2.5 rounded-lg ${config.bg} border ${config.border}`}>
-        <Icon className={`w-5 h-5 ${config.color}`} />
-        <span className={`text-sm font-semibold ${config.color}`}>{config.label}</span>
+      <div className={`
+        relative flex items-center gap-2 px-4 py-2.5 rounded-lg
+        ${config.bg} border ${config.border} backdrop-blur-sm
+        ${isSovereign && config.glow ? config.glow : ''}
+      `}>
+        {/* Sovereign pulse effect */}
+        {isSovereign && showPulse && (
+          <div className="absolute inset-0 rounded-lg bg-red-500/20 animate-pulse" />
+        )}
+        <Icon className={`relative w-5 h-5 ${config.color}`} />
+        <div className="relative">
+          <span className={`text-sm font-semibold ${config.color}`}>{config.label}</span>
+          <p className="text-[10px] text-slate-500 mt-0.5">{config.description}</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium ${config.color} ${config.bg}`}>
-      <Icon className="w-3.5 h-3.5" />
-      {config.label}
+    <span className={`
+      relative inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium
+      ${config.color} ${config.bg} border ${config.border} backdrop-blur-sm
+      ${isSovereign && config.glow ? config.glow : ''}
+    `}>
+      {/* Sovereign pulse effect */}
+      {isSovereign && showPulse && (
+        <span className="absolute inset-0 rounded-md bg-red-500/20 animate-pulse" />
+      )}
+      <Icon className="relative w-3.5 h-3.5" />
+      <span className="relative">{config.label}</span>
     </span>
+  )
+}
+
+// ============================================================================
+// SECURITY TIER DROPDOWN (FOR INSPECTOR)
+// ============================================================================
+
+interface SecurityDropdownProps {
+  value: SecurityTier
+  onChange: (tier: SecurityTier) => void
+}
+
+function SecurityDropdown({ value, onChange }: SecurityDropdownProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  const config = SECURITY_TIERS[value]
+  const Icon = config.icon
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`
+          w-full flex items-center justify-between gap-2 px-4 py-3 rounded-lg
+          ${config.bg} border ${config.border} backdrop-blur-sm
+          hover:bg-opacity-80 transition-all cursor-pointer
+          ${value === 'sovereign' ? config.glow : ''}
+        `}
+      >
+        <div className="flex items-center gap-2">
+          <Icon className={`w-5 h-5 ${config.color}`} />
+          <div className="text-left">
+            <span className={`text-sm font-semibold ${config.color}`}>{config.label}</span>
+            <p className="text-[10px] text-slate-500">{config.description}</p>
+          </div>
+        </div>
+        <ChevronDown className={`w-4 h-4 ${config.color} transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="absolute top-full mt-2 left-0 right-0 z-50
+                       bg-[#0A192F]/95 backdrop-blur-xl border border-white/10
+                       rounded-xl overflow-hidden shadow-xl"
+          >
+            {(Object.entries(SECURITY_TIERS) as [SecurityTier, typeof SECURITY_TIERS[SecurityTier]][]).map(([key, tier]) => {
+              const TierIcon = tier.icon
+              const isSelected = key === value
+              return (
+                <button
+                  key={key}
+                  onClick={() => { onChange(key); setIsOpen(false) }}
+                  className={`
+                    w-full flex items-center gap-3 px-4 py-3 text-left transition-all
+                    ${isSelected ? tier.bg : 'hover:bg-white/5'}
+                  `}
+                >
+                  <TierIcon className={`w-5 h-5 ${tier.color}`} />
+                  <div className="flex-1">
+                    <span className={`text-sm font-medium ${tier.color}`}>{tier.label}</span>
+                    <p className="text-[10px] text-slate-500">{tier.description}</p>
+                  </div>
+                  {isSelected && <Check className={`w-4 h-4 ${tier.color}`} />}
+                </button>
+              )
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+// ============================================================================
+// RAG INDEXING TOGGLE (INTELLIGENCE CONTROLS)
+// ============================================================================
+
+interface RagIndexToggleProps {
+  enabled: boolean
+  onChange: (enabled: boolean) => void
+}
+
+function RagIndexToggle({ enabled, onChange }: RagIndexToggleProps) {
+  return (
+    <div className={`
+      p-4 rounded-xl border transition-all
+      ${enabled
+        ? 'bg-blue-500/5 border-blue-500/20'
+        : 'bg-red-500/5 border-red-500/20'
+      }
+    `}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          {enabled ? (
+            <Brain className="w-5 h-5 text-blue-400" />
+          ) : (
+            <BrainCog className="w-5 h-5 text-red-400" />
+          )}
+          <span className={`text-sm font-semibold ${enabled ? 'text-blue-400' : 'text-red-400'}`}>
+            {enabled ? 'Indexed for RAG' : 'RAG Disabled'}
+          </span>
+        </div>
+
+        {/* Toggle Switch */}
+        <button
+          onClick={() => onChange(!enabled)}
+          className={`
+            relative w-12 h-6 rounded-full transition-colors
+            ${enabled ? 'bg-blue-500' : 'bg-slate-700'}
+          `}
+        >
+          <motion.div
+            className="absolute top-1 w-4 h-4 rounded-full bg-white shadow-md"
+            animate={{ left: enabled ? '28px' : '4px' }}
+            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+          />
+        </button>
+      </div>
+
+      <p className="text-xs text-slate-500">
+        {enabled
+          ? 'AI can see and cite this document in responses.'
+          : 'Document is stored but AI cannot access or cite it.'
+        }
+      </p>
+
+      {!enabled && (
+        <div className="mt-2 flex items-center gap-1.5 text-[10px] text-red-400 uppercase tracking-wider font-semibold">
+          <ShieldAlert className="w-3 h-3" />
+          Vector Database Excluded
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -281,23 +509,30 @@ function Breadcrumbs({
 // SOVEREIGN INSPECTOR (RIGHT PANEL)
 // ============================================================================
 
+interface InspectorItem {
+  id: string
+  name: string
+  type: 'folder' | 'document'
+  updatedAt: Date
+  size: number
+  security: SecurityTier
+  isIndexed: boolean
+}
+
 function SovereignInspector({
   item,
   onClose,
   onChat,
   onDelete,
+  onSecurityChange,
+  onIndexToggle,
 }: {
-  item: {
-    id: string
-    name: string
-    type: 'folder' | 'document'
-    updatedAt: Date
-    size: number
-    tier: number
-  } | null
+  item: InspectorItem | null
   onClose: () => void
   onChat: (id: string) => void
   onDelete: (id: string) => void
+  onSecurityChange: (id: string, security: SecurityTier) => void
+  onIndexToggle: (id: string, enabled: boolean) => void
 }) {
   if (!item || item.type === 'folder') {
     return (
@@ -309,23 +544,42 @@ function SovereignInspector({
   }
 
   const hash = useMemo(() => generateHash(item.id), [item.id])
+  const isSovereign = item.security === 'sovereign'
 
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
-        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Inspector</h3>
+      <div className={`
+        flex items-center justify-between px-4 py-3 border-b
+        ${isSovereign ? 'border-red-500/30 bg-red-500/5' : 'border-white/5'}
+      `}>
+        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+          {isSovereign && <span className="text-red-400 mr-1">◆</span>}
+          Inspector
+        </h3>
         <button onClick={onClose} className="p-1 hover:bg-white/10 rounded">
           <X className="w-4 h-4 text-slate-400" />
         </button>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+      <div className="flex-1 overflow-y-auto p-4 space-y-5">
         {/* File Thumbnail */}
-        <div className="flex flex-col items-center py-6 bg-slate-900/50 rounded-xl border border-white/5">
-          <div className="w-20 h-20 rounded-xl bg-[var(--brand-blue)]/20 flex items-center justify-center mb-3">
-            <FileText className="w-10 h-10 text-[var(--brand-blue)]" />
+        <div className={`
+          flex flex-col items-center py-6 rounded-xl border
+          ${isSovereign
+            ? 'bg-red-900/10 border-red-500/20'
+            : 'bg-slate-900/50 border-white/5'
+          }
+        `}>
+          <div className={`
+            w-20 h-20 rounded-xl flex items-center justify-center mb-3
+            ${isSovereign
+              ? 'bg-red-500/20'
+              : 'bg-[var(--brand-blue)]/20'
+            }
+          `}>
+            <FileText className={`w-10 h-10 ${isSovereign ? 'text-red-400' : 'text-[var(--brand-blue)]'}`} />
           </div>
           <p className="text-sm font-medium text-white text-center px-4 truncate max-w-full">
             {item.name}
@@ -360,21 +614,69 @@ function SovereignInspector({
           </p>
         </div>
 
-        {/* Security Level */}
+        {/* Security Classification Dropdown */}
         <div>
-          <p className="text-xs text-slate-500 mb-2">Security Level</p>
-          <SecurityBadge tier={item.tier} size="large" />
+          <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2">
+            Security Classification
+          </p>
+          <SecurityDropdown
+            value={item.security}
+            onChange={(newSecurity) => onSecurityChange(item.id, newSecurity)}
+          />
         </div>
+
+        {/* Intelligence Controls */}
+        <div>
+          <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2">
+            Intelligence Controls
+          </p>
+          <RagIndexToggle
+            enabled={item.isIndexed}
+            onChange={(enabled) => onIndexToggle(item.id, enabled)}
+          />
+        </div>
+
+        {/* Sovereign Warning */}
+        {isSovereign && (
+          <div className="p-3 bg-red-900/20 border border-red-500/30 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <ShieldAlert className="w-4 h-4 text-red-400" />
+              <span className="text-xs font-semibold text-red-400 uppercase tracking-wider">
+                Eyes Only Protocol
+              </span>
+            </div>
+            <p className="text-[10px] text-red-300/80">
+              This document is air-gapped. AI access requires Privilege Mode activation.
+              All queries are logged to immutable audit trail.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Actions */}
       <div className="shrink-0 p-4 border-t border-white/5 space-y-2">
         <button
           onClick={() => onChat(item.id)}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] text-white rounded-lg font-medium text-sm transition-colors"
+          disabled={!item.isIndexed}
+          className={`
+            w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium text-sm transition-colors
+            ${item.isIndexed
+              ? 'bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] text-white'
+              : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+            }
+          `}
         >
-          <MessageSquare className="w-4 h-4" />
-          Analyze in Mercury
+          {item.isIndexed ? (
+            <>
+              <MessageSquare className="w-4 h-4" />
+              Analyze in Mercury
+            </>
+          ) : (
+            <>
+              <BrainCog className="w-4 h-4" />
+              RAG Indexing Disabled
+            </>
+          )}
         </button>
         <div className="flex gap-2">
           <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm transition-colors">
@@ -480,6 +782,10 @@ export function VaultExplorer() {
     navigate(buildPath(folderId))
   }
 
+  // Local state for document security/indexing (would be in store in real app)
+  const [documentSecurityOverrides, setDocumentSecurityOverrides] = useState<Record<string, SecurityTier>>({})
+  const [documentIndexOverrides, setDocumentIndexOverrides] = useState<Record<string, boolean>>({})
+
   // Get items for current folder
   type ExplorerItem = {
     id: string
@@ -487,7 +793,8 @@ export function VaultExplorer() {
     type: 'folder' | 'document'
     updatedAt: Date
     size: number
-    tier: number
+    security: SecurityTier
+    isIndexed: boolean
   }
 
   const currentFolderItems: ExplorerItem[] = useMemo(() => {
@@ -502,7 +809,8 @@ export function VaultExplorer() {
           type: 'folder',
           updatedAt: new Date(),
           size: 0,
-          tier: 1,
+          security: 'general',
+          isIndexed: true,
         })
       }
     })
@@ -513,19 +821,32 @@ export function VaultExplorer() {
         ? !d.folderId
         : d.folderId === selectedFolderId
       if (inCurrentFolder) {
+        // Use override if exists, otherwise convert from legacy tier
+        const security = documentSecurityOverrides[d.id] ?? tierToSecurity(d.securityTier ?? 1)
+        const isIndexed = documentIndexOverrides[d.id] ?? true
         items.push({
           id: d.id,
           name: d.name,
           type: 'document',
           updatedAt: new Date(d.updatedAt),
           size: d.size ?? 0,
-          tier: d.securityTier ?? 1,
+          security,
+          isIndexed,
         })
       }
     })
 
     return items
-  }, [documents, folders, selectedFolderId])
+  }, [documents, folders, selectedFolderId, documentSecurityOverrides, documentIndexOverrides])
+
+  // Handlers for security/index changes
+  const handleSecurityChange = (docId: string, newSecurity: SecurityTier) => {
+    setDocumentSecurityOverrides(prev => ({ ...prev, [docId]: newSecurity }))
+  }
+
+  const handleIndexToggle = (docId: string, enabled: boolean) => {
+    setDocumentIndexOverrides(prev => ({ ...prev, [docId]: enabled }))
+  }
 
   // Filter by search
   const filtered = currentFolderItems.filter((item) =>
@@ -671,11 +992,27 @@ export function VaultExplorer() {
                           <Folder className="w-5 h-5 text-amber-400" />
                         </div>
                       ) : (
-                        <div className="p-2 rounded-lg bg-[var(--brand-blue)]/10">
-                          <FileText className="w-5 h-5 text-[var(--brand-blue)]" />
+                        <div className={`p-2 rounded-lg ${
+                          item.security === 'sovereign'
+                            ? 'bg-red-500/10'
+                            : 'bg-[var(--brand-blue)]/10'
+                        }`}>
+                          <FileText className={`w-5 h-5 ${
+                            item.security === 'sovereign'
+                              ? 'text-red-400'
+                              : 'text-[var(--brand-blue)]'
+                          }`} />
                         </div>
                       )}
-                      <span className="text-sm font-medium text-white truncate">{item.name}</span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-sm font-medium text-white truncate">{item.name}</span>
+                        {/* RAG disabled indicator */}
+                        {item.type === 'document' && !item.isIndexed && (
+                          <span title="RAG Disabled">
+                            <BrainCog className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </td>
 
@@ -698,9 +1035,9 @@ export function VaultExplorer() {
                     </span>
                   </td>
 
-                  {/* Security */}
+                  {/* Security Classification */}
                   <td className="px-4 py-3">
-                    {item.type === 'document' && <SecurityBadge tier={item.tier} />}
+                    {item.type === 'document' && <SecurityBadge security={item.security} />}
                   </td>
                 </tr>
               ))}
@@ -728,12 +1065,18 @@ export function VaultExplorer() {
 
       {/* RIGHT PANEL: Sovereign Inspector */}
       {showInspector && (
-        <div className="w-[300px] shrink-0 border-l border-white/5 bg-[var(--bg-tertiary)]">
+        <div className={`w-[300px] shrink-0 border-l bg-[var(--bg-tertiary)] ${
+          selectedItem?.security === 'sovereign'
+            ? 'border-red-500/30'
+            : 'border-white/5'
+        }`}>
           <SovereignInspector
             item={selectedItem}
             onClose={() => setShowInspector(false)}
             onChat={selectAndChat}
             onDelete={(id) => { deleteDocument(id); setSelectedId(null) }}
+            onSecurityChange={handleSecurityChange}
+            onIndexToggle={handleIndexToggle}
           />
         </div>
       )}
