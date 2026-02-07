@@ -31,6 +31,7 @@ export interface RAGPipelineResult {
   model: string
   silenceProtocol: boolean
   retrievedChunks: RetrievedChunk[]
+  emptyVault?: boolean // Sovereign Protocol: true when vault is empty but AI is still active
 }
 
 export interface RAGPipelineOptions {

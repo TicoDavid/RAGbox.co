@@ -111,6 +111,7 @@ export async function POST(request: NextRequest) {
           silenceProtocol: result.silenceProtocol,
           chunksUsed: result.chunksUsed,
           latencyMs: result.latencyMs,
+          emptyVault: result.emptyVault || false, // Sovereign Protocol flag
           retrievedChunks: result.retrievedChunks.map(c => ({
             documentName: c.documentName,
             similarity: c.similarity,

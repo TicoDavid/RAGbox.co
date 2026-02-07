@@ -2,6 +2,9 @@
  * RAG Pipeline Orchestrator - RAGbox.co
  *
  * Orchestrates: embed query -> retrieve chunks -> generate answer -> parse citations -> score confidence
+ *
+ * SOVEREIGN PROTOCOL: If no documents are available, the AI is NOT blocked.
+ * Instead, it falls back to Direct Chat mode with vault-empty context awareness.
  */
 
 import { retrieveChunks } from './retriever'
@@ -11,6 +14,19 @@ import { getDocumentsByTier } from '@/lib/documents/store'
 import type { RAGPipelineResult, RAGPipelineOptions } from '@/types/rag'
 
 const CONFIDENCE_THRESHOLD = parseFloat(process.env.AEGIS_CONFIDENCE_THRESHOLD || '0.85')
+
+// Context injection for empty vault scenarios
+const EMPTY_VAULT_CONTEXT = `
+CURRENT STATE: The user's document vault is EMPTY. No files have been uploaded yet.
+
+SOVEREIGN PROTOCOL FOR EMPTY VAULT:
+- You are FULLY OPERATIONAL. The vault being empty does not limit your intelligence.
+- If the user asks to analyze a file or document: Guide them to upload files using the "Add Files" button in the Vault panel.
+- If the user asks a general question (strategy, advice, explanations): Answer as a Sovereign Intelligence with full capability.
+- If the user asks "Can you hear me?" or tests the connection: Confirm all security protocols are active and you are ready for data ingestion.
+- Do NOT repeatedly apologize for the empty vault. State it once if relevant, then focus on being helpful.
+- You can discuss RAGbox capabilities, security features, compliance standards, and general knowledge.
+`.trim()
 
 /**
  * Execute the full RAG pipeline
@@ -29,16 +45,32 @@ export async function executeRAGPipeline(
   )
   const accessibleDocIds = accessibleDocs.map(d => d.id)
 
+  // SOVEREIGN BYPASS: Empty vault does NOT block the AI
+  // Instead, fallback to Direct Chat with vault-awareness
   if (accessibleDocIds.length === 0) {
+    console.log('[RAG Pipeline] Empty vault detected - activating Sovereign Direct Chat fallback')
+
+    // Inject empty-vault context into the system prompt
+    const enhancedPrompt = options.systemPrompt
+      ? `${options.systemPrompt}\n\n${EMPTY_VAULT_CONTEXT}`
+      : EMPTY_VAULT_CONTEXT
+
+    // Direct chat - the AI speaks freely but knows the vault is empty
+    const response = await ragClient.chat(query, {
+      systemPrompt: enhancedPrompt,
+      history: options.history,
+    })
+
     return {
-      answer: 'No documents are available for querying. Please upload documents to your vault first.',
+      answer: response.answer,
       citations: [],
-      confidence: 0,
+      confidence: 0.95, // High confidence for direct responses
       chunksUsed: 0,
       latencyMs: Date.now() - startTime,
       model: process.env.RAG_GENERATION_MODEL || 'gemini-2.0-flash-001',
-      silenceProtocol: true,
+      silenceProtocol: false, // NOT silenced - the AI is active
       retrievedChunks: [],
+      emptyVault: true, // Flag for frontend awareness
     }
   }
 
