@@ -78,62 +78,52 @@ export default function MercuryConsole({ privilegeMode, onCitationClick }: Mercu
     }]);
 
     try {
+      // Build chat history from previous messages (excluding system messages)
+      const chatHistory = messages
+        .filter(m => m.role === 'user' || m.role === 'assistant')
+        .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: userMessage.content,
+          query: userMessage.content,
+          useVectorPipeline: true,
           privilegeMode,
+          history: chatHistory,
         }),
       });
 
       if (!response.ok) throw new Error('Query failed');
 
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let fullContent = '';
-      let confidence = 0.95;
-      let citations: Citation[] = [];
+      const result = await response.json();
 
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+      if (!result.success) {
+        throw new Error(result.error || 'Query failed');
+      }
 
-          const chunk = decoder.decode(value);
-          const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
+      const { answer, confidence, citations: rawCitations, silenceProtocol, emptyVault } = result.data;
 
-          for (const line of lines) {
-            const data = line.slice(6);
-            if (data === '[DONE]') continue;
+      // Transform citations to local format
+      const citations: Citation[] = (rawCitations || []).map((c: { citationIndex: number; documentName: string; excerpt: string }) => ({
+        id: c.citationIndex,
+        text: c.excerpt || '',
+        source: c.documentName || 'Document',
+      }));
 
-            try {
-              const parsed = JSON.parse(data);
-              if (parsed.content) {
-                fullContent += parsed.content;
-                setMessages(prev => prev.map(msg =>
-                  msg.id === assistantId
-                    ? { ...msg, content: fullContent }
-                    : msg
-                ));
-              }
-              if (parsed.confidence !== undefined) {
-                confidence = parsed.confidence;
-              }
-              if (parsed.citations) {
-                citations = parsed.citations;
-              }
-            } catch {
-              // Ignore parse errors for incomplete chunks
-            }
-          }
-        }
+      // Build response content
+      let content = answer || '';
+      if (emptyVault && !content) {
+        content = 'Sovereign Intelligence Active. Your vault is empty - upload documents to begin analysis, or ask me anything.';
+      }
+      if (silenceProtocol) {
+        content = '> SILENCE PROTOCOL ACTIVATED\n> Confidence threshold not met. Please upload more relevant documents or rephrase your query.';
       }
 
       // Finalize message
       setMessages(prev => prev.map(msg =>
         msg.id === assistantId
-          ? { ...msg, content: fullContent || 'No response generated.', isStreaming: false, confidence, citations }
+          ? { ...msg, content, isStreaming: false, confidence: confidence || 0.95, citations }
           : msg
       ));
 
