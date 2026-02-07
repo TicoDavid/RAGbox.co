@@ -214,9 +214,18 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const updateConnection = useCallback((id: string, updates: Partial<SecureConnection>) => {
     setSettings((prev) => ({
       ...prev,
-      connections: prev.connections.map((conn) =>
-        conn.id === id ? { ...conn, ...updates, verified: updates.apiKey ? false : conn.verified } : conn
-      ),
+      connections: prev.connections.map((conn) => {
+        if (conn.id !== id) return conn
+
+        // If apiKey changed AND verified wasn't explicitly set, reset verified
+        const shouldResetVerified = updates.apiKey !== undefined && updates.verified === undefined
+
+        return {
+          ...conn,
+          ...updates,
+          verified: shouldResetVerified ? false : (updates.verified ?? conn.verified),
+        }
+      }),
     }))
   }, [])
 
