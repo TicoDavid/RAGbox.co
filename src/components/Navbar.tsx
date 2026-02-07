@@ -38,9 +38,9 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
       className={cn(
         'fixed top-0 left-0 right-0 z-50',
         'px-2 sm:px-4 md:px-6 py-0.5',
-        // Solid dark background - never changes
-        'bg-[#0a0a0a]',
-        'border-b border-white/5'
+        // Obsidian background with glass effect
+        'bg-[#020408]/90 backdrop-blur-md',
+        'border-b border-amber-500/10'
       )}
     >
       <div className="flex items-center justify-between">
@@ -52,12 +52,12 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         >
           <img
-            src="https://storage.googleapis.com/connexusai-assets/RAGbox_backlit.avif"
-            alt="RAGbox.co"
-            className={cn(
-              'h-16 sm:h-20 md:h-24 lg:h-28 w-auto',
-              'transition-all duration-300'
-            )}
+            src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
+            alt="RAGbox"
+            width={240}
+            height={64}
+            className="h-16 w-auto"
+            style={{ color: 'transparent' }}
           />
         </motion.div>
 
@@ -69,7 +69,7 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
               onClick={toggleTheme}
               className={cn(
                 'relative w-14 sm:w-16 h-7 sm:h-8 rounded-full p-1',
-                'bg-[#1a1a1a] border border-white/10',
+                'bg-[#0a0a0a] border border-white/10',
                 'focus:outline-none focus:ring-2 focus:ring-blue-500/50'
               )}
               initial={{ opacity: 0, scale: 0.8 }}
@@ -82,8 +82,8 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
                 className={cn(
                   'absolute top-0.5 sm:top-1 w-5 sm:w-6 h-5 sm:h-6 rounded-full',
                   'flex items-center justify-center',
-                  'bg-[#0066ff]',
-                  'shadow-[0_0_10px_rgba(0,102,255,0.5)]'
+                  'bg-[#2463EB]',
+                  'shadow-[0_0_10px_rgba(36,99,235,0.5)]'
                 )}
                 initial={false}
                 animate={{
@@ -124,9 +124,9 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
             className={cn(
               'px-3 sm:px-5 py-2 sm:py-2.5 rounded-2xl',
               'text-xs sm:text-sm font-semibold',
-              'bg-[#0066ff] hover:bg-[#0077ff]',
+              'bg-[#2463EB] hover:bg-[#3b7aff]',
               'text-white',
-              'shadow-[0_0_10px_rgba(0,102,255,0.5)] hover:shadow-[0_0_15px_rgba(0,102,255,0.7)]',
+              'shadow-[0_0_10px_rgba(36,99,235,0.5)] hover:shadow-[0_0_15px_rgba(36,99,235,0.7)]',
               'transition-all duration-200'
             )}
             initial={{ opacity: 0, x: 20 }}

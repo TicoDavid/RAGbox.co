@@ -57,19 +57,51 @@ export default function Hero({ onOpenAuth }: HeroProps) {
     return () => window.removeEventListener('keydown', handleEsc);
   }, [isDemoModalOpen]);
   return (
-    <section className="relative pt-24 sm:pt-28 md:pt-32 lg:pt-36 pb-4 flex flex-col items-center text-center px-4 overflow-hidden dark:bg-[#050505] bg-white transition-colors duration-300">
+    <section className="relative pt-24 sm:pt-28 md:pt-32 lg:pt-36 pb-4 flex flex-col items-center text-center px-4 overflow-hidden bg-white dark:bg-transparent transition-colors duration-300">
 
-      {/* --- BACKGROUND LAYERS --- */}
+      {/* --- VOLUMETRIC GOD RAYS LIGHTING SYSTEM --- */}
 
-      {/* 1. The "Forgex" Horizon Line (Only visible in Dark Mode) */}
-      <div className="absolute top-[60%] left-1/2 -translate-x-1/2 w-[200%] h-[1000px] rounded-[100%] border-t border-blue-500/20 bg-gradient-to-b from-blue-900/10 to-transparent blur-md dark:block hidden pointer-events-none" />
+      {/* 0. Faint Grid Pattern - barely visible */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff02_1px,transparent_1px),linear-gradient(to_bottom,#ffffff02_1px,transparent_1px)] bg-[size:48px_48px] opacity-0 dark:opacity-100 pointer-events-none" />
 
-      {/* 2. The Atmospheric Glow (Blue & Gold Mix) */}
-      <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute top-[40%] left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-amber-500/10 blur-[100px] rounded-full pointer-events-none mix-blend-screen" />
+      {/* 1. THE DYING STAR - Core White/Yellow (Hottest) */}
+      <div
+        className="absolute top-[45%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full pointer-events-none hidden dark:block animate-[pulse-glow_4s_ease-in-out_infinite]"
+        style={{
+          background: 'radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(253,230,138,0.25) 20%, rgba(251,191,36,0.2) 40%, transparent 70%)',
+          filter: 'blur(60px)',
+        }}
+      />
 
-      {/* 3. Starfield Texture (Subtle Noise) */}
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 pointer-events-none mix-blend-overlay"></div>
+      {/* 2. THE CORONA - Rich Amber (Gold Value) */}
+      <div
+        className="absolute top-[45%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] rounded-full pointer-events-none hidden dark:block"
+        style={{
+          background: 'radial-gradient(circle, rgba(245,158,11,0.3) 0%, rgba(217,119,6,0.15) 35%, rgba(180,83,9,0.05) 60%, transparent 80%)',
+          filter: 'blur(80px)',
+        }}
+      />
+
+      {/* 3. THE ATMOSPHERE - Deep Orange/Red (Distance Haze) */}
+      <div
+        className="absolute top-[45%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[1000px] rounded-full pointer-events-none hidden dark:block"
+        style={{
+          background: 'radial-gradient(circle, rgba(180,83,9,0.1) 0%, rgba(124,45,18,0.05) 40%, transparent 70%)',
+          filter: 'blur(100px)',
+        }}
+      />
+
+      {/* 4. OUTER HALO - Extremely faint, wide reach */}
+      <div
+        className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1600px] h-[1200px] rounded-full pointer-events-none hidden dark:block"
+        style={{
+          background: 'radial-gradient(circle, rgba(251,191,36,0.03) 0%, transparent 60%)',
+          filter: 'blur(120px)',
+        }}
+      />
+
+      {/* 5. Starfield Texture (Subtle Noise) */}
+      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-15 brightness-100 contrast-150 pointer-events-none mix-blend-overlay" />
 
 
       {/* --- CONTENT --- */}
@@ -78,8 +110,8 @@ export default function Hero({ onOpenAuth }: HeroProps) {
         {/* The Headline */}
         <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold tracking-tighter text-slate-900 dark:text-white leading-[1.1]">
           <span className="sm:whitespace-nowrap">Your Private AI. Grounded in Truth.</span> <br />
-          {/* THE METALLIC GOLD GRADIENT TEXT */}
-          <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#FACC15] via-[#EAB308] to-[#CA8A04] drop-shadow-[0_0_20px_rgba(250,204,21,0.4)]">
+          {/* THE METALLIC GOLD GRADIENT TEXT - Brilliant & Glowing */}
+          <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#FDE68A] via-[#FBBF24] to-[#D97706] drop-shadow-[0_0_30px_rgba(251,191,36,0.6)] dark:drop-shadow-[0_0_40px_rgba(251,191,36,0.7)]">
             Locked in a Vault.
           </span>
         </h1>

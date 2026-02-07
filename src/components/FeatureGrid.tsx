@@ -3,18 +3,18 @@ import React from 'react';
 
 export default function FeatureGrid() {
   return (
-    <section className="pt-8 pb-24 px-6 relative overflow-hidden transition-colors duration-300 dark:bg-[#050505] bg-white">
+    <section className="pt-8 pb-24 px-6 relative overflow-hidden transition-colors duration-300 bg-white dark:bg-transparent">
 
       {/* 1. MASTER CLASS TEXTURE: The Grid Background */}
       <div className="absolute inset-0 pointer-events-none">
         {/* Light Mode Grid */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] dark:opacity-0" />
-        {/* Dark Mode Grid */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:24px_24px] opacity-0 dark:opacity-100" />
+        {/* Dark Mode Grid - Obsidian with faint lines */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] bg-[size:48px_48px] opacity-0 dark:opacity-100" />
         {/* The Horizon Glow Reflection (Gold Dust - Dark Mode Only) */}
-        <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-b from-amber-500/5 to-transparent hidden dark:block" />
+        <div className="absolute top-0 left-0 right-0 h-[600px] bg-gradient-to-b from-amber-500/8 via-amber-900/3 to-transparent hidden dark:block" />
         {/* Radial Fade (Vignette) */}
-        <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent dark:from-[#050505] dark:via-transparent h-full" />
+        <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent dark:from-[#020408] dark:via-transparent h-full" />
       </div>
 
       <div className="max-w-7xl mx-auto relative z-10">
@@ -23,7 +23,7 @@ export default function FeatureGrid() {
         <div className="text-center mb-20 space-y-4">
           <h2 className="text-4xl md:text-6xl font-bold tracking-tighter text-slate-900 dark:text-white">
             Your Files Speak. <br/>
-            <span className="text-[#00a8ff]">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#2463EB] via-[#00a8ff] to-[#00d4ff] drop-shadow-[0_0_25px_rgba(0,168,255,0.5)]">
               We Make Them Testify.
             </span>
           </h2>
@@ -70,7 +70,7 @@ export default function FeatureGrid() {
   );
 }
 
-// --- THE CARD COMPONENT (Fixed Physics) ---
+// --- THE CARD COMPONENT (Obsidian Glass + Gold Rims) ---
 function FeatureCard({ icon, title, desc, tag }: { icon: React.ReactNode, title: string, desc: string, tag: string }) {
   return (
     <div className="
@@ -79,15 +79,16 @@ function FeatureCard({ icon, title, desc, tag }: { icon: React.ReactNode, title:
       /* LIGHT MODE: Pure White, Soft Border, Expensive Shadow */
       bg-white border border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)]
 
-      /* DARK MODE: Obsidian Black, Subtle White Border */
-      dark:bg-[#0A0A0A] dark:border-white/10 dark:shadow-none
+      /* DARK MODE: Obsidian Glass */
+      dark:bg-gray-900/80 dark:backdrop-blur-xl dark:border dark:border-white/5 dark:border-t-white/10 dark:shadow-none
 
-      /* HOVER: Lift up slightly */
+      /* HOVER: Lift up + Golden Glow */
       hover:-translate-y-1 transition-all duration-300 ease-out
+      dark:hover:border-amber-500/40 dark:hover:shadow-[inset_0_0_40px_-10px_rgba(245,158,11,0.15),0_0_40px_-10px_rgba(245,158,11,0.2)]
     ">
 
-      {/* Hover Gradient (Subtle Blue Wash) */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-50/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none dark:from-blue-900/10" />
+      {/* Hover Gradient (Golden Wash) */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-50/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none dark:from-amber-500/5 dark:via-amber-900/5 dark:to-transparent" />
 
       <div className="relative z-10 flex flex-col h-full">
         <div className="flex justify-between items-start mb-6">
@@ -95,7 +96,8 @@ function FeatureCard({ icon, title, desc, tag }: { icon: React.ReactNode, title:
             w-12 h-12 rounded-2xl flex items-center justify-center
             bg-blue-50 text-[#0000FF]
             dark:bg-white/5 dark:text-blue-400
-            group-hover:scale-110 transition-transform duration-300
+            group-hover:scale-110 transition-all duration-300
+            dark:group-hover:text-amber-400 dark:group-hover:bg-amber-500/10
           ">
             {icon}
           </div>
