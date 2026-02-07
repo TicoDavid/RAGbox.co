@@ -20,6 +20,7 @@ interface VaultState {
 
   // Actions
   toggleCollapse: () => void
+  setCollapsed: (collapsed: boolean) => void
   toggleExplorerMode: () => void
   exitExplorerMode: () => void
   selectAndChat: (id: string) => void // Select file and switch to chat mode
@@ -54,6 +55,8 @@ export const useVaultStore = create<VaultState>()(
         storage: { used: 0, total: 1073741824 },
 
         toggleCollapse: () => set((state) => ({ isCollapsed: !state.isCollapsed })),
+
+        setCollapsed: (collapsed) => set({ isCollapsed: collapsed }),
 
         toggleExplorerMode: () => set((state) => ({
           isExplorerMode: !state.isExplorerMode,
