@@ -24,8 +24,10 @@ import {
   Lock,
   X,
   Home,
+  Users,
 } from 'lucide-react'
 import IngestionModal from '@/app/dashboard/components/IngestionModal'
+import { VaultAccessModal, type ClearanceLevel, type VaultMember, type LinkExpiration } from './VaultAccessModal'
 
 // ============================================================================
 // UTILITIES
@@ -417,6 +419,48 @@ export function VaultExplorer() {
   const [sortAsc, setSortAsc] = useState(false)
   const [isIngestionOpen, setIsIngestionOpen] = useState(false)
   const [showInspector, setShowInspector] = useState(true)
+  const [isAccessModalOpen, setIsAccessModalOpen] = useState(false)
+
+  // Demo vault members for the access modal
+  const [vaultMembers, setVaultMembers] = useState<VaultMember[]>([])
+
+  // Get current vault name for modal
+  const currentVaultName = selectedFolderId
+    ? folders[selectedFolderId]?.name || 'Vault'
+    : 'Primary Vault'
+
+  // Access modal handlers
+  const handleGrantAccess = async (email: string, clearance: ClearanceLevel) => {
+    const newMember: VaultMember = {
+      id: crypto.randomUUID(),
+      email,
+      name: email.split('@')[0],
+      clearance,
+      addedAt: new Date(),
+      addedBy: 'current-user',
+    }
+    setVaultMembers([...vaultMembers, newMember])
+  }
+
+  const handleRevokeClearance = async (memberId: string) => {
+    setVaultMembers(vaultMembers.filter((m) => m.id !== memberId))
+  }
+
+  const handleUpdateClearance = async (memberId: string, newClearance: ClearanceLevel) => {
+    setVaultMembers(
+      vaultMembers.map((m) =>
+        m.id === memberId ? { ...m, clearance: newClearance } : m
+      )
+    )
+  }
+
+  const handleGenerateLink = async (expiration: LinkExpiration): Promise<string> => {
+    // Generate a secure-looking link
+    const token = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')
+    return `https://ragbox.co/v/${token}?exp=${expiration}`
+  }
 
   // Build path from selected folder
   const buildPath = (folderId: string | null): string[] => {
@@ -561,6 +605,14 @@ export function VaultExplorer() {
                 className="w-48 h-9 pl-10 pr-4 bg-slate-900/50 border border-slate-700/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[var(--brand-blue)] transition-colors"
               />
             </div>
+            {/* Grant Clearance Button */}
+            <button
+              onClick={() => setIsAccessModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-white/10 rounded-lg font-medium text-sm transition-colors"
+            >
+              <Users className="w-4 h-4" />
+              Grant Clearance
+            </button>
             <button
               onClick={() => setIsIngestionOpen(true)}
               className="flex items-center gap-2 px-4 py-2 bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] text-white rounded-lg font-medium text-sm transition-colors"
@@ -691,6 +743,19 @@ export function VaultExplorer() {
         isOpen={isIngestionOpen}
         onClose={() => setIsIngestionOpen(false)}
         onFileUpload={handleIngestionUpload}
+      />
+
+      {/* Vault Access / Clearance Modal */}
+      <VaultAccessModal
+        isOpen={isAccessModalOpen}
+        onClose={() => setIsAccessModalOpen(false)}
+        vaultName={currentVaultName}
+        vaultId={selectedFolderId || 'root'}
+        currentMembers={vaultMembers}
+        onGrantAccess={handleGrantAccess}
+        onRevokeClearance={handleRevokeClearance}
+        onUpdateClearance={handleUpdateClearance}
+        onGenerateLink={handleGenerateLink}
       />
     </div>
   )
