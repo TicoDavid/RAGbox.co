@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useRef, useEffect, useState } from 'react'
+import React, { useRef, useEffect, useState, useCallback } from 'react'
 import { useMercuryStore } from '@/stores/mercuryStore'
 import { usePrivilegeStore } from '@/stores/privilegeStore'
-import { Mic, Paperclip, Square, ArrowUp, ChevronDown, AlertTriangle } from 'lucide-react'
+import { Paperclip, Square, ArrowUp, ChevronDown, AlertTriangle } from 'lucide-react'
+import { VoiceTrigger } from './VoiceTrigger'
 import {
   CrownIcon,
   VaultDiamondIcon,
@@ -78,6 +79,21 @@ export function InputBar() {
   const handleSubmit = () => {
     sendMessage(privilegeMode)
   }
+
+  // Voice input handlers
+  const handleVoiceTranscript = useCallback((text: string) => {
+    // Update input with live transcript
+    setInputValue(text)
+  }, [setInputValue])
+
+  const handleVoiceSubmit = useCallback((text: string) => {
+    // Auto-submit when voice input is finalized
+    setInputValue(text)
+    // Small delay to ensure state is updated before sending
+    setTimeout(() => {
+      sendMessage(privilegeMode)
+    }, 50)
+  }, [setInputValue, sendMessage, privilegeMode])
 
   const canSend = inputValue.trim().length > 0 && !isStreaming
 
@@ -200,13 +216,13 @@ export function InputBar() {
 
       {/* Input Area */}
       <div className="flex items-end gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] px-3 py-2 focus-within:border-[var(--brand-blue)] focus-within:ring-2 focus-within:ring-[var(--brand-blue)]/50 focus-within:shadow-[0_0_30px_-5px_rgba(36,99,235,0.4)] transition-all duration-300">
-        {/* Voice button */}
-        <button
-          className="shrink-0 p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
-          title="Voice Input"
-        >
-          <Mic className="w-5 h-5" />
-        </button>
+        {/* Voice Trigger - HAL 9000 Style */}
+        <VoiceTrigger
+          onTranscript={handleVoiceTranscript}
+          onSubmit={handleVoiceSubmit}
+          disabled={isStreaming}
+          className="shrink-0"
+        />
 
         {/* Attach */}
         <button

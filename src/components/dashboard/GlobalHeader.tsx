@@ -19,9 +19,20 @@ import {
   Bell,
   Palette,
   X,
+  Globe,
+  CreditCard,
+  Mic,
+  Monitor,
+  Shield,
+  FileText,
+  MessageSquare,
+  ExternalLink,
+  ChevronRight,
+  Zap,
+  LayoutGrid,
 } from 'lucide-react'
 import { PrivilegeKeyIcon, IdentityIcon } from './icons/SovereignIcons'
-import { useSettings, type CachedModel } from '@/contexts/SettingsContext'
+import { useSettings, type CachedModel, LANGUAGES, type LanguageId, type DensityId } from '@/contexts/SettingsContext'
 import { verifyAndFetchModels, OPENROUTER_ENDPOINT, getModelDisplayName } from '@/services/OpenRouterService'
 
 // Profile types for multi-profile switching
@@ -316,28 +327,88 @@ export function GlobalHeader() {
   )
 }
 
-// Settings Modal Component
-function SettingsModal({ onClose }: { onClose: () => void }) {
-  const [activeTab, setActiveTab] = useState<'api' | 'theme' | 'notifications'>('api')
+// ============================================================================
+// SYSTEM CONTROL PANEL - Sovereign Configuration Engine
+// ============================================================================
 
-  const tabs = [
-    { id: 'api' as const, label: 'API Keys', icon: <Key className="w-4 h-4" /> },
-    { id: 'theme' as const, label: 'Theme', icon: <Palette className="w-4 h-4" /> },
-    { id: 'notifications' as const, label: 'Notifications', icon: <Bell className="w-4 h-4" /> },
-  ]
+type SettingsSection =
+  | 'profile' | 'language' | 'billing'  // General
+  | 'connections' | 'voice'              // Intelligence
+  | 'appearance' | 'density'             // Interface
+  | 'alerts' | 'security'                // System
+  | 'docs' | 'report' | 'community'      // Support
+
+interface SidebarCategory {
+  id: string
+  label: string
+  items: { id: SettingsSection; label: string; icon: React.ReactNode }[]
+}
+
+const SIDEBAR_CATEGORIES: SidebarCategory[] = [
+  {
+    id: 'general',
+    label: 'General',
+    items: [
+      { id: 'profile', label: 'Profile', icon: <User className="w-4 h-4" /> },
+      { id: 'language', label: 'Language', icon: <Globe className="w-4 h-4" /> },
+      { id: 'billing', label: 'Plan & Usage', icon: <CreditCard className="w-4 h-4" /> },
+    ],
+  },
+  {
+    id: 'intelligence',
+    label: 'Intelligence',
+    items: [
+      { id: 'connections', label: 'Connections', icon: <Key className="w-4 h-4" /> },
+      { id: 'voice', label: 'Voice', icon: <Mic className="w-4 h-4" /> },
+    ],
+  },
+  {
+    id: 'interface',
+    label: 'Interface',
+    items: [
+      { id: 'appearance', label: 'Appearance', icon: <Palette className="w-4 h-4" /> },
+      { id: 'density', label: 'Density', icon: <LayoutGrid className="w-4 h-4" /> },
+    ],
+  },
+  {
+    id: 'system',
+    label: 'System',
+    items: [
+      { id: 'alerts', label: 'Alerts', icon: <Bell className="w-4 h-4" /> },
+      { id: 'security', label: 'Security', icon: <Shield className="w-4 h-4" /> },
+    ],
+  },
+  {
+    id: 'support',
+    label: 'Support',
+    items: [
+      { id: 'docs', label: 'Documentation', icon: <FileText className="w-4 h-4" /> },
+      { id: 'report', label: 'Report Issue', icon: <MessageSquare className="w-4 h-4" /> },
+      { id: 'community', label: 'Community', icon: <Users className="w-4 h-4" /> },
+    ],
+  },
+]
+
+function SettingsModal({ onClose }: { onClose: () => void }) {
+  const [activeSection, setActiveSection] = useState<SettingsSection>('connections')
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Modal */}
-      <div className="relative w-full max-w-2xl mx-4 bg-[#0B1221]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+      {/* Modal - Wide layout */}
+      <div className="relative w-full max-w-4xl mx-4 h-[80vh] max-h-[700px] bg-[#0B1221]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+        <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <Settings className="w-6 h-6 text-[#60A5FA]" />
-            <h2 className="text-lg font-semibold text-white">Settings</h2>
+            <div className="p-2 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg">
+              <Settings className="w-5 h-5 text-cyan-400" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-white">System Control Panel</h2>
+              <p className="text-xs text-slate-500">Sovereign Configuration Engine</p>
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -347,31 +418,545 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-white/10">
-          {tabs.map((tab) => (
+        {/* Body - Sidebar + Content */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Left Sidebar */}
+          <nav className="w-56 shrink-0 bg-[var(--bg-secondary)]/50 border-r border-white/10 overflow-y-auto py-4">
+            {SIDEBAR_CATEGORIES.map((category) => (
+              <div key={category.id} className="mb-4">
+                <div className="px-4 py-1.5 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                  {category.label}
+                </div>
+                {category.items.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveSection(item.id)}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-all ${
+                      activeSection === item.id
+                        ? 'text-[var(--brand-blue)] bg-[var(--brand-blue)]/10 border-r-2 border-[var(--brand-blue)]'
+                        : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <span className={activeSection === item.id ? 'text-[var(--brand-blue)]' : ''}>
+                      {item.icon}
+                    </span>
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </nav>
+
+          {/* Right Content Panel */}
+          <div className="flex-1 overflow-y-auto p-6">
+            {activeSection === 'profile' && <ProfileSettings />}
+            {activeSection === 'language' && <LanguageSettings />}
+            {activeSection === 'billing' && <BillingSettings />}
+            {activeSection === 'connections' && <APIKeysSettings />}
+            {activeSection === 'voice' && <VoiceSettings />}
+            {activeSection === 'appearance' && <ThemeSettings />}
+            {activeSection === 'density' && <DensitySettings />}
+            {activeSection === 'alerts' && <NotificationSettings />}
+            {activeSection === 'security' && <SecuritySettings />}
+            {activeSection === 'docs' && <DocumentationSettings />}
+            {activeSection === 'report' && <ReportIssueSettings />}
+            {activeSection === 'community' && <CommunitySettings />}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============================================================================
+// GENERAL SECTION COMPONENTS
+// ============================================================================
+
+function ProfileSettings() {
+  const { data: session } = useSession()
+  const userInitials = session?.user?.name
+    ? session.user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    : 'U'
+
+  return (
+    <div className="space-y-6">
+      <SectionHeader
+        title="Profile"
+        description="Manage your identity and organizational role"
+      />
+
+      <div className="p-6 bg-white/5 border border-white/10 rounded-xl">
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-cyan-500/30 to-blue-500/30 border-2 border-cyan-500/50 flex items-center justify-center text-xl font-semibold text-white">
+            {userInitials}
+          </div>
+          <div className="flex-1">
+            <p className="text-lg font-semibold text-white">{session?.user?.name || 'Sovereign User'}</p>
+            <p className="text-sm text-slate-400">{session?.user?.email || 'user@example.com'}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-[10px] px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded-full font-medium">
+                ADMINISTRATOR
+              </span>
+            </div>
+          </div>
+          <button className="px-4 py-2 text-sm text-slate-300 hover:text-white border border-white/20 hover:border-white/40 rounded-lg transition-colors">
+            Edit Profile
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="p-4 bg-white/5 border border-white/10 rounded-lg">
+          <p className="text-xs text-slate-500 mb-1">Organization</p>
+          <p className="text-sm font-medium text-white">RAGbox Enterprise</p>
+        </div>
+        <div className="p-4 bg-white/5 border border-white/10 rounded-lg">
+          <p className="text-xs text-slate-500 mb-1">Role</p>
+          <p className="text-sm font-medium text-white">Sovereign Administrator</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function LanguageSettings() {
+  const { language, setLanguage } = useSettings()
+
+  return (
+    <div className="space-y-6">
+      <SectionHeader
+        title="Sovereign Language"
+        description="Configure the output language for AI responses and interface"
+      />
+
+      <div className="space-y-3">
+        {(Object.entries(LANGUAGES) as [LanguageId, typeof LANGUAGES[LanguageId]][]).map(([id, lang]) => (
+          <button
+            key={id}
+            onClick={() => setLanguage(id)}
+            className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all ${
+              language === id
+                ? 'border-[var(--brand-blue)] bg-[var(--brand-blue)]/10 shadow-[0_0_15px_-5px_var(--brand-blue)]'
+                : 'border-white/10 hover:border-white/30 hover:bg-white/5'
+            }`}
+          >
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg font-semibold ${
+              language === id ? 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)]' : 'bg-white/5 text-slate-400'
+            }`}>
+              {lang.nativeName.charAt(0)}
+            </div>
+            <div className="flex-1 text-left">
+              <p className={`text-sm font-medium ${language === id ? 'text-white' : 'text-slate-300'}`}>
+                {lang.name}
+              </p>
+              <p className="text-xs text-slate-500">{lang.nativeName}</p>
+            </div>
+            {language === id && (
+              <Check className="w-5 h-5 text-[var(--brand-blue)]" />
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function BillingSettings() {
+  const { subscription } = useSettings()
+  const usagePercent = (subscription.tokensUsed / subscription.tokensLimit) * 100
+
+  const planLabels = {
+    free: 'Free Tier',
+    professional: 'Professional',
+    enterprise: 'Sovereign Enterprise',
+  }
+
+  return (
+    <div className="space-y-6">
+      <SectionHeader
+        title="Plan & Usage"
+        description="Monitor your subscription and resource consumption"
+      />
+
+      {/* Current Plan Card */}
+      <div className="p-6 bg-gradient-to-br from-cyan-900/20 to-blue-900/20 border border-cyan-500/30 rounded-xl">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="text-xs text-cyan-400 font-medium mb-1">CURRENT PLAN</p>
+            <p className="text-xl font-bold text-white">{planLabels[subscription.plan]}</p>
+          </div>
+          <div className="p-3 bg-cyan-500/20 rounded-xl">
+            <Zap className="w-6 h-6 text-cyan-400" />
+          </div>
+        </div>
+
+        {/* Token Usage */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-slate-400">Tokens Used</span>
+            <span className="text-white font-medium">
+              {(subscription.tokensUsed / 1000000).toFixed(2)}M / {(subscription.tokensLimit / 1000000).toFixed(0)}M
+            </span>
+          </div>
+          <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all"
+              style={{ width: `${Math.min(usagePercent, 100)}%` }}
+            />
+          </div>
+          <p className="text-xs text-slate-500">
+            Renews on {new Date(subscription.renewalDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+          </p>
+        </div>
+      </div>
+
+      {/* Manage Subscription */}
+      <button className="w-full flex items-center justify-between p-4 bg-white/5 border border-white/10 hover:border-white/30 rounded-xl transition-colors group">
+        <div className="flex items-center gap-3">
+          <CreditCard className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
+          <div className="text-left">
+            <p className="text-sm font-medium text-white">Manage Subscription</p>
+            <p className="text-xs text-slate-500">Update payment method, view invoices</p>
+          </div>
+        </div>
+        <ExternalLink className="w-4 h-4 text-slate-500 group-hover:text-white transition-colors" />
+      </button>
+    </div>
+  )
+}
+
+// ============================================================================
+// INTELLIGENCE SECTION COMPONENTS
+// ============================================================================
+
+function VoiceSettings() {
+  const { voice, updateVoice } = useSettings()
+
+  return (
+    <div className="space-y-6">
+      <SectionHeader
+        title="Voice Configuration"
+        description="Configure Inworld AI voice interface and speech recognition"
+      />
+
+      <div className="space-y-4">
+        <ToggleSetting
+          label="Voice Input Enabled"
+          description="Enable microphone input for voice commands"
+          enabled={voice.enabled}
+          onToggle={() => updateVoice({ enabled: !voice.enabled })}
+        />
+
+        <ToggleSetting
+          label="Auto-Submit on Silence"
+          description="Automatically send message after silence detection"
+          enabled={voice.autoSubmit}
+          onToggle={() => updateVoice({ autoSubmit: !voice.autoSubmit })}
+        />
+
+        {/* Silence Threshold Slider */}
+        <div className="p-4 bg-white/5 border border-white/10 rounded-lg">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-sm font-medium text-white">Silence Threshold</p>
+              <p className="text-xs text-slate-400">Time before auto-submit triggers</p>
+            </div>
+            <span className="text-sm font-mono text-cyan-400">{voice.silenceThreshold}ms</span>
+          </div>
+          <input
+            type="range"
+            min="1000"
+            max="5000"
+            step="500"
+            value={voice.silenceThreshold}
+            onChange={(e) => updateVoice({ silenceThreshold: parseInt(e.target.value) })}
+            className="w-full h-2 bg-slate-700 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-cyan-400"
+          />
+          <div className="flex justify-between text-[10px] text-slate-500 mt-1">
+            <span>1s (Fast)</span>
+            <span>5s (Slow)</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Inworld Status */}
+      <div className="p-4 bg-emerald-900/20 border border-emerald-500/30 rounded-lg">
+        <div className="flex items-center gap-3">
+          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <div>
+            <p className="text-sm font-medium text-emerald-400">Inworld AI Connected</p>
+            <p className="text-xs text-slate-500">Voice: mercury_professional</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============================================================================
+// INTERFACE SECTION COMPONENTS
+// ============================================================================
+
+function DensitySettings() {
+  const { density, setDensity } = useSettings()
+
+  const densityOptions: { id: DensityId; label: string; description: string }[] = [
+    { id: 'compact', label: 'Compact', description: 'Tighter spacing, more content visible' },
+    { id: 'comfortable', label: 'Comfortable', description: 'Standard spacing, easier reading' },
+  ]
+
+  return (
+    <div className="space-y-6">
+      <SectionHeader
+        title="Display Density"
+        description="Adjust the spacing and size of interface elements"
+      />
+
+      <div className="grid grid-cols-2 gap-4">
+        {densityOptions.map((option) => (
+          <button
+            key={option.id}
+            onClick={() => setDensity(option.id)}
+            className={`p-4 rounded-xl border-2 transition-all ${
+              density === option.id
+                ? 'border-[var(--brand-blue)] bg-[var(--brand-blue)]/10 shadow-[0_0_15px_-5px_var(--brand-blue)]'
+                : 'border-white/10 hover:border-white/30 hover:bg-white/5'
+            }`}
+          >
+            <div className={`w-10 h-10 rounded-lg mb-3 flex items-center justify-center ${
+              density === option.id ? 'bg-[var(--brand-blue)]/20' : 'bg-white/5'
+            }`}>
+              <LayoutGrid className={`w-5 h-5 ${density === option.id ? 'text-[var(--brand-blue)]' : 'text-slate-400'}`} />
+            </div>
+            <p className={`text-sm font-semibold mb-1 ${density === option.id ? 'text-white' : 'text-slate-300'}`}>
+              {option.label}
+            </p>
+            <p className="text-xs text-slate-500">{option.description}</p>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ============================================================================
+// SYSTEM SECTION COMPONENTS
+// ============================================================================
+
+function SecuritySettings() {
+  return (
+    <div className="space-y-6">
+      <SectionHeader
+        title="Security"
+        description="Manage sessions, access controls, and security policies"
+      />
+
+      {/* Active Sessions */}
+      <div className="space-y-3">
+        <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Active Sessions</p>
+
+        <div className="p-4 bg-white/5 border border-white/10 rounded-lg">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-emerald-500/20 rounded-lg">
+              <Monitor className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-white">Current Session</p>
+                <span className="text-[10px] px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 rounded">Active</span>
+              </div>
+              <p className="text-xs text-slate-500">Windows · Chrome · Started 2 hours ago</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 bg-white/5 border border-white/10 rounded-lg opacity-60">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-slate-700 rounded-lg">
+              <Monitor className="w-4 h-4 text-slate-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-slate-300">MacBook Pro</p>
+              <p className="text-xs text-slate-500">macOS · Safari · Last active yesterday</p>
+            </div>
+            <button className="text-xs text-red-400 hover:text-red-300 transition-colors">
+              Revoke
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Security Actions */}
+      <div className="space-y-3">
+        <button className="w-full flex items-center justify-between p-4 bg-white/5 border border-white/10 hover:border-white/30 rounded-lg transition-colors group">
+          <div className="flex items-center gap-3">
+            <Shield className="w-4 h-4 text-slate-400" />
+            <span className="text-sm text-slate-300 group-hover:text-white">Two-Factor Authentication</span>
+          </div>
+          <span className="text-xs text-emerald-400">Enabled</span>
+        </button>
+
+        <button className="w-full flex items-center justify-between p-4 bg-red-500/10 border border-red-500/30 hover:border-red-500/50 rounded-lg transition-colors">
+          <div className="flex items-center gap-3">
+            <LogOut className="w-4 h-4 text-red-400" />
+            <span className="text-sm text-red-400">Sign Out All Devices</span>
+          </div>
+          <ChevronRight className="w-4 h-4 text-red-400" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ============================================================================
+// SUPPORT SECTION COMPONENTS
+// ============================================================================
+
+function DocumentationSettings() {
+  const docs = [
+    { title: 'Getting Started', description: 'Quick start guide for new users', href: '#' },
+    { title: 'API Reference', description: 'Complete API documentation', href: '#' },
+    { title: 'Security & Compliance', description: 'SOC 2, HIPAA, and security practices', href: '#' },
+    { title: 'Best Practices', description: 'Optimize your RAG workflows', href: '#' },
+  ]
+
+  return (
+    <div className="space-y-6">
+      <SectionHeader
+        title="Documentation"
+        description="Access guides, references, and best practices"
+      />
+
+      <div className="space-y-3">
+        {docs.map((doc) => (
+          <a
+            key={doc.title}
+            href={doc.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between p-4 bg-white/5 border border-white/10 hover:border-white/30 rounded-lg transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <FileText className="w-4 h-4 text-slate-400 group-hover:text-[var(--brand-blue)] transition-colors" />
+              <div>
+                <p className="text-sm font-medium text-white">{doc.title}</p>
+                <p className="text-xs text-slate-500">{doc.description}</p>
+              </div>
+            </div>
+            <ExternalLink className="w-4 h-4 text-slate-500 group-hover:text-white transition-colors" />
+          </a>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ReportIssueSettings() {
+  const [issueType, setIssueType] = useState<'bug' | 'feature' | 'question'>('bug')
+  const [description, setDescription] = useState('')
+
+  return (
+    <div className="space-y-6">
+      <SectionHeader
+        title="Report Issue"
+        description="Submit a bug report or request a feature"
+      />
+
+      {/* Issue Type */}
+      <div>
+        <label className="block text-xs font-medium text-slate-400 mb-2">Issue Type</label>
+        <div className="grid grid-cols-3 gap-2">
+          {(['bug', 'feature', 'question'] as const).map((type) => (
             <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium transition-colors ${
-                activeTab === tab.id
-                  ? 'text-[var(--brand-blue)] border-b-2 border-[var(--brand-blue)] bg-white/5'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              key={type}
+              onClick={() => setIssueType(type)}
+              className={`p-3 rounded-lg border text-sm font-medium capitalize transition-all ${
+                issueType === type
+                  ? 'border-[var(--brand-blue)] bg-[var(--brand-blue)]/10 text-[var(--brand-blue)]'
+                  : 'border-white/10 text-slate-400 hover:border-white/30 hover:text-white'
               }`}
             >
-              {tab.icon}
-              {tab.label}
+              {type}
             </button>
           ))}
         </div>
-
-        {/* Content */}
-        <div className="p-6 max-h-[60vh] overflow-y-auto">
-          {activeTab === 'api' && <APIKeysSettings />}
-          {activeTab === 'theme' && <ThemeSettings />}
-          {activeTab === 'notifications' && <NotificationSettings />}
-        </div>
       </div>
+
+      {/* Description */}
+      <div>
+        <label className="block text-xs font-medium text-slate-400 mb-2">Description</label>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Describe the issue or feature request in detail..."
+          rows={5}
+          className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[var(--brand-blue)] resize-none"
+        />
+      </div>
+
+      <button
+        disabled={!description.trim()}
+        className="w-full py-3 px-4 bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+      >
+        Submit Report
+      </button>
+    </div>
+  )
+}
+
+function CommunitySettings() {
+  const links = [
+    { title: 'Discord Community', description: 'Join The Syndicate for real-time support', icon: <Users className="w-5 h-5" />, href: '#' },
+    { title: 'GitHub Discussions', description: 'Participate in open-source discussions', icon: <MessageSquare className="w-5 h-5" />, href: '#' },
+    { title: 'Twitter/X', description: 'Follow for updates and announcements', icon: <ExternalLink className="w-5 h-5" />, href: '#' },
+  ]
+
+  return (
+    <div className="space-y-6">
+      <SectionHeader
+        title="Community"
+        description="Connect with other RAGbox users and contributors"
+      />
+
+      <div className="space-y-3">
+        {links.map((link) => (
+          <a
+            key={link.title}
+            href={link.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-4 p-4 bg-white/5 border border-white/10 hover:border-cyan-500/30 rounded-xl transition-all group"
+          >
+            <div className="p-3 bg-slate-800 group-hover:bg-cyan-500/20 rounded-xl transition-colors">
+              <span className="text-slate-400 group-hover:text-cyan-400 transition-colors">
+                {link.icon}
+              </span>
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-white group-hover:text-cyan-400 transition-colors">
+                {link.title}
+              </p>
+              <p className="text-xs text-slate-500">{link.description}</p>
+            </div>
+            <ExternalLink className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 transition-colors" />
+          </a>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ============================================================================
+// SHARED COMPONENTS
+// ============================================================================
+
+function SectionHeader({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="mb-6">
+      <h3 className="text-lg font-semibold text-transparent bg-clip-text bg-gradient-to-r from-slate-200 to-slate-400">
+        {title}
+      </h3>
+      <p className="text-sm text-slate-500 mt-1">{description}</p>
     </div>
   )
 }

@@ -5,6 +5,41 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 // Theme types
 export type ThemeId = 'cobalt' | 'noir' | 'forest'
 
+// Language types
+export type LanguageId = 'en' | 'es' | 'de' | 'fr' | 'zh'
+
+export interface LanguageConfig {
+  id: LanguageId
+  name: string
+  nativeName: string
+}
+
+export const LANGUAGES: Record<LanguageId, LanguageConfig> = {
+  en: { id: 'en', name: 'English', nativeName: 'English' },
+  es: { id: 'es', name: 'Spanish', nativeName: 'Español' },
+  de: { id: 'de', name: 'German', nativeName: 'Deutsch' },
+  fr: { id: 'fr', name: 'French', nativeName: 'Français' },
+  zh: { id: 'zh', name: 'Mandarin', nativeName: '中文' },
+}
+
+// Density types
+export type DensityId = 'compact' | 'comfortable'
+
+// Voice configuration
+export interface VoiceSettings {
+  enabled: boolean
+  autoSubmit: boolean
+  silenceThreshold: number // ms
+}
+
+// Subscription/Plan info
+export interface SubscriptionInfo {
+  plan: 'free' | 'professional' | 'enterprise'
+  tokensUsed: number
+  tokensLimit: number
+  renewalDate: string
+}
+
 export interface ThemeConfig {
   id: ThemeId
   name: string
@@ -62,19 +97,26 @@ export interface NotificationSettings {
 // Full settings state
 interface SettingsState {
   theme: ThemeId
+  language: LanguageId
+  density: DensityId
   connections: SecureConnection[]
   notifications: NotificationSettings
+  voice: VoiceSettings
+  subscription: SubscriptionInfo
 }
 
 // Context value
 interface SettingsContextValue extends SettingsState {
   setTheme: (theme: ThemeId) => void
+  setLanguage: (language: LanguageId) => void
+  setDensity: (density: DensityId) => void
   addConnection: (connection: Omit<SecureConnection, 'id' | 'verified' | 'createdAt'>) => Promise<SecureConnection>
   updateConnection: (id: string, updates: Partial<SecureConnection>) => void
   deleteConnection: (id: string) => void
   verifyConnection: (id: string) => Promise<boolean>
   setNotification: (key: keyof NotificationSettings, value: boolean) => void
   setConnectionModel: (connectionId: string, modelId: string) => void
+  updateVoice: (updates: Partial<VoiceSettings>) => void
   isVerifying: string | null // ID of connection being verified
   hasVerifiedConnection: boolean // For UI badges like "Enhanced OCR"
   // Active model info for header display
@@ -84,8 +126,21 @@ interface SettingsContextValue extends SettingsState {
 
 const defaultSettings: SettingsState = {
   theme: 'cobalt',
+  language: 'en',
+  density: 'comfortable',
   connections: [],
   notifications: { email: true, push: false, audit: true },
+  voice: {
+    enabled: true,
+    autoSubmit: true,
+    silenceThreshold: 2000,
+  },
+  subscription: {
+    plan: 'enterprise',
+    tokensUsed: 847500,
+    tokensLimit: 5000000,
+    renewalDate: '2025-02-15',
+  },
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null)
@@ -192,6 +247,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     setSettings((prev) => ({ ...prev, theme }))
   }, [])
 
+  const setLanguage = useCallback((language: LanguageId) => {
+    setSettings((prev) => ({ ...prev, language }))
+  }, [])
+
+  const setDensity = useCallback((density: DensityId) => {
+    setSettings((prev) => ({ ...prev, density }))
+  }, [])
+
   const addConnection = useCallback(async (
     connection: Omit<SecureConnection, 'id' | 'verified' | 'createdAt'>
   ): Promise<SecureConnection> => {
@@ -278,6 +341,13 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }))
   }, [])
 
+  const updateVoice = useCallback((updates: Partial<VoiceSettings>) => {
+    setSettings((prev) => ({
+      ...prev,
+      voice: { ...prev.voice, ...updates },
+    }))
+  }, [])
+
   // Check if any connection is verified (for UI badges)
   const hasVerifiedConnection = settings.connections.some((c) => c.verified)
 
@@ -289,12 +359,15 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const value: SettingsContextValue = {
     ...settings,
     setTheme,
+    setLanguage,
+    setDensity,
     addConnection,
     updateConnection,
     deleteConnection,
     verifyConnection,
     setNotification,
     setConnectionModel,
+    updateVoice,
     isVerifying,
     hasVerifiedConnection,
     activeModel,
