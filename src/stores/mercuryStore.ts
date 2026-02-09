@@ -2,6 +2,22 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import type { ChatMessage, Citation, TemperaturePreset } from '@/types/ragbox'
 
+// Ad-Hoc Attachment (Session-only, not persisted to Vault)
+export interface SessionAttachment {
+  id: string
+  name: string
+  type: 'file' | 'image' | 'url'
+  mimeType?: string
+  size?: number
+  content?: string          // Base64 for files/images, raw text for URLs
+  extractedText?: string    // For processed documents
+  url?: string              // For URL attachments
+  status: 'pending' | 'processing' | 'ready' | 'error'
+}
+
+// Persona/Lens for Neural Shift
+export type PersonaId = 'ceo' | 'cfo' | 'coo' | 'cpo' | 'cmo' | 'cto' | 'legal' | 'compliance' | 'auditor' | 'whistleblower'
+
 interface MercuryState {
   // Conversation
   messages: ChatMessage[]
@@ -9,6 +25,13 @@ interface MercuryState {
   isStreaming: boolean
   streamingContent: string
   abortController: AbortController | null
+
+  // Ad-Hoc Attachments (Session only - "Read Once, Burn")
+  attachments: SessionAttachment[]
+
+  // Neural Shift (Persona/Lens)
+  activePersona: PersonaId
+  isRefocusing: boolean  // For lens animation
 
   // Context
   temperaturePreset: TemperaturePreset
@@ -19,6 +42,16 @@ interface MercuryState {
   stopStreaming: () => void
   clearConversation: () => void
   setTemperaturePreset: (preset: TemperaturePreset) => void
+
+  // Attachment Actions
+  addAttachment: (attachment: Omit<SessionAttachment, 'id' | 'status'>) => string
+  removeAttachment: (id: string) => void
+  updateAttachment: (id: string, updates: Partial<SessionAttachment>) => void
+  clearAttachments: () => void
+
+  // Neural Shift Actions
+  setPersona: (persona: PersonaId) => void
+  triggerRefocus: () => void
 }
 
 export const useMercuryStore = create<MercuryState>()(
@@ -28,6 +61,9 @@ export const useMercuryStore = create<MercuryState>()(
     isStreaming: false,
     streamingContent: '',
     abortController: null,
+    attachments: [],
+    activePersona: 'cpo',
+    isRefocusing: false,
     temperaturePreset: 'executive-cpo',
 
     setInputValue: (value) => set({ inputValue: value }),
@@ -204,8 +240,48 @@ export const useMercuryStore = create<MercuryState>()(
       }
     },
 
-    clearConversation: () => set({ messages: [], streamingContent: '' }),
+    clearConversation: () => set({ messages: [], streamingContent: '', attachments: [] }),
 
     setTemperaturePreset: (preset) => set({ temperaturePreset: preset }),
+
+    // Ad-Hoc Attachment Actions
+    addAttachment: (attachment) => {
+      const id = `attach-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+      set((state) => ({
+        attachments: [...state.attachments, { ...attachment, id, status: 'pending' as const }],
+      }))
+      return id
+    },
+
+    removeAttachment: (id) => {
+      set((state) => ({
+        attachments: state.attachments.filter((a) => a.id !== id),
+      }))
+    },
+
+    updateAttachment: (id, updates) => {
+      set((state) => ({
+        attachments: state.attachments.map((a) =>
+          a.id === id ? { ...a, ...updates } : a
+        ),
+      }))
+    },
+
+    clearAttachments: () => set({ attachments: [] }),
+
+    // Neural Shift Actions
+    setPersona: (persona) => {
+      set({ activePersona: persona })
+      // Trigger refocus animation
+      get().triggerRefocus()
+    },
+
+    triggerRefocus: () => {
+      set({ isRefocusing: true })
+      // Auto-clear after animation duration
+      setTimeout(() => {
+        set({ isRefocusing: false })
+      }, 600)
+    },
   }))
 )

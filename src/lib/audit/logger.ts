@@ -83,6 +83,22 @@ async function ensureTableExists(): Promise<boolean> {
       console.log(`[Veritas] Created table: ${DATASET_ID}.${TABLE_ID}`)
     }
 
+    }
+
+    // Check/create table
+    const table = dataset.table(TABLE_ID)
+    const [tableExists] = await table.exists()
+    if (!tableExists) {
+      await dataset.createTable(TABLE_ID, {
+        schema: AUDIT_TABLE_SCHEMA,
+        timePartitioning: {
+          type: 'DAY',
+          field: 'timestamp',
+        },
+      })
+      console.log(`[Veritas] Created table: ${DATASET_ID}.${TABLE_ID}`)
+    }
+
     tableInitialized = true
     return true
   } catch (error) {

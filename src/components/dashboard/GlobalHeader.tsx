@@ -30,6 +30,7 @@ import {
   ChevronRight,
   Zap,
   LayoutGrid,
+  Sparkles,
 } from 'lucide-react'
 import { PrivilegeKeyIcon, IdentityIcon } from './icons/SovereignIcons'
 import { useSettings, type CachedModel, LANGUAGES, type LanguageId, type DensityId } from '@/contexts/SettingsContext'
@@ -813,6 +814,30 @@ function SecuritySettings() {
 
 function DocumentationSettings() {
   const docs = [
+    {
+      title: 'Protocol Alpha: Initialization',
+      description: 'Quick start guide for new sovereign operators',
+      href: '/docs/getting-started',
+      icon: <Zap className="w-4 h-4" />,
+    },
+    {
+      title: 'The Sovereign Uplink (API)',
+      description: 'Programmatic access to the RAGbox intelligence system',
+      href: '/docs/api-reference',
+      icon: <FileText className="w-4 h-4" />,
+    },
+    {
+      title: 'The Fortress Architecture',
+      description: 'Encryption, compliance, and data sovereignty',
+      href: '/docs/security-compliance',
+      icon: <Shield className="w-4 h-4" />,
+    },
+    {
+      title: 'Tactical Prompting',
+      description: 'Master the art of intelligence extraction',
+      href: '/docs/best-practices',
+      icon: <Sparkles className="w-4 h-4" />,
+    },
     { title: 'Getting Started', description: 'Quick start guide for new users', href: '#' },
     { title: 'API Reference', description: 'Complete API documentation', href: '#' },
     { title: 'Security & Compliance', description: 'SOC 2, HIPAA, and security practices', href: '#' },
@@ -822,6 +847,8 @@ function DocumentationSettings() {
   return (
     <div className="space-y-6">
       <SectionHeader
+        title="Sovereign Protocols"
+        description="Field manuals for intelligence operations"
         title="Documentation"
         description="Access guides, references, and best practices"
       />
@@ -833,6 +860,20 @@ function DocumentationSettings() {
             href={doc.href}
             target="_blank"
             rel="noopener noreferrer"
+            className="flex items-center justify-between p-4 bg-white/5 border border-white/10 hover:border-cyan-500/30 hover:bg-cyan-500/5 rounded-xl transition-all group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-slate-800 group-hover:bg-cyan-500/20 rounded-lg transition-colors">
+                <span className="text-slate-400 group-hover:text-cyan-400 transition-colors">
+                  {doc.icon}
+                </span>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-white group-hover:text-cyan-400 transition-colors">{doc.title}</p>
+                <p className="text-xs text-slate-500">{doc.description}</p>
+              </div>
+            </div>
+            <ExternalLink className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 transition-colors" />
             className="flex items-center justify-between p-4 bg-white/5 border border-white/10 hover:border-white/30 rounded-lg transition-colors group"
           >
             <div className="flex items-center gap-3">
