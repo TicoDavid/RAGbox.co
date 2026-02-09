@@ -275,11 +275,13 @@ function FileSelectorModal({
   onClose,
   onConfirm,
   artifactLabel,
+  onUploadClick,
 }: {
   isOpen: boolean
   onClose: () => void
   onConfirm: (fileIds: string[]) => void
   artifactLabel: string
+  onUploadClick?: () => void
 }) {
   const documents = useVaultStore((s) => s.documents)
   const [selected, setSelected] = useState<string[]>([])
@@ -301,29 +303,31 @@ function FileSelectorModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
+      {/* Backdrop - Glass aesthetic */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/70 backdrop-blur-xl"
         onClick={onClose}
       />
 
-      {/* Modal */}
+      {/* Modal - Glass aesthetic */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="relative w-full max-w-md bg-[#0a1628] border border-white/10 rounded-2xl overflow-hidden shadow-2xl"
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        className="relative w-full max-w-md bg-[#0a1628]/95 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.5)]"
       >
         {/* Header */}
         <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Crosshair className="w-5 h-5 text-amber-400" />
+            <div className="w-9 h-9 rounded-lg bg-amber-500/20 flex items-center justify-center">
+              <Crosshair className="w-5 h-5 text-amber-400" />
+            </div>
             <div>
               <h3 className="text-lg font-semibold text-white">Select Sources</h3>
-              <p className="text-xs text-slate-500">for {artifactLabel}</p>
+              <p className="text-xs text-slate-400">for {artifactLabel}</p>
             </div>
           </div>
           <button
@@ -337,10 +341,25 @@ function FileSelectorModal({
         {/* File List */}
         <div className="p-4 max-h-80 overflow-y-auto">
           {docs.length === 0 ? (
-            <div className="text-center py-8">
-              <FileText className="w-12 h-12 text-slate-700 mx-auto mb-3" />
-              <p className="text-sm text-slate-500">No documents in vault</p>
-              <p className="text-xs text-slate-600">Upload files to generate artifacts</p>
+            <div className="text-center py-6">
+              {/* Empty Vault - CTA to upload */}
+              <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-4">
+                <FileText className="w-8 h-8 text-amber-400/60" />
+              </div>
+              <p className="text-base font-medium text-white mb-1">Vault Empty</p>
+              <p className="text-xs text-slate-500 mb-5">Upload files to begin artifact generation</p>
+
+              {/* Upload Evidence Button */}
+              <button
+                onClick={() => {
+                  onClose()
+                  onUploadClick?.()
+                }}
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-black font-semibold text-sm hover:from-amber-400 hover:to-orange-400 transition-all shadow-lg shadow-amber-500/20"
+              >
+                <Plus className="w-5 h-5" />
+                Upload Evidence
+              </button>
             </div>
           ) : (
             <div className="space-y-2">
@@ -384,7 +403,7 @@ function FileSelectorModal({
           <p className="text-xs text-slate-500">
             {selected.length} file{selected.length !== 1 ? 's' : ''} selected
           </p>
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <button
               onClick={onClose}
               className="px-4 py-2 rounded-lg text-sm text-slate-400 hover:bg-white/5 transition-colors"
@@ -394,7 +413,13 @@ function FileSelectorModal({
             <button
               onClick={handleConfirm}
               disabled={selected.length === 0}
-              className="px-4 py-2 rounded-lg text-sm font-medium bg-amber-500 text-black hover:bg-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`
+                px-5 py-2 rounded-lg text-sm font-bold transition-all
+                ${selected.length > 0
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-black hover:from-amber-400 hover:to-orange-400 shadow-lg shadow-amber-500/25'
+                  : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                }
+              `}
             >
               Generate
             </button>
@@ -570,6 +595,10 @@ export function SovereignStudio() {
     result: null,
   })
 
+  // Upload modal state
+  const [showIngestion, setShowIngestion] = useState(false)
+  const uploadDocument = useVaultStore((s) => s.uploadDocument)
+
   // Handlers
   const handleArtifactClick = (type: ArtifactType) => {
     setGeneration({
@@ -714,7 +743,67 @@ export function SovereignStudio() {
             onClose={handleDismiss}
             onConfirm={handleFilesSelected}
             artifactLabel={currentArtifact.label}
+            onUploadClick={() => setShowIngestion(true)}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Inline Ingestion Modal for Studio */}
+      <AnimatePresence>
+        {showIngestion && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/70 backdrop-blur-xl"
+              onClick={() => setShowIngestion(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-lg bg-[#0a1628]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-[0_0_60px_rgba(0,0,0,0.5)]"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                  <Plus className="w-5 h-5 text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Upload Evidence</h3>
+                  <p className="text-xs text-slate-400">Add files to your vault</p>
+                </div>
+              </div>
+
+              {/* Drop Zone */}
+              <label className="block p-8 border-2 border-dashed border-amber-500/30 rounded-xl bg-amber-500/5 hover:bg-amber-500/10 transition-colors cursor-pointer text-center">
+                <input
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={async (e) => {
+                    const files = Array.from(e.target.files || [])
+                    for (const file of files) {
+                      await uploadDocument(file)
+                    }
+                    setShowIngestion(false)
+                  }}
+                />
+                <FileText className="w-12 h-12 text-amber-400/60 mx-auto mb-3" />
+                <p className="text-sm text-white font-medium mb-1">Drop files here or click to upload</p>
+                <p className="text-xs text-slate-500">PDF, DOCX, TXT, XLSX supported</p>
+              </label>
+
+              <div className="flex justify-end mt-6">
+                <button
+                  onClick={() => setShowIngestion(false)}
+                  className="px-4 py-2 rounded-lg text-sm text-slate-400 hover:bg-white/5 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

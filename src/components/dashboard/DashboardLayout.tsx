@@ -86,18 +86,52 @@ function InspectorPanel() {
   const documents = useVaultStore((s) => s.documents)
   const selectedDoc = selectedItemId ? documents[selectedItemId] : null
 
+  // Calculate vault stats
+  const docList = Object.values(documents)
+  const totalDocs = docList.length
+  const totalSize = docList.reduce((acc, d) => acc + (d.size || 0), 0)
+  const formattedSize = totalSize > 1024 * 1024
+    ? `${(totalSize / (1024 * 1024)).toFixed(1)} MB`
+    : `${(totalSize / 1024).toFixed(1)} KB`
+
   if (!selectedDoc) {
     return (
       <div className="h-full flex flex-col">
         <div className="shrink-0 px-4 py-3 border-b border-white/5">
           <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Inspector</h3>
         </div>
-        <div className="flex-1 flex items-center justify-center p-4">
-          <div className="text-center">
-            <Info className="w-12 h-12 text-slate-700 mx-auto mb-3" />
-            <p className="text-sm text-slate-500">Select a document</p>
-            <p className="text-xs text-slate-600 mt-1">to view details</p>
+        <div className="flex-1 p-4">
+          {/* Vault Vitals Card */}
+          <div className="p-4 rounded-xl bg-gradient-to-br from-emerald-500/10 to-cyan-500/5 border border-emerald-500/20">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                <Shield className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">Vault Vitals</p>
+                <p className="text-xs text-emerald-400">System Secure</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex justify-between items-center py-2 border-b border-white/5">
+                <span className="text-xs text-slate-400">Total Files</span>
+                <span className="text-sm font-medium text-white">{totalDocs}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-white/5">
+                <span className="text-xs text-slate-400">Storage Used</span>
+                <span className="text-sm font-medium text-white">{formattedSize}</span>
+              </div>
+              <div className="flex justify-between items-center py-2">
+                <span className="text-xs text-slate-400">Encryption</span>
+                <span className="text-xs font-medium text-emerald-400">AES-256</span>
+              </div>
+            </div>
           </div>
+
+          <p className="text-xs text-slate-600 text-center mt-4">
+            Select a document to inspect
+          </p>
         </div>
       </div>
     )

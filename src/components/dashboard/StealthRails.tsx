@@ -41,22 +41,30 @@ function RailIcon({ icon: Icon, label, isActive, onClick, side }: RailIconProps)
       <button
         onClick={onClick}
         className={`
-          w-11 h-11 flex items-center justify-center rounded-xl
+          relative w-11 h-11 flex items-center justify-center rounded-xl
           transition-all duration-200
           ${isActive
-            ? 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] shadow-[0_0_15px_rgba(36,99,235,0.3)]'
+            ? 'bg-[var(--brand-blue)]/15 text-[var(--brand-blue)] shadow-[0_0_20px_rgba(36,99,235,0.4)]'
             : 'text-slate-500 hover:text-white hover:bg-white/5'
           }
         `}
       >
-        <Icon className="w-5 h-5" />
+        {/* Power Line indicator - active state */}
+        {isActive && (
+          <div
+            className={`absolute top-1 bottom-1 w-0.5 bg-[var(--brand-blue)] rounded-full shadow-[0_0_8px_rgba(36,99,235,0.8)]
+              ${side === 'left' ? 'left-0' : 'right-0'}
+            `}
+          />
+        )}
+        <Icon className={`w-5 h-5 ${isActive ? 'drop-shadow-[0_0_6px_rgba(36,99,235,0.6)]' : ''}`} />
       </button>
 
       {/* Tooltip */}
       <div
         className={`
           absolute top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-lg
-          bg-[#0A192F] border border-white/10 shadow-xl
+          bg-[#0A192F]/95 backdrop-blur-sm border border-white/10 shadow-xl
           text-xs font-medium text-white whitespace-nowrap
           opacity-0 pointer-events-none group-hover:opacity-100
           transition-opacity duration-200 z-50

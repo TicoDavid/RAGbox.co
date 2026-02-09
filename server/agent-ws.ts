@@ -54,6 +54,7 @@ type AgentState =
   | 'listening'
   | 'processing'
   | 'speaking'
+  | 'executing'
   | 'idle'
   | 'error'
 
@@ -179,9 +180,10 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
       throw new Error('Missing INWORLD_API_KEY environment variable')
     }
 
-    // Create Inworld session with callbacks
+    // Create Inworld session with callbacks and tool context
     const inworldSession = await createInworldSession({
       apiKey,
+      toolContext,
 
       onTranscriptPartial: (text) => {
         sendJSON(ws, { type: 'asr_partial', text })
@@ -214,6 +216,26 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
         obs.recordFirstAudio(sessionId)
       },
 
+      onToolCall: (toolName, args) => {
+        console.log(`[AgentWS] Tool call: ${toolName}`, args)
+        sendJSON(ws, {
+          type: 'tool_call',
+          call: { id: `tool_${Date.now()}`, name: toolName, parameters: args }
+        })
+        session.state = 'executing'
+        sendJSON(ws, { type: 'state', state: 'executing' })
+      },
+
+      onToolResult: (toolName, result) => {
+        console.log(`[AgentWS] Tool result: ${toolName}`)
+        sendJSON(ws, { type: 'tool_result', result })
+      },
+
+      onUIAction: (action) => {
+        console.log(`[AgentWS] UI action:`, action)
+        sendJSON(ws, { type: 'ui_action', action })
+      },
+
       onError: (error) => {
         console.error(`[AgentWS] Inworld error for ${sessionId}:`, error)
         obs.incrementError(sessionId)
@@ -232,6 +254,15 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
     // Ready to receive audio
     session.state = 'idle'
     sendJSON(ws, { type: 'state', state: 'idle' })
+
+    // Send initial greeting from Mercury
+    console.log(`[AgentWS] Sending initial greeting for ${sessionId}`)
+    try {
+      // Trigger the agent to greet the user with voice
+      await inworldSession.triggerGreeting()
+    } catch (greetError) {
+      console.warn('[AgentWS] Failed to send initial greeting:', greetError)
+    }
 
     // Handle incoming messages
     ws.on('message', async (data, isBinary) => {

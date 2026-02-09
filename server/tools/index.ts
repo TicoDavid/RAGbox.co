@@ -161,6 +161,21 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     description: 'Get statistics about the document vault',
     parameters: {},
   },
+  {
+    name: 'list_documents',
+    description: 'List all documents in the user\'s vault. Use this when the user asks what files or documents they have.',
+    parameters: {
+      limit: { type: 'number', description: 'Maximum documents to return (default 20)' },
+      sortBy: { type: 'string', description: 'Sort order', enum: ['recent', 'name', 'size'] },
+    },
+  },
+  {
+    name: 'read_document',
+    description: 'Read the contents of a specific document. Use this to answer questions about document contents.',
+    parameters: {
+      documentId: { type: 'string', description: 'The document ID to read', required: true },
+    },
+  },
 ]
 
 // ============================================================================
@@ -333,14 +348,104 @@ async function getDocumentStats(ctx: ToolContext): Promise<unknown> {
       where: { userId: ctx.userId, isDeleted: false },
       orderBy: { createdAt: 'desc' },
       take: 5,
-      select: { name: true, createdAt: true },
+      select: { filename: true, createdAt: true },
     }),
   ])
 
   return {
     totalDocuments: total,
     byType: byType.map(t => ({ type: t.mimeType, count: t._count })),
-    recentUploads: recent,
+    recentUploads: recent.map(d => ({ name: d.filename, createdAt: d.createdAt })),
+  }
+}
+
+async function listDocuments(args: { limit?: number; sortBy?: string }, ctx: ToolContext): Promise<unknown> {
+  const db = getPrisma()
+  const limit = args.limit || 20
+
+  // Determine sort order
+  const orderBy: Record<string, 'asc' | 'desc'> =
+    args.sortBy === 'name' ? { filename: 'asc' } :
+    args.sortBy === 'size' ? { sizeBytes: 'desc' } :
+    { createdAt: 'desc' }
+
+  // Build where clause based on privilege mode
+  const whereClause = {
+    userId: ctx.userId,
+    isDeleted: false,
+    // Only show privileged documents if privilege mode is enabled
+    ...(ctx.privilegeMode ? {} : { securityTier: 0 }),
+  }
+
+  const documents = await db.document.findMany({
+    where: whereClause,
+    take: limit,
+    select: {
+      id: true,
+      filename: true,
+      originalName: true,
+      mimeType: true,
+      sizeBytes: true,
+      createdAt: true,
+      securityTier: true,
+    },
+    orderBy,
+  })
+
+  return {
+    count: documents.length,
+    privilegeMode: ctx.privilegeMode,
+    documents: documents.map(d => ({
+      id: d.id,
+      name: d.originalName || d.filename,
+      type: d.mimeType,
+      size: `${(d.sizeBytes / 1024).toFixed(1)} KB`,
+      uploadedAt: d.createdAt.toISOString().split('T')[0],
+      isPrivileged: d.securityTier > 0,
+    })),
+  }
+}
+
+async function readDocument(args: { documentId: string }, ctx: ToolContext): Promise<unknown> {
+  const db = getPrisma()
+
+  const doc = await db.document.findFirst({
+    where: {
+      id: args.documentId,
+      userId: ctx.userId,
+      isDeleted: false,
+    },
+    select: {
+      id: true,
+      filename: true,
+      originalName: true,
+      extractedText: true,
+      securityTier: true,
+    },
+  })
+
+  if (!doc) {
+    throw new Error('Document not found or access denied')
+  }
+
+  // Check privilege requirements
+  if (doc.securityTier > 0 && !ctx.privilegeMode) {
+    throw new Error('This document is privileged. Enable Privilege Mode to access it.')
+  }
+
+  const text = doc.extractedText || ''
+
+  // Return a reasonable amount of text (first 4000 chars for context window)
+  const truncatedText = text.length > 4000
+    ? text.substring(0, 4000) + '\n\n[... Document truncated. Full text available in viewer.]'
+    : text
+
+  return {
+    documentId: doc.id,
+    name: doc.originalName || doc.filename,
+    contentPreview: truncatedText,
+    totalLength: text.length,
+    isTruncated: text.length > 4000,
   }
 }
 
@@ -421,6 +526,14 @@ export async function executeTool(call: ToolCall, ctx: ToolContext): Promise<Too
 
       case 'get_document_stats':
         result = await getDocumentStats(ctx)
+        break
+
+      case 'list_documents':
+        result = await listDocuments(call.arguments as { limit?: number; sortBy?: string }, ctx)
+        break
+
+      case 'read_document':
+        result = await readDocument(call.arguments as { documentId: string }, ctx)
         break
 
       case 'navigate_to': {

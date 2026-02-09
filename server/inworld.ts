@@ -3,6 +3,7 @@
  *
  * Full integration with Inworld AI Runtime for voice agent capabilities.
  * Uses the graph-based Runtime SDK for STT, LLM, and TTS processing.
+ * Now with function calling support for tool execution.
  */
 
 import 'dotenv/config'
@@ -15,6 +16,7 @@ import {
   RemoteTTSNode,
   RemoteTTSComponent,
 } from '@inworld/runtime/graph'
+import { TOOL_DEFINITIONS, executeTool, type ToolContext, type ToolCall } from './tools'
 
 // ============================================================================
 // TYPES
@@ -22,13 +24,52 @@ import {
 
 export interface InworldSessionConfig {
   apiKey: string
+  toolContext?: ToolContext
   onTranscriptPartial?: (text: string) => void
   onTranscriptFinal?: (text: string) => void
   onAgentTextPartial?: (text: string) => void
   onAgentTextFinal?: (text: string) => void
   onTTSChunk?: (audioBase64: string) => void
+  onToolCall?: (toolName: string, args: Record<string, unknown>) => void
+  onToolResult?: (toolName: string, result: unknown) => void
+  onUIAction?: (action: unknown) => void
   onError?: (error: Error) => void
   onDisconnect?: () => void
+}
+
+// OpenAI function calling format
+interface OpenAIFunction {
+  name: string
+  description: string
+  parameters: {
+    type: 'object'
+    properties: Record<string, { type: string; description: string; enum?: string[] }>
+    required: string[]
+  }
+}
+
+// Convert our tool definitions to OpenAI function format
+function getOpenAIFunctions(): OpenAIFunction[] {
+  return TOOL_DEFINITIONS.map(tool => ({
+    name: tool.name,
+    description: tool.description,
+    parameters: {
+      type: 'object',
+      properties: Object.fromEntries(
+        Object.entries(tool.parameters).map(([key, param]) => [
+          key,
+          {
+            type: param.type,
+            description: param.description,
+            ...(param.enum ? { enum: param.enum } : {}),
+          },
+        ])
+      ),
+      required: Object.entries(tool.parameters)
+        .filter(([, param]) => param.required)
+        .map(([key]) => key),
+    },
+  }))
 }
 
 export interface InworldSession {
@@ -37,6 +78,7 @@ export interface InworldSession {
   endAudioSession: () => Promise<void>
   cancelResponse: () => Promise<void>
   sendText: (text: string) => Promise<void>
+  triggerGreeting: () => Promise<void>
   close: () => void
 }
 
@@ -79,22 +121,57 @@ function float32ToInt16Base64(float32Base64: string): string {
 export async function createInworldSession(config: InworldSessionConfig): Promise<InworldSession> {
   const {
     apiKey,
+    toolContext,
     onTranscriptPartial,
     onTranscriptFinal,
     onAgentTextPartial,
     onAgentTextFinal,
     onTTSChunk,
+    onToolCall,
+    onToolResult,
+    onUIAction,
     onError,
     onDisconnect,
   } = config
 
   let isActive = false
   let audioBuffer: Float32Array[] = []
+
+  // Build tool descriptions for the system prompt
+  const toolDescriptions = TOOL_DEFINITIONS.map(t => {
+    const params = Object.entries(t.parameters)
+      .map(([k, v]) => `  - ${k}: ${v.description}${v.required ? ' (required)' : ''}`)
+      .join('\n')
+    return `**${t.name}**: ${t.description}${params ? '\n' + params : ''}`
+  }).join('\n\n')
+
+  const systemPrompt = `You are Mercury, the AI assistant for RAGbox.co - a secure, compliance-ready RAG platform for legal, financial, and healthcare sectors.
+
+You have access to the user's document vault and can help them navigate, search, and analyze their documents.
+
+## Available Tools
+When you need to access documents or perform actions, use these tools by outputting a JSON block:
+
+\`\`\`tool
+{"name": "tool_name", "arguments": {"arg1": "value1"}}
+\`\`\`
+
+${toolDescriptions}
+
+## Important Rules
+1. When users ask about their documents, USE the list_documents or search_documents tools - don't say you can't access them
+2. When users want to read a document, USE the read_document tool
+3. Only privileged documents require Privilege Mode - regular documents are always accessible
+4. Keep responses concise and professional
+5. After using a tool, explain the results naturally
+
+Current user context:
+- User ID: ${toolContext?.userId || 'unknown'}
+- Role: ${toolContext?.role || 'User'}
+- Privilege Mode: ${toolContext?.privilegeMode ? 'ENABLED' : 'disabled'}`
+
   let conversationHistory: Array<{ role: string; content: string }> = [
-    {
-      role: 'system',
-      content: `You are Mercury, the AI assistant for RAGbox.co - a secure, compliance-ready RAG platform for legal, financial, and healthcare sectors. You help users navigate documents, search their knowledge base, and provide insights with verified citations. Keep responses concise and professional.`,
-    },
+    { role: 'system', content: systemPrompt },
   ]
 
   // Create TTS component
@@ -115,14 +192,71 @@ export async function createInworldSession(config: InworldSessionConfig): Promis
     },
   })
 
-  // Process text through LLM and TTS
-  async function processWithLLM(userText: string): Promise<void> {
-    try {
-      console.log('[Inworld] Processing user message:', userText)
-      onTranscriptFinal?.(userText)
+  // Parse tool calls from response
+  function parseToolCalls(text: string): { toolCall: { name: string; arguments: Record<string, unknown> } | null; cleanText: string } {
+    const toolPattern = /```tool\s*\n?([\s\S]*?)\n?```/g
+    let match = toolPattern.exec(text)
 
-      // Add user message to history
-      conversationHistory.push({ role: 'user', content: userText })
+    if (match) {
+      try {
+        const toolCall = JSON.parse(match[1].trim())
+        const cleanText = text.replace(toolPattern, '').trim()
+        return { toolCall, cleanText }
+      } catch (e) {
+        console.error('[Inworld] Failed to parse tool call:', e)
+      }
+    }
+
+    return { toolCall: null, cleanText: text }
+  }
+
+  // Execute a tool and return result
+  async function executeToolCall(name: string, args: Record<string, unknown>): Promise<string> {
+    if (!toolContext) {
+      return 'Error: No user context available for tool execution'
+    }
+
+    console.log(`[Inworld] Executing tool: ${name}`, args)
+    onToolCall?.(name, args)
+
+    try {
+      const call: ToolCall = {
+        id: `tool_${Date.now()}`,
+        name,
+        arguments: args,
+      }
+
+      const result = await executeTool(call, toolContext)
+      onToolResult?.(name, result)
+
+      // Handle UI actions
+      if (result.uiAction) {
+        onUIAction?.(result.uiAction)
+      }
+
+      if (result.success) {
+        return JSON.stringify(result.result, null, 2)
+      } else {
+        return `Error: ${result.error}`
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      return `Error executing tool: ${errorMsg}`
+    }
+  }
+
+  // Process text through LLM and TTS
+  async function processWithLLM(userText: string, isToolResult = false): Promise<void> {
+    try {
+      console.log('[Inworld] Processing:', isToolResult ? 'tool result' : 'user message', userText.substring(0, 100))
+
+      if (!isToolResult) {
+        onTranscriptFinal?.(userText)
+        conversationHistory.push({ role: 'user', content: userText })
+      } else {
+        // Add tool result as a system message
+        conversationHistory.push({ role: 'user', content: `[Tool Result]\n${userText}` })
+      }
 
       // Create LLM node (using OpenAI via Inworld proxy)
       const llmNode = new RemoteLLMChatNode({
@@ -131,16 +265,8 @@ export async function createInworldSession(config: InworldSessionConfig): Promis
         modelName: 'gpt-4o-mini',
         stream: true,
         textGenerationConfig: {
-          maxNewTokens: 500,
+          maxNewTokens: 800,
         },
-      })
-
-      // Create TTS node
-      const ttsNode = new RemoteTTSNode({
-        ttsComponent,
-        speakerId: DEFAULT_VOICE_ID,
-        languageCode: 'en-US',
-        modelId: DEFAULT_TTS_MODEL_ID,
       })
 
       // Build LLM graph
@@ -165,21 +291,56 @@ export async function createInworldSession(config: InworldSessionConfig): Promis
 
       for await (const result of outputStream) {
         await result.processResponse({
-          Content: (response: GraphTypes.Content) => {
+          Content: async (response: GraphTypes.Content) => {
             fullResponse = response.content || ''
-            console.log('[Inworld] LLM Response:', fullResponse)
-            onAgentTextFinal?.(fullResponse)
+            console.log('[Inworld] LLM Response:', fullResponse.substring(0, 100) + '...')
+
+            // Check for tool calls
+            const { toolCall, cleanText } = parseToolCalls(fullResponse)
+
+            if (toolCall) {
+              console.log('[Inworld] Tool call detected:', toolCall.name)
+              conversationHistory.push({ role: 'assistant', content: fullResponse })
+
+              // Execute the tool
+              const toolResult = await executeToolCall(toolCall.name, toolCall.arguments)
+
+              // Continue conversation with tool result
+              await processWithLLM(toolResult, true)
+              return
+            }
+
+            onAgentTextFinal?.(cleanText)
             conversationHistory.push({ role: 'assistant', content: fullResponse })
           },
           ContentStream: async (stream: GraphTypes.ContentStream) => {
             for await (const chunk of stream) {
               if (chunk.text) {
                 fullResponse += chunk.text
-                onAgentTextPartial?.(fullResponse)
+                // Don't show partial tool calls to user
+                if (!fullResponse.includes('```tool')) {
+                  onAgentTextPartial?.(fullResponse)
+                }
               }
             }
-            console.log('[Inworld] LLM Streamed Response:', fullResponse)
-            onAgentTextFinal?.(fullResponse)
+            console.log('[Inworld] LLM Streamed Response:', fullResponse.substring(0, 100) + '...')
+
+            // Check for tool calls in streamed response
+            const { toolCall, cleanText } = parseToolCalls(fullResponse)
+
+            if (toolCall) {
+              console.log('[Inworld] Tool call detected (stream):', toolCall.name)
+              conversationHistory.push({ role: 'assistant', content: fullResponse })
+
+              // Execute the tool
+              const toolResult = await executeToolCall(toolCall.name, toolCall.arguments)
+
+              // Continue conversation with tool result
+              await processWithLLM(toolResult, true)
+              return
+            }
+
+            onAgentTextFinal?.(cleanText)
             conversationHistory.push({ role: 'assistant', content: fullResponse })
           },
           error: (error: GraphTypes.GraphError) => {
@@ -189,9 +350,11 @@ export async function createInworldSession(config: InworldSessionConfig): Promis
         })
       }
 
-      // If we have a response, convert to speech
-      if (fullResponse) {
-        await textToSpeech(fullResponse)
+      // If we have a response (and no tool was called), convert to speech
+      // Strip tool markup before TTS
+      const { cleanText } = parseToolCalls(fullResponse)
+      if (cleanText && !fullResponse.includes('```tool')) {
+        await textToSpeech(cleanText)
       }
     } catch (error) {
       console.error('[Inworld] Processing error:', error)
@@ -367,6 +530,20 @@ export async function createInworldSession(config: InworldSessionConfig): Promis
     async sendText(text: string): Promise<void> {
       console.log('[Inworld] Sending text:', text)
       await processWithLLM(text)
+    },
+
+    async triggerGreeting(): Promise<void> {
+      const greeting = 'Hello! Welcome to RAGbox. How may I assist you today?'
+      console.log('[Inworld] Triggering greeting:', greeting)
+
+      // Add greeting to conversation history
+      conversationHistory.push({ role: 'assistant', content: greeting })
+
+      // Send text to client
+      onAgentTextFinal?.(greeting)
+
+      // Convert to speech
+      await textToSpeech(greeting)
     },
 
     close(): void {

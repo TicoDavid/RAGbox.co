@@ -1,17 +1,16 @@
 'use client'
 
 import React, { useEffect, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import {
   Mic,
-  MicOff,
   Power,
-  Volume2,
-  VolumeX,
   Radio,
-  AlertCircle,
+  PowerOff,
 } from 'lucide-react'
-import { useSovereignAgentVoice } from '@/hooks/useSovereignAgentVoice'
+import { useSession } from 'next-auth/react'
+import { useSovereignAgentVoice, type AgentVoiceState } from '@/hooks/useSovereignAgentVoice'
+import { usePrivilegeStore } from '@/stores/privilegeStore'
 
 // ============================================================================
 // AUDIO LEVEL BAR (Compact version)
@@ -39,31 +38,39 @@ function AudioLevelBar({ level, isActive }: { level: number; isActive: boolean }
 // ============================================================================
 
 function StateIndicator({
-  connectionState,
+  state,
   isVADActive,
-  isSpeaking
+  isSpeaking,
+  isConnected,
 }: {
-  connectionState: string
+  state: AgentVoiceState
   isVADActive: boolean
   isSpeaking: boolean
+  isConnected: boolean
 }) {
   const getStateConfig = () => {
-    if (connectionState === 'connecting') {
+    if (state === 'connecting') {
       return { color: 'text-amber-400', pulse: true, label: 'Connecting...' }
     }
-    if (connectionState === 'error') {
+    if (state === 'error') {
       return { color: 'text-red-400', pulse: false, label: 'Error' }
     }
-    if (connectionState !== 'connected') {
+    if (!isConnected) {
       return { color: 'text-slate-500', pulse: false, label: 'Offline' }
     }
     if (isSpeaking) {
       return { color: 'text-cyan-400', pulse: true, label: 'Speaking' }
     }
+    if (state === 'processing') {
+      return { color: 'text-amber-400', pulse: true, label: 'Processing' }
+    }
+    if (state === 'listening') {
+      return { color: 'text-emerald-400', pulse: true, label: 'Listening' }
+    }
     if (isVADActive) {
       return { color: 'text-emerald-400', pulse: true, label: 'Listening' }
     }
-    return { color: 'text-slate-400', pulse: false, label: 'Ready' }
+    return { color: 'text-cyan-400', pulse: false, label: 'Online' }
   }
 
   const config = getStateConfig()
@@ -85,29 +92,38 @@ function StateIndicator({
 // ============================================================================
 
 export function MercuryVoicePanel() {
+  const { data: session } = useSession()
+  const privilegeMode = usePrivilegeStore((s) => s.isEnabled)
+
+  // Get user ID from session - use the Google account ID or email as fallback
+  const userId = (session?.user as { id?: string })?.id || session?.user?.email || 'anonymous'
+
   const {
-    connect,
-    disconnect,
-    connectionState,
-    error,
-    transcript,
-    agentText,
+    state,
+    isConnected,
+    isSpeaking,
     isVADActive,
     audioLevel,
+    transcript,
+    connect,
+    disconnect,
     enableVAD,
     disableVAD,
-  } = useSovereignAgentVoice()
+  } = useSovereignAgentVoice({
+    userId,
+    privilegeMode,
+  })
 
   const transcriptRef = useRef<HTMLDivElement>(null)
-  const isPoweredOn = connectionState === 'connected'
-  const isSpeaking = (agentText?.length ?? 0) > 0
+  const isPoweredOn = isConnected
+  const isConnecting = state === 'connecting'
 
   // Auto-scroll transcript
   useEffect(() => {
     if (transcriptRef.current) {
       transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight
     }
-  }, [transcript, agentText])
+  }, [transcript])
 
   // Toggle power
   const handlePowerToggle = async () => {
@@ -116,7 +132,8 @@ export function MercuryVoicePanel() {
       disconnect()
     } else {
       await connect()
-      enableVAD()
+      // Auto-enable VAD after connection
+      setTimeout(() => enableVAD(), 500)
     }
   }
 
@@ -139,9 +156,10 @@ export function MercuryVoicePanel() {
             Mercury
           </h3>
           <StateIndicator
-            connectionState={connectionState}
+            state={state}
             isVADActive={isVADActive}
             isSpeaking={isSpeaking}
+            isConnected={isConnected}
           />
         </div>
       </div>
@@ -152,7 +170,7 @@ export function MercuryVoicePanel() {
         <div className="flex justify-center">
           <motion.button
             onClick={handlePowerToggle}
-            disabled={connectionState === 'connecting'}
+            disabled={isConnecting}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className={`
@@ -162,19 +180,33 @@ export function MercuryVoicePanel() {
                 ? 'bg-gradient-to-br from-cyan-500 to-blue-600 shadow-[0_0_30px_rgba(0,240,255,0.5)]'
                 : 'bg-slate-800/80 hover:bg-slate-700/80 border border-slate-600'
               }
-              ${connectionState === 'connecting' ? 'animate-pulse' : ''}
-              disabled:opacity-50 disabled:cursor-not-allowed
+              ${isConnecting ? 'animate-pulse bg-amber-600/50' : ''}
+              disabled:cursor-not-allowed
             `}
           >
-            <Power className={`w-8 h-8 ${isPoweredOn ? 'text-white' : 'text-slate-400'}`} />
+            {isPoweredOn ? (
+              <Power className="w-8 h-8 text-white" />
+            ) : (
+              <PowerOff className="w-8 h-8 text-slate-400" />
+            )}
 
-            {/* Outer ring animation when active */}
-            {isPoweredOn && isVADActive && (
+            {/* Outer ring animation when active and listening */}
+            {isPoweredOn && (
               <motion.div
                 className="absolute inset-0 rounded-full border-2 border-cyan-400"
                 initial={{ scale: 1, opacity: 0.8 }}
                 animate={{ scale: 1.3, opacity: 0 }}
                 transition={{ duration: 1.5, repeat: Infinity }}
+              />
+            )}
+
+            {/* Pulsing glow when speaking */}
+            {isSpeaking && (
+              <motion.div
+                className="absolute inset-0 rounded-full bg-cyan-400/30"
+                initial={{ opacity: 0.3 }}
+                animate={{ opacity: [0.3, 0.6, 0.3] }}
+                transition={{ duration: 0.8, repeat: Infinity }}
               />
             )}
           </motion.button>
@@ -185,9 +217,9 @@ export function MercuryVoicePanel() {
           <div className="space-y-1">
             <div className="flex items-center justify-between text-xs text-slate-500">
               <span>Audio Level</span>
-              <span>{((audioLevel ?? 0) * 100).toFixed(0)}%</span>
+              <span>{(audioLevel * 100).toFixed(0)}%</span>
             </div>
-            <AudioLevelBar level={audioLevel ?? 0} isActive={isVADActive ?? false} />
+            <AudioLevelBar level={audioLevel} isActive={isVADActive} />
           </div>
         )}
 
@@ -209,16 +241,6 @@ export function MercuryVoicePanel() {
           </button>
         )}
 
-        {/* Error Display */}
-        {error && (
-          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
-            <div className="flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-              <p className="text-xs text-red-400">{error}</p>
-            </div>
-          </div>
-        )}
-
         {/* Transcript Area */}
         <div
           ref={transcriptRef}
@@ -232,24 +254,35 @@ export function MercuryVoicePanel() {
             </div>
           ) : (
             <div className="space-y-3 text-sm">
-              {/* User transcript */}
-              {transcript && (
-                <div className="text-slate-300">
-                  <span className="text-xs text-cyan-500 block mb-1">You</span>
-                  {transcript}
+              {/* Render all transcript entries */}
+              {transcript.map((entry) => (
+                <div
+                  key={entry.id}
+                  className={`${
+                    entry.type === 'user'
+                      ? 'text-slate-300'
+                      : entry.type === 'agent'
+                      ? 'text-slate-200'
+                      : 'text-slate-500 italic'
+                  }`}
+                >
+                  {entry.type !== 'system' && (
+                    <span
+                      className={`text-xs block mb-1 ${
+                        entry.type === 'user' ? 'text-cyan-500' : 'text-emerald-500'
+                      }`}
+                    >
+                      {entry.type === 'user' ? 'You' : 'Mercury'}
+                    </span>
+                  )}
+                  <span className={!entry.isFinal ? 'opacity-60' : ''}>
+                    {entry.text}
+                  </span>
                 </div>
-              )}
-
-              {/* Agent response */}
-              {agentText && (
-                <div className="text-slate-200">
-                  <span className="text-xs text-emerald-500 block mb-1">Mercury</span>
-                  {agentText}
-                </div>
-              )}
+              ))}
 
               {/* Empty state */}
-              {!transcript && !agentText && (
+              {transcript.length === 0 && (
                 <p className="text-xs text-slate-600 text-center py-4">
                   Start speaking to Mercury
                 </p>

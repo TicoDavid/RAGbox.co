@@ -8,11 +8,27 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { cookies } from 'next/headers'
 import { generateArtifact } from '@/lib/studio/generator'
-import type { GenerationRequest, ArtifactType, ToneType } from '@/lib/studio/types'
+import type { GenerationRequest } from '@/lib/studio/types'
 import { z } from 'zod'
+
+/**
+ * Extract user ID from request (matches documents route pattern)
+ */
+async function getUserId(request: NextRequest): Promise<string | null> {
+  const sessionCookie = (await cookies()).get('session')
+  if (sessionCookie?.value) {
+    return sessionCookie.value
+  }
+
+  const authHeader = request.headers.get('authorization')
+  if (authHeader?.startsWith('Bearer ')) {
+    return authHeader.slice(7)
+  }
+
+  return null
+}
 
 export const runtime = 'nodejs'
 export const maxDuration = 120 // Allow up to 2 minutes for complex artifacts
@@ -33,19 +49,11 @@ const GenerationRequestSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Authenticate
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
-    const userId = (session.user as { id?: string }).id || session.user.email
+    // 1. Authenticate (using same pattern as documents route)
+    const userId = await getUserId(request)
     if (!userId) {
       return NextResponse.json(
-        { success: false, error: 'User ID not found' },
+        { success: false, error: 'Unauthorized' },
         { status: 401 }
       )
     }
@@ -68,8 +76,8 @@ export async function POST(request: NextRequest) {
     const generationRequest: GenerationRequest = validation.data
 
     // 3. Log the request
-    console.log(`[Studio API] Generating ${generationRequest.artifactType} for user ${userId}`)
-    console.log(`[Studio API] Source docs: ${generationRequest.sourceDocumentIds.length}`)
+    console.log(`[Studio API] Generating ${generationRequest.artifactType} for user: ${userId}`)
+    console.log(`[Studio API] Source doc IDs: ${JSON.stringify(generationRequest.sourceDocumentIds)}`)
     console.log(`[Studio API] Tone: ${generationRequest.brandConfig.tone}`)
 
     // 4. Generate artifact

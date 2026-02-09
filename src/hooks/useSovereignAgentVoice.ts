@@ -865,5 +865,3 @@ export function useSovereignAgentVoice(
     setPrivilegeMode,
   }
 }
-
-export type { UIAction, ToolCallInfo }
