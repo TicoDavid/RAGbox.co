@@ -87,8 +87,11 @@ function generateDemoAuditLogs(): AuditEvent[] {
         break
     }
 
+    const eventId = `evt_${Math.random().toString(36).substring(2, 14)}`
+    const hash = Math.random().toString(36).substring(2, 18)
     logs.push({
-      eventId: `evt_${Math.random().toString(36).substring(2, 14)}`,
+      id: eventId,
+      eventId,
       timestamp,
       userId,
       action,
@@ -96,9 +99,11 @@ function generateDemoAuditLogs(): AuditEvent[] {
       resourceType,
       severity,
       details,
-      detailsHash: Math.random().toString(36).substring(2, 66),
+      hash,
+      detailsHash: hash,
+      ip: `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
       ipAddress: `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
-    })
+    } as AuditEvent)
   }
 
   return logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())

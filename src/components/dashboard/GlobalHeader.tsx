@@ -104,59 +104,58 @@ export function GlobalHeader() {
   return (
     <>
       <header
-        className={`shrink-0 flex items-center gap-3 px-4 border-b border-[var(--border-default)] border-t border-t-white/10 bg-[var(--bg-secondary)] transition-opacity duration-300 ${
+        className={`shrink-0 relative flex items-center justify-between px-4 border-b border-[var(--border-default)] border-t border-t-white/10 bg-[var(--bg-secondary)] transition-opacity duration-300 ${
           isSwitching ? 'opacity-50' : 'opacity-100'
         }`}
         style={{ height: 'var(--header-height)' }}
       >
-        {/* Logo */}
-        <div className="flex items-center shrink-0">
-          <Image
-            src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
-            alt="RAGbox"
-            width={120}
-            height={32}
-            className="h-8"
-            style={{ width: 'auto' }}
-            priority
-          />
-        </div>
-
-        {/* Privilege Badge */}
-        {privilegeMode && (
-          <div className="privilege-badge flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--privilege-bg)] border border-[var(--privilege-border)] text-[var(--privilege-color)] animate-pulse">
-            <PrivilegeKeyIcon size={14} color="#FFAB00" />
-            <span className="text-xs font-semibold uppercase tracking-wide">Privileged</span>
+        {/* Left Section */}
+        <div className="flex items-center gap-3 shrink-0">
+          {/* Logo */}
+          <div className="flex items-center shrink-0">
+            <Image
+              src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
+              alt="RAGbox"
+              width={120}
+              height={32}
+              className="h-8"
+              style={{ width: 'auto' }}
+              priority
+            />
           </div>
-        )}
 
-        {/* Active Profile Indicator */}
-        <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/5 border border-white/10 ${currentProfile.color}`}>
-          {currentProfile.icon}
-          <span className="text-xs font-medium">{currentProfile.name}</span>
+          {/* Privilege Badge */}
+          {privilegeMode && (
+            <div className="privilege-badge flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--privilege-bg)] border border-[var(--privilege-border)] text-[var(--privilege-color)] animate-pulse">
+              <PrivilegeKeyIcon size={14} color="#FFAB00" />
+              <span className="text-xs font-semibold uppercase tracking-wide">Privileged</span>
+            </div>
+          )}
+
+          {/* Active Profile Indicator */}
+          <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/5 border border-white/10 ${currentProfile.color}`}>
+            {currentProfile.icon}
+            <span className="text-xs font-medium">{currentProfile.name}</span>
+          </div>
+
+          {/* Active Model Badge */}
+          <ActiveModelBadge />
         </div>
 
-        {/* Active Model Badge */}
-        <ActiveModelBadge />
+        {/* Center Section - Search (Absolutely Centered) */}
+        <div className="absolute left-1/2 -translate-x-1/2">
+          <button
+            onClick={() => setSearchOpen(!searchOpen)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-tertiary)] hover:border-[var(--border-strong)] transition-colors"
+            style={{ minWidth: 200 }}
+          >
+            <Search className="w-4 h-4" />
+            <span className="text-sm">Search documents...</span>
+            <kbd className="ml-auto text-[10px] font-mono bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded">⌘K</kbd>
+          </button>
+        </div>
 
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Search */}
-        <button
-          onClick={() => setSearchOpen(!searchOpen)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-tertiary)] hover:border-[var(--border-strong)] transition-colors"
-          style={{ minWidth: 200 }}
-        >
-          <Search className="w-4 h-4" />
-          <span className="text-sm">Search documents...</span>
-          <kbd className="ml-auto text-[10px] font-mono bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded">⌘K</kbd>
-        </button>
-
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Actions */}
+        {/* Right Section - Actions */}
         <div className="flex items-center gap-1 shrink-0">
           {/* Privilege Toggle with Enhanced Tooltip */}
           <div className="relative group">

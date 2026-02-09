@@ -57,11 +57,14 @@ function getActionDisplayName(action: AuditAction): string {
     DOCUMENT_DELETE: 'Document Deleted',
     DOCUMENT_VIEW: 'Document Viewed',
     DOCUMENT_PRIVILEGE_CHANGE: 'Privilege Changed',
+    DOCUMENT_TIER_CHANGE: 'Tier Changed',
     QUERY_SUBMITTED: 'Query Submitted',
     QUERY_RESPONSE: 'Query Response',
+    SILENCE_PROTOCOL: 'Silence Protocol',
     SILENCE_PROTOCOL_TRIGGERED: 'Silence Protocol',
     PRIVILEGE_MODE_CHANGE: 'Mode Changed',
     DATA_EXPORT: 'Data Export',
+    SETTINGS_CHANGE: 'Settings Changed',
     ERROR: 'Error',
   }
   return names[action] || action

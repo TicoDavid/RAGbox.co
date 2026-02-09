@@ -17,7 +17,7 @@ export default function Footer() {
                 className="h-8 w-auto dark:hidden"
                 alt="RAGBox"
               />
-              {/* Dark mode: Black logo */}
+              {/* Dark mode: Backlit logo */}
               <img
                 src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
                 className="h-8 w-auto hidden dark:block"
