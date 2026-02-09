@@ -1,9 +1,21 @@
 'use client'
 
 import React, { useRef, useEffect, useState, useCallback } from 'react'
-import { useMercuryStore } from '@/stores/mercuryStore'
+import { useMercuryStore, type SessionAttachment } from '@/stores/mercuryStore'
 import { usePrivilegeStore } from '@/stores/privilegeStore'
-import { Paperclip, Square, ArrowUp, ChevronDown, AlertTriangle } from 'lucide-react'
+import {
+  Paperclip,
+  Square,
+  ArrowUp,
+  ChevronDown,
+  AlertTriangle,
+  FileUp,
+  Image,
+  Link,
+  X,
+  FileText,
+  Loader2,
+} from 'lucide-react'
 import { VoiceTrigger } from './VoiceTrigger'
 import {
   CrownIcon,
@@ -51,11 +63,20 @@ export function InputBar() {
   const sendMessage = useMercuryStore((s) => s.sendMessage)
   const stopStreaming = useMercuryStore((s) => s.stopStreaming)
   const isStreaming = useMercuryStore((s) => s.isStreaming)
+  const attachments = useMercuryStore((s) => s.attachments)
+  const addAttachment = useMercuryStore((s) => s.addAttachment)
+  const removeAttachment = useMercuryStore((s) => s.removeAttachment)
+  const updateAttachment = useMercuryStore((s) => s.updateAttachment)
   const privilegeMode = usePrivilegeStore((s) => s.isEnabled)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
 
   const [selectedPersona, setSelectedPersona] = useState<string>('cpo')
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [isInjectMenuOpen, setIsInjectMenuOpen] = useState(false)
+  const [showUrlInput, setShowUrlInput] = useState(false)
+  const [urlValue, setUrlValue] = useState('')
 
   const currentPersona = PERSONAS.find((p) => p.id === selectedPersona) || PERSONAS[0]
   const CurrentIcon = currentPersona.Icon
@@ -68,6 +89,103 @@ export function InputBar() {
       textarea.style.height = `${Math.min(textarea.scrollHeight, 160)}px`
     }
   }, [inputValue])
+
+  // File handling for Ad-Hoc Injection
+  const handleFileSelect = useCallback(async (files: FileList | null, isImage = false) => {
+    if (!files) return
+    setIsInjectMenuOpen(false)
+
+    for (const file of Array.from(files)) {
+      const attachmentId = addAttachment({
+        name: file.name,
+        type: isImage ? 'image' : 'file',
+        mimeType: file.type,
+        size: file.size,
+      })
+
+      // Read file as base64
+      const reader = new FileReader()
+      reader.onload = () => {
+        updateAttachment(attachmentId, {
+          content: reader.result as string,
+          status: 'ready',
+        })
+      }
+      reader.onerror = () => {
+        updateAttachment(attachmentId, { status: 'error' })
+      }
+      reader.readAsDataURL(file)
+    }
+  }, [addAttachment, updateAttachment])
+
+  const handleUrlAdd = useCallback(() => {
+    if (!urlValue.trim()) return
+
+    const attachmentId = addAttachment({
+      name: urlValue,
+      type: 'url',
+      url: urlValue,
+    })
+
+    // Quick-scrape the URL
+    updateAttachment(attachmentId, { status: 'processing' })
+
+    fetch('/api/scrape', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: urlValue }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        updateAttachment(attachmentId, {
+          extractedText: data.content || data.text || 'Unable to extract content',
+          status: 'ready',
+        })
+      })
+      .catch(() => {
+        updateAttachment(attachmentId, { status: 'error' })
+      })
+
+    setUrlValue('')
+    setShowUrlInput(false)
+    setIsInjectMenuOpen(false)
+  }, [urlValue, addAttachment, updateAttachment])
+
+  // Paste handler for images
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items
+      if (!items) return
+
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith('image/')) {
+          e.preventDefault()
+          const file = item.getAsFile()
+          if (file) {
+            const attachmentId = addAttachment({
+              name: `Pasted Image ${new Date().toLocaleTimeString()}`,
+              type: 'image',
+              mimeType: file.type,
+              size: file.size,
+            })
+
+            const reader = new FileReader()
+            reader.onload = () => {
+              updateAttachment(attachmentId, {
+                content: reader.result as string,
+                status: 'ready',
+              })
+            }
+            reader.readAsDataURL(file)
+          }
+          break
+        }
+      }
+    }
+
+    document.addEventListener('paste', handlePaste)
+    return () => document.removeEventListener('paste', handlePaste)
+  }, [addAttachment, updateAttachment])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && e.shiftKey) {
@@ -95,7 +213,16 @@ export function InputBar() {
     }, 50)
   }, [setInputValue, sendMessage, privilegeMode])
 
-  const canSend = inputValue.trim().length > 0 && !isStreaming
+  const canSend = (inputValue.trim().length > 0 || attachments.length > 0) && !isStreaming
+
+  // Get icon for attachment type
+  const getAttachmentIcon = (attachment: SessionAttachment) => {
+    if (attachment.type === 'image') return <Image className="w-3 h-3" />
+    if (attachment.type === 'url') return <Link className="w-3 h-3" />
+    // File types
+    if (attachment.mimeType?.includes('pdf')) return <FileText className="w-3 h-3" />
+    return <FileUp className="w-3 h-3" />
+  }
 
   const executivePersonas = PERSONAS.filter((p) => p.category === 'EXECUTIVE')
   const compliancePersonas = PERSONAS.filter((p) => p.category === 'COMPLIANCE')
@@ -214,6 +341,40 @@ export function InputBar() {
         </div>
       </div>
 
+      {/* Attachment Chips (shown above input when files attached) */}
+      {attachments.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-2 px-1">
+          {attachments.map((attachment) => (
+            <div
+              key={attachment.id}
+              className={`
+                inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium
+                transition-all duration-200
+                ${attachment.status === 'error'
+                  ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                  : attachment.status === 'processing'
+                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                    : 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border border-[var(--brand-blue)]/30'
+                }
+              `}
+            >
+              {attachment.status === 'processing' ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                getAttachmentIcon(attachment)
+              )}
+              <span className="max-w-[120px] truncate">{attachment.name}</span>
+              <button
+                onClick={() => removeAttachment(attachment.id)}
+                className="ml-0.5 p-0.5 rounded hover:bg-white/10 transition-colors"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Input Area */}
       <div className="flex items-end gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] px-3 py-2 focus-within:border-[var(--brand-blue)] focus-within:ring-2 focus-within:ring-[var(--brand-blue)]/50 focus-within:shadow-[0_0_30px_-5px_rgba(36,99,235,0.4)] transition-all duration-300">
         {/* Voice Trigger - HAL 9000 Style */}
@@ -224,13 +385,115 @@ export function InputBar() {
           className="shrink-0"
         />
 
-        {/* Attach */}
-        <button
-          className="shrink-0 p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
-          title="Attach File"
-        >
-          <Paperclip className="w-5 h-5" />
-        </button>
+        {/* Ad-Hoc Injection Button */}
+        <div className="relative">
+          <button
+            onClick={() => setIsInjectMenuOpen(!isInjectMenuOpen)}
+            className={`
+              shrink-0 p-1.5 rounded-md transition-all duration-200
+              ${isInjectMenuOpen
+                ? 'text-amber-400 bg-amber-500/20'
+                : 'text-[var(--text-tertiary)] hover:text-amber-400 hover:bg-amber-500/10'
+              }
+              group
+            `}
+            title="Inject Context"
+          >
+            <Paperclip className="w-5 h-5 transition-all group-hover:drop-shadow-[0_0_6px_rgba(245,158,11,0.6)]" />
+          </button>
+
+          {/* Inject Menu Popover */}
+          {isInjectMenuOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => { setIsInjectMenuOpen(false); setShowUrlInput(false) }} />
+              <div className="absolute bottom-full left-0 mb-2 w-52 bg-[#0B1221]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-50 py-1 overflow-hidden">
+                <div className="px-3 py-2 border-b border-white/5">
+                  <p className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider">
+                    Inject Context
+                  </p>
+                  <p className="text-[10px] text-slate-500">Session only • RAM Mode</p>
+                </div>
+
+                {/* Upload File */}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                >
+                  <FileUp className="w-4 h-4 text-cyan-400" />
+                  <div>
+                    <span className="block">Upload File</span>
+                    <span className="text-[10px] text-slate-500">PDF, DOCX, TXT</span>
+                  </div>
+                </button>
+
+                {/* Paste Image */}
+                <button
+                  onClick={() => imageInputRef.current?.click()}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                >
+                  <Image className="w-4 h-4 text-purple-400" />
+                  <div>
+                    <span className="block">Add Image</span>
+                    <span className="text-[10px] text-slate-500">Screenshots, Charts</span>
+                  </div>
+                </button>
+
+                {/* Add URL */}
+                {showUrlInput ? (
+                  <div className="px-3 py-2 border-t border-white/5">
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        value={urlValue}
+                        onChange={(e) => setUrlValue(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleUrlAdd()}
+                        placeholder="https://..."
+                        autoFocus
+                        className="flex-1 px-2 py-1.5 text-xs bg-slate-900/50 border border-slate-700 rounded-md text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                      />
+                      <button
+                        onClick={handleUrlAdd}
+                        disabled={!urlValue.trim()}
+                        className="px-2 py-1.5 text-xs bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-black font-medium rounded-md transition-colors"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowUrlInput(true)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    <Link className="w-4 h-4 text-emerald-400" />
+                    <div>
+                      <span className="block">Add URL</span>
+                      <span className="text-[10px] text-slate-500">Quick scrape</span>
+                    </div>
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Hidden file inputs */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            accept=".pdf,.doc,.docx,.txt,.md,.csv,.xlsx,.xls"
+            multiple
+            onChange={(e) => handleFileSelect(e.target.files)}
+          />
+          <input
+            ref={imageInputRef}
+            type="file"
+            className="hidden"
+            accept="image/*"
+            multiple
+            onChange={(e) => handleFileSelect(e.target.files, true)}
+          />
+        </div>
 
         {/* Textarea */}
         <textarea
@@ -238,7 +501,7 @@ export function InputBar() {
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask about your documents..."
+          placeholder={attachments.length > 0 ? "Ask about attached context..." : "Ask about your documents..."}
           rows={1}
           className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] resize-none outline-none min-h-[24px] max-h-[160px] py-1"
         />
