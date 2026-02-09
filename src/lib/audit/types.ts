@@ -19,8 +19,10 @@ export type AuditAction =
   | 'QUERY_SUBMITTED'
   | 'QUERY_RESPONSE'
   | 'SILENCE_PROTOCOL'
+  | 'SILENCE_PROTOCOL_TRIGGERED'
   | 'PRIVILEGE_MODE_CHANGE'
   | 'DOCUMENT_PRIVILEGE_CHANGE'
+  | 'DOCUMENT_TIER_CHANGE'
   | 'DATA_EXPORT'
   | 'SETTINGS_CHANGE'
   | 'ERROR'
@@ -29,14 +31,19 @@ export type AuditSeverity = 'INFO' | 'WARNING' | 'CRITICAL' | 'ERROR'
 
 export interface AuditEvent {
   id: string
+  eventId: string // Alias for id (for compatibility)
   timestamp: string
   userId: string
   action: AuditAction
   severity: AuditSeverity
   details: Record<string, unknown>
   hash: string // SHA-256 hash for integrity verification
+  detailsHash: string // Alias for hash (for compatibility)
+  resourceId?: string
+  resourceType?: string
   sessionId?: string
   ip?: string
+  ipAddress?: string // Alias for ip (for compatibility)
   userAgent?: string
 }
 
@@ -45,6 +52,8 @@ export interface AuditEventInput {
   action: AuditAction
   severity?: AuditSeverity
   details?: Record<string, unknown>
+  resourceId?: string
+  resourceType?: string
   sessionId?: string
   ip?: string
   userAgent?: string
@@ -63,16 +72,19 @@ export interface QueryAuditDetails {
 }
 
 export interface BigQueryAuditRow {
-  id: string
+  event_id: string
   timestamp: string
   user_id: string
   action: string
   severity: string
-  details_json: string
-  hash: string
+  resource_id: string | null
+  resource_type: string | null
+  details: string
+  details_hash: string
   session_id: string | null
   ip_address: string | null
   user_agent: string | null
+  inserted_at: string
 }
 
 // ============================================================================
@@ -112,14 +124,19 @@ export function createAuditEvent(input: AuditEventInput): AuditEvent {
 
   return {
     id,
+    eventId: id, // Alias
     timestamp,
     userId: input.userId,
     action: input.action,
     severity: input.severity || 'INFO',
     details,
     hash,
+    detailsHash: hash, // Alias
+    resourceId: input.resourceId,
+    resourceType: input.resourceType,
     sessionId: input.sessionId,
     ip: input.ip,
+    ipAddress: input.ip, // Alias
     userAgent: input.userAgent,
   }
 }
@@ -129,16 +146,19 @@ export function createAuditEvent(input: AuditEventInput): AuditEvent {
  */
 export function toBigQueryRow(event: AuditEvent): BigQueryAuditRow {
   return {
-    id: event.id,
+    event_id: event.id,
     timestamp: event.timestamp,
     user_id: event.userId,
     action: event.action,
     severity: event.severity,
-    details_json: JSON.stringify(event.details),
-    hash: event.hash,
+    resource_id: event.resourceId || null,
+    resource_type: event.resourceType || null,
+    details: JSON.stringify(event.details),
+    details_hash: event.hash,
     session_id: event.sessionId || null,
     ip_address: event.ip || null,
     user_agent: event.userAgent || null,
+    inserted_at: new Date().toISOString(),
   }
 }
 

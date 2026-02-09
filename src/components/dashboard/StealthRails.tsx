@@ -13,6 +13,7 @@ import {
   Download,
   ChevronLeft,
   ChevronRight,
+  Mic,
 } from 'lucide-react'
 
 // ============================================================================
@@ -20,7 +21,7 @@ import {
 // ============================================================================
 
 export type LeftRailTab = 'vault' | 'recent' | 'starred'
-export type RightRailTab = 'inspector' | 'studio' | 'audit' | 'export'
+export type RightRailTab = 'mercury' | 'inspector' | 'studio' | 'audit' | 'export'
 
 interface RailIconProps {
   icon: React.ElementType
@@ -165,6 +166,15 @@ export function RightStealthRail({
     <div className="h-full flex flex-col bg-[#0A192F] border-l border-white/10">
       {/* Icon Stack */}
       <div className="flex-1 flex flex-col items-center py-4 gap-2">
+        {/* Mercury Voice Agent */}
+        <RailIcon
+          icon={Mic}
+          label="Mercury"
+          isActive={isExpanded && activeTab === 'mercury'}
+          onClick={() => onTabClick('mercury')}
+          side="right"
+        />
+
         {/* Inspector */}
         <RailIcon
           icon={Info}

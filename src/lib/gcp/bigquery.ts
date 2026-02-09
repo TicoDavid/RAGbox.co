@@ -73,7 +73,6 @@ async function ensureTableExists(): Promise<void> {
         timePartitioning: {
           type: 'DAY',
           field: 'timestamp',
-          expirationMs: String(7 * 365 * 24 * 60 * 60 * 1000),
         },
       })
       console.log(`[BigQuery] Created table: ${DATASET_ID}.${TABLE_ID}`)

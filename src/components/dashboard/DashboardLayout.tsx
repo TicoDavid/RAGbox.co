@@ -1,37 +1,29 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useVaultStore } from '@/stores/vaultStore'
 import { usePrivilegeStore } from '@/stores/privilegeStore'
 import { GlobalHeader } from './GlobalHeader'
 import { VaultPanel } from './vault/VaultPanel'
 import { VaultExplorer } from './vault/VaultExplorer'
 import { MercuryPanel } from './mercury/MercuryPanel'
+import { MercuryVoicePanel } from './mercury/MercuryVoicePanel'
+import { SovereignStudio } from './studio'
 import {
   LeftStealthRail,
   RightStealthRail,
-  RailPanel,
   type LeftRailTab,
   type RightRailTab,
 } from './StealthRails'
 import {
-  Box,
-  PlusCircle,
-  Clock,
   Star,
   Info,
-  Sparkles,
   Shield,
   Download,
-  ChevronLeft,
-  ChevronRight,
   FileText,
-  X,
 } from 'lucide-react'
 import IngestionModal from '@/app/dashboard/components/IngestionModal'
-import { AgentDriverPanel } from './mercury/AgentDriverPanel'
-import { Mic } from 'lucide-react'
 
 // ============================================================================
 // PANEL CONTENT COMPONENTS
@@ -135,46 +127,6 @@ function InspectorPanel() {
     </div>
   )
 }
-
-function StudioPanel() {
-  return (
-    <div className="h-full flex flex-col">
-      <div className="shrink-0 px-4 py-3 border-b border-white/5">
-        <h3 className="text-sm font-semibold text-white uppercase tracking-wider flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-amber-400" />
-          Studio
-        </h3>
-      </div>
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        <p className="text-xs text-slate-500 uppercase tracking-wider mb-4">Generate from conversation</p>
-
-        {[
-          { icon: FileText, label: 'Executive Summary', desc: 'Key takeaways report' },
-          { icon: FileText, label: 'Briefing Document', desc: 'Formal memo format' },
-          { icon: FileText, label: 'Slide Deck', desc: 'Presentation slides' },
-          { icon: FileText, label: 'Audio Overview', desc: 'Voice summary' },
-        ].map((item) => (
-          <button
-            key={item.label}
-            className="w-full flex items-center gap-3 p-3 rounded-xl
-                     bg-slate-900/50 border border-white/5 hover:border-amber-500/30
-                     hover:bg-amber-500/5 transition-all text-left group"
-          >
-            <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center
-                          group-hover:bg-amber-500/20 transition-colors">
-              <item.icon className="w-5 h-5 text-amber-400" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-white">{item.label}</p>
-              <p className="text-xs text-slate-500">{item.desc}</p>
-            </div>
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 function AuditPanel() {
   return (
     <div className="h-full flex flex-col">
@@ -256,7 +208,6 @@ export function DashboardLayout() {
   const [rightExpanded, setRightExpanded] = useState(false)
   const [rightTab, setRightTab] = useState<RightRailTab>('inspector')
   const [isIngestionOpen, setIsIngestionOpen] = useState(false)
-  const [isVoiceOpen, setIsVoiceOpen] = useState(false)
 
   // Sync with vault store
   useEffect(() => {
@@ -321,10 +272,12 @@ export function DashboardLayout() {
   // Render right panel content based on tab
   const renderRightContent = () => {
     switch (rightTab) {
+      case 'mercury':
+        return <MercuryVoicePanel />
       case 'inspector':
         return <InspectorPanel />
       case 'studio':
-        return <StudioPanel />
+        return <SovereignStudio />
       case 'audit':
         return <AuditPanel />
       case 'export':
@@ -424,31 +377,6 @@ export function DashboardLayout() {
         onFileUpload={handleIngestionUpload}
       />
 
-      {/* Voice Agent Panel */}
-      <AgentDriverPanel
-        isOpen={isVoiceOpen}
-        onClose={() => setIsVoiceOpen(false)}
-      />
-
-      {/* Floating Voice Button */}
-      {!isVoiceOpen && (
-        <motion.button
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setIsVoiceOpen(true)}
-          className="fixed bottom-6 right-6 z-[100] w-14 h-14 rounded-full
-                     bg-gradient-to-br from-cyan-500 to-blue-600
-                     shadow-[0_0_30px_rgba(0,240,255,0.4)]
-                     flex items-center justify-center
-                     hover:shadow-[0_0_40px_rgba(0,240,255,0.6)]
-                     transition-shadow border-2 border-white/30"
-          title="Open Mercury Voice Agent"
-        >
-          <Mic className="w-6 h-6 text-white" />
-        </motion.button>
-      )}
     </div>
   )
 }

@@ -5,12 +5,10 @@
  * Non-fatal: Audit failures do not block user operations.
  */
 
-import { BigQuery } from '@google-cloud/bigquery'
+import { BigQuery, Table } from '@google-cloud/bigquery'
 import {
   type AuditEvent,
   type AuditEventInput,
-  type AuditAction,
-  type AuditSeverity,
   createAuditEvent,
   toBigQueryRow,
   createQueryAuditDetails,
@@ -24,14 +22,75 @@ const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT || 'ragbox-sovereign-prod'
 const DATASET_ID = process.env.BIGQUERY_DATASET || 'ragbox_audit'
 const TABLE_ID = process.env.BIGQUERY_TABLE || 'audit_log'
 
-// Lazy-initialized BigQuery client
+// Lazy-initialized BigQuery client and state
 let bigQueryClient: BigQuery | null = null
+let tableInitialized = false
+let tableInitFailed = false
 
 function getBigQuery(): BigQuery {
   if (!bigQueryClient) {
     bigQueryClient = new BigQuery({ projectId: PROJECT_ID })
   }
   return bigQueryClient
+}
+
+// Schema for audit table
+const AUDIT_TABLE_SCHEMA = [
+  { name: 'event_id', type: 'STRING', mode: 'REQUIRED' as const },
+  { name: 'timestamp', type: 'TIMESTAMP', mode: 'REQUIRED' as const },
+  { name: 'user_id', type: 'STRING', mode: 'NULLABLE' as const },
+  { name: 'action', type: 'STRING', mode: 'REQUIRED' as const },
+  { name: 'resource_id', type: 'STRING', mode: 'NULLABLE' as const },
+  { name: 'resource_type', type: 'STRING', mode: 'NULLABLE' as const },
+  { name: 'severity', type: 'STRING', mode: 'REQUIRED' as const },
+  { name: 'details', type: 'STRING', mode: 'NULLABLE' as const },
+  { name: 'details_hash', type: 'STRING', mode: 'REQUIRED' as const },
+  { name: 'ip_address', type: 'STRING', mode: 'NULLABLE' as const },
+  { name: 'user_agent', type: 'STRING', mode: 'NULLABLE' as const },
+  { name: 'session_id', type: 'STRING', mode: 'NULLABLE' as const },
+  { name: 'inserted_at', type: 'TIMESTAMP', mode: 'REQUIRED' as const },
+]
+
+/**
+ * Ensure BigQuery dataset and table exist (lazy init)
+ */
+async function ensureTableExists(): Promise<boolean> {
+  if (tableInitialized) return !tableInitFailed
+  if (tableInitFailed) return false
+
+  try {
+    const client = getBigQuery()
+    const dataset = client.dataset(DATASET_ID)
+
+    // Check/create dataset
+    const [datasetExists] = await dataset.exists()
+    if (!datasetExists) {
+      await client.createDataset(DATASET_ID, { location: 'US' })
+      console.log(`[Veritas] Created dataset: ${DATASET_ID}`)
+    }
+
+    // Check/create table
+    const table = dataset.table(TABLE_ID)
+    const [tableExists] = await table.exists()
+    if (!tableExists) {
+      await dataset.createTable(TABLE_ID, {
+        schema: AUDIT_TABLE_SCHEMA,
+        timePartitioning: {
+          type: 'DAY',
+          field: 'timestamp',
+        },
+      })
+      console.log(`[Veritas] Created table: ${DATASET_ID}.${TABLE_ID}`)
+    }
+
+    tableInitialized = true
+    return true
+  } catch (error) {
+    console.warn('[Veritas] BigQuery table init failed (audit writes disabled):', error)
+    tableInitialized = true
+    tableInitFailed = true
+    return false
+  }
 }
 
 // ============================================================================
@@ -46,6 +105,13 @@ export async function logAuditEvent(input: AuditEventInput): Promise<AuditEvent 
   const event = createAuditEvent(input)
 
   try {
+    // Ensure table exists before inserting
+    const ready = await ensureTableExists()
+    if (!ready) {
+      console.log(`[Veritas] Skipped (BQ unavailable): ${event.action}`)
+      return null
+    }
+
     const row = toBigQueryRow(event)
     await getBigQuery()
       .dataset(DATASET_ID)
@@ -105,19 +171,21 @@ export async function logDocumentUpload(
   userId: string,
   documentId: string,
   filename: string,
-  options?: { fileSize?: number; mimeType?: string; securityTier?: number }
+  fileSize?: number,
+  ip?: string
 ): Promise<AuditEvent | null> {
   return logAuditEvent({
     userId,
     action: 'DOCUMENT_UPLOAD',
     severity: 'INFO',
+    resourceId: documentId,
+    resourceType: 'document',
     details: {
       documentId,
       filename,
-      fileSize: options?.fileSize,
-      mimeType: options?.mimeType,
-      securityTier: options?.securityTier || 0,
+      fileSize,
     },
+    ip,
   })
 }
 
@@ -127,13 +195,17 @@ export async function logDocumentUpload(
 export async function logDocumentDelete(
   userId: string,
   documentId: string,
-  filename: string
+  filename: string,
+  ip?: string
 ): Promise<AuditEvent | null> {
   return logAuditEvent({
     userId,
     action: 'DOCUMENT_DELETE',
     severity: 'WARNING',
+    resourceId: documentId,
+    resourceType: 'document',
     details: { documentId, filename },
+    ip,
   })
 }
 
@@ -202,16 +274,14 @@ export async function logSilenceProtocol(
 export async function logPrivilegeModeChange(
   userId: string,
   enabled: boolean,
-  options?: { reason?: string }
+  ip?: string
 ): Promise<AuditEvent | null> {
   return logAuditEvent({
     userId,
     action: 'PRIVILEGE_MODE_CHANGE',
     severity: enabled ? 'CRITICAL' : 'INFO',
-    details: {
-      enabled,
-      reason: options?.reason,
-    },
+    details: { enabled },
+    ip,
   })
 }
 
@@ -221,13 +291,18 @@ export async function logPrivilegeModeChange(
 export async function logDocumentPrivilegeChange(
   userId: string,
   documentId: string,
-  isPrivileged: boolean
+  filename: string,
+  isPrivileged: boolean,
+  ip?: string
 ): Promise<AuditEvent | null> {
   return logAuditEvent({
     userId,
     action: 'DOCUMENT_PRIVILEGE_CHANGE',
     severity: 'WARNING',
-    details: { documentId, isPrivileged },
+    resourceId: documentId,
+    resourceType: 'document',
+    details: { documentId, filename, isPrivileged },
+    ip,
   })
 }
 
@@ -236,14 +311,16 @@ export async function logDocumentPrivilegeChange(
  */
 export async function logDataExport(
   userId: string,
-  exportType: 'pdf' | 'csv' | 'json',
-  recordCount: number
+  exportType: string,
+  recordCount: number,
+  ip?: string
 ): Promise<AuditEvent | null> {
   return logAuditEvent({
     userId,
     action: 'DATA_EXPORT',
     severity: 'WARNING',
     details: { exportType, recordCount },
+    ip,
   })
 }
 
