@@ -14,10 +14,26 @@ async function getUserId() {
 }
 
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
-  // Dynamic import for pdf-parse (handles both CJS and ESM)
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const pdfParseModule = require('pdf-parse')
-  const pdfParse = pdfParseModule.default || pdfParseModule
+  // Dynamic import for pdf-parse with robust ESM/CJS interop
+  const pdfParseModule = await import('pdf-parse')
+
+  // Handle various export patterns from bundlers
+  let pdfParse: (buffer: Buffer) => Promise<{ text: string }>
+
+  if (typeof pdfParseModule === 'function') {
+    pdfParse = pdfParseModule as typeof pdfParse
+  } else if (typeof pdfParseModule.default === 'function') {
+    pdfParse = pdfParseModule.default as typeof pdfParse
+  } else if (pdfParseModule.default && typeof pdfParseModule.default.default === 'function') {
+    // Double-wrapped default (some webpack configs)
+    pdfParse = (pdfParseModule.default as { default: typeof pdfParse }).default
+  } else {
+    // Fallback: try require as last resort
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const fallbackModule = require('pdf-parse')
+    pdfParse = fallbackModule.default || fallbackModule
+  }
+
   const data = await pdfParse(buffer)
   return data.text
 }

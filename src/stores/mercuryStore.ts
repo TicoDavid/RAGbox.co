@@ -15,6 +15,9 @@ export interface SessionAttachment {
   status: 'pending' | 'processing' | 'ready' | 'error'
 }
 
+// Persona/Lens for Neural Shift
+export type PersonaId = 'ceo' | 'cfo' | 'coo' | 'cpo' | 'cmo' | 'cto' | 'legal' | 'compliance' | 'auditor' | 'whistleblower'
+
 interface MercuryState {
   // Conversation
   messages: ChatMessage[]
@@ -25,6 +28,10 @@ interface MercuryState {
 
   // Ad-Hoc Attachments (Session only - "Read Once, Burn")
   attachments: SessionAttachment[]
+
+  // Neural Shift (Persona/Lens)
+  activePersona: PersonaId
+  isRefocusing: boolean  // For lens animation
 
   // Context
   temperaturePreset: TemperaturePreset
@@ -41,6 +48,10 @@ interface MercuryState {
   removeAttachment: (id: string) => void
   updateAttachment: (id: string, updates: Partial<SessionAttachment>) => void
   clearAttachments: () => void
+
+  // Neural Shift Actions
+  setPersona: (persona: PersonaId) => void
+  triggerRefocus: () => void
 }
 
 export const useMercuryStore = create<MercuryState>()(
@@ -51,6 +62,8 @@ export const useMercuryStore = create<MercuryState>()(
     streamingContent: '',
     abortController: null,
     attachments: [],
+    activePersona: 'cpo',
+    isRefocusing: false,
     temperaturePreset: 'executive-cpo',
 
     setInputValue: (value) => set({ inputValue: value }),
@@ -255,5 +268,20 @@ export const useMercuryStore = create<MercuryState>()(
     },
 
     clearAttachments: () => set({ attachments: [] }),
+
+    // Neural Shift Actions
+    setPersona: (persona) => {
+      set({ activePersona: persona })
+      // Trigger refocus animation
+      get().triggerRefocus()
+    },
+
+    triggerRefocus: () => {
+      set({ isRefocusing: true })
+      // Auto-clear after animation duration
+      setTimeout(() => {
+        set({ isRefocusing: false })
+      }, 600)
+    },
   }))
 )

@@ -38,23 +38,75 @@ interface Persona {
   label: string
   Icon: React.FC<{ className?: string; size?: number; color?: string }>
   description: string
+  systemPrompt: string  // The actual instruction for power users
   category: PersonaCategory
   isWhistleblower?: boolean
 }
 
 const PERSONAS: Persona[] = [
   // Executive
-  { id: 'ceo', label: 'CEO', Icon: CrownIcon, description: 'Strategic overview, high-level insights', category: 'EXECUTIVE' },
-  { id: 'cfo', label: 'CFO', Icon: VaultDiamondIcon, description: 'Financial analysis, budget implications', category: 'EXECUTIVE' },
-  { id: 'coo', label: 'COO', Icon: NetworkSystemIcon, description: 'Operations, process efficiency', category: 'EXECUTIVE' },
-  { id: 'cpo', label: 'CPO', Icon: ScopeIcon, description: 'Product insights, roadmap alignment', category: 'EXECUTIVE' },
-  { id: 'cmo', label: 'CMO', Icon: BroadcastIcon, description: 'Market reach, brand strategy', category: 'EXECUTIVE' },
-  { id: 'cto', label: 'CTO', Icon: CircuitNodeIcon, description: 'Technical architecture, security', category: 'EXECUTIVE' },
+  {
+    id: 'ceo', label: 'CEO', Icon: CrownIcon,
+    description: 'Strategic overview, high-level insights',
+    systemPrompt: 'Prioritize board-level impact, strategic alignment, and competitive positioning.',
+    category: 'EXECUTIVE'
+  },
+  {
+    id: 'cfo', label: 'CFO', Icon: VaultDiamondIcon,
+    description: 'Financial analysis, budget implications',
+    systemPrompt: 'Prioritize EBITDA impact, identify unbudgeted liabilities, and flag cash flow risks.',
+    category: 'EXECUTIVE'
+  },
+  {
+    id: 'coo', label: 'COO', Icon: NetworkSystemIcon,
+    description: 'Operations, process efficiency',
+    systemPrompt: 'Focus on operational bottlenecks, resource allocation, and process optimization.',
+    category: 'EXECUTIVE'
+  },
+  {
+    id: 'cpo', label: 'CPO', Icon: ScopeIcon,
+    description: 'Product insights, roadmap alignment',
+    systemPrompt: 'Analyze product-market fit, roadmap dependencies, and user impact.',
+    category: 'EXECUTIVE'
+  },
+  {
+    id: 'cmo', label: 'CMO', Icon: BroadcastIcon,
+    description: 'Market reach, brand strategy',
+    systemPrompt: 'Evaluate brand positioning, market penetration, and competitive messaging.',
+    category: 'EXECUTIVE'
+  },
+  {
+    id: 'cto', label: 'CTO', Icon: CircuitNodeIcon,
+    description: 'Technical architecture, security',
+    systemPrompt: 'Assess technical debt, security vulnerabilities, and scalability concerns.',
+    category: 'EXECUTIVE'
+  },
   // Compliance
-  { id: 'legal', label: 'Legal Counsel', Icon: ScaleIcon, description: 'Contract review, liability analysis', category: 'COMPLIANCE' },
-  { id: 'compliance', label: 'Compliance Officer', Icon: ComplianceIcon, description: 'Regulatory adherence, policy check', category: 'COMPLIANCE' },
-  { id: 'auditor', label: 'Internal Auditor', Icon: AuditorIcon, description: 'Control testing, risk assessment', category: 'COMPLIANCE' },
-  { id: 'whistleblower', label: 'Whistleblower', Icon: LanternIcon, description: 'Forensic analysis, anomaly detection', category: 'COMPLIANCE', isWhistleblower: true },
+  {
+    id: 'legal', label: 'Legal Counsel', Icon: ScaleIcon,
+    description: 'Contract review, liability analysis',
+    systemPrompt: 'Identify legal exposure, contractual obligations, and regulatory requirements.',
+    category: 'COMPLIANCE'
+  },
+  {
+    id: 'compliance', label: 'Compliance Officer', Icon: ComplianceIcon,
+    description: 'Regulatory adherence, policy check',
+    systemPrompt: 'Flag regulatory violations, policy gaps, and audit findings.',
+    category: 'COMPLIANCE'
+  },
+  {
+    id: 'auditor', label: 'Internal Auditor', Icon: AuditorIcon,
+    description: 'Control testing, risk assessment',
+    systemPrompt: 'Test internal controls, identify material weaknesses, and assess risk exposure.',
+    category: 'COMPLIANCE'
+  },
+  {
+    id: 'whistleblower', label: 'Whistleblower', Icon: LanternIcon,
+    description: 'Forensic analysis, anomaly detection',
+    systemPrompt: 'FORENSIC MODE: Hunt for anomalies, discrepancies, and hidden patterns. Flag anything suspicious.',
+    category: 'COMPLIANCE',
+    isWhistleblower: true
+  },
 ]
 
 export function InputBar() {
@@ -67,19 +119,22 @@ export function InputBar() {
   const addAttachment = useMercuryStore((s) => s.addAttachment)
   const removeAttachment = useMercuryStore((s) => s.removeAttachment)
   const updateAttachment = useMercuryStore((s) => s.updateAttachment)
+  const activePersona = useMercuryStore((s) => s.activePersona)
+  const setPersona = useMercuryStore((s) => s.setPersona)
   const privilegeMode = usePrivilegeStore((s) => s.isEnabled)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
 
-  const [selectedPersona, setSelectedPersona] = useState<string>('cpo')
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isInjectMenuOpen, setIsInjectMenuOpen] = useState(false)
   const [showUrlInput, setShowUrlInput] = useState(false)
   const [urlValue, setUrlValue] = useState('')
+  const [hoveredPersona, setHoveredPersona] = useState<string | null>(null)
 
-  const currentPersona = PERSONAS.find((p) => p.id === selectedPersona) || PERSONAS[0]
+  const currentPersona = PERSONAS.find((p) => p.id === activePersona) || PERSONAS[0]
   const CurrentIcon = currentPersona.Icon
+  const isWhistleblowerMode = currentPersona.isWhistleblower
 
   // Auto-resize textarea
   useEffect(() => {
@@ -235,16 +290,22 @@ export function InputBar() {
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             className={`
-              flex items-center gap-2.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
-              ${currentPersona.isWhistleblower
-                ? 'bg-amber-900/30 border border-amber-500/50 text-amber-400 hover:bg-amber-900/50'
+              flex items-center gap-2.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300
+              ${isWhistleblowerMode
+                ? 'bg-amber-900/30 border border-amber-500/50 text-amber-400 hover:bg-amber-900/50 shadow-[0_0_20px_rgba(245,158,11,0.3)]'
                 : 'bg-slate-800/50 border border-slate-700/50 text-slate-300 hover:bg-slate-800 hover:border-slate-600'
               }
             `}
           >
+            {/* Status Dot - Pulsing Red for Whistleblower */}
+            <span className={`w-2 h-2 rounded-full ${
+              isWhistleblowerMode
+                ? 'bg-red-500 animate-ping'
+                : 'bg-emerald-500'
+            }`} />
             <CurrentIcon
               size={18}
-              color={currentPersona.isWhistleblower ? '#FBBF24' : '#C0C0C0'}
+              color={isWhistleblowerMode ? '#FBBF24' : '#C0C0C0'}
             />
             <span>Viewing as: {currentPersona.label}</span>
             <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
@@ -253,33 +314,48 @@ export function InputBar() {
           {/* Dropdown */}
           {isDropdownOpen && (
             <>
-              <div className="fixed inset-0 z-40" onClick={() => setIsDropdownOpen(false)} />
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-80 bg-[#0B1221]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-50 py-2 overflow-hidden">
+              <div className="fixed inset-0 z-40" onClick={() => { setIsDropdownOpen(false); setHoveredPersona(null) }} />
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-96 bg-[#0B1221]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-50 py-2 overflow-hidden">
+                {/* System Prompt Preview (on hover) */}
+                {hoveredPersona && (
+                  <div className="px-4 py-3 bg-slate-900/80 border-b border-white/10">
+                    <p className="text-[10px] font-semibold text-cyan-400 uppercase tracking-wider mb-1">
+                      System Instruction
+                    </p>
+                    <p className="text-xs text-slate-400 italic">
+                      "{PERSONAS.find(p => p.id === hoveredPersona)?.systemPrompt}"
+                    </p>
+                  </div>
+                )}
+
                 {/* Executive Section */}
                 <div className="px-4 py-2 text-[10px] font-semibold text-slate-500 uppercase tracking-wider border-b border-white/5">
                   Executive Leadership
                 </div>
                 {executivePersonas.map((persona) => {
                   const Icon = persona.Icon
+                  const isSelected = persona.id === activePersona
                   return (
                     <button
                       key={persona.id}
-                      onClick={() => { setSelectedPersona(persona.id); setIsDropdownOpen(false) }}
+                      onClick={() => { setPersona(persona.id as any); setIsDropdownOpen(false); setHoveredPersona(null) }}
+                      onMouseEnter={() => setHoveredPersona(persona.id)}
+                      onMouseLeave={() => setHoveredPersona(null)}
                       className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/5 transition-colors ${
-                        persona.id === selectedPersona ? 'bg-[var(--brand-blue)]/10' : ''
+                        isSelected ? 'bg-[var(--brand-blue)]/10' : ''
                       }`}
                     >
                       <Icon
                         size={20}
-                        color={persona.id === selectedPersona ? '#60A5FA' : '#C0C0C0'}
+                        color={isSelected ? '#60A5FA' : '#C0C0C0'}
                       />
                       <div className="flex-1 min-w-0">
-                        <div className={`text-sm font-medium ${persona.id === selectedPersona ? 'text-[var(--brand-blue)]' : 'text-slate-300'}`}>
+                        <div className={`text-sm font-medium ${isSelected ? 'text-[var(--brand-blue)]' : 'text-slate-300'}`}>
                           {persona.label}
                         </div>
                         <div className="text-xs text-slate-500 truncate">{persona.description}</div>
                       </div>
-                      {persona.id === selectedPersona && (
+                      {isSelected && (
                         <span className="text-[var(--brand-blue)] text-sm">✓</span>
                       )}
                     </button>
@@ -288,13 +364,13 @@ export function InputBar() {
 
                 <div className="border-t border-white/5 my-1" />
 
-                {/* Compliance Section */}
+                {/* Compliance Section - With Whistleblower Warning */}
                 <div className="px-4 py-2 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
                   Compliance & Oversight
                 </div>
                 {compliancePersonas.map((persona) => {
                   const Icon = persona.Icon
-                  const isSelected = persona.id === selectedPersona
+                  const isSelected = persona.id === activePersona
                   const iconColor = persona.isWhistleblower
                     ? (isSelected ? '#FBBF24' : '#D97706')
                     : (isSelected ? '#60A5FA' : '#C0C0C0')
@@ -302,7 +378,9 @@ export function InputBar() {
                   return (
                     <button
                       key={persona.id}
-                      onClick={() => { setSelectedPersona(persona.id); setIsDropdownOpen(false) }}
+                      onClick={() => { setPersona(persona.id as any); setIsDropdownOpen(false); setHoveredPersona(null) }}
+                      onMouseEnter={() => setHoveredPersona(persona.id)}
+                      onMouseLeave={() => setHoveredPersona(null)}
                       className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/5 transition-colors ${
                         isSelected
                           ? persona.isWhistleblower
