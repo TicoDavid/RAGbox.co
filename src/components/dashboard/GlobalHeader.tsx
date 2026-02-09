@@ -838,6 +838,10 @@ function DocumentationSettings() {
       href: '/docs/best-practices',
       icon: <Sparkles className="w-4 h-4" />,
     },
+    { title: 'Getting Started', description: 'Quick start guide for new users', href: '#' },
+    { title: 'API Reference', description: 'Complete API documentation', href: '#' },
+    { title: 'Security & Compliance', description: 'SOC 2, HIPAA, and security practices', href: '#' },
+    { title: 'Best Practices', description: 'Optimize your RAG workflows', href: '#' },
   ]
 
   return (
@@ -845,6 +849,8 @@ function DocumentationSettings() {
       <SectionHeader
         title="Sovereign Protocols"
         description="Field manuals for intelligence operations"
+        title="Documentation"
+        description="Access guides, references, and best practices"
       />
 
       <div className="space-y-3">
@@ -868,6 +874,16 @@ function DocumentationSettings() {
               </div>
             </div>
             <ExternalLink className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 transition-colors" />
+            className="flex items-center justify-between p-4 bg-white/5 border border-white/10 hover:border-white/30 rounded-lg transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <FileText className="w-4 h-4 text-slate-400 group-hover:text-[var(--brand-blue)] transition-colors" />
+              <div>
+                <p className="text-sm font-medium text-white">{doc.title}</p>
+                <p className="text-xs text-slate-500">{doc.description}</p>
+              </div>
+            </div>
+            <ExternalLink className="w-4 h-4 text-slate-500 group-hover:text-white transition-colors" />
           </a>
         ))}
       </div>

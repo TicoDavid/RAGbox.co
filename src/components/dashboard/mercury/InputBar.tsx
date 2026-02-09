@@ -16,6 +16,9 @@ import {
   FileText,
   Loader2,
 } from 'lucide-react'
+import { useMercuryStore } from '@/stores/mercuryStore'
+import { usePrivilegeStore } from '@/stores/privilegeStore'
+import { Paperclip, Square, ArrowUp, ChevronDown, AlertTriangle } from 'lucide-react'
 import { VoiceTrigger } from './VoiceTrigger'
 import {
   CrownIcon,
@@ -278,6 +281,7 @@ export function InputBar() {
     if (attachment.mimeType?.includes('pdf')) return <FileText className="w-3 h-3" />
     return <FileUp className="w-3 h-3" />
   }
+  const canSend = inputValue.trim().length > 0 && !isStreaming
 
   const executivePersonas = PERSONAS.filter((p) => p.category === 'EXECUTIVE')
   const compliancePersonas = PERSONAS.filter((p) => p.category === 'COMPLIANCE')
@@ -572,6 +576,13 @@ export function InputBar() {
             onChange={(e) => handleFileSelect(e.target.files, true)}
           />
         </div>
+        {/* Attach */}
+        <button
+          className="shrink-0 p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+          title="Attach File"
+        >
+          <Paperclip className="w-5 h-5" />
+        </button>
 
         {/* Textarea */}
         <textarea
