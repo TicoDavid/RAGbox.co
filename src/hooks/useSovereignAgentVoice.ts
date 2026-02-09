@@ -13,6 +13,9 @@
  * - Extract and analyze content
  *
  * The user speaks -> Agent decides -> Agent acts -> UI updates
+ *
+ * VAD MODE: When enabled, the mic stays on and automatically detects
+ * when you start/stop speaking - no button presses needed!
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -25,11 +28,11 @@ import { useRouter } from 'next/navigation'
 export type AgentVoiceState =
   | 'disconnected'
   | 'connecting'
-  | 'listening'
+  | 'idle'          // VAD mode: connected but waiting for speech
+  | 'listening'     // VAD mode: speech detected, capturing
   | 'processing'
   | 'speaking'
-  | 'executing'  // New: executing a tool
-  | 'idle'
+  | 'executing'     // executing a tool
   | 'error'
 
 export interface TranscriptEntry {
@@ -76,6 +79,10 @@ export interface UseSovereignAgentVoiceOptions {
   onToolResult?: (tool: ToolCallInfo) => void
   /** Callback for errors */
   onError?: (error: Error) => void
+  /** VAD sensitivity (0-1, lower = more sensitive) */
+  vadThreshold?: number
+  /** Silence duration before ending speech (ms) */
+  vadSilenceMs?: number
 }
 
 export interface UseSovereignAgentVoiceReturn {
@@ -89,6 +96,10 @@ export interface UseSovereignAgentVoiceReturn {
   isSpeaking: boolean
   /** Whether executing a tool */
   isExecuting: boolean
+  /** Whether VAD mode is active */
+  isVADActive: boolean
+  /** Current audio level (0-1) for visualization */
+  audioLevel: number
   /** Conversation transcript */
   transcript: TranscriptEntry[]
   /** Currently executing tool (if any) */
@@ -97,9 +108,13 @@ export interface UseSovereignAgentVoiceReturn {
   connect: () => Promise<void>
   /** Disconnect */
   disconnect: () => void
-  /** Start listening */
+  /** Enable VAD mode (hands-free) */
+  enableVAD: () => Promise<void>
+  /** Disable VAD mode */
+  disableVAD: () => void
+  /** Manual start listening (non-VAD mode) */
   startListening: () => void
-  /** Stop listening */
+  /** Manual stop listening (non-VAD mode) */
   stopListening: () => void
   /** Interrupt agent speech */
   bargeIn: () => void
@@ -110,7 +125,168 @@ export interface UseSovereignAgentVoiceReturn {
 }
 
 // ============================================================================
-// AUDIO CAPTURE
+// VAD CONFIGURATION
+// ============================================================================
+
+const VAD_DEFAULTS = {
+  threshold: 0.015,      // RMS threshold for voice detection (lowered for sensitivity)
+  silenceMs: 1500,       // Ms of silence before ending speech
+  minSpeechMs: 300,      // Minimum speech duration to trigger
+  smoothingFactor: 0.3,  // Exponential smoothing for audio level
+}
+
+// ============================================================================
+// AUDIO CAPTURE WITH VAD
+// ============================================================================
+
+interface AudioCaptureWithVAD {
+  start: () => Promise<void>
+  stop: () => void
+  isActive: () => boolean
+  getAudioLevel: () => number
+}
+
+function createAudioCaptureWithVAD(
+  sampleRate: number,
+  onChunk: (pcm: ArrayBuffer) => void,
+  onVADStateChange: (isSpeaking: boolean) => void,
+  vadConfig: typeof VAD_DEFAULTS
+): AudioCaptureWithVAD {
+  let mediaStream: MediaStream | null = null
+  let audioContext: AudioContext | null = null
+  let processor: ScriptProcessorNode | null = null
+  let analyser: AnalyserNode | null = null
+  let active = false
+
+  // VAD state
+  let isSpeaking = false
+  let silenceStart: number | null = null
+  let speechStart: number | null = null
+  let smoothedLevel = 0
+  let currentLevel = 0
+
+  // Calculate RMS of audio buffer
+  function calculateRMS(buffer: Float32Array): number {
+    let sum = 0
+    for (let i = 0; i < buffer.length; i++) {
+      sum += buffer[i] * buffer[i]
+    }
+    return Math.sqrt(sum / buffer.length)
+  }
+
+  return {
+    async start() {
+      if (active) return
+
+      mediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          sampleRate,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      })
+
+      audioContext = new AudioContext({ sampleRate })
+      const source = audioContext.createMediaStreamSource(mediaStream)
+
+      // Create analyser for visualization
+      analyser = audioContext.createAnalyser()
+      analyser.fftSize = 256
+      source.connect(analyser)
+
+      processor = audioContext.createScriptProcessor(4096, 1, 1)
+
+      processor.onaudioprocess = (e) => {
+        if (!active) return
+
+        const float32 = e.inputBuffer.getChannelData(0)
+        const rms = calculateRMS(float32)
+
+        // Smooth the level for visualization
+        smoothedLevel = smoothedLevel * (1 - vadConfig.smoothingFactor) + rms * vadConfig.smoothingFactor
+        currentLevel = Math.min(1, smoothedLevel * 10) // Normalize to 0-1
+
+        const now = Date.now()
+        const isVoice = rms > vadConfig.threshold
+
+        if (isVoice) {
+          silenceStart = null
+
+          if (!isSpeaking) {
+            if (!speechStart) {
+              speechStart = now
+            } else if (now - speechStart >= vadConfig.minSpeechMs) {
+              // Speech confirmed - start capturing
+              isSpeaking = true
+              onVADStateChange(true)
+              console.log('[VAD] Speech started')
+            }
+          }
+        } else {
+          speechStart = null
+
+          if (isSpeaking) {
+            if (!silenceStart) {
+              silenceStart = now
+            } else if (now - silenceStart >= vadConfig.silenceMs) {
+              // Silence confirmed - stop capturing
+              isSpeaking = false
+              onVADStateChange(false)
+              console.log('[VAD] Speech ended')
+            }
+          }
+        }
+
+        // Only send audio when speaking
+        if (isSpeaking) {
+          const int16 = new Int16Array(float32.length)
+          for (let i = 0; i < float32.length; i++) {
+            int16[i] = Math.max(-32768, Math.min(32767, float32[i] * 32768))
+          }
+          onChunk(int16.buffer)
+        }
+      }
+
+      source.connect(processor)
+      processor.connect(audioContext.destination)
+      active = true
+      isSpeaking = false
+      silenceStart = null
+      speechStart = null
+    },
+
+    stop() {
+      if (isSpeaking) {
+        isSpeaking = false
+        onVADStateChange(false)
+      }
+      active = false
+      processor?.disconnect()
+      analyser?.disconnect()
+      audioContext?.close()
+      mediaStream?.getTracks().forEach(t => t.stop())
+      processor = null
+      analyser = null
+      audioContext = null
+      mediaStream = null
+      smoothedLevel = 0
+      currentLevel = 0
+    },
+
+    isActive() {
+      return active
+    },
+
+    getAudioLevel() {
+      return currentLevel
+    },
+  }
+}
+
+// ============================================================================
+// SIMPLE AUDIO CAPTURE (for manual push-to-talk)
 // ============================================================================
 
 async function createAudioCapture(
@@ -165,23 +341,32 @@ async function createAudioCapture(
 // TTS PLAYER
 // ============================================================================
 
-function createTTSPlayer(sampleRate: number): { play: (pcm: ArrayBuffer) => void; stop: () => void } {
+function createTTSPlayer(sampleRate: number): {
+  play: (pcm: ArrayBuffer) => void
+  stop: () => void
+  isPlaying: () => boolean
+} {
   let ctx: AudioContext | null = null
   let queue: AudioBuffer[] = []
-  let isPlaying = false
+  let playing = false
+  let currentSource: AudioBufferSourceNode | null = null
 
   const playNext = () => {
     if (!ctx || queue.length === 0) {
-      isPlaying = false
+      playing = false
       return
     }
 
-    isPlaying = true
+    playing = true
     const buffer = queue.shift()!
     const source = ctx.createBufferSource()
+    currentSource = source
     source.buffer = buffer
     source.connect(ctx.destination)
-    source.onended = playNext
+    source.onended = () => {
+      currentSource = null
+      playNext()
+    }
     source.start()
   }
 
@@ -199,14 +384,24 @@ function createTTSPlayer(sampleRate: number): { play: (pcm: ArrayBuffer) => void
       buffer.getChannelData(0).set(float32)
       queue.push(buffer)
 
-      if (!isPlaying) playNext()
+      if (!playing) playNext()
     },
 
     stop() {
       queue = []
-      isPlaying = false
+      playing = false
+      if (currentSource) {
+        try {
+          currentSource.stop()
+        } catch {}
+        currentSource = null
+      }
       ctx?.close()
       ctx = null
+    },
+
+    isPlaying() {
+      return playing
     },
   }
 }
@@ -225,12 +420,14 @@ export function useSovereignAgentVoice(
     userId = 'anonymous',
     role = 'User',
     privilegeMode = false,
-    sampleRate = 16000,
+    sampleRate = 48000,
     autoReconnect = true,
     onUIAction,
     onToolCall,
     onToolResult,
     onError,
+    vadThreshold = VAD_DEFAULTS.threshold,
+    vadSilenceMs = VAD_DEFAULTS.silenceMs,
   } = options
 
   const router = useRouter()
@@ -240,13 +437,18 @@ export function useSovereignAgentVoice(
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([])
   const [currentTool, setCurrentTool] = useState<ToolCallInfo | null>(null)
   const [privMode, setPrivMode] = useState(privilegeMode)
+  const [isVADActive, setIsVADActive] = useState(false)
+  const [audioLevel, setAudioLevel] = useState(0)
 
   // Refs
   const wsRef = useRef<WebSocket | null>(null)
   const captureRef = useRef<Awaited<ReturnType<typeof createAudioCapture>> | null>(null)
+  const vadCaptureRef = useRef<AudioCaptureWithVAD | null>(null)
   const playerRef = useRef<ReturnType<typeof createTTSPlayer> | null>(null)
   const reconnectRef = useRef<NodeJS.Timeout | null>(null)
   const transcriptIdRef = useRef(0)
+  const audioLevelIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const vadSpeakingRef = useRef(false)
 
   // Derived state
   const isConnected = !['disconnected', 'error'].includes(state)
@@ -267,7 +469,6 @@ export function useSovereignAgentVoice(
         break
 
       case 'open_document':
-        // Emit event for document viewer
         window.dispatchEvent(new CustomEvent('agent:open_document', { detail: action }))
         break
 
@@ -297,6 +498,23 @@ export function useSovereignAgentVoice(
     onUIAction?.(action)
   }, [router, onUIAction])
 
+  // Handle VAD state changes
+  const handleVADStateChange = useCallback((speaking: boolean) => {
+    vadSpeakingRef.current = speaking
+
+    if (speaking) {
+      // Speech started - notify server
+      setState('listening')
+      wsRef.current?.send(JSON.stringify({ type: 'start' }))
+      console.log('[AgentVoice] VAD: Speech detected, starting capture')
+    } else {
+      // Speech ended - notify server to process
+      setState('processing')
+      wsRef.current?.send(JSON.stringify({ type: 'stop' }))
+      console.log('[AgentVoice] VAD: Silence detected, processing')
+    }
+  }, [])
+
   // Connect to WebSocket
   const connect = useCallback(async () => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return
@@ -317,10 +535,11 @@ export function useSovereignAgentVoice(
 
     ws.onopen = () => {
       console.log('[AgentVoice] Connected')
+      setState('idle')
       setTranscript(prev => [...prev, {
         id: genId(),
         type: 'system',
-        text: 'Mercury Voice connected. Ready for commands.',
+        text: 'Mercury Voice connected. Say something to begin.',
         isFinal: true,
         timestamp: Date.now(),
       }])
@@ -338,7 +557,14 @@ export function useSovereignAgentVoice(
 
         switch (msg.type) {
           case 'state':
-            setState(msg.state as AgentVoiceState)
+            // Only update state if not in VAD mode or if it's a terminal state
+            if (!isVADActive || ['speaking', 'processing', 'executing'].includes(msg.state)) {
+              setState(msg.state as AgentVoiceState)
+            }
+            // When agent finishes speaking in VAD mode, go back to idle
+            if (isVADActive && msg.state === 'idle') {
+              setState('idle')
+            }
             break
 
           case 'asr_partial':
@@ -362,6 +588,7 @@ export function useSovereignAgentVoice(
             break
 
           case 'agent_text_partial':
+            setState('speaking')
             setTranscript(prev => {
               const last = prev[prev.length - 1]
               if (last?.type === 'agent' && !last.isFinal) {
@@ -379,6 +606,10 @@ export function useSovereignAgentVoice(
               }
               return [...prev, { id: genId(), type: 'agent', text: msg.text, isFinal: true, timestamp: Date.now() }]
             })
+            // After agent responds, go back to idle in VAD mode
+            if (isVADActive) {
+              setTimeout(() => setState('idle'), 500)
+            }
             break
 
           case 'tool_call': {
@@ -392,7 +623,6 @@ export function useSovereignAgentVoice(
             setState('executing')
             onToolCall?.(tool)
 
-            // Add to transcript
             setTranscript(prev => [...prev, {
               id: genId(),
               type: 'system',
@@ -417,7 +647,6 @@ export function useSovereignAgentVoice(
             setCurrentTool(null)
             onToolResult?.(tool)
 
-            // Update transcript
             setTranscript(prev => prev.map(t =>
               t.toolCall?.id === result.toolCallId
                 ? { ...t, toolCall: { ...t.toolCall, ...tool } }
@@ -448,14 +677,16 @@ export function useSovereignAgentVoice(
     ws.onclose = (event) => {
       wsRef.current = null
       captureRef.current?.stop()
+      vadCaptureRef.current?.stop()
       playerRef.current?.stop()
       setState('disconnected')
+      setIsVADActive(false)
 
       if (autoReconnect && event.code !== 1000) {
         reconnectRef.current = setTimeout(connect, 3000)
       }
     }
-  }, [wsUrl, userId, role, privMode, sampleRate, autoReconnect, handleUIAction, onToolCall, onToolResult, onError])
+  }, [wsUrl, userId, role, privMode, sampleRate, autoReconnect, handleUIAction, handleVADStateChange, isVADActive, onToolCall, onToolResult, onError])
 
   // Disconnect
   const disconnect = useCallback(() => {
@@ -463,15 +694,99 @@ export function useSovereignAgentVoice(
       clearTimeout(reconnectRef.current)
       reconnectRef.current = null
     }
+    if (audioLevelIntervalRef.current) {
+      clearInterval(audioLevelIntervalRef.current)
+      audioLevelIntervalRef.current = null
+    }
     captureRef.current?.stop()
+    vadCaptureRef.current?.stop()
     playerRef.current?.stop()
     wsRef.current?.close(1000, 'User disconnect')
     wsRef.current = null
     setState('disconnected')
+    setIsVADActive(false)
+    setAudioLevel(0)
   }, [])
 
-  // Start listening
+  // Enable VAD mode (hands-free)
+  const enableVAD = useCallback(async () => {
+    console.log('[AgentVoice] Enabling VAD mode')
+
+    // Connect if not connected
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      await connect()
+    }
+
+    // Stop any manual capture
+    captureRef.current?.stop()
+    captureRef.current = null
+
+    // Create VAD capture
+    const vadConfig = {
+      ...VAD_DEFAULTS,
+      threshold: vadThreshold,
+      silenceMs: vadSilenceMs,
+    }
+
+    vadCaptureRef.current = createAudioCaptureWithVAD(
+      sampleRate,
+      (pcm) => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          wsRef.current.send(pcm)
+        }
+      },
+      handleVADStateChange,
+      vadConfig
+    )
+
+    await vadCaptureRef.current.start()
+    setIsVADActive(true)
+    setState('idle')
+
+    // Update audio level for visualization
+    audioLevelIntervalRef.current = setInterval(() => {
+      if (vadCaptureRef.current?.isActive()) {
+        setAudioLevel(vadCaptureRef.current.getAudioLevel())
+      }
+    }, 50)
+
+    setTranscript(prev => [...prev, {
+      id: genId(),
+      type: 'system',
+      text: '🎤 Hands-free mode ON. Just speak naturally.',
+      isFinal: true,
+      timestamp: Date.now(),
+    }])
+  }, [connect, sampleRate, vadThreshold, vadSilenceMs, handleVADStateChange])
+
+  // Disable VAD mode
+  const disableVAD = useCallback(() => {
+    console.log('[AgentVoice] Disabling VAD mode')
+
+    if (audioLevelIntervalRef.current) {
+      clearInterval(audioLevelIntervalRef.current)
+      audioLevelIntervalRef.current = null
+    }
+
+    vadCaptureRef.current?.stop()
+    vadCaptureRef.current = null
+    setIsVADActive(false)
+    setAudioLevel(0)
+    setState('idle')
+
+    setTranscript(prev => [...prev, {
+      id: genId(),
+      type: 'system',
+      text: '🎤 Hands-free mode OFF.',
+      isFinal: true,
+      timestamp: Date.now(),
+    }])
+  }, [])
+
+  // Manual start listening (for push-to-talk mode)
   const startListening = useCallback(async () => {
+    if (isVADActive) return // Don't use manual mode when VAD is active
+
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
       await connect()
     }
@@ -487,19 +802,26 @@ export function useSovereignAgentVoice(
     playerRef.current?.stop()
     await captureRef.current.start()
     wsRef.current?.send(JSON.stringify({ type: 'start' }))
-  }, [connect, sampleRate])
+    setState('listening')
+  }, [connect, sampleRate, isVADActive])
 
-  // Stop listening
+  // Manual stop listening
   const stopListening = useCallback(() => {
+    if (isVADActive) return // Don't use manual mode when VAD is active
+
     captureRef.current?.stop()
     wsRef.current?.send(JSON.stringify({ type: 'stop' }))
-  }, [])
+    setState('processing')
+  }, [isVADActive])
 
-  // Barge-in
+  // Barge-in (interrupt agent speech)
   const bargeIn = useCallback(() => {
     playerRef.current?.stop()
     wsRef.current?.send(JSON.stringify({ type: 'barge_in' }))
-  }, [])
+    if (isVADActive) {
+      setState('idle')
+    }
+  }, [isVADActive])
 
   // Clear transcript
   const clearTranscript = useCallback(() => {
@@ -509,7 +831,6 @@ export function useSovereignAgentVoice(
   // Update privilege mode
   const setPrivilegeMode = useCallback((enabled: boolean) => {
     setPrivMode(enabled)
-    // Reconnect with new privilege mode if connected
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       disconnect()
       setTimeout(connect, 100)
@@ -529,10 +850,14 @@ export function useSovereignAgentVoice(
     isListening,
     isSpeaking,
     isExecuting,
+    isVADActive,
+    audioLevel,
     transcript,
     currentTool,
     connect,
     disconnect,
+    enableVAD,
+    disableVAD,
     startListening,
     stopListening,
     bargeIn,

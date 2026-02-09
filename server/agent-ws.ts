@@ -21,9 +21,10 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import type { IncomingMessage, Server as HttpServer } from 'http'
 import { URL } from 'url'
-import { executeTool, type ToolCall, type ToolResult, type ToolContext, TOOL_DEFINITIONS } from './tools'
+import { executeTool, type ToolCall, type ToolResult, type ToolContext } from './tools'
 import { checkToolPermission, createConfirmationRequest, storePendingConfirmation } from './tools/permissions'
 import * as obs from './observability'
+import { createInworldSession, type InworldSession } from './inworld'
 
 // ============================================================================
 // TYPES
@@ -34,6 +35,7 @@ type ClientControlMsg =
   | { type: 'stop' }
   | { type: 'barge_in' }
   | { type: 'tool_result'; name: string; result: unknown }
+  | { type: 'text'; text: string }
 
 type ServerMsg =
   | { type: 'state'; state: AgentState }
@@ -67,10 +69,9 @@ interface AgentSession {
   state: AgentState
   createdAt: number
   lastActivity: number
-  // Tool execution context
   toolContext: ToolContext
-  // TODO: Inworld session reference
-  // inworldSession?: InworldSession
+  inworldSession?: InworldSession
+  isAudioSessionActive: boolean
 }
 
 // ============================================================================
@@ -86,11 +87,12 @@ setInterval(() => {
   for (const [sessionId, session] of sessions) {
     if (now - session.lastActivity > SESSION_TIMEOUT_MS) {
       console.log(`[AgentWS] Cleaning up expired session: ${sessionId}`)
+      session.inworldSession?.close()
       session.ws.close(1000, 'Session expired')
       sessions.delete(sessionId)
     }
   }
-}, 60_000) // Check every minute
+}, 60_000)
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -134,80 +136,6 @@ function extractConnectionParams(req: IncomingMessage): ConnectionParams {
 }
 
 // ============================================================================
-// INWORLD INTEGRATION (TODO: Replace with actual SDK)
-// ============================================================================
-
-/**
- * Creates an Inworld session for voice AI
- * TODO: Implement with actual Inworld SDK
- */
-async function createInworldSession(_config: {
-  apiKey: string
-  sceneId?: string
-  characterId?: string
-}): Promise<{
-  onTranscriptPartial: (cb: (text: string) => void) => void
-  onTranscriptFinal: (cb: (text: string) => void) => void
-  onAgentTextPartial: (cb: (text: string) => void) => void
-  onAgentTextFinal: (cb: (text: string) => void) => void
-  onTTSChunk: (cb: (audio: Buffer) => void) => void
-  onToolCall: (cb: (call: ToolCallRequest) => void) => void
-  sendAudio: (audio: Buffer) => Promise<void>
-  sendToolResult: (name: string, result: unknown) => Promise<void>
-  startTurn: () => void
-  endTurn: () => void
-  bargeIn: () => void
-  close: () => Promise<void>
-}> {
-  // Placeholder implementation
-  // Replace with actual Inworld SDK initialization
-
-  const callbacks = {
-    transcriptPartial: [] as ((text: string) => void)[],
-    transcriptFinal: [] as ((text: string) => void)[],
-    agentTextPartial: [] as ((text: string) => void)[],
-    agentTextFinal: [] as ((text: string) => void)[],
-    ttsChunk: [] as ((audio: Buffer) => void)[],
-    toolCall: [] as ((call: ToolCallRequest) => void)[],
-  }
-
-  return {
-    onTranscriptPartial: (cb) => callbacks.transcriptPartial.push(cb),
-    onTranscriptFinal: (cb) => callbacks.transcriptFinal.push(cb),
-    onAgentTextPartial: (cb) => callbacks.agentTextPartial.push(cb),
-    onAgentTextFinal: (cb) => callbacks.agentTextFinal.push(cb),
-    onTTSChunk: (cb) => callbacks.ttsChunk.push(cb),
-    onToolCall: (cb) => callbacks.toolCall.push(cb),
-
-    sendAudio: async (_audio: Buffer) => {
-      // TODO: Send audio to Inworld
-      console.log('[Inworld] Audio chunk received')
-    },
-
-    sendToolResult: async (_name: string, _result: unknown) => {
-      // TODO: Send tool result to Inworld
-      console.log('[Inworld] Tool result sent')
-    },
-
-    startTurn: () => {
-      console.log('[Inworld] Turn started')
-    },
-
-    endTurn: () => {
-      console.log('[Inworld] Turn ended')
-    },
-
-    bargeIn: () => {
-      console.log('[Inworld] Barge-in triggered')
-    },
-
-    close: async () => {
-      console.log('[Inworld] Session closed')
-    },
-  }
-}
-
-// ============================================================================
 // WEBSOCKET CONNECTION HANDLER
 // ============================================================================
 
@@ -236,6 +164,7 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
     createdAt: Date.now(),
     lastActivity: Date.now(),
     toolContext,
+    isAudioSessionActive: false,
   }
   sessions.set(sessionId, session)
 
@@ -243,105 +172,66 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
   sendJSON(ws, { type: 'state', state: 'connecting' })
 
   try {
-    // Initialize Inworld session
-    const inworld = await createInworldSession({
-      apiKey: process.env.INWORLD_API_KEY || '',
-      sceneId: process.env.INWORLD_SCENE_ID,
-      characterId: process.env.INWORLD_CHARACTER_ID,
-    })
+    // Get Inworld config from environment (base64 format API key)
+    const apiKey = process.env.INWORLD_API_KEY
 
-    // Wire Inworld events to WebSocket
-    inworld.onTranscriptPartial((text) => {
-      sendJSON(ws, { type: 'asr_partial', text })
-    })
+    if (!apiKey) {
+      throw new Error('Missing INWORLD_API_KEY environment variable')
+    }
 
-    inworld.onTranscriptFinal((text) => {
-      sendJSON(ws, { type: 'asr_final', text })
-      obs.logTranscript(sessionId, 'user', text, true)
-      obs.incrementTurn(sessionId)
-    })
+    // Create Inworld session with callbacks
+    const inworldSession = await createInworldSession({
+      apiKey,
 
-    inworld.onAgentTextPartial((text) => {
-      sendJSON(ws, { type: 'agent_text_partial', text })
-      session.state = 'speaking'
-      sendJSON(ws, { type: 'state', state: 'speaking' })
-    })
+      onTranscriptPartial: (text) => {
+        sendJSON(ws, { type: 'asr_partial', text })
+      },
 
-    inworld.onAgentTextFinal((text) => {
-      sendJSON(ws, { type: 'agent_text_final', text })
-      obs.logTranscript(sessionId, 'agent', text, true)
-      session.state = 'idle'
-      sendJSON(ws, { type: 'state', state: 'idle' })
-    })
+      onTranscriptFinal: (text) => {
+        sendJSON(ws, { type: 'asr_final', text })
+        obs.logTranscript(sessionId, 'user', text, true)
+        obs.incrementTurn(sessionId)
+      },
 
-    inworld.onTTSChunk((audio) => {
-      sendBinary(ws, audio)
-    })
-
-    inworld.onToolCall(async (call) => {
-      // Check permissions first
-      const permission = checkToolPermission(call.name, session.toolContext)
-
-      if (!permission.allowed) {
-        sendJSON(ws, {
-          type: 'error',
-          message: permission.reason || `Not authorized for ${call.name}`,
-          code: 'PERMISSION_DENIED',
-        })
-        return
-      }
-
-      // Check if confirmation is required
-      if (permission.requiresConfirmation) {
-        const confirmRequest = createConfirmationRequest(call.id, call.name)
-        if (confirmRequest) {
-          storePendingConfirmation(confirmRequest)
-          sendJSON(ws, {
-            type: 'tool_call_requires_confirmation',
-            request: {
-              toolCallId: call.id,
-              toolName: call.name,
-              message: confirmRequest.message,
-              severity: confirmRequest.severity,
-            },
-          })
-          return // Wait for confirmation
+      onAgentTextPartial: (text) => {
+        sendJSON(ws, { type: 'agent_text_partial', text })
+        if (session.state !== 'speaking') {
+          session.state = 'speaking'
+          sendJSON(ws, { type: 'state', state: 'speaking' })
+          obs.recordFirstToken(sessionId)
         }
-      }
+      },
 
-      // Notify client that tool is being called
-      sendJSON(ws, { type: 'tool_call', call })
+      onAgentTextFinal: (text) => {
+        sendJSON(ws, { type: 'agent_text_final', text })
+        obs.logTranscript(sessionId, 'agent', text, true)
+      },
 
-      // Log tool call start
-      obs.logToolCallStart(sessionId, call.id, call.name, call.parameters)
+      onTTSChunk: (audioBase64) => {
+        // Convert base64 to buffer and send as binary
+        const audioBuffer = Buffer.from(audioBase64, 'base64')
+        sendBinary(ws, audioBuffer)
+        obs.recordFirstAudio(sessionId)
+      },
 
-      // Execute the tool on the server
-      const toolCall: ToolCall = {
-        id: call.id,
-        name: call.name,
-        arguments: call.parameters,
-      }
+      onError: (error) => {
+        console.error(`[AgentWS] Inworld error for ${sessionId}:`, error)
+        obs.incrementError(sessionId)
+        sendJSON(ws, { type: 'error', message: error.message })
+      },
 
-      const result = await executeTool(toolCall, session.toolContext)
-
-      // Log tool call end
-      obs.logToolCallEnd(call.id, result.success, result.error)
-
-      // Send result back to Inworld so it can continue conversation
-      // inworld.sendToolResult(call.name, result.result)
-
-      // Send result to client for UI sync
-      sendJSON(ws, { type: 'tool_result', result })
-
-      // If there's a UI action, send it separately for immediate execution
-      if (result.uiAction) {
-        sendJSON(ws, { type: 'ui_action', action: result.uiAction })
-      }
+      onDisconnect: () => {
+        console.log(`[AgentWS] Inworld disconnected for ${sessionId}`)
+        session.state = 'error'
+        sendJSON(ws, { type: 'state', state: 'error' })
+      },
     })
+
+    session.inworldSession = inworldSession
 
     // Ready to receive audio
-    session.state = 'listening'
-    sendJSON(ws, { type: 'state', state: 'listening' })
+    session.state = 'idle'
+    sendJSON(ws, { type: 'state', state: 'idle' })
 
     // Handle incoming messages
     ws.on('message', async (data, isBinary) => {
@@ -349,10 +239,12 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
 
       if (isBinary) {
         // Binary = audio chunk from client microphone
-        try {
-          await inworld.sendAudio(data as Buffer)
-        } catch (error) {
-          console.error('[AgentWS] Error sending audio:', error)
+        if (session.inworldSession && session.isAudioSessionActive) {
+          try {
+            await session.inworldSession.sendAudio(data as Buffer)
+          } catch (error) {
+            console.error('[AgentWS] Error sending audio:', error)
+          }
         }
         return
       }
@@ -363,27 +255,47 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
 
         switch (msg.type) {
           case 'start':
-            inworld.startTurn()
-            session.state = 'listening'
-            sendJSON(ws, { type: 'state', state: 'listening' })
+            if (session.inworldSession && !session.isAudioSessionActive) {
+              await session.inworldSession.startAudioSession()
+              session.isAudioSessionActive = true
+              session.state = 'listening'
+              sendJSON(ws, { type: 'state', state: 'listening' })
+              obs.logAudioEvent(sessionId, 'mic_start')
+            }
             break
 
           case 'stop':
-            inworld.endTurn()
-            session.state = 'processing'
-            sendJSON(ws, { type: 'state', state: 'processing' })
+            if (session.inworldSession && session.isAudioSessionActive) {
+              await session.inworldSession.endAudioSession()
+              session.isAudioSessionActive = false
+              session.state = 'processing'
+              sendJSON(ws, { type: 'state', state: 'processing' })
+              obs.logAudioEvent(sessionId, 'mic_stop')
+            }
             break
 
           case 'barge_in':
-            inworld.bargeIn()
-            obs.incrementBargeIn(sessionId)
-            obs.logAudioEvent(sessionId, 'barge_in')
-            session.state = 'listening'
-            sendJSON(ws, { type: 'state', state: 'listening' })
+            if (session.inworldSession) {
+              await session.inworldSession.cancelResponse()
+              obs.incrementBargeIn(sessionId)
+              obs.logAudioEvent(sessionId, 'barge_in')
+              session.state = 'listening'
+              sendJSON(ws, { type: 'state', state: 'listening' })
+            }
+            break
+
+          case 'text':
+            // Allow sending text directly (for testing or accessibility)
+            if (session.inworldSession && msg.text) {
+              await session.inworldSession.sendText(msg.text)
+              session.state = 'processing'
+              sendJSON(ws, { type: 'state', state: 'processing' })
+            }
             break
 
           case 'tool_result':
-            await inworld.sendToolResult(msg.name, msg.result)
+            // Tool results from client confirmations
+            console.log(`[AgentWS] Tool result received: ${msg.name}`)
             break
 
           default:
@@ -399,12 +311,13 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
     ws.on('close', async (code, reason) => {
       console.log(`[AgentWS] Connection closed: ${sessionId} (${code}: ${reason.toString()})`)
       obs.endSession(sessionId)
-      await inworld.close()
+      session.inworldSession?.close()
       sessions.delete(sessionId)
     })
 
     ws.on('error', (error) => {
       console.error(`[AgentWS] WebSocket error for ${sessionId}:`, error)
+      obs.incrementError(sessionId)
       session.state = 'error'
       sendJSON(ws, { type: 'state', state: 'error' })
       sendJSON(ws, { type: 'error', message: error.message })

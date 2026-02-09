@@ -30,6 +30,8 @@ import {
   X,
 } from 'lucide-react'
 import IngestionModal from '@/app/dashboard/components/IngestionModal'
+import { AgentDriverPanel } from './mercury/AgentDriverPanel'
+import { Mic } from 'lucide-react'
 
 // ============================================================================
 // PANEL CONTENT COMPONENTS
@@ -254,6 +256,7 @@ export function DashboardLayout() {
   const [rightExpanded, setRightExpanded] = useState(false)
   const [rightTab, setRightTab] = useState<RightRailTab>('inspector')
   const [isIngestionOpen, setIsIngestionOpen] = useState(false)
+  const [isVoiceOpen, setIsVoiceOpen] = useState(false)
 
   // Sync with vault store
   useEffect(() => {
@@ -420,6 +423,32 @@ export function DashboardLayout() {
         onClose={() => setIsIngestionOpen(false)}
         onFileUpload={handleIngestionUpload}
       />
+
+      {/* Voice Agent Panel */}
+      <AgentDriverPanel
+        isOpen={isVoiceOpen}
+        onClose={() => setIsVoiceOpen(false)}
+      />
+
+      {/* Floating Voice Button */}
+      {!isVoiceOpen && (
+        <motion.button
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setIsVoiceOpen(true)}
+          className="fixed bottom-6 right-6 z-[100] w-14 h-14 rounded-full
+                     bg-gradient-to-br from-cyan-500 to-blue-600
+                     shadow-[0_0_30px_rgba(0,240,255,0.4)]
+                     flex items-center justify-center
+                     hover:shadow-[0_0_40px_rgba(0,240,255,0.6)]
+                     transition-shadow border-2 border-white/30"
+          title="Open Mercury Voice Agent"
+        >
+          <Mic className="w-6 h-6 text-white" />
+        </motion.button>
+      )}
     </div>
   )
 }

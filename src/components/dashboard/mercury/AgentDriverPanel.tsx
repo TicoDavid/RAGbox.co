@@ -18,6 +18,8 @@ import {
   FolderOpen,
   Shield,
   Navigation,
+  Power,
+  Radio,
 } from 'lucide-react'
 import {
   useSovereignAgentVoice,
@@ -189,7 +191,7 @@ function TranscriptItem({ entry }: { entry: TranscriptEntry }) {
 // STATE INDICATOR
 // ============================================================================
 
-function StateBar({ state, currentTool }: { state: AgentVoiceState; currentTool: ToolCallInfo | null }) {
+function StateBar({ state, currentTool, isVADActive }: { state: AgentVoiceState; currentTool: ToolCallInfo | null; isVADActive: boolean }) {
   const configs: Record<AgentVoiceState, { label: string; color: string; bg: string }> = {
     disconnected: { label: 'Offline', color: 'text-gray-500', bg: 'bg-gray-800' },
     connecting: { label: 'Connecting...', color: 'text-blue-400', bg: 'bg-blue-900/30' },
@@ -197,7 +199,7 @@ function StateBar({ state, currentTool }: { state: AgentVoiceState; currentTool:
     processing: { label: 'Processing', color: 'text-amber-400', bg: 'bg-amber-900/30' },
     speaking: { label: 'Speaking', color: 'text-emerald-400', bg: 'bg-emerald-900/30' },
     executing: { label: `Executing: ${currentTool?.name || '...'}`, color: 'text-purple-400', bg: 'bg-purple-900/30' },
-    idle: { label: 'Ready', color: 'text-gray-400', bg: 'bg-gray-800' },
+    idle: { label: isVADActive ? 'Waiting...' : 'Ready', color: 'text-gray-400', bg: 'bg-gray-800' },
     error: { label: 'Error', color: 'text-red-400', bg: 'bg-red-900/30' },
   }
 
@@ -212,8 +214,39 @@ function StateBar({ state, currentTool }: { state: AgentVoiceState; currentTool:
       {state === 'speaking' && <Volume2 className="w-3 h-3" />}
       {state === 'executing' && <Zap className="w-3 h-3 animate-pulse" />}
       {(state === 'connecting' || state === 'processing') && <Loader2 className="w-3 h-3 animate-spin" />}
+      {state === 'idle' && isVADActive && <Radio className="w-3 h-3 animate-pulse" />}
       <span>{config.label}</span>
     </motion.div>
+  )
+}
+
+// ============================================================================
+// AUDIO LEVEL VISUALIZER
+// ============================================================================
+
+function AudioLevelBar({ level, isActive }: { level: number; isActive: boolean }) {
+  if (!isActive) return null
+
+  return (
+    <div className="flex items-center gap-1 h-4">
+      {[...Array(12)].map((_, i) => {
+        const threshold = i / 12
+        const isLit = level > threshold
+        return (
+          <motion.div
+            key={i}
+            animate={{
+              scaleY: isLit ? 1 : 0.3,
+              opacity: isLit ? 1 : 0.3,
+            }}
+            transition={{ duration: 0.05 }}
+            className={`w-1 h-full rounded-full ${
+              i < 4 ? 'bg-emerald-500' : i < 8 ? 'bg-yellow-500' : 'bg-red-500'
+            }`}
+          />
+        )
+      })}
+    </div>
   )
 }
 
@@ -242,10 +275,14 @@ export function AgentDriverPanel({
     isConnected,
     isListening,
     isSpeaking,
+    isVADActive,
+    audioLevel,
     transcript,
     currentTool,
     connect,
     disconnect,
+    enableVAD,
+    disableVAD,
     startListening,
     stopListening,
     bargeIn,
@@ -270,8 +307,25 @@ export function AgentDriverPanel({
     transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [transcript])
 
-  // Handle main action
+  // Handle VAD toggle
+  const handleVADToggle = () => {
+    if (isVADActive) {
+      disableVAD()
+    } else {
+      enableVAD()
+    }
+  }
+
+  // Handle main action (for manual mode)
   const handleMainAction = () => {
+    if (isVADActive) {
+      // In VAD mode, main button interrupts speech
+      if (isSpeaking) {
+        bargeIn()
+      }
+      return
+    }
+
     if (!isConnected) {
       connect()
     } else if (isSpeaking) {
@@ -300,21 +354,27 @@ export function AgentDriverPanel({
         <div className="flex items-center gap-3">
           <div className="relative">
             <motion.div
-              animate={isListening ? {
+              animate={isVADActive ? {
+                boxShadow: ['0 0 0 0 rgba(16, 185, 129, 0.4)', '0 0 0 8px rgba(16, 185, 129, 0)', '0 0 0 0 rgba(16, 185, 129, 0)'],
+              } : isListening ? {
                 boxShadow: ['0 0 0 0 rgba(0, 240, 255, 0.4)', '0 0 0 10px rgba(0, 240, 255, 0)', '0 0 0 0 rgba(0, 240, 255, 0)'],
               } : {}}
               transition={{ duration: 1.5, repeat: Infinity }}
-              className={`w-3 h-3 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-gray-600'}`}
+              className={`w-3 h-3 rounded-full ${
+                isVADActive ? 'bg-emerald-500' : isConnected ? 'bg-cyan-500' : 'bg-gray-600'
+              }`}
             />
           </div>
           <div>
             <span className="text-sm font-medium text-gray-200">Mercury Agent</span>
-            <span className="text-xs text-gray-500 ml-2">Voice Control</span>
+            {isVADActive && (
+              <span className="text-xs text-emerald-400 ml-2">Hands-Free</span>
+            )}
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <StateBar state={state} currentTool={currentTool} />
+          <StateBar state={state} currentTool={currentTool} isVADActive={isVADActive} />
           <button
             onClick={onClose}
             className="p-1.5 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-gray-200"
@@ -323,6 +383,14 @@ export function AgentDriverPanel({
           </button>
         </div>
       </div>
+
+      {/* Audio Level (when VAD active) */}
+      {isVADActive && (
+        <div className="px-4 py-2 border-b border-gray-800/50 bg-gray-900/30 flex items-center justify-between">
+          <span className="text-xs text-gray-500">Audio Level</span>
+          <AudioLevelBar level={audioLevel} isActive={isVADActive} />
+        </div>
+      )}
 
       {/* Transcript */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-thin scrollbar-thumb-gray-700">
@@ -333,7 +401,9 @@ export function AgentDriverPanel({
             </div>
             <h3 className="text-gray-200 font-medium mb-2">Agent Ready</h3>
             <p className="text-sm text-gray-500 max-w-xs">
-              Click the mic button and speak naturally. Mercury will understand your intent and take action.
+              {isVADActive
+                ? 'Hands-free mode active. Just speak naturally and Mercury will respond.'
+                : 'Enable hands-free mode or click the mic to speak.'}
             </p>
             <div className="mt-6 text-xs text-gray-600 space-y-1">
               <p>&quot;Find all contracts from last month&quot;</p>
@@ -372,47 +442,82 @@ export function AgentDriverPanel({
           </div>
 
           {/* Main action button */}
-          <motion.button
-            onClick={handleMainAction}
-            whileTap={{ scale: 0.95 }}
-            className={`
-              relative w-16 h-16 rounded-full flex items-center justify-center
-              transition-all duration-300
-              ${isListening
-                ? 'bg-cyan-600 shadow-[0_0_30px_rgba(0,240,255,0.5)]'
-                : isSpeaking
-                ? 'bg-emerald-600 shadow-[0_0_30px_rgba(16,185,129,0.5)]'
-                : 'bg-gray-700 hover:bg-gray-600'
-              }
-            `}
-          >
-            {/* Pulse rings when listening */}
-            {isListening && (
-              <>
+          <div className="flex items-center gap-3">
+            {/* VAD Toggle */}
+            <motion.button
+              onClick={handleVADToggle}
+              disabled={!isConnected}
+              whileTap={{ scale: 0.95 }}
+              className={`
+                relative w-12 h-12 rounded-full flex items-center justify-center
+                transition-all duration-300
+                ${isVADActive
+                  ? 'bg-emerald-600 shadow-[0_0_20px_rgba(16,185,129,0.5)]'
+                  : 'bg-gray-700 hover:bg-gray-600'
+                }
+                disabled:opacity-50 disabled:cursor-not-allowed
+              `}
+              title={isVADActive ? 'Disable hands-free mode' : 'Enable hands-free mode'}
+            >
+              <Power className={`w-5 h-5 ${isVADActive ? 'text-white' : 'text-gray-300'}`} />
+              {isVADActive && (
                 <motion.div
-                  animate={{ scale: [1, 1.5], opacity: [0.5, 0] }}
-                  transition={{ duration: 1, repeat: Infinity }}
-                  className="absolute inset-0 rounded-full bg-cyan-500"
+                  animate={{ scale: [1, 1.3], opacity: [0.5, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                  className="absolute inset-0 rounded-full bg-emerald-500"
                 />
-                <motion.div
-                  animate={{ scale: [1, 1.8], opacity: [0.3, 0] }}
-                  transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}
-                  className="absolute inset-0 rounded-full bg-cyan-500"
-                />
-              </>
-            )}
+              )}
+            </motion.button>
 
-            {/* Icon */}
-            {!isConnected ? (
-              <Mic className="w-7 h-7 text-white" />
-            ) : isListening ? (
-              <MicOff className="w-7 h-7 text-white" />
-            ) : isSpeaking ? (
-              <Volume2 className="w-7 h-7 text-white" />
-            ) : (
-              <Mic className="w-7 h-7 text-white" />
-            )}
-          </motion.button>
+            {/* Mic button (for manual mode or barge-in) */}
+            <motion.button
+              onClick={handleMainAction}
+              disabled={!isConnected && !isVADActive}
+              whileTap={{ scale: 0.95 }}
+              className={`
+                relative w-16 h-16 rounded-full flex items-center justify-center
+                transition-all duration-300
+                ${isListening
+                  ? 'bg-cyan-600 shadow-[0_0_30px_rgba(0,240,255,0.5)]'
+                  : isSpeaking
+                  ? 'bg-emerald-600 shadow-[0_0_30px_rgba(16,185,129,0.5)]'
+                  : isVADActive && state === 'idle'
+                  ? 'bg-gray-800 border-2 border-emerald-500/50'
+                  : 'bg-gray-700 hover:bg-gray-600'
+                }
+                disabled:opacity-50
+              `}
+            >
+              {/* Pulse rings when listening */}
+              {isListening && (
+                <>
+                  <motion.div
+                    animate={{ scale: [1, 1.5], opacity: [0.5, 0] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                    className="absolute inset-0 rounded-full bg-cyan-500"
+                  />
+                  <motion.div
+                    animate={{ scale: [1, 1.8], opacity: [0.3, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}
+                    className="absolute inset-0 rounded-full bg-cyan-500"
+                  />
+                </>
+              )}
+
+              {/* Icon */}
+              {!isConnected ? (
+                <Mic className="w-7 h-7 text-white" />
+              ) : isListening ? (
+                <Waves className="w-7 h-7 text-white animate-pulse" />
+              ) : isSpeaking ? (
+                <Volume2 className="w-7 h-7 text-white" />
+              ) : isVADActive ? (
+                <Radio className="w-7 h-7 text-emerald-400" />
+              ) : (
+                <Mic className="w-7 h-7 text-white" />
+              )}
+            </motion.button>
+          </div>
 
           {/* Right placeholder for balance */}
           <div className="w-24" />
@@ -421,11 +526,21 @@ export function AgentDriverPanel({
         {/* Help text */}
         <div className="text-center mt-3">
           <span className="text-xs text-gray-600">
-            {isListening
-              ? 'Listening... speak your command'
+            {isVADActive
+              ? state === 'idle'
+                ? '🎤 Hands-free ON - just speak naturally'
+                : state === 'listening'
+                ? '🎙️ Listening... keep talking'
+                : state === 'processing'
+                ? '⏳ Processing your speech...'
+                : isSpeaking
+                ? '🔊 Mercury speaking... click mic to interrupt'
+                : 'Ready'
+              : isListening
+              ? 'Listening... click to stop'
               : isSpeaking
               ? 'Mercury is speaking... click to interrupt'
-              : 'Click to speak'}
+              : 'Click power for hands-free, or mic for push-to-talk'}
           </span>
         </div>
       </div>
