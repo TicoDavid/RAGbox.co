@@ -7,8 +7,6 @@ import {
   Paperclip,
   Square,
   ArrowUp,
-  ChevronDown,
-  AlertTriangle,
   FileUp,
   Image,
   Link,
@@ -17,97 +15,11 @@ import {
   Loader2,
 } from 'lucide-react'
 import { VoiceTrigger } from './VoiceTrigger'
-import {
-  CrownIcon,
-  VaultDiamondIcon,
-  NetworkSystemIcon,
-  ScopeIcon,
-  BroadcastIcon,
-  CircuitNodeIcon,
-  ScaleIcon,
-  ComplianceIcon,
-  AuditorIcon,
-  LanternIcon,
-} from '../icons/SovereignIcons'
+import { PERSONAS } from './personaData'
+import { IntelligenceMatrix, IntelligenceBadge } from './IntelligenceMatrix'
 
-// Persona/Lens types
-type PersonaCategory = 'EXECUTIVE' | 'COMPLIANCE'
-
-interface Persona {
-  id: string
-  label: string
-  Icon: React.FC<{ className?: string; size?: number; color?: string }>
-  description: string
-  systemPrompt: string  // The actual instruction for power users
-  category: PersonaCategory
-  isWhistleblower?: boolean
-}
-
-const PERSONAS: Persona[] = [
-  // Executive
-  {
-    id: 'ceo', label: 'CEO', Icon: CrownIcon,
-    description: 'Strategic overview, high-level insights',
-    systemPrompt: 'Prioritize board-level impact, strategic alignment, and competitive positioning.',
-    category: 'EXECUTIVE'
-  },
-  {
-    id: 'cfo', label: 'CFO', Icon: VaultDiamondIcon,
-    description: 'Financial analysis, budget implications',
-    systemPrompt: 'Prioritize EBITDA impact, identify unbudgeted liabilities, and flag cash flow risks.',
-    category: 'EXECUTIVE'
-  },
-  {
-    id: 'coo', label: 'COO', Icon: NetworkSystemIcon,
-    description: 'Operations, process efficiency',
-    systemPrompt: 'Focus on operational bottlenecks, resource allocation, and process optimization.',
-    category: 'EXECUTIVE'
-  },
-  {
-    id: 'cpo', label: 'CPO', Icon: ScopeIcon,
-    description: 'Product insights, roadmap alignment',
-    systemPrompt: 'Analyze product-market fit, roadmap dependencies, and user impact.',
-    category: 'EXECUTIVE'
-  },
-  {
-    id: 'cmo', label: 'CMO', Icon: BroadcastIcon,
-    description: 'Market reach, brand strategy',
-    systemPrompt: 'Evaluate brand positioning, market penetration, and competitive messaging.',
-    category: 'EXECUTIVE'
-  },
-  {
-    id: 'cto', label: 'CTO', Icon: CircuitNodeIcon,
-    description: 'Technical architecture, security',
-    systemPrompt: 'Assess technical debt, security vulnerabilities, and scalability concerns.',
-    category: 'EXECUTIVE'
-  },
-  // Compliance
-  {
-    id: 'legal', label: 'Legal Counsel', Icon: ScaleIcon,
-    description: 'Contract review, liability analysis',
-    systemPrompt: 'Identify legal exposure, contractual obligations, and regulatory requirements.',
-    category: 'COMPLIANCE'
-  },
-  {
-    id: 'compliance', label: 'Compliance Officer', Icon: ComplianceIcon,
-    description: 'Regulatory adherence, policy check',
-    systemPrompt: 'Flag regulatory violations, policy gaps, and audit findings.',
-    category: 'COMPLIANCE'
-  },
-  {
-    id: 'auditor', label: 'Internal Auditor', Icon: AuditorIcon,
-    description: 'Control testing, risk assessment',
-    systemPrompt: 'Test internal controls, identify material weaknesses, and assess risk exposure.',
-    category: 'COMPLIANCE'
-  },
-  {
-    id: 'whistleblower', label: 'Whistleblower', Icon: LanternIcon,
-    description: 'Forensic analysis, anomaly detection',
-    systemPrompt: 'FORENSIC MODE: Hunt for anomalies, discrepancies, and hidden patterns. Flag anything suspicious.',
-    category: 'COMPLIANCE',
-    isWhistleblower: true
-  },
-]
+// Re-export persona data for use in GlobalHeader
+export { PERSONAS, type Persona, type PersonaCategory } from './personaData'
 
 export function InputBar() {
   const inputValue = useMercuryStore((s) => s.inputValue)
@@ -120,21 +32,17 @@ export function InputBar() {
   const removeAttachment = useMercuryStore((s) => s.removeAttachment)
   const updateAttachment = useMercuryStore((s) => s.updateAttachment)
   const activePersona = useMercuryStore((s) => s.activePersona)
-  const setPersona = useMercuryStore((s) => s.setPersona)
   const privilegeMode = usePrivilegeStore((s) => s.isEnabled)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
 
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isInjectMenuOpen, setIsInjectMenuOpen] = useState(false)
   const [showUrlInput, setShowUrlInput] = useState(false)
   const [urlValue, setUrlValue] = useState('')
-  const [hoveredPersona, setHoveredPersona] = useState<string | null>(null)
+  const [isMatrixOpen, setIsMatrixOpen] = useState(false)
 
   const currentPersona = PERSONAS.find((p) => p.id === activePersona) || PERSONAS[0]
-  const CurrentIcon = currentPersona.Icon
-  const isWhistleblowerMode = currentPersona.isWhistleblower
 
   // Auto-resize textarea
   useEffect(() => {
@@ -146,32 +54,34 @@ export function InputBar() {
   }, [inputValue])
 
   // File handling for Ad-Hoc Injection
-  const handleFileSelect = useCallback(async (files: FileList | null, isImage = false) => {
-    if (!files) return
-    setIsInjectMenuOpen(false)
+  const handleFileSelect = useCallback(
+    async (files: FileList | null, isImage = false) => {
+      if (!files) return
+      setIsInjectMenuOpen(false)
 
-    for (const file of Array.from(files)) {
-      const attachmentId = addAttachment({
-        name: file.name,
-        type: isImage ? 'image' : 'file',
-        mimeType: file.type,
-        size: file.size,
-      })
-
-      // Read file as base64
-      const reader = new FileReader()
-      reader.onload = () => {
-        updateAttachment(attachmentId, {
-          content: reader.result as string,
-          status: 'ready',
+      for (const file of Array.from(files)) {
+        const attachmentId = addAttachment({
+          name: file.name,
+          type: isImage ? 'image' : 'file',
+          mimeType: file.type,
+          size: file.size,
         })
+
+        const reader = new FileReader()
+        reader.onload = () => {
+          updateAttachment(attachmentId, {
+            content: reader.result as string,
+            status: 'ready',
+          })
+        }
+        reader.onerror = () => {
+          updateAttachment(attachmentId, { status: 'error' })
+        }
+        reader.readAsDataURL(file)
       }
-      reader.onerror = () => {
-        updateAttachment(attachmentId, { status: 'error' })
-      }
-      reader.readAsDataURL(file)
-    }
-  }, [addAttachment, updateAttachment])
+    },
+    [addAttachment, updateAttachment]
+  )
 
   const handleUrlAdd = useCallback(() => {
     if (!urlValue.trim()) return
@@ -182,7 +92,6 @@ export function InputBar() {
       url: urlValue,
     })
 
-    // Quick-scrape the URL
     updateAttachment(attachmentId, { status: 'processing' })
 
     fetch('/api/scrape', {
@@ -254,19 +163,22 @@ export function InputBar() {
   }
 
   // Voice input handlers
-  const handleVoiceTranscript = useCallback((text: string) => {
-    // Update input with live transcript
-    setInputValue(text)
-  }, [setInputValue])
+  const handleVoiceTranscript = useCallback(
+    (text: string) => {
+      setInputValue(text)
+    },
+    [setInputValue]
+  )
 
-  const handleVoiceSubmit = useCallback((text: string) => {
-    // Auto-submit when voice input is finalized
-    setInputValue(text)
-    // Small delay to ensure state is updated before sending
-    setTimeout(() => {
-      sendMessage(privilegeMode)
-    }, 50)
-  }, [setInputValue, sendMessage, privilegeMode])
+  const handleVoiceSubmit = useCallback(
+    (text: string) => {
+      setInputValue(text)
+      setTimeout(() => {
+        sendMessage(privilegeMode)
+      }, 50)
+    },
+    [setInputValue, sendMessage, privilegeMode]
+  )
 
   const canSend = (inputValue.trim().length > 0 || attachments.length > 0) && !isStreaming
 
@@ -274,345 +186,234 @@ export function InputBar() {
   const getAttachmentIcon = (attachment: SessionAttachment) => {
     if (attachment.type === 'image') return <Image className="w-3 h-3" />
     if (attachment.type === 'url') return <Link className="w-3 h-3" />
-    // File types
     if (attachment.mimeType?.includes('pdf')) return <FileText className="w-3 h-3" />
     return <FileUp className="w-3 h-3" />
   }
 
-  const executivePersonas = PERSONAS.filter((p) => p.category === 'EXECUTIVE')
-  const compliancePersonas = PERSONAS.filter((p) => p.category === 'COMPLIANCE')
-
   return (
-    <div className="shrink-0 border-t border-[var(--border-default)] border-t-white/10 bg-[var(--bg-secondary)] px-4 py-3">
-      {/* Persona Selector - Above input */}
-      <div className="mb-3 flex justify-center">
-        <div className="relative">
-          <button
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className={`
-              flex items-center gap-2.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300
-              ${isWhistleblowerMode
-                ? 'bg-amber-900/30 border border-amber-500/50 text-amber-400 hover:bg-amber-900/50 shadow-[0_0_20px_rgba(245,158,11,0.3)]'
-                : 'bg-slate-800/50 border border-slate-700/50 text-slate-300 hover:bg-slate-800 hover:border-slate-600'
-              }
-            `}
-          >
-            {/* Status Dot - Pulsing Red for Whistleblower */}
-            <span className={`w-2 h-2 rounded-full ${
-              isWhistleblowerMode
-                ? 'bg-red-500 animate-ping'
-                : 'bg-emerald-500'
-            }`} />
-            <CurrentIcon
-              size={18}
-              color={isWhistleblowerMode ? '#FBBF24' : '#C0C0C0'}
-            />
-            <span>Viewing as: {currentPersona.label}</span>
-            <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-          </button>
-
-          {/* Dropdown */}
-          {isDropdownOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => { setIsDropdownOpen(false); setHoveredPersona(null) }} />
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-96 bg-[#0B1221]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-50 py-2 overflow-hidden">
-                {/* System Prompt Preview (on hover) */}
-                {hoveredPersona && (
-                  <div className="px-4 py-3 bg-slate-900/80 border-b border-white/10">
-                    <p className="text-[10px] font-semibold text-cyan-400 uppercase tracking-wider mb-1">
-                      System Instruction
-                    </p>
-                    <p className="text-xs text-slate-400 italic">
-                      "{PERSONAS.find(p => p.id === hoveredPersona)?.systemPrompt}"
-                    </p>
-                  </div>
+    <div className="shrink-0 px-4 py-4 bg-transparent">
+      {/* Focus Column - Constrained width to match conversation */}
+      <div className="max-w-3xl mx-auto">
+        {/* Attachment Chips (shown above input when files attached) */}
+        {attachments.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-3 px-2">
+            {attachments.map((attachment) => (
+              <div
+                key={attachment.id}
+                className={`
+                  inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
+                  transition-all duration-200
+                  ${
+                    attachment.status === 'error'
+                      ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                      : attachment.status === 'processing'
+                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                        : 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                  }
+                `}
+              >
+                {attachment.status === 'processing' ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  getAttachmentIcon(attachment)
                 )}
-
-                {/* Executive Section */}
-                <div className="px-4 py-2 text-[10px] font-semibold text-slate-500 uppercase tracking-wider border-b border-white/5">
-                  Executive Leadership
-                </div>
-                {executivePersonas.map((persona) => {
-                  const Icon = persona.Icon
-                  const isSelected = persona.id === activePersona
-                  return (
-                    <button
-                      key={persona.id}
-                      onClick={() => { setPersona(persona.id as any); setIsDropdownOpen(false); setHoveredPersona(null) }}
-                      onMouseEnter={() => setHoveredPersona(persona.id)}
-                      onMouseLeave={() => setHoveredPersona(null)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/5 transition-colors ${
-                        isSelected ? 'bg-[var(--brand-blue)]/10' : ''
-                      }`}
-                    >
-                      <Icon
-                        size={20}
-                        color={isSelected ? '#60A5FA' : '#C0C0C0'}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className={`text-sm font-medium ${isSelected ? 'text-[var(--brand-blue)]' : 'text-slate-300'}`}>
-                          {persona.label}
-                        </div>
-                        <div className="text-xs text-slate-500 truncate">{persona.description}</div>
-                      </div>
-                      {isSelected && (
-                        <span className="text-[var(--brand-blue)] text-sm">✓</span>
-                      )}
-                    </button>
-                  )
-                })}
-
-                <div className="border-t border-white/5 my-1" />
-
-                {/* Compliance Section - With Whistleblower Warning */}
-                <div className="px-4 py-2 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
-                  Compliance & Oversight
-                </div>
-                {compliancePersonas.map((persona) => {
-                  const Icon = persona.Icon
-                  const isSelected = persona.id === activePersona
-                  const iconColor = persona.isWhistleblower
-                    ? (isSelected ? '#FBBF24' : '#D97706')
-                    : (isSelected ? '#60A5FA' : '#C0C0C0')
-
-                  return (
-                    <button
-                      key={persona.id}
-                      onClick={() => { setPersona(persona.id as any); setIsDropdownOpen(false); setHoveredPersona(null) }}
-                      onMouseEnter={() => setHoveredPersona(persona.id)}
-                      onMouseLeave={() => setHoveredPersona(null)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/5 transition-colors ${
-                        isSelected
-                          ? persona.isWhistleblower
-                            ? 'bg-amber-900/20'
-                            : 'bg-[var(--brand-blue)]/10'
-                          : ''
-                      }`}
-                    >
-                      <Icon size={20} color={iconColor} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className={`text-sm font-medium ${
-                            isSelected
-                              ? persona.isWhistleblower ? 'text-amber-400' : 'text-[var(--brand-blue)]'
-                              : persona.isWhistleblower ? 'text-amber-400/80' : 'text-slate-300'
-                          }`}>
-                            {persona.label}
-                          </span>
-                          {persona.isWhistleblower && (
-                            <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
-                          )}
-                        </div>
-                        <div className={`text-xs truncate ${persona.isWhistleblower ? 'text-amber-500/60' : 'text-slate-500'}`}>
-                          {persona.description}
-                        </div>
-                      </div>
-                      {isSelected && (
-                        <span className={persona.isWhistleblower ? 'text-amber-400 text-sm' : 'text-[var(--brand-blue)] text-sm'}>✓</span>
-                      )}
-                    </button>
-                  )
-                })}
+                <span className="max-w-[120px] truncate">{attachment.name}</span>
+                <button
+                  onClick={() => removeAttachment(attachment.id)}
+                  className="ml-0.5 p-0.5 rounded-full hover:bg-white/10 transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
               </div>
-            </>
-          )}
-        </div>
-      </div>
+            ))}
+          </div>
+        )}
 
-      {/* Attachment Chips (shown above input when files attached) */}
-      {attachments.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-2 px-1">
-          {attachments.map((attachment) => (
-            <div
-              key={attachment.id}
+        {/* Intelligence Badge - Above Input */}
+        <div className="relative mb-2">
+          <IntelligenceBadge onClick={() => setIsMatrixOpen(true)} />
+          <IntelligenceMatrix
+            isOpen={isMatrixOpen}
+            onClose={() => setIsMatrixOpen(false)}
+          />
+        </div>
+
+        {/* Stealth Pill Input Container - Clean Capsule */}
+        <div
+          className={`
+            flex items-center gap-2 px-4 py-3
+            rounded-full
+            bg-[#050b14] border border-white/10
+            focus-within:border-cyan-500/50 focus-within:shadow-[0_0_20px_-5px_rgba(0,240,255,0.3)]
+            transition-all duration-300
+          `}
+        >
+          {/* Paperclip - Inject Context (Left) */}
+          <div className="relative shrink-0">
+            <button
+              onClick={() => setIsInjectMenuOpen(!isInjectMenuOpen)}
               className={`
-                inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium
-                transition-all duration-200
-                ${attachment.status === 'error'
-                  ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                  : attachment.status === 'processing'
-                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                    : 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border border-[var(--brand-blue)]/30'
+                p-1.5 rounded-full transition-all duration-200
+                ${
+                  isInjectMenuOpen
+                    ? 'text-white bg-white/10'
+                    : 'text-slate-500 hover:text-white hover:bg-white/5'
                 }
               `}
+              title="Inject Context"
             >
-              {attachment.status === 'processing' ? (
-                <Loader2 className="w-3 h-3 animate-spin" />
-              ) : (
-                getAttachmentIcon(attachment)
-              )}
-              <span className="max-w-[120px] truncate">{attachment.name}</span>
-              <button
-                onClick={() => removeAttachment(attachment.id)}
-                className="ml-0.5 p-0.5 rounded hover:bg-white/10 transition-colors"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+              <Paperclip className="w-5 h-5" />
+            </button>
 
-      {/* Input Area */}
-      <div className="flex items-end gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] px-3 py-2 focus-within:border-[var(--brand-blue)] focus-within:ring-2 focus-within:ring-[var(--brand-blue)]/50 focus-within:shadow-[0_0_30px_-5px_rgba(36,99,235,0.4)] transition-all duration-300">
-        {/* Voice Trigger - HAL 9000 Style */}
-        <VoiceTrigger
-          onTranscript={handleVoiceTranscript}
-          onSubmit={handleVoiceSubmit}
-          disabled={isStreaming}
-          className="shrink-0"
-        />
-
-        {/* Ad-Hoc Injection Button */}
-        <div className="relative">
-          <button
-            onClick={() => setIsInjectMenuOpen(!isInjectMenuOpen)}
-            className={`
-              shrink-0 p-1.5 rounded-md transition-all duration-200
-              ${isInjectMenuOpen
-                ? 'text-amber-400 bg-amber-500/20'
-                : 'text-[var(--text-tertiary)] hover:text-amber-400 hover:bg-amber-500/10'
-              }
-              group
-            `}
-            title="Inject Context"
-          >
-            <Paperclip className="w-5 h-5 transition-all group-hover:drop-shadow-[0_0_6px_rgba(245,158,11,0.6)]" />
-          </button>
-
-          {/* Inject Menu Popover */}
-          {isInjectMenuOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => { setIsInjectMenuOpen(false); setShowUrlInput(false) }} />
-              <div className="absolute bottom-full left-0 mb-2 w-52 bg-[#0B1221]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-50 py-1 overflow-hidden">
-                <div className="px-3 py-2 border-b border-white/5">
-                  <p className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider">
-                    Inject Context
-                  </p>
-                  <p className="text-[10px] text-slate-500">Session only • RAM Mode</p>
-                </div>
-
-                {/* Upload File */}
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
-                >
-                  <FileUp className="w-4 h-4 text-cyan-400" />
-                  <div>
-                    <span className="block">Upload File</span>
-                    <span className="text-[10px] text-slate-500">PDF, DOCX, TXT</span>
+            {/* Inject Menu Popover */}
+            {isInjectMenuOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => {
+                    setIsInjectMenuOpen(false)
+                    setShowUrlInput(false)
+                  }}
+                />
+                <div className="absolute bottom-full left-0 mb-2 w-52 bg-[#0a0f1a]/98 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-50 py-1 overflow-hidden">
+                  <div className="px-3 py-2 border-b border-white/5">
+                    <p className="text-[10px] font-semibold text-cyan-400 uppercase tracking-wider">
+                      Inject Context
+                    </p>
+                    <p className="text-[10px] text-slate-500">Session only</p>
                   </div>
-                </button>
 
-                {/* Paste Image */}
-                <button
-                  onClick={() => imageInputRef.current?.click()}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
-                >
-                  <Image className="w-4 h-4 text-purple-400" />
-                  <div>
-                    <span className="block">Add Image</span>
-                    <span className="text-[10px] text-slate-500">Screenshots, Charts</span>
-                  </div>
-                </button>
-
-                {/* Add URL */}
-                {showUrlInput ? (
-                  <div className="px-3 py-2 border-t border-white/5">
-                    <div className="flex gap-2">
-                      <input
-                        type="url"
-                        value={urlValue}
-                        onChange={(e) => setUrlValue(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleUrlAdd()}
-                        placeholder="https://..."
-                        autoFocus
-                        className="flex-1 px-2 py-1.5 text-xs bg-slate-900/50 border border-slate-700 rounded-md text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
-                      />
-                      <button
-                        onClick={handleUrlAdd}
-                        disabled={!urlValue.trim()}
-                        className="px-2 py-1.5 text-xs bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-black font-medium rounded-md transition-colors"
-                      >
-                        Add
-                      </button>
-                    </div>
-                  </div>
-                ) : (
                   <button
-                    onClick={() => setShowUrlInput(true)}
+                    onClick={() => fileInputRef.current?.click()}
                     className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
                   >
-                    <Link className="w-4 h-4 text-emerald-400" />
+                    <FileUp className="w-4 h-4 text-cyan-400" />
                     <div>
-                      <span className="block">Add URL</span>
-                      <span className="text-[10px] text-slate-500">Quick scrape</span>
+                      <span className="block">Upload File</span>
+                      <span className="text-[10px] text-slate-500">PDF, DOCX, TXT</span>
                     </div>
                   </button>
-                )}
-              </div>
-            </>
-          )}
 
-          {/* Hidden file inputs */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
-            accept=".pdf,.doc,.docx,.txt,.md,.csv,.xlsx,.xls"
-            multiple
-            onChange={(e) => handleFileSelect(e.target.files)}
+                  <button
+                    onClick={() => imageInputRef.current?.click()}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    <Image className="w-4 h-4 text-purple-400" />
+                    <div>
+                      <span className="block">Add Image</span>
+                      <span className="text-[10px] text-slate-500">Screenshots, Charts</span>
+                    </div>
+                  </button>
+
+                  {showUrlInput ? (
+                    <div className="px-3 py-2 border-t border-white/5">
+                      <div className="flex gap-2">
+                        <input
+                          type="url"
+                          value={urlValue}
+                          onChange={(e) => setUrlValue(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleUrlAdd()}
+                          placeholder="https://..."
+                          autoFocus
+                          className="flex-1 px-2 py-1.5 text-xs bg-slate-900/50 border border-slate-700 rounded-md text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                        />
+                        <button
+                          onClick={handleUrlAdd}
+                          disabled={!urlValue.trim()}
+                          className="px-2 py-1.5 text-xs bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-black font-medium rounded-md transition-colors"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowUrlInput(true)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                    >
+                      <Link className="w-4 h-4 text-emerald-400" />
+                      <div>
+                        <span className="block">Add URL</span>
+                        <span className="text-[10px] text-slate-500">Quick scrape</span>
+                      </div>
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Hidden file inputs */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              accept=".pdf,.doc,.docx,.txt,.md,.csv,.xlsx,.xls"
+              multiple
+              onChange={(e) => handleFileSelect(e.target.files)}
+            />
+            <input
+              ref={imageInputRef}
+              type="file"
+              className="hidden"
+              accept="image/*"
+              multiple
+              onChange={(e) => handleFileSelect(e.target.files, true)}
+            />
+          </div>
+
+          {/* Textarea (Center - flex-1 takes remaining space) */}
+          <textarea
+            ref={textareaRef}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={attachments.length > 0 ? 'Ask about attached context...' : 'Ask anything...'}
+            rows={1}
+            className="flex-1 bg-transparent text-sm text-white placeholder:text-slate-500 resize-none outline-none min-h-[24px] max-h-[120px] py-0.5 pr-2"
           />
-          <input
-            ref={imageInputRef}
-            type="file"
-            className="hidden"
-            accept="image/*"
-            multiple
-            onChange={(e) => handleFileSelect(e.target.files, true)}
-          />
+
+          {/* Right side action buttons */}
+          <div className="flex items-center gap-1 shrink-0">
+            {/* Voice Trigger - Inside Capsule */}
+            <VoiceTrigger
+              onTranscript={handleVoiceTranscript}
+              onSubmit={handleVoiceSubmit}
+              disabled={isStreaming}
+              size="default"
+              variant="inline"
+            />
+
+            {/* Stop / Send Button */}
+            {isStreaming ? (
+              <button
+                onClick={stopStreaming}
+                className="p-2 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
+                title="Stop"
+              >
+                <Square className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                onClick={handleSubmit}
+                disabled={!canSend}
+                className={`p-2 rounded-full transition-all duration-200 ${
+                  canSend
+                    ? 'bg-white text-black hover:bg-slate-200'
+                    : 'bg-white/10 text-slate-600 cursor-not-allowed'
+                }`}
+                title="Send (Shift+Enter)"
+              >
+                <ArrowUp className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Textarea */}
-        <textarea
-          ref={textareaRef}
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={attachments.length > 0 ? "Ask about attached context..." : "Ask about your documents..."}
-          rows={1}
-          className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] resize-none outline-none min-h-[24px] max-h-[160px] py-1"
-        />
-
-        {/* Stop / Send */}
-        {isStreaming ? (
-          <button
-            onClick={stopStreaming}
-            className="shrink-0 p-1.5 rounded-md bg-[var(--danger)] text-white hover:bg-[var(--danger)]/80 transition-colors"
-            title="Stop"
-          >
-            <Square className="w-5 h-5" />
-          </button>
-        ) : (
-          <button
-            onClick={handleSubmit}
-            disabled={!canSend}
-            className={`shrink-0 p-1.5 rounded-md transition-colors ${
-              canSend
-                ? 'bg-[var(--brand-blue)] text-white hover:bg-[var(--brand-blue-hover)]'
-                : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] cursor-not-allowed'
-            }`}
-            title="Send (Shift+Enter)"
-          >
-            <ArrowUp className="w-5 h-5" />
-          </button>
-        )}
+        {/* Hint */}
+        <p className="text-center text-[10px] text-slate-600 mt-2">
+          ⇧ + ↵ to send · Your data never leaves RAGbox
+        </p>
       </div>
-
-      {/* Hint */}
-      <p className="text-center text-[10px] text-[var(--text-tertiary)] mt-1.5">
-        ⇧ Shift + ↵ Enter to send · ↵ Enter for new line · Your data never leaves RAGbox
-      </p>
     </div>
   )
 }

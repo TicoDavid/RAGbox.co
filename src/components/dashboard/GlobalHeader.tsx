@@ -1138,20 +1138,36 @@ function SectionHeader({ title, description }: { title: string; description: str
 
 // Active Model Badge Component
 function ActiveModelBadge() {
-  const { activeModel, activeModelProvider } = useSettings()
+  const { activeIntelligence, isAegisActive } = useSettings()
 
-  if (!activeModel) return null
+  // Always show the badge - Aegis is the default
+  const isNative = isAegisActive
 
   return (
-    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-gradient-to-r from-cyan-900/30 to-blue-900/30 border border-cyan-500/30">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-cyan-400">
-        <circle cx="12" cy="12" r="3" />
-        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
-      </svg>
-      <span className="text-xs font-medium text-cyan-400">
-        {getModelDisplayName(activeModel)}
+    <div className={`
+      flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-colors
+      ${isNative
+        ? 'bg-gradient-to-r from-amber-900/30 to-orange-900/30 border border-amber-500/30'
+        : 'bg-gradient-to-r from-cyan-900/30 to-blue-900/30 border border-cyan-500/30'
+      }
+    `}>
+      {isNative ? (
+        // Aegis Shield Icon
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-400">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          <path d="M9 12l2 2 4-4" />
+        </svg>
+      ) : (
+        // Other model icon
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-cyan-400">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+        </svg>
+      )}
+      <span className={`text-xs font-medium ${isNative ? 'text-amber-400' : 'text-cyan-400'}`}>
+        {activeIntelligence.displayName}
       </span>
-      <span className="text-[10px] text-slate-500">via {activeModelProvider}</span>
+      <span className="text-[10px] text-slate-500">via {activeIntelligence.provider}</span>
     </div>
   )
 }
