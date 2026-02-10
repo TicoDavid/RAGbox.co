@@ -56,7 +56,7 @@ export async function POST() {
       success: true,
       sessionId,
       // WebSocket endpoint - all audio flows through here
-      wsUrl: `${wsProtocol}://${host}/api/agent/ws?sessionId=${encodeURIComponent(sessionId)}`,
+      wsUrl: `${wsProtocol}://${host}/agent/ws?sessionId=${encodeURIComponent(sessionId)}`,
       // Audio configuration for client capture
       audio: {
         sampleRateHz: 16000,

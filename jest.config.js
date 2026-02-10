@@ -1,6 +1,5 @@
-import type { Config } from 'jest';
-
-const config: Config = {
+/** @type {import('jest').Config} */
+const config = {
   projects: [
     {
       displayName: 'node',
@@ -31,4 +30,4 @@ const config: Config = {
   ],
 };
 
-export default config;
+module.exports = config;

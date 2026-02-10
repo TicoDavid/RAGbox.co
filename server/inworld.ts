@@ -388,12 +388,10 @@ Current user context:
       const { outputStream } = await ttsGraph.start(text)
 
       for await (const result of outputStream) {
-        // Use flexible response handling for TTS output
         await result.processResponse({
           default: async (output: unknown) => {
             const ttsOutput = output as { audio?: { data?: string } }
             if (ttsOutput.audio?.data) {
-              // Convert Float32 (from Inworld) to Int16 (for browser)
               const int16Base64 = float32ToInt16Base64(ttsOutput.audio.data)
               onTTSChunk?.(int16Base64)
             }
