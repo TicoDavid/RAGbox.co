@@ -15,6 +15,8 @@ const GO_BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080
 /**
  * Execute a tool call against the Go backend with structured error handling.
  */
+// Used by tool execution flow (wired in when Go /api/tools/execute endpoint is live)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function executeToolSafely(
   toolName: string,
   params: Record<string, unknown>,

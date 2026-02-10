@@ -156,14 +156,14 @@ steps:
 
         echo "Service deployed at: $$SERVICE_URL"
 
-        # Wait for service to be ready
-        for i in {1..30}; do
-          if curl -sf "$$SERVICE_URL/api/health" > /dev/null; then
+        # Wait for service to be ready (check root path served by Next.js)
+        for i in {1..10}; do
+          if curl -sf "$$SERVICE_URL/" > /dev/null; then
             echo "Service is healthy"
             break
           fi
-          echo "Waiting for service to be ready... (attempt $$i/30)"
-          sleep 10
+          echo "Waiting for service to be ready... (attempt $$i/10)"
+          sleep 5
         done
 
         # Note: Database migrations should be run as a separate Cloud Run job

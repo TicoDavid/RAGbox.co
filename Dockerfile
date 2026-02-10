@@ -44,6 +44,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Prisma query engine needs OpenSSL at runtime
+RUN apk add --no-cache openssl
+
 # Security: non-root user
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
