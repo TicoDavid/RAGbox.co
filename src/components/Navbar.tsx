@@ -44,7 +44,7 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
       )}
     >
       <div className="flex items-center justify-between">
-        {/* Logo - Theme-aware */}
+        {/* Logo - Compact */}
         <motion.div
           className="flex items-center"
           initial={{ opacity: 0, x: -20 }}
@@ -54,9 +54,9 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
           <img
             src="https://storage.googleapis.com/connexusai-assets/BabyBlue_RAGb%C3%B6x.png"
             alt="RAGbox"
-            width={360}
-            height={96}
-            className="h-20 sm:h-24 w-auto -my-4 sm:-my-6"
+            width={180}
+            height={48}
+            className="h-10 sm:h-12 w-auto"
             style={{ color: 'transparent' }}
           />
         </motion.div>
