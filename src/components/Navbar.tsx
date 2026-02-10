@@ -37,7 +37,7 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
     <nav
       className={cn(
         'fixed top-0 left-0 right-0 z-50',
-        'px-2 sm:px-4 md:px-6 py-0.5',
+        'px-4 sm:px-6 md:px-8 py-2',
         // Obsidian background with glass effect
         'bg-[#020408]/90 backdrop-blur-md',
         'border-b border-amber-500/10'
@@ -54,9 +54,9 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
           <img
             src="https://storage.googleapis.com/connexusai-assets/BabyBlue_RAGb%C3%B6x.png"
             alt="RAGbox"
-            width={720}
-            height={192}
-            className="h-48 w-auto"
+            width={360}
+            height={96}
+            className="h-20 sm:h-24 w-auto -my-4 sm:-my-6"
             style={{ color: 'transparent' }}
           />
         </motion.div>
