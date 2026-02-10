@@ -129,7 +129,7 @@ steps:
       - '--concurrency'
       - '80'
       - '--vpc-connector'
-      - 'ragbox-prod-connector'
+      - 'ragbox-connector'
       - '--vpc-egress'
       - 'all-traffic'
       - '--set-env-vars'
