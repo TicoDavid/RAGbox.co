@@ -61,6 +61,8 @@ steps:
       - '8080'
       - '--timeout'
       - '300'
+      - '--add-cloudsql-instances'
+      - 'ragbox-sovereign-prod:us-east4:ragbox-db'
       - '--vpc-connector'
       - 'ragbox-connector'
       - '--vpc-egress'
