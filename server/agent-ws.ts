@@ -122,17 +122,50 @@ interface ConnectionParams {
   privilegeMode: boolean
 }
 
+/**
+ * Validate role is a known value to prevent injection of arbitrary roles.
+ */
+function isValidRole(role: string | null): role is ConnectionParams['role'] {
+  return role === 'User' || role === 'Admin' || role === 'Viewer'
+}
+
 function extractConnectionParams(req: IncomingMessage): ConnectionParams {
   try {
     const url = new URL(req.url || '', `http://${req.headers.host}`)
+
+    // Extract the token from the Authorization header or query param
+    const authHeader = req.headers['authorization']
+    const token = authHeader?.startsWith('Bearer ')
+      ? authHeader.slice(7)
+      : url.searchParams.get('token')
+
+    if (!token) {
+      console.warn('[AgentWS] No auth token provided — using anonymous session')
+      return { sessionId: null, userId: 'anonymous', role: 'Viewer', privilegeMode: false }
+    }
+
+    // TODO: Replace with real Firebase Admin SDK token verification:
+    //   const decoded = await admin.auth().verifyIdToken(token)
+    //   userId = decoded.uid, role = decoded.role || 'User'
+    // For now, extract from query params but enforce role validation.
+    const rawRole = url.searchParams.get('role')
+    const role = isValidRole(rawRole) ? rawRole : 'User'
+
+    // userId should come from verified token in production.
+    // Falling back to query param only for development/testing.
+    const userId = url.searchParams.get('userId') || 'anonymous'
+    if (userId === 'anonymous') {
+      console.warn('[AgentWS] No userId resolved from token — anonymous session')
+    }
+
     return {
       sessionId: url.searchParams.get('sessionId'),
-      userId: url.searchParams.get('userId') || 'anonymous',
-      role: (url.searchParams.get('role') as ConnectionParams['role']) || 'User',
+      userId,
+      role,
       privilegeMode: url.searchParams.get('privilegeMode') === 'true',
     }
   } catch {
-    return { sessionId: null, userId: 'anonymous', role: 'User', privilegeMode: false }
+    return { sessionId: null, userId: 'anonymous', role: 'Viewer', privilegeMode: false }
   }
 }
 

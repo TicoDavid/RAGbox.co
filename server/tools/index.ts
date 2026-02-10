@@ -7,6 +7,7 @@
  */
 
 import { PrismaClient } from '@prisma/client'
+import { checkToolPermission } from './permissions'
 
 // ============================================================================
 // TYPES
@@ -494,9 +495,10 @@ export async function executeTool(call: ToolCall, ctx: ToolContext): Promise<Too
       throw new Error(`Unknown tool: ${call.name}`)
     }
 
-    // RBAC check
-    if (toolDef.requiredRole === 'Admin' && ctx.role !== 'Admin') {
-      throw new Error(`Tool '${call.name}' requires Admin role`)
+    // RBAC check via permissions module (role-based allowlist)
+    const permission = checkToolPermission(call.name, ctx)
+    if (!permission.allowed) {
+      throw new Error(permission.reason || `Tool '${call.name}' not allowed for role '${ctx.role}'`)
     }
 
     let result: unknown

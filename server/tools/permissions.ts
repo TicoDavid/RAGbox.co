@@ -64,6 +64,8 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'extract_liability_clauses',
     'extract_key_dates',
     'get_document_stats',
+    'list_documents',
+    'read_document',
     'navigate_to',
   ],
   Admin: [
