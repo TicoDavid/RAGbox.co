@@ -16,6 +16,7 @@ type UploadRequest struct {
 	Filename    string `json:"filename"`
 	ContentType string `json:"contentType"`
 	SizeBytes   int    `json:"sizeBytes"`
+	FolderID    string `json:"folderId,omitempty"`
 }
 
 // UploadDocument returns a handler that generates a signed upload URL.
@@ -39,7 +40,7 @@ func UploadDocument(docService *service.DocumentService) http.HandlerFunc {
 			return
 		}
 
-		resp, err := docService.GenerateUploadURL(r.Context(), userID, req.Filename, req.ContentType, req.SizeBytes)
+		resp, err := docService.GenerateUploadURL(r.Context(), userID, req.Filename, req.ContentType, req.SizeBytes, req.FolderID)
 		if err != nil {
 			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: err.Error()})
 			return

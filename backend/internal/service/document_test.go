@@ -81,7 +81,7 @@ func TestGenerateUploadURL_Success(t *testing.T) {
 	repo := &mockDocRepo{}
 	svc := NewDocumentService(storage, repo, "ragbox-docs", 15*time.Minute)
 
-	resp, err := svc.GenerateUploadURL(context.Background(), "user-123", "contract.pdf", "application/pdf", 1024*1024)
+	resp, err := svc.GenerateUploadURL(context.Background(), "user-123", "contract.pdf", "application/pdf", 1024*1024, "")
 	if err != nil {
 		t.Fatalf("GenerateUploadURL() error: %v", err)
 	}
@@ -119,7 +119,7 @@ func TestGenerateUploadURL_UnsupportedMimeType(t *testing.T) {
 	repo := &mockDocRepo{}
 	svc := NewDocumentService(storage, repo, "bucket", 15*time.Minute)
 
-	_, err := svc.GenerateUploadURL(context.Background(), "user-1", "file.exe", "application/x-msdownload", 1024)
+	_, err := svc.GenerateUploadURL(context.Background(), "user-1", "file.exe", "application/x-msdownload", 1024, "")
 	if err == nil {
 		t.Fatal("expected error for unsupported mime type")
 	}
@@ -130,7 +130,7 @@ func TestGenerateUploadURL_FileTooLarge(t *testing.T) {
 	repo := &mockDocRepo{}
 	svc := NewDocumentService(storage, repo, "bucket", 15*time.Minute)
 
-	_, err := svc.GenerateUploadURL(context.Background(), "user-1", "huge.pdf", "application/pdf", 100*1024*1024)
+	_, err := svc.GenerateUploadURL(context.Background(), "user-1", "huge.pdf", "application/pdf", 100*1024*1024, "")
 	if err == nil {
 		t.Fatal("expected error for file >50MB")
 	}
@@ -141,7 +141,7 @@ func TestGenerateUploadURL_ZeroSize(t *testing.T) {
 	repo := &mockDocRepo{}
 	svc := NewDocumentService(storage, repo, "bucket", 15*time.Minute)
 
-	_, err := svc.GenerateUploadURL(context.Background(), "user-1", "empty.pdf", "application/pdf", 0)
+	_, err := svc.GenerateUploadURL(context.Background(), "user-1", "empty.pdf", "application/pdf", 0, "")
 	if err == nil {
 		t.Fatal("expected error for zero size")
 	}
@@ -152,7 +152,7 @@ func TestGenerateUploadURL_StorageError(t *testing.T) {
 	repo := &mockDocRepo{}
 	svc := NewDocumentService(storage, repo, "bucket", 15*time.Minute)
 
-	_, err := svc.GenerateUploadURL(context.Background(), "user-1", "file.pdf", "application/pdf", 1024)
+	_, err := svc.GenerateUploadURL(context.Background(), "user-1", "file.pdf", "application/pdf", 1024, "")
 	if err == nil {
 		t.Fatal("expected error when storage fails")
 	}
@@ -163,7 +163,7 @@ func TestGenerateUploadURL_RepoCreateError(t *testing.T) {
 	repo := &mockDocRepo{createErr: fmt.Errorf("db error")}
 	svc := NewDocumentService(storage, repo, "bucket", 15*time.Minute)
 
-	_, err := svc.GenerateUploadURL(context.Background(), "user-1", "file.pdf", "application/pdf", 1024)
+	_, err := svc.GenerateUploadURL(context.Background(), "user-1", "file.pdf", "application/pdf", 1024, "")
 	if err == nil {
 		t.Fatal("expected error when repo Create fails")
 	}
@@ -189,7 +189,7 @@ func TestGenerateUploadURL_AllMimeTypes(t *testing.T) {
 			repo := &mockDocRepo{}
 			svc := NewDocumentService(storage, repo, "bucket", 15*time.Minute)
 
-			resp, err := svc.GenerateUploadURL(context.Background(), "user-1", tt.filename, tt.contentType, 1024)
+			resp, err := svc.GenerateUploadURL(context.Background(), "user-1", tt.filename, tt.contentType, 1024, "")
 			if err != nil {
 				t.Fatalf("GenerateUploadURL(%q) error: %v", tt.contentType, err)
 			}
@@ -205,7 +205,7 @@ func TestGenerateUploadURL_ObjectPathScoped(t *testing.T) {
 	repo := &mockDocRepo{}
 	svc := NewDocumentService(storage, repo, "bucket", 15*time.Minute)
 
-	resp, err := svc.GenerateUploadURL(context.Background(), "user-xyz", "report.pdf", "application/pdf", 2048)
+	resp, err := svc.GenerateUploadURL(context.Background(), "user-xyz", "report.pdf", "application/pdf", 2048, "")
 	if err != nil {
 		t.Fatalf("error: %v", err)
 	}

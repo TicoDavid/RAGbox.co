@@ -79,7 +79,7 @@ func NewDocumentService(storage StorageClient, docRepo DocumentRepository, bucke
 
 // GenerateUploadURL creates a signed PUT URL for direct client upload to Cloud Storage
 // and creates a pending document record in the database.
-func (s *DocumentService) GenerateUploadURL(ctx context.Context, userID, filename, contentType string, sizeBytes int) (*SignedURLResponse, error) {
+func (s *DocumentService) GenerateUploadURL(ctx context.Context, userID, filename, contentType string, sizeBytes int, folderID string) (*SignedURLResponse, error) {
 	if !model.AllowedMimeTypes[contentType] {
 		return nil, fmt.Errorf("service.GenerateUploadURL: unsupported content type %q", contentType)
 	}
@@ -122,6 +122,9 @@ func (s *DocumentService) GenerateUploadURL(ctx context.Context, userID, filenam
 		DeletionStatus: model.DeletionActive,
 		CreatedAt:      time.Now().UTC(),
 		UpdatedAt:      time.Now().UTC(),
+	}
+	if folderID != "" {
+		doc.FolderID = &folderID
 	}
 
 	if err := s.docRepo.Create(ctx, doc); err != nil {

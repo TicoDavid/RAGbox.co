@@ -52,18 +52,15 @@ afterAll(() => {
 // ── Tests ────────────────────────────────────────────────────
 
 describe('vaultStore', () => {
-  describe('uploadDocument – two-step flow', () => {
-    test('calls extract then creates document record', async () => {
+  describe('uploadDocument – extract and refresh flow', () => {
+    test('calls extract then refreshes document list', async () => {
       const extractResponse = okJson({
-        data: { storagePath: 'docs/file.pdf', gcsUri: 'gs://bucket/docs/file.pdf' },
+        data: { documentId: 'doc-1', storagePath: 'docs/file.pdf', gcsUri: 'gs://bucket/docs/file.pdf', mimeType: 'application/pdf' },
       })
-      const createResponse = okJson({ id: 'doc-1', name: 'file.pdf' })
-      // fetchDocuments call after upload
       const listResponse = okJson({ documents: [] })
 
       ;(global.fetch as jest.Mock)
-        .mockResolvedValueOnce(extractResponse)  // Step 1: extract
-        .mockResolvedValueOnce(createResponse)   // Step 2: create record
+        .mockResolvedValueOnce(extractResponse)  // extract (creates DB record)
         .mockResolvedValueOnce(listResponse)     // fetchDocuments refresh
 
       const file = new File(['content'], 'file.pdf', { type: 'application/pdf' })
@@ -75,47 +72,32 @@ describe('vaultStore', () => {
       expect(calls[0][0]).toBe('/api/documents/extract')
       expect(calls[0][1].method).toBe('POST')
 
-      // Second call: create document record
+      // Second call: fetchDocuments refresh
       expect(calls[1][0]).toBe('/api/documents')
-      expect(calls[1][1].method).toBe('POST')
-
-      const createBody = JSON.parse(calls[1][1].body)
-      expect(createBody).toEqual({
-        name: 'file.pdf',
-        size: 7,
-        mimeType: 'application/pdf',
-        storagePath: 'docs/file.pdf',
-        storageUri: 'gs://bucket/docs/file.pdf',
-      })
-
-      // Third call: fetchDocuments refresh
-      expect(calls[2][0]).toBe('/api/documents')
     })
 
-    test('passes folderId when provided', async () => {
+    test('passes folderId in FormData when provided', async () => {
       ;(global.fetch as jest.Mock)
-        .mockResolvedValueOnce(okJson({ data: { storagePath: 'p', gcsUri: 'gs://b/p' } }))
-        .mockResolvedValueOnce(okJson({ id: 'doc-2' }))
+        .mockResolvedValueOnce(okJson({ data: { documentId: 'doc-2', storagePath: 'p', gcsUri: 'gs://b/p', mimeType: 'text/plain' } }))
         .mockResolvedValueOnce(okJson({ documents: [] }))
 
       const file = new File(['x'], 'test.txt', { type: 'text/plain' })
       await useVaultStore.getState().uploadDocument(file, 'folder-abc')
 
-      const createBody = JSON.parse((global.fetch as jest.Mock).mock.calls[1][1].body)
-      expect(createBody.folderId).toBe('folder-abc')
+      const extractBody = (global.fetch as jest.Mock).mock.calls[0][1].body as FormData
+      expect(extractBody.get('folderId')).toBe('folder-abc')
     })
 
     test('does not include folderId when not provided', async () => {
       ;(global.fetch as jest.Mock)
-        .mockResolvedValueOnce(okJson({ data: { storagePath: 'p', gcsUri: 'gs://b/p' } }))
-        .mockResolvedValueOnce(okJson({ id: 'doc-3' }))
+        .mockResolvedValueOnce(okJson({ data: { documentId: 'doc-3', storagePath: 'p', gcsUri: 'gs://b/p', mimeType: 'text/plain' } }))
         .mockResolvedValueOnce(okJson({ documents: [] }))
 
       const file = new File(['x'], 'test.txt', { type: 'text/plain' })
       await useVaultStore.getState().uploadDocument(file)
 
-      const createBody = JSON.parse((global.fetch as jest.Mock).mock.calls[1][1].body)
-      expect(createBody).not.toHaveProperty('folderId')
+      const extractBody = (global.fetch as jest.Mock).mock.calls[0][1].body as FormData
+      expect(extractBody.get('folderId')).toBeNull()
     })
 
     test('throws if extract step fails', async () => {
@@ -123,17 +105,6 @@ describe('vaultStore', () => {
 
       const file = new File(['x'], 'test.txt', { type: 'text/plain' })
       await expect(useVaultStore.getState().uploadDocument(file)).rejects.toThrow('Upload failed')
-    })
-
-    test('throws if create record step fails', async () => {
-      ;(global.fetch as jest.Mock)
-        .mockResolvedValueOnce(okJson({ data: { storagePath: 'p', gcsUri: 'gs://b/p' } }))
-        .mockResolvedValueOnce({ ok: false })
-
-      const file = new File(['x'], 'test.txt', { type: 'text/plain' })
-      await expect(useVaultStore.getState().uploadDocument(file)).rejects.toThrow(
-        'Failed to create document record',
-      )
     })
   })
 

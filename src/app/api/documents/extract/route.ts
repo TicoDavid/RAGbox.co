@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
   }
 
   const contentType = file.type || 'application/octet-stream'
+  const folderId = formData.get('folderId') as string | null
 
   // Validate file size before loading into memory (50MB limit)
   const MAX_FILE_SIZE = 50 * 1024 * 1024
@@ -67,6 +68,7 @@ export async function POST(request: NextRequest) {
         filename: file.name,
         contentType,
         sizeBytes: file.size,
+        ...(folderId ? { folderId } : {}),
       }),
     })
   } catch {

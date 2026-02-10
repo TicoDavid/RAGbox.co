@@ -7,8 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getToken } from 'next-auth/jwt'
 import { isToolError, createErrorResponse } from '@/lib/mercury/toolErrors'
 
 const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
@@ -16,16 +15,16 @@ const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
 
 export async function POST(request: NextRequest): Promise<NextResponse | Response> {
   try {
-    // Auth check
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
+    // Auth check — decode JWT directly from cookie (no internal HTTP call)
+    const token = await getToken({ req: request })
+    if (!token) {
       return NextResponse.json(
         { success: false, error: 'Authentication required' },
         { status: 401 }
       )
     }
 
-    const userId = session.user.id || session.user.email || ''
+    const userId = (token.id as string) || token.email || ''
     if (!userId) {
       return NextResponse.json(
         { success: false, error: 'Unable to determine user identity' },

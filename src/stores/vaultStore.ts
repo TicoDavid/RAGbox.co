@@ -164,35 +164,16 @@ export const useVaultStore = create<VaultState>()(
           formData.append('file', file)
           if (folderId) formData.append('folderId', folderId)
 
-          // Step 1: Extract text and upload to GCS
+          // Upload to GCS via extract endpoint (also creates DB record)
           const extractRes = await apiFetch('/api/documents/extract', {
             method: 'POST',
             body: formData,
           })
 
           if (!extractRes.ok) throw new Error('Upload failed')
-          const extractResult = await extractRes.json()
 
-          // Step 2: Create document record in database
-          // Use mimeType from extract result (which handles empty file.type for .md files)
-          const mimeType = extractResult.data.mimeType || file.type || 'application/octet-stream'
-
-          const createRes = await apiFetch('/api/documents', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              name: file.name,
-              size: file.size,
-              mimeType,
-              storagePath: extractResult.data.storagePath,
-              storageUri: extractResult.data.gcsUri,
-              ...(folderId ? { folderId } : {}),
-            }),
-          })
-
-          if (!createRes.ok) throw new Error('Failed to create document record')
-
-          get().fetchDocuments()
+          // Document record was created by the extract endpoint — refresh list
+          await get().fetchDocuments()
         },
 
         deleteDocument: async (id) => {
@@ -290,7 +271,7 @@ export const useVaultStore = create<VaultState>()(
         },
 
         deleteFolder: async (id) => {
-          const res = await apiFetch(`/api/documents/folders?id=${id}`, {
+          const res = await apiFetch(`/api/documents/folders/${id}`, {
             method: 'DELETE',
           })
 
