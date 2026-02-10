@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import type { ChatMessage, Citation, TemperaturePreset } from '@/types/ragbox'
+import { apiUrl } from '@/lib/api'
 
 // Ad-Hoc Attachment (Session-only, not persisted to Vault)
 export interface SessionAttachment {
@@ -90,7 +91,7 @@ export const useMercuryStore = create<MercuryState>()(
       })
 
       try {
-        const res = await fetch('/api/chat', {
+        const res = await fetch(apiUrl('/api/chat'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

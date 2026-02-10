@@ -21,8 +21,8 @@ model User {
   email     String   @unique
   name      String?
   image     String?
-  role      UserRole @default(Associate)
-  status    UserStatus @default(Active)
+  role      user_role @default(Associate)
+  status    user_status @default(Active)
   privilegeModeEnabled Boolean @default(false) @map("privilege_mode_enabled")
   privilegeModeChangedAt DateTime? @map("privilege_mode_changed_at")
   createdAt DateTime @default(now()) @map("created_at")
@@ -39,13 +39,13 @@ model User {
   @@map("users")
 }
 
-enum UserRole {
+enum user_role {
   Partner
   Associate
   Auditor
 }
 
-enum UserStatus {
+enum user_status {
   Active
   Suspended
 }
@@ -58,7 +58,7 @@ model Vault {
   id               String   @id @default(cuid())
   name             String
   userId           String   @map("user_id")
-  status           VaultStatus @default(open)
+  status           vault_status @default(open)
   documentCount    Int      @default(0) @map("document_count")
   storageUsedBytes BigInt   @default(0) @map("storage_used_bytes")
   createdAt        DateTime @default(now()) @map("created_at")
@@ -71,7 +71,7 @@ model Vault {
   @@map("vaults")
 }
 
-enum VaultStatus {
+enum vault_status {
   open
   closed
   secure
@@ -93,8 +93,8 @@ model Document {
   storageUri      String?        @map("storage_uri")
   storagePath     String?        @map("storage_path")
   extractedText   String?        @map("extracted_text")
-  indexStatus     IndexStatus    @default(Pending) @map("index_status")
-  deletionStatus  DeletionStatus @default(Active) @map("deletion_status")
+  indexStatus     index_status    @default(Pending) @map("index_status")
+  deletionStatus  deletion_status @default(Active) @map("deletion_status")
   isPrivileged    Boolean        @default(false) @map("is_privileged")
   securityTier    Int            @default(0) @map("security_tier")
   chunkCount      Int            @default(0) @map("chunk_count")
@@ -120,14 +120,14 @@ model Document {
   @@map("documents")
 }
 
-enum IndexStatus {
+enum index_status {
   Pending
   Processing
   Indexed
   Failed
 }
 
-enum DeletionStatus {
+enum deletion_status {
   Active
   SoftDeleted
   HardDeleted
@@ -164,7 +164,7 @@ model Query {
   userId          String       @map("user_id")
   queryText       String       @map("query_text")
   confidenceScore Float?       @map("confidence_score")
-  outcome         QueryOutcome @default(Answered)
+  outcome         query_outcome @default(Answered)
   privilegeMode   Boolean      @default(false) @map("privilege_mode")
   chunksUsed      Int          @default(0) @map("chunks_used")
   latencyMs       Int?         @map("latency_ms")
@@ -179,7 +179,7 @@ model Query {
   @@map("queries")
 }
 
-enum QueryOutcome {
+enum query_outcome {
   Answered
   Refused
 }

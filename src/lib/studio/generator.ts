@@ -8,6 +8,7 @@ import { ragClient } from '@/lib/vertex/rag-client'
 import { storageClient } from '@/lib/gcp/storage-client'
 import { TextToSpeechClient } from '@google-cloud/text-to-speech'
 import { prisma } from '@/lib/prisma'
+import { deletion_status } from '@prisma/client'
 import { buildGenerationPrompt, getSystemPromptForArtifact } from './prompts'
 import type {
   ArtifactType,
@@ -39,7 +40,7 @@ async function fetchDocumentContent(documentIds: string[], userId: string): Prom
     where: {
       id: { in: documentIds },
       userId,
-      deletionStatus: 'Active',
+      deletionStatus: deletion_status.Active,
     },
     select: {
       id: true,

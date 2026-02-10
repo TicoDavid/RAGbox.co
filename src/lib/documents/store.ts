@@ -5,6 +5,7 @@
  */
 
 import prisma from '@/lib/prisma'
+import { deletion_status as PrismaDeletionStatus, index_status as PrismaIndexStatus } from '@prisma/client'
 
 export const STORAGE_LIMITS = {
   MAX_FILE_SIZE_BYTES: 100 * 1024 * 1024,
@@ -13,6 +14,20 @@ export const STORAGE_LIMITS = {
 } as const
 
 export type DeletionStatus = 'Active' | 'SoftDeleted' | 'HardDeleted'
+
+// Prisma enum mappings
+const deletionStatusMap: Record<DeletionStatus, PrismaDeletionStatus> = {
+  Active: PrismaDeletionStatus.Active,
+  SoftDeleted: PrismaDeletionStatus.SoftDeleted,
+  HardDeleted: PrismaDeletionStatus.HardDeleted,
+}
+
+const indexStatusMap: Record<string, PrismaIndexStatus> = {
+  Pending: PrismaIndexStatus.Pending,
+  Processing: PrismaIndexStatus.Processing,
+  Indexed: PrismaIndexStatus.Indexed,
+  Failed: PrismaIndexStatus.Failed,
+}
 
 export interface Document {
   id: string
@@ -117,11 +132,12 @@ export async function getDocument(id: string): Promise<Document | undefined> {
  * Create or update a document
  */
 export async function setDocument(doc: Document): Promise<void> {
-  const indexStatusMap: Record<string, string> = {
-    pending: 'Pending',
-    processing: 'Processing',
-    ready: 'Indexed',
-    error: 'Failed',
+  // Map status strings to Prisma enums
+  const statusToPrisma: Record<string, PrismaIndexStatus> = {
+    pending: PrismaIndexStatus.Pending,
+    processing: PrismaIndexStatus.Processing,
+    ready: PrismaIndexStatus.Indexed,
+    error: PrismaIndexStatus.Failed,
   }
 
   try {
@@ -140,8 +156,8 @@ export async function setDocument(doc: Document): Promise<void> {
         isPrivileged: doc.isPrivileged,
         securityTier: doc.securityTier,
         chunkCount: doc.chunkCount,
-        indexStatus: indexStatusMap[doc.status] as 'Pending' | 'Processing' | 'Indexed' | 'Failed',
-        deletionStatus: doc.deletionStatus as 'Active' | 'SoftDeleted' | 'HardDeleted',
+        indexStatus: statusToPrisma[doc.status] ?? PrismaIndexStatus.Pending,
+        deletionStatus: deletionStatusMap[doc.deletionStatus] ?? PrismaDeletionStatus.Active,
         metadata: doc.metadata ? JSON.parse(JSON.stringify(doc.metadata)) : undefined,
         deletedAt: doc.deletedAt ? new Date(doc.deletedAt) : null,
         hardDeleteAt: doc.hardDeleteScheduledAt ? new Date(doc.hardDeleteScheduledAt) : null,
@@ -156,8 +172,8 @@ export async function setDocument(doc: Document): Promise<void> {
         isPrivileged: doc.isPrivileged,
         securityTier: doc.securityTier,
         chunkCount: doc.chunkCount,
-        indexStatus: indexStatusMap[doc.status] as 'Pending' | 'Processing' | 'Indexed' | 'Failed',
-        deletionStatus: doc.deletionStatus as 'Active' | 'SoftDeleted' | 'HardDeleted',
+        indexStatus: statusToPrisma[doc.status] ?? PrismaIndexStatus.Pending,
+        deletionStatus: deletionStatusMap[doc.deletionStatus] ?? PrismaDeletionStatus.Active,
         metadata: doc.metadata ? JSON.parse(JSON.stringify(doc.metadata)) : undefined,
         deletedAt: doc.deletedAt ? new Date(doc.deletedAt) : null,
         hardDeleteAt: doc.hardDeleteScheduledAt ? new Date(doc.hardDeleteScheduledAt) : null,
@@ -181,7 +197,7 @@ export async function deleteDocument(id: string): Promise<boolean> {
     await prisma.document.update({
       where: { id },
       data: {
-        deletionStatus: 'SoftDeleted',
+        deletionStatus: deletionStatusMap.SoftDeleted,
         deletedAt: now,
         hardDeleteAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
       },
@@ -209,9 +225,10 @@ export async function getDocumentsForUser(
   }
 ): Promise<Document[]> {
   try {
+    const deletionStatus = options?.deletionStatus ?? 'Active'
     const where: Record<string, unknown> = {
       userId,
-      deletionStatus: options?.deletionStatus ?? 'Active',
+      deletionStatus: deletionStatusMap[deletionStatus],
     }
 
     if (options?.privileged !== undefined) {
@@ -225,7 +242,8 @@ export async function getDocumentsForUser(
         ready: 'Indexed',
         error: 'Failed',
       }
-      where.indexStatus = statusMap[options.status] ?? options.status
+      const mappedStatus = statusMap[options.status] ?? options.status
+      where.indexStatus = indexStatusMap[mappedStatus] ?? mappedStatus
     }
 
     if (options?.vaultId) {
@@ -265,8 +283,8 @@ export async function getDocumentsByTier(
   try {
     const where: Record<string, unknown> = {
       userId,
-      deletionStatus: 'Active',
-      indexStatus: 'Indexed',
+      deletionStatus: deletionStatusMap.Active,
+      indexStatus: indexStatusMap.Indexed,
       securityTier: { lte: maxTier },
     }
 

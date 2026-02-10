@@ -6,6 +6,7 @@
  */
 
 import prisma from '@/lib/prisma'
+import { deletion_status, index_status } from '@prisma/client'
 import { SecurityTier } from '@/types/security'
 
 const STALE_DROP_ZONE_HOURS = 24
@@ -50,12 +51,12 @@ export async function purgeStaleDropZone(): Promise<number> {
     const result = await prisma.document.updateMany({
       where: {
         securityTier: SecurityTier.DropZone,
-        indexStatus: { in: ['Pending', 'Failed'] },
+        indexStatus: { in: [index_status.Pending, index_status.Failed] },
         createdAt: { lt: cutoff },
-        deletionStatus: 'Active',
+        deletionStatus: deletion_status.Active,
       },
       data: {
-        deletionStatus: 'SoftDeleted',
+        deletionStatus: deletion_status.SoftDeleted,
         deletedAt: new Date(),
         hardDeleteAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       },

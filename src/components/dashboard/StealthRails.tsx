@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Mic,
+  Maximize2,
 } from 'lucide-react'
 
 // ============================================================================
@@ -87,6 +88,7 @@ interface LeftRailProps {
   onTabClick: (tab: LeftRailTab) => void
   onAddClick: () => void
   onCollapse: () => void
+  onExpandVault?: () => void
 }
 
 export function LeftStealthRail({
@@ -95,19 +97,65 @@ export function LeftStealthRail({
   onTabClick,
   onAddClick,
   onCollapse,
+  onExpandVault,
 }: LeftRailProps) {
+  const isVaultActive = isExpanded && activeTab === 'vault'
+
   return (
     <div className="h-full flex flex-col bg-[#0A192F] border-r border-white/10">
       {/* Icon Stack */}
       <div className="flex-1 flex flex-col items-center py-4 gap-2">
-        {/* Vault */}
-        <RailIcon
-          icon={Box}
-          label="Vault"
-          isActive={isExpanded && activeTab === 'vault'}
-          onClick={() => onTabClick('vault')}
-          side="left"
-        />
+        {/* Vault - with expand functionality */}
+        <div className="relative group">
+          <button
+            onClick={() => onTabClick('vault')}
+            onDoubleClick={() => onExpandVault?.()}
+            className={`
+              relative w-11 h-11 flex items-center justify-center rounded-xl
+              transition-all duration-200
+              ${isVaultActive
+                ? 'bg-[var(--brand-blue)]/15 text-[var(--brand-blue)] shadow-[0_0_20px_rgba(36,99,235,0.4)]'
+                : 'text-slate-500 hover:text-white hover:bg-white/5'
+              }
+            `}
+          >
+            {isVaultActive && (
+              <div className="absolute top-1 bottom-1 left-0 w-0.5 bg-[var(--brand-blue)] rounded-full shadow-[0_0_8px_rgba(36,99,235,0.8)]" />
+            )}
+            <Box className={`w-5 h-5 ${isVaultActive ? 'drop-shadow-[0_0_6px_rgba(36,99,235,0.6)]' : ''}`} />
+          </button>
+
+          {/* Tooltip */}
+          <div className="absolute top-1/2 -translate-y-1/2 left-full ml-2 px-2.5 py-1.5 rounded-lg
+                        bg-[#0A192F]/95 backdrop-blur-sm border border-white/10 shadow-xl
+                        text-xs font-medium text-white whitespace-nowrap
+                        opacity-0 pointer-events-none group-hover:opacity-100
+                        transition-opacity duration-200 z-50">
+            {isVaultActive ? 'Double-click to expand' : 'Vault'}
+          </div>
+        </div>
+
+        {/* Expand Vault Button - shown when vault is active */}
+        {isVaultActive && onExpandVault && (
+          <button
+            onClick={onExpandVault}
+            className="w-9 h-9 flex items-center justify-center rounded-lg
+                       text-cyan-400 hover:text-cyan-300 hover:bg-cyan-400/10
+                       border border-cyan-400/30 hover:border-cyan-400/50
+                       transition-all duration-200 group relative"
+            title="Expand to Sovereign Explorer"
+          >
+            <Maximize2 className="w-4 h-4" />
+            {/* Tooltip */}
+            <div className="absolute top-1/2 -translate-y-1/2 left-full ml-2 px-2.5 py-1.5 rounded-lg
+                          bg-[#0A192F]/95 backdrop-blur-sm border border-white/10 shadow-xl
+                          text-xs font-medium text-white whitespace-nowrap
+                          opacity-0 pointer-events-none group-hover:opacity-100
+                          transition-opacity duration-200 z-50">
+              Sovereign Explorer
+            </div>
+          </button>
+        )}
 
         {/* Add Data */}
         <RailIcon

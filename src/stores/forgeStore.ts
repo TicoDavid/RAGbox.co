@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import type { AssetType, GeneratedAsset } from '@/types/ragbox'
+import { apiFetch } from '@/lib/api'
 
 interface ForgeState {
   assets: GeneratedAsset[]
@@ -22,7 +23,7 @@ export const useForgeStore = create<ForgeState>()(
       set({ isGenerating: true, currentGenerationType: type })
 
       try {
-        const res = await fetch('/api/forge/generate', {
+        const res = await apiFetch('/api/forge', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

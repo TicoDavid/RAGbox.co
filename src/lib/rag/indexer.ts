@@ -5,6 +5,7 @@
  */
 
 import prisma from '@/lib/prisma'
+import { deletion_status, index_status } from '@prisma/client'
 import { chunkText, hashContent } from './chunker'
 import { embedBatch } from '@/lib/vertex/embeddings-client'
 import { promoteToTier1 } from '@/lib/security/autoPromotion'
@@ -27,7 +28,7 @@ export async function indexDocument(
     // Mark document as processing
     await prisma.document.update({
       where: { id: documentId },
-      data: { indexStatus: 'Processing' },
+      data: { indexStatus: index_status.Processing },
     })
 
     // Chunk the text
@@ -35,7 +36,7 @@ export async function indexDocument(
     if (chunks.length === 0) {
       await prisma.document.update({
         where: { id: documentId },
-        data: { indexStatus: 'Failed', chunkCount: 0 },
+        data: { indexStatus: index_status.Failed, chunkCount: 0 },
       })
       return { documentId, chunkCount: 0, status: 'Failed', error: 'No text to index' }
     }
@@ -86,7 +87,7 @@ export async function indexDocument(
     await prisma.document.update({
       where: { id: documentId },
       data: {
-        indexStatus: 'Indexed',
+        indexStatus: index_status.Indexed,
         chunkCount: chunks.length,
         extractedText: text,
       },
@@ -108,7 +109,7 @@ export async function indexDocument(
     try {
       await prisma.document.update({
         where: { id: documentId },
-        data: { indexStatus: 'Failed' },
+        data: { indexStatus: index_status.Failed },
       })
     } catch {
       // Ignore update failure
@@ -130,7 +131,7 @@ export async function reindexUserDocuments(userId: string): Promise<IndexResult[
   const documents = await prisma.document.findMany({
     where: {
       userId,
-      deletionStatus: 'Active',
+      deletionStatus: deletion_status.Active,
       extractedText: { not: null },
     },
   })

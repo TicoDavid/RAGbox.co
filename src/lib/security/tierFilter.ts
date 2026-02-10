@@ -5,6 +5,7 @@
  */
 
 import prisma from '@/lib/prisma'
+import { deletion_status, index_status } from '@prisma/client'
 import { getMaxAccessibleTier, isQueryable } from './tiers'
 
 /**
@@ -20,8 +21,8 @@ export async function getAccessibleDocumentIds(
     const documents = await prisma.document.findMany({
       where: {
         userId,
-        deletionStatus: 'Active',
-        indexStatus: 'Indexed',
+        deletionStatus: deletion_status.Active,
+        indexStatus: index_status.Indexed,
         securityTier: { lte: maxTier },
       },
       select: { id: true, securityTier: true },
