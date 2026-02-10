@@ -42,6 +42,9 @@ type Dependencies struct {
 
 	// Forge
 	ForgeSvc *service.ForgeService
+
+	// User auto-provisioning
+	UserEnsurer middleware.UserEnsurer
 }
 
 // New creates and configures the Chi router with all routes.
@@ -67,7 +70,7 @@ func New(deps *Dependencies) *chi.Mux {
 
 	// Protected routes (require internal service auth or Firebase auth)
 	r.Group(func(r chi.Router) {
-		r.Use(middleware.InternalOrFirebaseAuth(deps.AuthService, deps.InternalAuthSecret))
+		r.Use(middleware.InternalOrFirebaseAuth(deps.AuthService, deps.InternalAuthSecret, deps.UserEnsurer))
 
 		// Documents
 		r.Get("/api/documents", handler.ListDocuments(docCRUD))

@@ -87,6 +87,7 @@ func run() error {
 	folderRepo := repository.NewFolderRepo(pool)
 	chunkRepo := repository.NewChunkRepo(pool)
 	auditRepo := repository.NewAuditRepo(pool)
+	userRepo := repository.NewUserRepo(pool)
 
 	// ─── Services ──────────────────────────────────────────────────────
 
@@ -167,6 +168,8 @@ func run() error {
 		},
 
 		ForgeSvc: forgeService,
+
+		UserEnsurer: userRepo,
 	})
 
 	// ─── HTTP server ───────────────────────────────────────────────────

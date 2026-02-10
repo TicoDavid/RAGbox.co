@@ -15,6 +15,12 @@ type contextKey string
 
 const userIDKey contextKey = "userID"
 
+// UserEnsurer provisions a user record if it doesn't already exist.
+// Called by auth middleware after successful authentication.
+type UserEnsurer interface {
+	EnsureUser(ctx context.Context, userID string) error
+}
+
 // UserIDFromContext retrieves the authenticated user ID from the request context.
 func UserIDFromContext(ctx context.Context) string {
 	uid, _ := ctx.Value(userIDKey).(string)
@@ -31,7 +37,7 @@ func WithUserID(ctx context.Context, uid string) context.Context {
 // service-to-service token (X-Internal-Auth header + X-User-ID), falling back
 // to Firebase ID token verification. The internal path is used by the Next.js
 // proxy routes that have already validated the user session.
-func InternalOrFirebaseAuth(authService *service.AuthService, secret string) func(http.Handler) http.Handler {
+func InternalOrFirebaseAuth(authService *service.AuthService, secret string, ensurer UserEnsurer) func(http.Handler) http.Handler {
 	secretBytes := []byte(secret)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -44,6 +50,12 @@ func InternalOrFirebaseAuth(authService *service.AuthService, secret string) fun
 					if userID == "" || len(userID) > 256 || !isPrintableASCII(userID) {
 						respondError(w, http.StatusBadRequest, "invalid user ID")
 						return
+					}
+					if ensurer != nil {
+						if err := ensurer.EnsureUser(r.Context(), userID); err != nil {
+							respondError(w, http.StatusInternalServerError, "failed to provision user")
+							return
+						}
 					}
 					ctx := context.WithValue(r.Context(), userIDKey, userID)
 					next.ServeHTTP(w, r.WithContext(ctx))
@@ -66,6 +78,12 @@ func InternalOrFirebaseAuth(authService *service.AuthService, secret string) fun
 				return
 			}
 
+			if ensurer != nil {
+				if err := ensurer.EnsureUser(r.Context(), uid); err != nil {
+					respondError(w, http.StatusInternalServerError, "failed to provision user")
+					return
+				}
+			}
 			ctx := context.WithValue(r.Context(), userIDKey, uid)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
