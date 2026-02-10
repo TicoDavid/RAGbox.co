@@ -32,6 +32,7 @@ export async function apiFetch(
         // Use session user ID as a bearer token identifier
         // The Go backend verifies Firebase tokens, so in production
         // this would be a Firebase ID token
+        headers.set('Authorization', `Bearer ${(session as Record<string, unknown>).accessToken || 'session'}`)
         headers.set('Authorization', `Bearer ${(session as unknown as Record<string, unknown>).accessToken || 'session'}`)
       }
     } catch {

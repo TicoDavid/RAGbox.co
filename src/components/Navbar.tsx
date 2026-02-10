@@ -54,6 +54,9 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
           <img
             src="https://storage.googleapis.com/connexusai-assets/BabyBlue_RAGb%C3%B6x.png"
             alt="RAGbox"
+            width={720}
+            height={192}
+            className="h-48 w-auto"
             width={180}
             height={48}
             className="h-10 sm:h-12 w-auto"

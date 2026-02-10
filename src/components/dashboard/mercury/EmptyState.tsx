@@ -45,6 +45,10 @@ export function EmptyState() {
         aria-hidden="true"
       />
 
+      {/* Sovereign Emblem - Refined Watermark */}
+      <div className="relative mb-4">
+        {/* Subtle warm glow */}
+        <div className="absolute inset-0 blur-3xl opacity-10 bg-amber-500 rounded-full scale-110" />
       {/* Sovereign Emblem - Gold Transmutation via CSS */}
       <div className="relative mb-4">
         {/* Warm amber glow halo */}
@@ -56,11 +60,18 @@ export function EmptyState() {
           alt="RAGbox Sovereign Emblem"
           width={280}
           height={280}
+          className="h-72 w-auto relative opacity-20"
           className="h-72 w-auto relative opacity-25 drop-shadow-[0_0_40px_rgba(217,119,6,0.3)]"
           priority
         />
       </div>
 
+      {/* Executive Copy - Platinum Typography */}
+      <div className="text-center relative z-10 space-y-4">
+        <h2 className="text-xl font-semibold text-gray-200 tracking-wide">
+          Sovereign Intelligence Active
+        </h2>
+        <p className="text-sm text-gray-400 max-w-md leading-relaxed tracking-wide">
       {/* Executive Copy - Warm Gold Typography */}
       <div className="text-center relative z-10 space-y-4">
         <h2 className="text-xl font-semibold text-amber-100/90 tracking-wide">
@@ -72,6 +83,7 @@ export function EmptyState() {
         </p>
       </div>
 
+      {/* Executive Action Tiles - Refined Material */}
       {/* Executive Action Tiles - Piano Black with Gold Trim */}
       <div className="flex gap-4 mt-6 relative z-10">
         {EXECUTIVE_ACTIONS.map((action) => (
@@ -79,6 +91,9 @@ export function EmptyState() {
             key={action.id}
             onClick={() => handleActionClick(action.prompt)}
             className="
+              group flex flex-col items-center gap-3 px-6 py-5
+              bg-white/[0.02] border border-white/[0.05] backdrop-blur-md rounded-xl
+              hover:bg-white/[0.06] hover:border-amber-500/20
               action-card group flex flex-col items-center gap-3 px-6 py-5
               bg-black/40 border border-amber-900/30 backdrop-blur-md rounded-xl
               hover:bg-amber-950/20 hover:border-amber-500/40
@@ -89,6 +104,16 @@ export function EmptyState() {
           >
             <div className="
               p-3 rounded-lg
+              bg-white/[0.03] group-hover:bg-amber-500/10
+              transition-all duration-500 ease-out
+            ">
+              <action.icon className="w-5 h-5 text-gray-400 group-hover:text-amber-400 transition-colors duration-500" />
+            </div>
+            <div className="text-center">
+              <div className="text-sm font-medium text-gray-300 group-hover:text-gray-200 transition-colors duration-500">
+                {action.title}
+              </div>
+              <div className="text-[11px] text-gray-500 mt-1 tracking-wide">
               bg-amber-900/10 group-hover:bg-amber-500/20
               border border-amber-800/20 group-hover:border-amber-500/30
               transition-all duration-500 ease-out
@@ -107,6 +132,14 @@ export function EmptyState() {
         ))}
       </div>
 
+      {/* Status indicator - Refined */}
+      <div className="flex items-center gap-2.5 mt-6 relative z-10">
+        <span className="relative flex h-1.5 w-1.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-50"></span>
+          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
+        </span>
+        <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-medium">
+          Ready
       {/* Status indicator - Gold Metallic */}
       <div className="flex items-center gap-2.5 mt-6 relative z-10">
         <span className="relative flex h-2 w-2">
