@@ -22,6 +22,7 @@ import {
   Shield,
   Crosshair,
   AlertCircle,
+  Plus,
 } from 'lucide-react'
 import { useVaultStore } from '@/stores/vaultStore'
 

@@ -228,7 +228,7 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
 
       onToolResult: (toolName, result) => {
         console.log(`[AgentWS] Tool result: ${toolName}`)
-        sendJSON(ws, { type: 'tool_result', result })
+        sendJSON(ws, { type: 'tool_result', result: result as ToolResult })
       },
 
       onUIAction: (action) => {

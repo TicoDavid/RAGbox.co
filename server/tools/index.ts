@@ -190,9 +190,10 @@ async function searchDocuments(args: { query: string; limit?: number; documentTy
   const documents = await db.document.findMany({
     where: {
       userId: ctx.userId,
-      isDeleted: false,
+      deletionStatus: 'Active',
       OR: [
-        { name: { contains: args.query, mode: 'insensitive' } },
+        { filename: { contains: args.query, mode: 'insensitive' } },
+        { originalName: { contains: args.query, mode: 'insensitive' } },
         { extractedText: { contains: args.query, mode: 'insensitive' } },
       ],
       ...(args.documentType && args.documentType !== 'all' ? { mimeType: { contains: args.documentType } } : {}),
@@ -200,7 +201,8 @@ async function searchDocuments(args: { query: string; limit?: number; documentTy
     take: limit,
     select: {
       id: true,
-      name: true,
+      filename: true,
+      originalName: true,
       mimeType: true,
       createdAt: true,
       securityTier: true,
@@ -223,7 +225,7 @@ async function openDocument(args: { documentId: string; page?: number }, ctx: To
     where: {
       id: args.documentId,
       userId: ctx.userId,
-      isDeleted: false,
+      deletionStatus: 'Active',
     },
   })
 
@@ -246,8 +248,8 @@ async function extractLiabilityClauses(args: { documentId: string }, ctx: ToolCo
   const db = getPrisma()
 
   const doc = await db.document.findFirst({
-    where: { id: args.documentId, userId: ctx.userId, isDeleted: false },
-    select: { extractedText: true, name: true },
+    where: { id: args.documentId, userId: ctx.userId, deletionStatus: 'Active' },
+    select: { extractedText: true, originalName: true },
   })
 
   if (!doc) {
@@ -276,7 +278,7 @@ async function extractLiabilityClauses(args: { documentId: string }, ctx: ToolCo
   }
 
   return {
-    documentName: doc.name,
+    documentName: doc.originalName,
     clauseCount: clauses.length,
     clauses,
   }
@@ -286,8 +288,8 @@ async function extractKeyDates(args: { documentId: string }, ctx: ToolContext): 
   const db = getPrisma()
 
   const doc = await db.document.findFirst({
-    where: { id: args.documentId, userId: ctx.userId, isDeleted: false },
-    select: { extractedText: true, name: true },
+    where: { id: args.documentId, userId: ctx.userId, deletionStatus: 'Active' },
+    select: { extractedText: true, originalName: true },
   })
 
   if (!doc) {
@@ -300,7 +302,7 @@ async function extractKeyDates(args: { documentId: string }, ctx: ToolContext): 
   const matches = text.match(datePattern) || []
 
   return {
-    documentName: doc.name,
+    documentName: doc.originalName,
     dates: [...new Set(matches)].slice(0, 20),
   }
 }
@@ -309,8 +311,8 @@ async function summarizeDocument(args: { documentId: string; length?: string }, 
   const db = getPrisma()
 
   const doc = await db.document.findFirst({
-    where: { id: args.documentId, userId: ctx.userId, isDeleted: false },
-    select: { extractedText: true, name: true },
+    where: { id: args.documentId, userId: ctx.userId, deletionStatus: 'Active' },
+    select: { extractedText: true, originalName: true },
   })
 
   if (!doc) {
@@ -328,7 +330,7 @@ async function summarizeDocument(args: { documentId: string; length?: string }, 
   const count = lengthConfig[args.length as keyof typeof lengthConfig] || 5
 
   return {
-    documentName: doc.name,
+    documentName: doc.originalName,
     summary: sentences.slice(0, count).join('. ') + '.',
     wordCount: text.split(/\s+/).length,
   }
@@ -338,14 +340,14 @@ async function getDocumentStats(ctx: ToolContext): Promise<unknown> {
   const db = getPrisma()
 
   const [total, byType, recent] = await Promise.all([
-    db.document.count({ where: { userId: ctx.userId, isDeleted: false } }),
+    db.document.count({ where: { userId: ctx.userId, deletionStatus: 'Active' } }),
     db.document.groupBy({
       by: ['mimeType'],
-      where: { userId: ctx.userId, isDeleted: false },
+      where: { userId: ctx.userId, deletionStatus: 'Active' },
       _count: true,
     }),
     db.document.findMany({
-      where: { userId: ctx.userId, isDeleted: false },
+      where: { userId: ctx.userId, deletionStatus: 'Active' },
       orderBy: { createdAt: 'desc' },
       take: 5,
       select: { filename: true, createdAt: true },
@@ -372,7 +374,7 @@ async function listDocuments(args: { limit?: number; sortBy?: string }, ctx: Too
   // Build where clause based on privilege mode
   const whereClause = {
     userId: ctx.userId,
-    isDeleted: false,
+    deletionStatus: 'Active' as const,
     // Only show privileged documents if privilege mode is enabled
     ...(ctx.privilegeMode ? {} : { securityTier: 0 }),
   }
@@ -413,7 +415,7 @@ async function readDocument(args: { documentId: string }, ctx: ToolContext): Pro
     where: {
       id: args.documentId,
       userId: ctx.userId,
-      isDeleted: false,
+      deletionStatus: 'Active',
     },
     select: {
       id: true,
