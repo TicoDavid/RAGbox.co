@@ -42,7 +42,7 @@ describe('forgeStore', () => {
       await useForgeStore.getState().generate('report', 'conversation text here')
 
       const call = (global.fetch as jest.Mock).mock.calls[0]
-      expect(call[0]).toBe('/api/forge/generate')
+      expect(call[0]).toBe('/api/forge')
 
       const body = JSON.parse(call[1].body)
       expect(body).toEqual({
