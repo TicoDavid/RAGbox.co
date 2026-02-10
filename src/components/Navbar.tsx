@@ -37,14 +37,14 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
     <nav
       className={cn(
         'fixed top-0 left-0 right-0 z-50',
-        'px-2 sm:px-4 md:px-6 py-0.5',
+        'px-4 sm:px-6 md:px-8 py-2',
         // Obsidian background with glass effect
         'bg-[#020408]/90 backdrop-blur-md',
         'border-b border-amber-500/10'
       )}
     >
       <div className="flex items-center justify-between">
-        {/* Logo - Theme-aware */}
+        {/* Logo - Compact */}
         <motion.div
           className="flex items-center"
           initial={{ opacity: 0, x: -20 }}
@@ -57,6 +57,9 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
             width={720}
             height={192}
             className="h-48 w-auto"
+            width={180}
+            height={48}
+            className="h-10 sm:h-12 w-auto"
             style={{ color: 'transparent' }}
           />
         </motion.div>

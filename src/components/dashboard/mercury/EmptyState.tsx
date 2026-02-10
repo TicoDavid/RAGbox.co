@@ -49,12 +49,19 @@ export function EmptyState() {
       <div className="relative mb-4">
         {/* Subtle warm glow */}
         <div className="absolute inset-0 blur-3xl opacity-10 bg-amber-500 rounded-full scale-110" />
+      {/* Sovereign Emblem - Gold Transmutation via CSS */}
+      <div className="relative mb-4">
+        {/* Warm amber glow halo */}
+        <div className="absolute inset-0 blur-3xl opacity-20 bg-gradient-to-b from-amber-500 to-amber-700 rounded-full scale-125" />
+        {/* Secondary inner glow */}
+        <div className="absolute inset-4 blur-2xl opacity-15 bg-amber-400 rounded-full scale-100" />
         <Image
           src="https://storage.googleapis.com/connexusai-assets/RAGb%C3%B6x_ICON.png"
           alt="RAGbox Sovereign Emblem"
           width={280}
           height={280}
           className="h-72 w-auto relative opacity-20"
+          className="h-72 w-auto relative opacity-25 drop-shadow-[0_0_40px_rgba(217,119,6,0.3)]"
           priority
         />
       </div>
@@ -65,12 +72,19 @@ export function EmptyState() {
           Sovereign Intelligence Active
         </h2>
         <p className="text-sm text-gray-400 max-w-md leading-relaxed tracking-wide">
+      {/* Executive Copy - Warm Gold Typography */}
+      <div className="text-center relative z-10 space-y-4">
+        <h2 className="text-xl font-semibold text-amber-100/90 tracking-wide">
+          Sovereign Intelligence Active
+        </h2>
+        <p className="text-sm text-amber-200/50 max-w-md leading-relaxed tracking-wide">
           Your vault is sealed. Complete privacy assured.<br />
           Query your documents with absolute confidentiality.
         </p>
       </div>
 
       {/* Executive Action Tiles - Refined Material */}
+      {/* Executive Action Tiles - Piano Black with Gold Trim */}
       <div className="flex gap-4 mt-6 relative z-10">
         {EXECUTIVE_ACTIONS.map((action) => (
           <button
@@ -80,6 +94,10 @@ export function EmptyState() {
               group flex flex-col items-center gap-3 px-6 py-5
               bg-white/[0.02] border border-white/[0.05] backdrop-blur-md rounded-xl
               hover:bg-white/[0.06] hover:border-amber-500/20
+              action-card group flex flex-col items-center gap-3 px-6 py-5
+              bg-black/40 border border-amber-900/30 backdrop-blur-md rounded-xl
+              hover:bg-amber-950/20 hover:border-amber-500/40
+              hover:shadow-[0_0_25px_-5px_rgba(251,191,36,0.25)]
               transition-all duration-500 ease-out
               min-w-[140px]
             "
@@ -96,6 +114,17 @@ export function EmptyState() {
                 {action.title}
               </div>
               <div className="text-[11px] text-gray-500 mt-1 tracking-wide">
+              bg-amber-900/10 group-hover:bg-amber-500/20
+              border border-amber-800/20 group-hover:border-amber-500/30
+              transition-all duration-500 ease-out
+            ">
+              <action.icon className="w-5 h-5 text-amber-600 group-hover:text-amber-400 transition-colors duration-500" />
+            </div>
+            <div className="text-center">
+              <div className="text-sm font-medium text-amber-100/80 group-hover:text-amber-100 transition-colors duration-500">
+                {action.title}
+              </div>
+              <div className="text-[11px] text-amber-200/40 mt-1 tracking-wide">
                 {action.subtitle}
               </div>
             </div>
@@ -111,6 +140,14 @@ export function EmptyState() {
         </span>
         <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-medium">
           Ready
+      {/* Status indicator - Gold Metallic */}
+      <div className="flex items-center gap-2.5 mt-6 relative z-10">
+        <span className="relative flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-40"></span>
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-gradient-to-br from-amber-400 to-amber-600"></span>
+        </span>
+        <span className="text-[10px] text-amber-500/60 uppercase tracking-[0.25em] font-semibold">
+          System Ready
         </span>
       </div>
     </div>

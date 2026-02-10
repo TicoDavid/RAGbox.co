@@ -157,6 +157,38 @@
   --privilege-color: #F59E0B;
   --privilege-bg: #1C1508;
   --privilege-border: #B45309;
+/* ===== Theme: Obsidian Gold (Executive Luxury - Midas Protocol) ===== */
+[data-theme="obsidian"] {
+  /* Piano Black Foundation */
+  --bg-primary: #020408;
+  --bg-secondary: #0A0A08;
+  --bg-tertiary: #141410;
+  --bg-elevated: #1A1A16;
+  --bg-hover: #2A2210;
+
+  /* Warm Ivory Typography (not cold white) */
+  --text-primary: #FFFBEB;
+  --text-secondary: #FEF3C7;
+  --text-tertiary: #A3937A;
+
+  /* Bronze/Gold Borders (the champagne rim light) */
+  --border-default: #78350F;
+  --border-subtle: #451A03;
+  --border-strong: #92400E;
+
+  /* Rich Gold Brand (replaces blue) */
+  --brand-blue: #D97706;
+  --brand-blue-hover: #F59E0B;
+  --brand-blue-dim: #B45309;
+
+  /* Privilege accents */
+  --privilege-color: #FBBF24;
+  --privilege-bg: #1C1508;
+  --privilege-border: #D97706;
+
+  /* Gold glow colors */
+  --glow-primary: rgba(217, 119, 6, 0.4);
+  --glow-secondary: rgba(251, 191, 36, 0.3);
 }
 
 /* ===== Light Mode ===== */

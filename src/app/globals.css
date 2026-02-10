@@ -58,6 +58,59 @@
   .privilege-glow {
     box-shadow: 0 0 20px rgba(220, 38, 38, 0.4);
   }
+
+  /* ============================================
+     OBSIDIAN GOLD THEME - The Midas Protocol
+     Transforms Blue to Gold dynamically
+     ============================================ */
+
+  /* The Alchemy: Blue Logo → Gold Transmutation */
+  [data-theme="obsidian"] img[alt="RAGbox Sovereign Emblem"] {
+    filter: sepia(100%) saturate(300%) hue-rotate(-20deg) contrast(120%) brightness(1.1);
+  }
+
+  /* Gold Glow for Obsidian theme elements */
+  [data-theme="obsidian"] .electric-glow {
+    box-shadow: 0 0 30px rgba(217, 119, 6, 0.4);
+  }
+
+  [data-theme="obsidian"] .electric-glow-intense {
+    box-shadow: 0 0 50px rgba(251, 191, 36, 0.5);
+  }
+
+  /* Obsidian Gold: Action Card Hover */
+  [data-theme="obsidian"] .action-card:hover {
+    border-color: rgba(251, 191, 36, 0.4) !important;
+    box-shadow: 0 0 25px -5px rgba(251, 191, 36, 0.3);
+  }
+
+  /* Obsidian Gold: Input Focus Ring */
+  [data-theme="obsidian"] *:focus-visible {
+    outline-color: rgb(217, 119, 6);
+  }
+
+  /* Obsidian Gold: Scrollbar */
+  [data-theme="obsidian"] ::-webkit-scrollbar-thumb {
+    background: rgba(217, 119, 6, 0.3);
+  }
+
+  [data-theme="obsidian"] ::-webkit-scrollbar-thumb:hover {
+    background: rgba(217, 119, 6, 0.5);
+  }
+
+  /* Obsidian Gold: Border Pulse Animation */
+  @keyframes gold-border-pulse {
+    0%, 100% {
+      border-color: rgba(217, 119, 6, 0.3);
+    }
+    50% {
+      border-color: rgba(251, 191, 36, 0.6);
+    }
+  }
+
+  [data-theme="obsidian"] .animate-border-pulse {
+    animation: gold-border-pulse 2s ease-in-out infinite;
+  }
 }
 
 @layer utilities {

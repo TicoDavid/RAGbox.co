@@ -1,1 +1,46 @@
-Access
+# Dependencies
+node_modules/
+cli/node_modules/
+
+# Next.js
+.next/
+out/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build
+*.tsbuildinfo
+next-env.d.ts
+
+# Secrets
+secrets/
+
+# OS
+.DS_Store
+Thumbs.db
+nul
+
+# IDE
+.vscode/
+.idea/
+
+# Coverage
+coverage/
+backend/coverage.out
+
+# Binaries
+backend/server.exe
+*.exe
+
+# ===========================================
+# Development Scaffolding (prevent re-addition)
+# ===========================================
+ralph*.js
+stories*.json
+progress.txt
+agents.md
+*.jsonl
+test-document.txt
