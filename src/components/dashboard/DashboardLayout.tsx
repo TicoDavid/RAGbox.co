@@ -6,7 +6,7 @@ import { useVaultStore } from '@/stores/vaultStore'
 import { usePrivilegeStore } from '@/stores/privilegeStore'
 import { GlobalHeader } from './GlobalHeader'
 import { VaultPanel } from './vault/VaultPanel'
-import { VaultExplorer } from './vault/VaultExplorer'
+import { SovereignExplorer } from './vault/SovereignExplorer'
 import { MercuryPanel } from './mercury/MercuryPanel'
 import { MercuryVoicePanel } from './mercury/MercuryVoicePanel'
 import { SovereignStudio } from './studio'
@@ -123,8 +123,8 @@ function InspectorPanel() {
                 <span className="text-sm font-medium text-white">{formattedSize}</span>
               </div>
               <div className="flex justify-between items-center py-2">
-                <span className="text-xs text-slate-400">Encryption</span>
-                <span className="text-xs font-medium text-emerald-400">AES-256</span>
+                <span className="text-xs text-slate-400">Security</span>
+                <span className="text-[10px] font-medium text-amber-500/70 uppercase tracking-wider">Secured</span>
               </div>
             </div>
           </div>
@@ -233,6 +233,7 @@ export function DashboardLayout() {
   const isVaultCollapsed = useVaultStore((s) => s.isCollapsed)
   const setVaultCollapsed = useVaultStore((s) => s.setCollapsed)
   const isExplorerMode = useVaultStore((s) => s.isExplorerMode)
+  const toggleExplorerMode = useVaultStore((s) => s.toggleExplorerMode)
   const fetchPrivilege = usePrivilegeStore((s) => s.fetch)
   const uploadDocument = useVaultStore((s) => s.uploadDocument)
 
@@ -321,13 +322,13 @@ export function DashboardLayout() {
     }
   }
 
-  // Explorer mode takes full width
+  // Explorer mode takes full width - The Sovereign Explorer
   if (isExplorerMode) {
     return (
       <div className="flex flex-col h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] overflow-hidden font-jakarta">
         <GlobalHeader />
         <div className="flex-1 overflow-hidden">
-          <VaultExplorer />
+          <SovereignExplorer onClose={() => useVaultStore.getState().exitExplorerMode()} />
         </div>
       </div>
     )
@@ -353,6 +354,7 @@ export function DashboardLayout() {
                 setLeftExpanded(false)
                 setVaultCollapsed(true)
               }}
+              onExpandVault={toggleExplorerMode}
             />
           </div>
 

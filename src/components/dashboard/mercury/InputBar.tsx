@@ -238,14 +238,15 @@ export function InputBar() {
           />
         </div>
 
-        {/* Stealth Pill Input Container - Clean Capsule */}
+        {/* Piano Black Input Capsule - Executive Luxury */}
         <div
           className={`
-            flex items-center gap-2 px-4 py-3
+            flex items-center gap-2 px-5 py-3.5
             rounded-full
-            bg-[#050b14] border border-white/10
-            focus-within:border-cyan-500/50 focus-within:shadow-[0_0_20px_-5px_rgba(0,240,255,0.3)]
-            transition-all duration-300
+            bg-[#050505] border border-white/10 border-t-white/20
+            shadow-2xl shadow-black/80
+            focus-within:border-amber-500/30 focus-within:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.9)]
+            transition-all duration-500 ease-out
           `}
         >
           {/* Paperclip - Inject Context (Left) */}
@@ -409,10 +410,16 @@ export function InputBar() {
           </div>
         </div>
 
-        {/* Hint */}
-        <p className="text-center text-[10px] text-slate-600 mt-2">
-          ⇧ + ↵ to send · Your data never leaves RAGbox
-        </p>
+        {/* Legal Status Footer - Executive Refinement */}
+        <div className="flex items-center justify-center gap-2 mt-3">
+          <svg className="w-3 h-3 text-amber-500/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          <span className="text-[10px] uppercase tracking-[0.3em] text-amber-500/40 font-medium">
+            Privileged & Confidential
+          </span>
+        </div>
       </div>
     </div>
   )

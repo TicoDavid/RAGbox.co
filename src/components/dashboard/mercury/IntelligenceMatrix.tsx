@@ -468,16 +468,15 @@ export function IntelligenceBadge({ onClick }: IntelligenceBadgeProps) {
     <button
       onClick={onClick}
       className={`
-        flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg
-        transition-all duration-200 group
-        ${isAegisActive
-          ? 'bg-gradient-to-r from-amber-900/30 to-orange-900/30 border border-amber-500/30 hover:border-amber-400/50'
-          : 'bg-gradient-to-r from-cyan-900/30 to-blue-900/30 border border-cyan-500/30 hover:border-cyan-400/50'
-        }
+        flex items-center gap-2 px-3 py-1.5 rounded-lg
+        transition-all duration-500 ease-out group
+        bg-white/[0.02] border border-white/[0.08]
+        hover:bg-white/[0.04] hover:border-amber-500/20
+        shadow-lg shadow-black/20
       `}
     >
       {/* Icon */}
-      <div className={isAegisActive ? 'text-amber-400' : 'text-cyan-400'}>
+      <div className={isAegisActive ? 'text-amber-500/80' : 'text-gray-400'}>
         {isAegisActive ? (
           <ShieldCheck className="w-3.5 h-3.5" />
         ) : (
@@ -486,14 +485,17 @@ export function IntelligenceBadge({ onClick }: IntelligenceBadgeProps) {
       </div>
 
       {/* Name */}
-      <span className={`text-xs font-medium ${isAegisActive ? 'text-amber-400' : 'text-cyan-400'}`}>
+      <span className="text-[11px] font-medium text-gray-300 tracking-wide">
         {activeIntelligence.displayName}
       </span>
 
+      {/* Provider hint */}
+      <span className="text-[9px] text-gray-500 tracking-wider uppercase">
+        {isAegisActive ? 'Sovereign' : activeIntelligence.provider}
+      </span>
+
       {/* Dropdown indicator */}
-      <ChevronDown className={`w-3 h-3 transition-transform group-hover:translate-y-0.5 ${
-        isAegisActive ? 'text-amber-500/50' : 'text-cyan-500/50'
-      }`} />
+      <ChevronDown className="w-3 h-3 text-gray-500/50 transition-transform duration-500 group-hover:translate-y-0.5" />
     </button>
   )
 }
