@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
 
 // Theme types
-export type ThemeId = 'cobalt' | 'noir' | 'forest'
+export type ThemeId = 'cobalt' | 'noir' | 'forest' | 'obsidian'
 
 // Language types
 export type LanguageId = 'en' | 'es' | 'de' | 'fr' | 'zh'
@@ -61,6 +61,11 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     id: 'forest',
     name: 'Forest Dark',
     colors: ['#022c22', '#064e3b', '#10b981'],
+  },
+  obsidian: {
+    id: 'obsidian',
+    name: 'Obsidian Gold',
+    colors: ['#020408', '#0F0F0F', '#F59E0B'],
   },
 }
 

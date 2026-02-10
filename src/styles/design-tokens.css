@@ -135,6 +135,30 @@
   --privilege-border: #d97706;
 }
 
+/* ===== Theme: Obsidian Gold (Executive Luxury) ===== */
+[data-theme="obsidian"] {
+  --bg-primary: #020408;
+  --bg-secondary: #0F0F0F;
+  --bg-tertiary: #1A1A1A;
+  --bg-elevated: #222222;
+  --bg-hover: #2A2210;
+
+  --text-primary: #FFFFF0;
+  --text-secondary: #D4D4C8;
+  --text-tertiary: #A3A393;
+
+  --border-default: #27272a;
+  --border-subtle: #1C1C1E;
+  --border-strong: #3D3D3D;
+
+  --brand-blue: #F59E0B;
+  --brand-blue-hover: #D97706;
+
+  --privilege-color: #F59E0B;
+  --privilege-bg: #1C1508;
+  --privilege-border: #B45309;
+}
+
 /* ===== Light Mode ===== */
 .light {
   --bg-primary: #f8fafc;

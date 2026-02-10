@@ -31,8 +31,12 @@ import {
   Zap,
   LayoutGrid,
   Sparkles,
+  AlertTriangle,
+  Glasses,
 } from 'lucide-react'
-import { PrivilegeKeyIcon, IdentityIcon } from './icons/SovereignIcons'
+import { PrivilegeKeyIcon, IdentityIcon, LanternIcon } from './icons/SovereignIcons'
+import { useMercuryStore } from '@/stores/mercuryStore'
+import { PERSONAS } from './mercury/personaData'
 import { useSettings, type CachedModel, LANGUAGES, type LanguageId, type DensityId } from '@/contexts/SettingsContext'
 import { verifyAndFetchModels, OPENROUTER_ENDPOINT, getModelDisplayName } from '@/services/OpenRouterService'
 
@@ -54,13 +58,27 @@ const PROFILES: Profile[] = [
 export function GlobalHeader() {
   const { data: session } = useSession()
   const { isEnabled: privilegeMode, toggle: togglePrivilege } = usePrivilegeStore()
+  const activePersona = useMercuryStore((s) => s.activePersona)
+  const setPersona = useMercuryStore((s) => s.setPersona)
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const [searchOpen, setSearchOpen] = useState(false)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [activeProfile, setActiveProfile] = useState<string>('work')
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [isSwitching, setIsSwitching] = useState(false)
+  const [personaMenuOpen, setPersonaMenuOpen] = useState(false)
+  const [hoveredPersona, setHoveredPersona] = useState<string | null>(null)
   const profileMenuRef = useRef<HTMLDivElement>(null)
+  const personaMenuRef = useRef<HTMLDivElement>(null)
+
+  // Get current persona
+  const currentPersona = PERSONAS.find((p) => p.id === activePersona) || PERSONAS[0]
+  const CurrentPersonaIcon = currentPersona.Icon
+  const isWhistleblowerMode = currentPersona.isWhistleblower
+
+  // Get persona categories
+  const executivePersonas = PERSONAS.filter((p) => p.category === 'EXECUTIVE')
+  const compliancePersonas = PERSONAS.filter((p) => p.category === 'COMPLIANCE')
 
   const handleThemeToggle = () => {
     const next = theme === 'dark' ? 'light' : 'dark'
@@ -91,11 +109,15 @@ export function GlobalHeader() {
     }, 500)
   }
 
-  // Close profile menu when clicking outside
+  // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
         setProfileMenuOpen(false)
+      }
+      if (personaMenuRef.current && !personaMenuRef.current.contains(e.target as Node)) {
+        setPersonaMenuOpen(false)
+        setHoveredPersona(null)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -115,11 +137,11 @@ export function GlobalHeader() {
           {/* Logo */}
           <div className="flex items-center shrink-0">
             <Image
-              src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
+              src="https://storage.googleapis.com/connexusai-assets/BabyBlue_RAGb%C3%B6x.png"
               alt="RAGbox"
-              width={120}
-              height={32}
-              className="h-8"
+              width={360}
+              height={96}
+              className="h-24"
               style={{ width: 'auto' }}
               priority
             />
@@ -157,7 +179,136 @@ export function GlobalHeader() {
         </div>
 
         {/* Right Section - Actions */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Persona Selector - Compact Mask Icon */}
+          <div className="relative" ref={personaMenuRef}>
+            <button
+              onClick={() => setPersonaMenuOpen(!personaMenuOpen)}
+              className={`
+                flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300
+                ${isWhistleblowerMode
+                  ? 'bg-amber-900/30 border border-amber-500/50 text-amber-400 hover:bg-amber-900/50 shadow-[0_0_15px_rgba(245,158,11,0.3)]'
+                  : 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 hover:border-white/20'
+                }
+              `}
+            >
+              {isWhistleblowerMode ? (
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+              ) : (
+                <Glasses className="w-4 h-4" />
+              )}
+              <CurrentPersonaIcon
+                size={16}
+                color={isWhistleblowerMode ? '#FBBF24' : '#94a3b8'}
+              />
+              <span className="hidden lg:inline text-xs">{currentPersona.label}</span>
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${personaMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Persona Dropdown */}
+            {personaMenuOpen && (
+              <div className="absolute right-0 top-full mt-2 w-80 bg-[#0B1221]/98 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-50 py-2 overflow-hidden">
+                {/* System Prompt Preview (on hover) */}
+                {hoveredPersona && (
+                  <div className="px-4 py-3 bg-slate-900/80 border-b border-white/10">
+                    <p className="text-[10px] font-semibold text-cyan-400 uppercase tracking-wider mb-1">
+                      System Instruction
+                    </p>
+                    <p className="text-xs text-slate-400 italic">
+                      &quot;{PERSONAS.find(p => p.id === hoveredPersona)?.systemPrompt}&quot;
+                    </p>
+                  </div>
+                )}
+
+                {/* Executive Section */}
+                <div className="px-4 py-2 text-[10px] font-semibold text-slate-500 uppercase tracking-wider border-b border-white/5">
+                  Executive Leadership
+                </div>
+                {executivePersonas.map((persona) => {
+                  const Icon = persona.Icon
+                  const isSelected = persona.id === activePersona
+                  return (
+                    <button
+                      key={persona.id}
+                      onClick={() => { setPersona(persona.id as typeof activePersona); setPersonaMenuOpen(false); setHoveredPersona(null) }}
+                      onMouseEnter={() => setHoveredPersona(persona.id)}
+                      onMouseLeave={() => setHoveredPersona(null)}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-white/5 transition-colors ${
+                        isSelected ? 'bg-cyan-500/10' : ''
+                      }`}
+                    >
+                      <Icon
+                        size={18}
+                        color={isSelected ? '#22d3ee' : '#94a3b8'}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-sm font-medium ${isSelected ? 'text-cyan-400' : 'text-slate-300'}`}>
+                          {persona.label}
+                        </div>
+                        <div className="text-xs text-slate-500 truncate">{persona.description}</div>
+                      </div>
+                      {isSelected && (
+                        <Check className="w-4 h-4 text-cyan-400" />
+                      )}
+                    </button>
+                  )
+                })}
+
+                <div className="border-t border-white/5 my-1" />
+
+                {/* Compliance Section */}
+                <div className="px-4 py-2 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                  Compliance & Oversight
+                </div>
+                {compliancePersonas.map((persona) => {
+                  const Icon = persona.Icon
+                  const isSelected = persona.id === activePersona
+                  const iconColor = persona.isWhistleblower
+                    ? (isSelected ? '#FBBF24' : '#D97706')
+                    : (isSelected ? '#22d3ee' : '#94a3b8')
+
+                  return (
+                    <button
+                      key={persona.id}
+                      onClick={() => { setPersona(persona.id as typeof activePersona); setPersonaMenuOpen(false); setHoveredPersona(null) }}
+                      onMouseEnter={() => setHoveredPersona(persona.id)}
+                      onMouseLeave={() => setHoveredPersona(null)}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-white/5 transition-colors ${
+                        isSelected
+                          ? persona.isWhistleblower
+                            ? 'bg-amber-900/20'
+                            : 'bg-cyan-500/10'
+                          : ''
+                      }`}
+                    >
+                      <Icon size={18} color={iconColor} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-sm font-medium ${
+                            isSelected
+                              ? persona.isWhistleblower ? 'text-amber-400' : 'text-cyan-400'
+                              : persona.isWhistleblower ? 'text-amber-400/80' : 'text-slate-300'
+                          }`}>
+                            {persona.label}
+                          </span>
+                          {persona.isWhistleblower && (
+                            <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                          )}
+                        </div>
+                        <div className={`text-xs truncate ${persona.isWhistleblower ? 'text-amber-500/60' : 'text-slate-500'}`}>
+                          {persona.description}
+                        </div>
+                      </div>
+                      {isSelected && (
+                        <Check className={persona.isWhistleblower ? 'w-4 h-4 text-amber-400' : 'w-4 h-4 text-cyan-400'} />
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
           {/* Privilege Toggle with Enhanced Tooltip */}
           <div className="relative group">
             <button
@@ -1449,6 +1600,7 @@ function ThemeSettings() {
     { id: 'cobalt' as const, name: 'Midnight Cobalt', colors: ['#0A192F', '#112240', '#2463EB'], description: 'Default sovereign blue' },
     { id: 'noir' as const, name: 'Cyber Noir', colors: ['#000000', '#0A0A0A', '#00F0FF'], description: 'OLED black, neon cyan' },
     { id: 'forest' as const, name: 'Forest Dark', colors: ['#022c22', '#064e3b', '#10b981'], description: 'Military field ops' },
+    { id: 'obsidian' as const, name: 'Obsidian Gold', colors: ['#020408', '#0F0F0F', '#F59E0B'], description: 'Executive luxury' },
   ]
 
   return (
@@ -1460,7 +1612,7 @@ function ThemeSettings() {
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         {themes.map((t) => (
           <button
             key={t.id}

@@ -52,11 +52,11 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         >
           <img
-            src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
+            src="https://storage.googleapis.com/connexusai-assets/BabyBlue_RAGb%C3%B6x.png"
             alt="RAGbox"
-            width={240}
-            height={64}
-            className="h-16 w-auto"
+            width={720}
+            height={192}
+            className="h-48 w-auto"
             style={{ color: 'transparent' }}
           />
         </motion.div>

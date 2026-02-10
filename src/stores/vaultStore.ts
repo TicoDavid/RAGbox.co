@@ -98,6 +98,7 @@ export const useVaultStore = create<VaultState>()(
                 isPrivileged: doc.isPrivileged,
                 securityTier: doc.securityTier ?? 0,
                 deletionStatus: doc.deletionStatus,
+                checksum: doc.checksum,
               }
             }
             set({ documents, isLoading: false })
@@ -170,13 +171,16 @@ export const useVaultStore = create<VaultState>()(
           const extractResult = await extractRes.json()
 
           // Step 2: Create document record in database
+          // Use mimeType from extract result (which handles empty file.type for .md files)
+          const mimeType = extractResult.data.mimeType || file.type || 'application/octet-stream'
+
           const createRes = await fetch('/api/documents', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               name: file.name,
               size: file.size,
-              mimeType: file.type,
+              mimeType,
               storagePath: extractResult.data.storagePath,
               storageUri: extractResult.data.gcsUri,
               ...(folderId ? { folderId } : {}),

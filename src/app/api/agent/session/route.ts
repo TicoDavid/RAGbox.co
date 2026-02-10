@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { activeSessions, SESSION_TTL_MS } from './session-store'
 
 /**
  * Secure Agent Session Bootstrap
@@ -13,33 +14,6 @@ import { authOptions } from '@/lib/auth'
  *
  * All Inworld API communication happens server-side only.
  */
-
-// Active sessions store (in production, use Redis)
-const activeSessions = new Map<string, {
-  userId: string
-  createdAt: number
-  expiresAt: number
-}>()
-
-// Session TTL: 30 minutes
-const SESSION_TTL_MS = 30 * 60 * 1000
-
-// Cleanup expired sessions periodically
-function cleanupExpiredSessions() {
-  const now = Date.now()
-  const sessionIds = Array.from(activeSessions.keys())
-  for (const sessionId of sessionIds) {
-    const session = activeSessions.get(sessionId)
-    if (session && session.expiresAt < now) {
-      activeSessions.delete(sessionId)
-    }
-  }
-}
-
-// Run cleanup every 5 minutes
-if (typeof setInterval !== 'undefined') {
-  setInterval(cleanupExpiredSessions, 5 * 60 * 1000)
-}
 
 export async function POST() {
   try {
@@ -104,23 +78,6 @@ export async function POST() {
   }
 }
 
-// Validate session (used by WebSocket handler)
-export function validateSession(sessionId: string): { valid: boolean; userId?: string } {
-  const session = activeSessions.get(sessionId)
-
-  if (!session) {
-    return { valid: false }
-  }
-
-  if (session.expiresAt < Date.now()) {
-    activeSessions.delete(sessionId)
-    return { valid: false }
-  }
-
-  return { valid: true, userId: session.userId }
-}
-
-// Invalidate session (logout/disconnect)
-export function invalidateSession(sessionId: string): void {
-  activeSessions.delete(sessionId)
-}
+// Session validation helpers available in session-store.ts:
+// - validateSession(sessionId) - validates session and returns userId
+// - invalidateSession(sessionId) - removes session on logout/disconnect
