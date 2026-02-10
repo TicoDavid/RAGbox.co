@@ -187,8 +187,8 @@ export function AuthModal({ isOpen, onClose, context = 'signin' }: AuthModalProp
           <div className="text-center mb-8">
             {/* Official RAGbox.co Logo */}
             <img
-              src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
-              className="w-[200px] h-auto mx-auto mb-6"
+              src="https://storage.googleapis.com/connexusai-assets/BabyBlue_RAGb%C3%B6x.png"
+              className="w-[600px] h-auto mx-auto mb-6"
               alt="RAGbox.co"
             />
 

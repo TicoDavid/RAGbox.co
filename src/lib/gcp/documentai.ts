@@ -1,41 +1,67 @@
-import { DocumentUnderstandingServiceClient } from '@google-cloud/documentai';
+import { DocumentProcessorServiceClient } from '@google-cloud/documentai'
 
-const client = new DocumentUnderstandingServiceClient();
+// Note: In production, configure processor name via environment variables
+const projectId = process.env.GOOGLE_CLOUD_PROJECT
+const location = process.env.GCP_REGION || 'us'
+const processorId = process.env.DOCUMENT_AI_PROCESSOR_ID
 
-async function extractTextFromPdf(filePath) {
-    const request = {
-        inputConfig: {
-            gcsSource: {
-                // Set the GCS path to the PDF file
-                uri: filePath,
-            },
-            mimeType: 'application/pdf',  // Change mime type if needed
-        },
-        feature: [{
-            type: 'DOCUMENT_TEXT_DETECTION',
-        }],
-    };
+let client: DocumentProcessorServiceClient | null = null
 
-    const [result] = await client.processDocument(request);
-    return result;
+function getClient(): DocumentProcessorServiceClient {
+  if (!client) {
+    client = new DocumentProcessorServiceClient()
+  }
+  return client
 }
 
-async function extractTextFromImage(filePath) {
-    const request = {
-        inputConfig: {
-            gcsSource: {
-                // Set the GCS path to the image file
-                uri: filePath,
-            },
-            mimeType: 'image/jpeg',  // Adjust mime type for different images
-        },
-        feature: [{
-            type: 'DOCUMENT_TEXT_DETECTION',
-        }],
-    };
+async function extractTextFromPdf(gcsUri: string): Promise<string> {
+  if (!projectId || !processorId) {
+    console.warn('[DocumentAI] Not configured - returning empty text')
+    return ''
+  }
 
-    const [result] = await client.processDocument(request);
-    return result;
+  const processorName = `projects/${projectId}/locations/${location}/processors/${processorId}`
+
+  const request = {
+    name: processorName,
+    gcsDocument: {
+      gcsUri,
+      mimeType: 'application/pdf',
+    },
+  }
+
+  try {
+    const [result] = await getClient().processDocument(request)
+    return result.document?.text || ''
+  } catch (error) {
+    console.error('[DocumentAI] Failed to process PDF:', error)
+    return ''
+  }
 }
 
-export { extractTextFromPdf, extractTextFromImage };
+async function extractTextFromImage(gcsUri: string): Promise<string> {
+  if (!projectId || !processorId) {
+    console.warn('[DocumentAI] Not configured - returning empty text')
+    return ''
+  }
+
+  const processorName = `projects/${projectId}/locations/${location}/processors/${processorId}`
+
+  const request = {
+    name: processorName,
+    gcsDocument: {
+      gcsUri,
+      mimeType: 'image/jpeg',
+    },
+  }
+
+  try {
+    const [result] = await getClient().processDocument(request)
+    return result.document?.text || ''
+  } catch (error) {
+    console.error('[DocumentAI] Failed to process image:', error)
+    return ''
+  }
+}
+
+export { extractTextFromPdf, extractTextFromImage }

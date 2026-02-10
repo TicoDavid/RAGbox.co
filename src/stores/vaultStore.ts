@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 import type { VaultItem, FolderNode } from '@/types/ragbox'
+import { apiFetch } from '@/lib/api'
 
 interface VaultState {
   // Data
@@ -78,26 +79,28 @@ export const useVaultStore = create<VaultState>()(
         fetchDocuments: async () => {
           set({ isLoading: true, error: null })
           try {
-            const res = await fetch('/api/documents')
+            const res = await apiFetch('/api/documents')
             if (!res.ok) throw new Error('Failed to fetch documents')
-            const data = await res.json()
+            const json = await res.json()
+            const docList = json.data?.documents ?? json.documents ?? []
             const documents: Record<string, VaultItem> = {}
-            for (const doc of data.documents) {
+            for (const doc of docList) {
               documents[doc.id] = {
                 id: doc.id,
-                name: doc.name,
+                name: doc.filename ?? doc.name,
                 originalName: doc.originalName,
                 type: 'document',
                 mimeType: doc.mimeType,
-                size: doc.size,
-                createdAt: new Date(doc.uploadedAt),
+                size: doc.sizeBytes ?? doc.size,
+                createdAt: new Date(doc.createdAt ?? doc.uploadedAt),
                 updatedAt: new Date(doc.updatedAt),
                 parentId: doc.folderId,
                 folderId: doc.folderId,
-                status: doc.status,
+                status: doc.indexStatus ?? doc.status,
                 isPrivileged: doc.isPrivileged,
                 securityTier: doc.securityTier ?? 0,
                 deletionStatus: doc.deletionStatus,
+                checksum: doc.checksum,
               }
             }
             set({ documents, isLoading: false })
@@ -108,11 +111,12 @@ export const useVaultStore = create<VaultState>()(
 
         fetchFolders: async () => {
           try {
-            const res = await fetch('/api/documents/folders')
+            const res = await apiFetch('/api/documents/folders')
             if (!res.ok) throw new Error('Failed to fetch folders')
-            const data = await res.json()
+            const json = await res.json()
+            const folderList = json.data ?? json.folders ?? []
             const folders: Record<string, FolderNode> = {}
-            for (const folder of data.folders) {
+            for (const folder of folderList) {
               // Register nested children as folder entries
               const childIds: string[] = []
               if (Array.isArray(folder.children)) {
@@ -161,7 +165,7 @@ export const useVaultStore = create<VaultState>()(
           if (folderId) formData.append('folderId', folderId)
 
           // Step 1: Extract text and upload to GCS
-          const extractRes = await fetch('/api/documents/extract', {
+          const extractRes = await apiFetch('/api/documents/extract', {
             method: 'POST',
             body: formData,
           })
@@ -170,13 +174,16 @@ export const useVaultStore = create<VaultState>()(
           const extractResult = await extractRes.json()
 
           // Step 2: Create document record in database
-          const createRes = await fetch('/api/documents', {
+          // Use mimeType from extract result (which handles empty file.type for .md files)
+          const mimeType = extractResult.data.mimeType || file.type || 'application/octet-stream'
+
+          const createRes = await apiFetch('/api/documents', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               name: file.name,
               size: file.size,
-              mimeType: file.type,
+              mimeType,
               storagePath: extractResult.data.storagePath,
               storageUri: extractResult.data.gcsUri,
               ...(folderId ? { folderId } : {}),
@@ -195,7 +202,7 @@ export const useVaultStore = create<VaultState>()(
           })
 
           try {
-            const res = await fetch(`/api/documents/${id}`, { method: 'DELETE' })
+            const res = await apiFetch(`/api/documents/${id}`, { method: 'DELETE' })
             if (!res.ok) throw new Error('Delete failed')
           } catch (error) {
             get().fetchDocuments()
@@ -204,7 +211,7 @@ export const useVaultStore = create<VaultState>()(
         },
 
         updateDocument: async (id, updates) => {
-          const res = await fetch(`/api/documents/${id}`, {
+          const res = await apiFetch(`/api/documents/${id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updates),
@@ -233,7 +240,7 @@ export const useVaultStore = create<VaultState>()(
             }
             if (confirmUnmark) body.confirmUnmark = true
 
-            return fetch(`/api/documents/${id}/privilege`, {
+            return apiFetch(`/api/documents/${id}/privilege`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(body),
@@ -272,7 +279,7 @@ export const useVaultStore = create<VaultState>()(
         },
 
         createFolder: async (name, parentId) => {
-          const res = await fetch('/api/documents/folders', {
+          const res = await apiFetch('/api/documents/folders', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, parentId }),
@@ -283,7 +290,7 @@ export const useVaultStore = create<VaultState>()(
         },
 
         deleteFolder: async (id) => {
-          const res = await fetch(`/api/documents/folders?id=${id}`, {
+          const res = await apiFetch(`/api/documents/folders?id=${id}`, {
             method: 'DELETE',
           })
 

@@ -48,7 +48,7 @@ export default function LoginPage() {
         transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.2 }}
       >
         <motion.div className="flex justify-center mb-8" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-          <img src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png" alt="RAGbox.co" className="h-16 w-auto" />
+          <img src="https://storage.googleapis.com/connexusai-assets/BabyBlue_RAGb%C3%B6x.png" alt="RAGbox.co" className="h-48 w-auto" />
         </motion.div>
 
         <motion.div className="text-center mb-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>

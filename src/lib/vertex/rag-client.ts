@@ -48,7 +48,7 @@ export interface StreamCallbacks extends ChatOptions {
   onError: (error: Error) => void;
 }
 
-const DEFAULT_SYSTEM_PROMPT = `You are Mercury, the AI assistant for RAGbox - a sovereign document intelligence platform.
+const DEFAULT_SYSTEM_PROMPT = `You are Mercury, the Virtual Representative (V-Rep) for RAGbox - a sovereign document intelligence platform.
 
 Key traits:
 - Professional, precise, and security-conscious

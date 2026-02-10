@@ -13,14 +13,14 @@ export default function Footer() {
             <div className="flex items-center gap-2 font-bold text-xl">
               {/* Light mode: Black logo */}
               <img
-                src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
-                className="h-8 w-auto dark:hidden"
+                src="https://storage.googleapis.com/connexusai-assets/BabyBlue_RAGb%C3%B6x.png"
+                className="h-24 w-auto dark:hidden"
                 alt="RAGBox"
               />
               {/* Dark mode: Backlit logo */}
               <img
-                src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
-                className="h-8 w-auto hidden dark:block"
+                src="https://storage.googleapis.com/connexusai-assets/BabyBlue_RAGb%C3%B6x.png"
+                className="h-24 w-auto hidden dark:block"
                 alt="RAGBox"
               />
             </div>

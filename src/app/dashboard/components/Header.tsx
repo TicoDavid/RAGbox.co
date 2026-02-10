@@ -118,9 +118,9 @@ const Header: React.FC<HeaderProps> = ({
       <div className="header-left">
         <div className="logo-container">
           <img
-            src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
+            src="https://storage.googleapis.com/connexusai-assets/BabyBlue_RAGb%C3%B6x.png"
             alt="RAGbox Logo"
-            className="ragbox-logo"
+            className="ragbox-logo h-24 w-auto"
           />
         </div>
         {/* System Designation - Military-grade branding */}

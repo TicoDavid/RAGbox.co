@@ -14,6 +14,10 @@ interface VoiceTriggerProps {
   onSubmit?: (text: string) => void
   disabled?: boolean
   className?: string
+  /** Apply custom size - 'default' (40px) or 'large' (48px) */
+  size?: 'default' | 'large'
+  /** Inline variant for use inside input bars - no background when idle */
+  variant?: 'default' | 'inline'
 }
 
 // ============================================================================
@@ -86,7 +90,11 @@ export function VoiceTrigger({
   onSubmit,
   disabled = false,
   className = '',
+  size = 'default',
+  variant = 'default',
 }: VoiceTriggerProps) {
+  const sizeClasses = size === 'large' ? 'w-12 h-12' : 'w-9 h-9'
+  const isInline = variant === 'inline'
   const {
     state,
     isActive,
@@ -156,7 +164,7 @@ export function VoiceTrigger({
         return {
           icon: <Mic className="w-5 h-5" />,
           bg: '',
-          text: 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]',
+          text: 'text-slate-500 hover:text-white',
           ring: '',
           glow: '',
           pulse: false,
@@ -166,6 +174,11 @@ export function VoiceTrigger({
 
   const config = getStateConfig(state)
 
+  // Inline variant has more subtle styling
+  const inlineClasses = isInline
+    ? 'hover:bg-transparent'
+    : 'hover:bg-white/5'
+
   return (
     <div className={`relative ${className}`}>
       {/* Main Button */}
@@ -174,11 +187,11 @@ export function VoiceTrigger({
         disabled={disabled}
         whileTap={{ scale: 0.95 }}
         className={`
-          relative w-10 h-10 rounded-full flex items-center justify-center
+          relative ${sizeClasses} rounded-full flex items-center justify-center
           transition-all duration-300 overflow-hidden
           ${config.bg} ${config.text} ${config.glow}
           ${config.ring ? `ring-2 ${config.ring}` : ''}
-          ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-white/5'}
+          ${disabled ? 'opacity-50 cursor-not-allowed' : `cursor-pointer ${inlineClasses}`}
         `}
         title={isActive ? 'Stop listening' : 'Start voice input'}
       >

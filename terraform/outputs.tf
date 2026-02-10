@@ -171,6 +171,25 @@ output "domain_mapping_status" {
 }
 
 # ============================================
+# Billing & Monitoring
+# ============================================
+
+output "billing_budget_name" {
+  description = "Billing budget display name"
+  value       = google_billing_budget.monthly.display_name
+}
+
+output "latency_alert_policy_name" {
+  description = "Latency p95 alert policy name"
+  value       = google_monitoring_alert_policy.latency_p95.display_name
+}
+
+output "error_rate_alert_policy_name" {
+  description = "Error rate alert policy name"
+  value       = google_monitoring_alert_policy.error_rate.display_name
+}
+
+# ============================================
 # Summary for .env file
 # ============================================
 

@@ -64,13 +64,13 @@ export function Sidebar() {
       {/* Logo - DOMINANT presence at top left */}
       <div className="p-6">
         <motion.div
-          className="flex items-center w-48"
+          className="flex items-center w-[144px]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.1 }}
         >
           <img
-            src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
+            src="https://storage.googleapis.com/connexusai-assets/BabyBlue_RAGb%C3%B6x.png"
             alt="RAGbox.co"
             className="w-full h-auto"
           />

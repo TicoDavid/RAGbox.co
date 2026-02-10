@@ -195,3 +195,21 @@ variable "enable_deletion_protection" {
   type        = bool
   default     = true
 }
+
+# Billing Configuration
+variable "billing_account_id" {
+  description = "GCP Billing Account ID"
+  type        = string
+}
+
+variable "monthly_budget_usd" {
+  description = "Monthly budget in USD"
+  type        = number
+  default     = 1000
+}
+
+variable "billing_alert_email" {
+  description = "Email address for billing and monitoring alerts (empty to use project-level recipients only)"
+  type        = string
+  default     = ""
+}

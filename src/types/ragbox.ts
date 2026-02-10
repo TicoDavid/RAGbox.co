@@ -98,6 +98,7 @@ export interface VaultItem {
   isPrivileged: boolean
   securityTier: number
   deletionStatus: DeletionStatus
+  checksum?: string // SHA-256 hash for integrity verification
 }
 
 export interface FolderNode {

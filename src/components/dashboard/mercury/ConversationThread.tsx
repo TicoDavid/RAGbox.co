@@ -21,37 +21,40 @@ export function ConversationThread() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-4">
-      {messages.map((msg) => (
-        <Message key={msg.id} message={msg} />
-      ))}
+    <div className="flex-1 overflow-y-auto px-4 py-6">
+      {/* Focus Column - Constrained width for readability */}
+      <div className="max-w-3xl mx-auto">
+        {messages.map((msg) => (
+          <Message key={msg.id} message={msg} />
+        ))}
 
-      {/* Streaming indicator */}
-      {isStreaming && streamingContent && (
-        <div className="flex justify-start mb-4">
-          <div className="max-w-[75%] rounded-xl px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-default)]">
-            <div className="text-sm whitespace-pre-wrap leading-relaxed text-[var(--text-primary)]">
-              {streamingContent}
-              <span className="inline-block w-2 h-4 bg-[var(--brand-blue)] ml-0.5 animate-pulse" />
+        {/* Streaming indicator */}
+        {isStreaming && streamingContent && (
+          <div className="flex justify-start mb-4">
+            <div className="max-w-[85%] rounded-xl px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-default)]">
+              <div className="text-sm whitespace-pre-wrap leading-relaxed text-[var(--text-primary)]">
+                {streamingContent}
+                <span className="inline-block w-2 h-4 bg-[var(--brand-blue)] ml-0.5 animate-pulse" />
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Loading dots (no content yet) */}
-      {isStreaming && !streamingContent && (
-        <div className="flex justify-start mb-4">
-          <div className="rounded-xl px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-default)]">
-            <div className="flex gap-1">
-              <span className="w-2 h-2 rounded-full bg-[var(--text-tertiary)] animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-2 h-2 rounded-full bg-[var(--text-tertiary)] animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-2 h-2 rounded-full bg-[var(--text-tertiary)] animate-bounce" style={{ animationDelay: '300ms' }} />
+        {/* Loading dots (no content yet) */}
+        {isStreaming && !streamingContent && (
+          <div className="flex justify-start mb-4">
+            <div className="rounded-xl px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-default)]">
+              <div className="flex gap-1">
+                <span className="w-2 h-2 rounded-full bg-[var(--text-tertiary)] animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-2 h-2 rounded-full bg-[var(--text-tertiary)] animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-2 h-2 rounded-full bg-[var(--text-tertiary)] animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <div ref={bottomRef} />
+        <div ref={bottomRef} />
+      </div>
     </div>
   )
 }

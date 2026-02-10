@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
 
 // Theme types
-export type ThemeId = 'cobalt' | 'noir' | 'forest'
+export type ThemeId = 'cobalt' | 'noir' | 'forest' | 'obsidian'
 
 // Language types
 export type LanguageId = 'en' | 'es' | 'de' | 'fr' | 'zh'
@@ -62,6 +62,11 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     name: 'Forest Dark',
     colors: ['#022c22', '#064e3b', '#10b981'],
   },
+  obsidian: {
+    id: 'obsidian',
+    name: 'Obsidian Gold',
+    colors: ['#020408', '#0F0F0F', '#F59E0B'],
+  },
 }
 
 // Universal Connection type - OpenRouter is the recommended gateway
@@ -94,6 +99,16 @@ export interface NotificationSettings {
   audit: boolean
 }
 
+// Intelligence tier types
+export type IntelligenceTier = 'native' | 'managed' | 'universe' | 'private'
+
+export interface ActiveIntelligence {
+  id: string           // e.g., 'aegis-core' or 'anthropic/claude-3.5-sonnet'
+  displayName: string  // e.g., 'Aegis' or 'Claude 3.5 Sonnet'
+  provider: string     // e.g., 'RAGbox' or 'Anthropic'
+  tier: IntelligenceTier
+}
+
 // Full settings state
 interface SettingsState {
   theme: ThemeId
@@ -103,6 +118,7 @@ interface SettingsState {
   notifications: NotificationSettings
   voice: VoiceSettings
   subscription: SubscriptionInfo
+  activeIntelligence: ActiveIntelligence
 }
 
 // Context value
@@ -117,11 +133,22 @@ interface SettingsContextValue extends SettingsState {
   setNotification: (key: keyof NotificationSettings, value: boolean) => void
   setConnectionModel: (connectionId: string, modelId: string) => void
   updateVoice: (updates: Partial<VoiceSettings>) => void
+  setActiveIntelligence: (intel: ActiveIntelligence) => void
   isVerifying: string | null // ID of connection being verified
   hasVerifiedConnection: boolean // For UI badges like "Enhanced OCR"
-  // Active model info for header display
+  // Active model info for header display (legacy - use activeIntelligence instead)
   activeModel: string | null
   activeModelProvider: string | null
+  // Aegis is active when using native tier
+  isAegisActive: boolean
+}
+
+// The Aegis default - sovereign AI running on RAGbox infrastructure
+const AEGIS_DEFAULT: ActiveIntelligence = {
+  id: 'aegis-core',
+  displayName: 'Aegis',
+  provider: 'RAGbox',
+  tier: 'native',
 }
 
 const defaultSettings: SettingsState = {
@@ -141,6 +168,7 @@ const defaultSettings: SettingsState = {
     tokensLimit: 5000000,
     renewalDate: '2025-02-15',
   },
+  activeIntelligence: AEGIS_DEFAULT,
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null)
@@ -348,6 +376,13 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }))
   }, [])
 
+  const setActiveIntelligence = useCallback((intel: ActiveIntelligence) => {
+    setSettings((prev) => ({
+      ...prev,
+      activeIntelligence: intel,
+    }))
+  }, [])
+
   // Check if any connection is verified (for UI badges)
   const hasVerifiedConnection = settings.connections.some((c) => c.verified)
 
@@ -355,6 +390,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const openRouterConnection = settings.connections.find((c) => c.type === 'openrouter' && c.verified && c.selectedModel)
   const activeModel = openRouterConnection?.selectedModel || null
   const activeModelProvider = activeModel ? getProviderFromModel(activeModel) : null
+
+  // Aegis is active when using native tier
+  const isAegisActive = settings.activeIntelligence.tier === 'native'
 
   const value: SettingsContextValue = {
     ...settings,
@@ -368,10 +406,12 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     setNotification,
     setConnectionModel,
     updateVoice,
+    setActiveIntelligence,
     isVerifying,
     hasVerifiedConnection,
     activeModel,
     activeModelProvider,
+    isAegisActive,
   }
 
   return (

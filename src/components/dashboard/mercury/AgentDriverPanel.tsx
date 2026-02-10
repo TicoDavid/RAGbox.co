@@ -114,14 +114,14 @@ function ToolCard({ tool }: { tool: ToolCallInfo }) {
             {statusIcons[tool.status]}
             <span className="capitalize">{tool.status}</span>
           </span>
-          {tool.result && (
+          {tool.result !== undefined && (
             expanded ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />
           )}
         </div>
       </button>
 
       <AnimatePresence>
-        {expanded && tool.result && (
+        {expanded && tool.result !== undefined && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}

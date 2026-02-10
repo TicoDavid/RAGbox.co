@@ -145,7 +145,7 @@ export async function createInworldSession(config: InworldSessionConfig): Promis
     return `**${t.name}**: ${t.description}${params ? '\n' + params : ''}`
   }).join('\n\n')
 
-  const systemPrompt = `You are Mercury, the AI assistant for RAGbox.co - a secure, compliance-ready RAG platform for legal, financial, and healthcare sectors.
+  const systemPrompt = `You are Mercury, the Virtual Representative (V-Rep) for RAGbox.co - a secure, compliance-ready RAG platform for legal, financial, and healthcare sectors.
 
 You have access to the user's document vault and can help them navigate, search, and analyze their documents.
 
@@ -388,21 +388,14 @@ Current user context:
       const { outputStream } = await ttsGraph.start(text)
 
       for await (const result of outputStream) {
+        // Use flexible response handling for TTS output
         await result.processResponse({
-          TTSOutput: async (output: GraphTypes.TTSOutput) => {
-            if (output.audio?.data) {
+          default: async (output: unknown) => {
+            const ttsOutput = output as { audio?: { data?: string } }
+            if (ttsOutput.audio?.data) {
               // Convert Float32 (from Inworld) to Int16 (for browser)
-              const int16Base64 = float32ToInt16Base64(output.audio.data)
+              const int16Base64 = float32ToInt16Base64(ttsOutput.audio.data)
               onTTSChunk?.(int16Base64)
-            }
-          },
-          TTSOutputStream: async (stream: GraphTypes.TTSOutputStream) => {
-            for await (const chunk of stream) {
-              if (chunk.audio?.data) {
-                // Convert Float32 (from Inworld) to Int16 (for browser)
-                const int16Base64 = float32ToInt16Base64(chunk.audio.data)
-                onTTSChunk?.(int16Base64)
-              }
             }
           },
           error: (error: GraphTypes.GraphError) => {

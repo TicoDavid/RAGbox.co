@@ -1,0 +1,74 @@
+steps:
+  # Run tests
+  - name: 'golang:1.25-alpine'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - 'cd backend && go test ./...'
+    id: 'test'
+
+  # Build container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-east4-docker.pkg.dev/$PROJECT_ID/ragbox/backend:$SHORT_SHA'
+      - '-t'
+      - 'us-east4-docker.pkg.dev/$PROJECT_ID/ragbox/backend:latest'
+      - '-f'
+      - 'backend/Dockerfile'
+      - 'backend/'
+    id: 'build'
+    waitFor: ['test']
+
+  # Push to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'us-east4-docker.pkg.dev/$PROJECT_ID/ragbox/backend:$SHORT_SHA'
+    id: 'push'
+    waitFor: ['build']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'us-east4-docker.pkg.dev/$PROJECT_ID/ragbox/backend:latest'
+    waitFor: ['build']
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'ragbox-backend'
+      - '--image'
+      - 'us-east4-docker.pkg.dev/$PROJECT_ID/ragbox/backend:$SHORT_SHA'
+      - '--region'
+      - 'us-east4'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--memory'
+      - '512Mi'
+      - '--cpu'
+      - '1'
+      - '--min-instances'
+      - '0'
+      - '--max-instances'
+      - '10'
+      - '--port'
+      - '8080'
+      - '--set-env-vars'
+      - 'ENVIRONMENT=production,GCP_REGION=us-east4'
+    id: 'deploy'
+    waitFor: ['push']
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '600s'
+
+images:
+  - 'us-east4-docker.pkg.dev/$PROJECT_ID/ragbox/backend:$SHORT_SHA'
+  - 'us-east4-docker.pkg.dev/$PROJECT_ID/ragbox/backend:latest'

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
+import { apiFetch } from '@/lib/api'
 
 interface PrivilegeState {
   isEnabled: boolean
@@ -20,7 +21,7 @@ export const usePrivilegeStore = create<PrivilegeState>()(
           const newState = !get().isEnabled
 
           try {
-            const res = await fetch('/api/privilege', {
+            const res = await apiFetch('/api/privilege', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ privileged: newState }),
@@ -37,10 +38,10 @@ export const usePrivilegeStore = create<PrivilegeState>()(
 
         fetch: async () => {
           try {
-            const res = await fetch('/api/privilege')
+            const res = await apiFetch('/api/privilege')
             if (!res.ok) throw new Error('Failed to fetch privilege state')
             const data = await res.json()
-            set({ isEnabled: data.isPrivileged })
+            set({ isEnabled: data.data?.privilegeMode ?? data.isPrivileged ?? false })
           } catch (error) {
             console.error('Failed to fetch privilege state:', error)
           }
