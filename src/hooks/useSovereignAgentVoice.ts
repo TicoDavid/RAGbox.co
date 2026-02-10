@@ -393,7 +393,7 @@ function createTTSPlayer(sampleRate: number): {
       if (currentSource) {
         try {
           currentSource.stop()
-        } catch {}
+        } catch (_e) { /* AudioBufferSourceNode may already be stopped */ }
         currentSource = null
       }
       ctx?.close()
@@ -485,10 +485,11 @@ export function useSovereignAgentVoice(
         window.dispatchEvent(new CustomEvent('agent:open_panel', { detail: action }))
         break
 
-      case 'scroll_to':
+      case 'scroll_to': {
         const element = document.getElementById(action.elementId as string)
         element?.scrollIntoView({ behavior: 'smooth' })
         break
+      }
 
       case 'select_documents':
         window.dispatchEvent(new CustomEvent('agent:select_documents', { detail: action }))

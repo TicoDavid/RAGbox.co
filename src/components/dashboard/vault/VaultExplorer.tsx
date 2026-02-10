@@ -534,6 +534,8 @@ function SovereignInspector({
   onSecurityChange: (id: string, security: SecurityTier) => void
   onIndexToggle: (id: string, enabled: boolean) => void
 }) {
+  const hash = useMemo(() => item ? generateHash(item.id) : '', [item?.id])
+
   if (!item || item.type === 'folder') {
     return (
       <div className="flex flex-col h-full items-center justify-center text-center p-6">
@@ -543,7 +545,6 @@ function SovereignInspector({
     )
   }
 
-  const hash = useMemo(() => generateHash(item.id), [item.id])
   const isSovereign = item.security === 'sovereign'
 
   return (
