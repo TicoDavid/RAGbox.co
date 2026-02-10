@@ -10,37 +10,67 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	firebase "firebase.google.com/go/v4"
+	"github.com/prometheus/client_golang/prometheus"
+
+	"github.com/connexus-ai/ragbox-backend/internal/config"
+	"github.com/connexus-ai/ragbox-backend/internal/middleware"
+	"github.com/connexus-ai/ragbox-backend/internal/repository"
+	internalrouter "github.com/connexus-ai/ragbox-backend/internal/router"
+	"github.com/connexus-ai/ragbox-backend/internal/service"
 )
 
 const Version = "0.1.0"
 
-func newRouter() *chi.Mux {
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.RequestID)
+func run() error {
+	ctx := context.Background()
 
-	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, `{"status":"ok","version":"%s"}`, Version)
+	// Load configuration
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
+
+	// Initialize database pool
+	pool, err := repository.NewPool(ctx, cfg.DatabaseURL, cfg.DatabaseMaxConns)
+	if err != nil {
+		return fmt.Errorf("database pool: %w", err)
+	}
+	defer pool.Close()
+	log.Println("database pool connected")
+
+	// Initialize Firebase auth
+	app, err := firebase.NewApp(ctx, &firebase.Config{
+		ProjectID: cfg.FirebaseProjectID,
+	})
+	if err != nil {
+		return fmt.Errorf("firebase app: %w", err)
+	}
+
+	authClient, err := app.Auth(ctx)
+	if err != nil {
+		return fmt.Errorf("firebase auth client: %w", err)
+	}
+
+	authService := service.NewAuthService(authClient)
+
+	// Initialize Prometheus metrics
+	reg := prometheus.NewRegistry()
+	metrics := middleware.NewMetrics(reg)
+
+	// Build router with all dependencies
+	router := internalrouter.New(&internalrouter.Dependencies{
+		DB:          pool,
+		AuthService: authService,
+		FrontendURL: cfg.FrontendURL,
+		Metrics:     metrics,
+		MetricsReg:  reg,
 	})
 
-	return r
-}
-
-func getPort() string {
-	if port := os.Getenv("PORT"); port != "" {
-		return port
+	port := fmt.Sprintf("%d", cfg.Port)
+	if p := os.Getenv("PORT"); p != "" {
+		port = p
 	}
-	return "8080"
-}
-
-func run() error {
-	port := getPort()
-	router := newRouter()
 
 	srv := &http.Server{
 		Addr:         ":" + port,
@@ -69,10 +99,10 @@ func run() error {
 		return fmt.Errorf("server error: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	if err := srv.Shutdown(ctx); err != nil {
+	if err := srv.Shutdown(shutdownCtx); err != nil {
 		return fmt.Errorf("graceful shutdown failed: %w", err)
 	}
 

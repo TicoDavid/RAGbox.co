@@ -28,12 +28,12 @@ export async function apiFetch(
       // Dynamically import to avoid SSR issues
       const { getSession } = await import('next-auth/react')
       const session = await getSession()
-      if (session) {
-        // Use session user ID as a bearer token identifier
-        // The Go backend verifies Firebase tokens, so in production
-        // this would be a Firebase ID token
-        headers.set('Authorization', `Bearer ${(session as unknown as Record<string, unknown>).accessToken || 'session'}`)
+      const accessToken = (session as Record<string, unknown> | null)?.accessToken as string | undefined
+      if (accessToken) {
+        headers.set('Authorization', `Bearer ${accessToken}`)
       }
+      // If no token is available, the request proceeds without auth.
+      // The backend will return 401 for protected routes.
     } catch {
       // Fallback: cookies will be sent automatically for same-origin
     }

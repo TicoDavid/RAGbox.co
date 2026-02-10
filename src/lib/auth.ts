@@ -13,13 +13,10 @@ declare global {
 const otpStore = globalThis.otpStore ?? new Map<string, { code: string; expires: number }>();
 globalThis.otpStore = otpStore;
 
-// Log credentials at startup (remove in production)
-console.log("[Auth Config] Google OAuth:", {
-  clientIdLength: process.env.GOOGLE_CLIENT_ID?.length,
-  clientIdPrefix: process.env.GOOGLE_CLIENT_ID?.substring(0, 15),
-  secretLength: process.env.GOOGLE_CLIENT_SECRET?.length,
-  secretPrefix: process.env.GOOGLE_CLIENT_SECRET?.substring(0, 10),
-});
+// Verify OAuth credentials are present (no values logged)
+if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+  console.warn("[Auth Config] Google OAuth credentials not configured");
+}
 
 export const authOptions: NextAuthOptions = {
   // Enable debug mode in development
@@ -147,9 +144,13 @@ export const authOptions: NextAuthOptions = {
       // Default: redirect to dashboard
       return `${baseUrl}/dashboard`;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
+      }
+      // Capture the OAuth access token on initial sign-in
+      if (account?.access_token) {
+        token.accessToken = account.access_token;
       }
       return token;
     },
@@ -157,6 +158,8 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id as string;
       }
+      // Expose accessToken to the client session for API calls
+      (session as unknown as Record<string, unknown>).accessToken = token.accessToken;
       return session;
     },
   },

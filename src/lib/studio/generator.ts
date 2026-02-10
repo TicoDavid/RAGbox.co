@@ -214,7 +214,7 @@ async function uploadArtifact(
   const buffer = typeof content === 'string' ? Buffer.from(content, 'utf-8') : content
   const destination = `users/${userId}/artifacts/${Date.now()}-${fileName}`
 
-  const result = await storageClient.uploadFile(buffer, fileName, mimeType, userId)
+  const result = await storageClient.uploadFile(buffer, destination, mimeType, userId)
 
   // Get signed URL for download (valid for 24 hours)
   const downloadUrl = await storageClient.getSignedUrl(result.gcsUri, 60 * 24)
