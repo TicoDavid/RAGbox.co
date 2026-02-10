@@ -14,11 +14,34 @@ import (
 
 // Dependencies holds all injected services needed by the router.
 type Dependencies struct {
-	DB          handler.DBPinger
-	AuthService *service.AuthService
-	FrontendURL string
-	Metrics     *middleware.Metrics
-	MetricsReg  *prometheus.Registry
+	DB                 handler.DBPinger
+	AuthService        *service.AuthService
+	FrontendURL        string
+	Metrics            *middleware.Metrics
+	MetricsReg         *prometheus.Registry
+	InternalAuthSecret string
+
+	// Document services
+	DocService *service.DocumentService
+	DocRepo    service.DocumentRepository
+
+	// Folder
+	FolderRepo service.FolderRepository
+
+	// Privilege
+	PrivilegeState *handler.PrivilegeState
+
+	// Chat
+	ChatDeps handler.ChatDeps
+
+	// Audit
+	AuditDeps handler.AuditDeps
+
+	// Export
+	ExportDeps handler.ExportDeps
+
+	// Forge
+	ForgeSvc *service.ForgeService
 }
 
 // New creates and configures the Chi router with all routes.
@@ -38,41 +61,45 @@ func New(deps *Dependencies) *chi.Mux {
 		r.Handle("/metrics", middleware.MetricsHandler(deps.MetricsReg))
 	}
 
-	// Protected routes (require Firebase auth)
+	// Build shared dependency structs
+	docCRUD := handler.DocCRUDDeps{DocRepo: deps.DocRepo}
+	folderDeps := handler.FolderDeps{FolderRepo: deps.FolderRepo}
+
+	// Protected routes (require internal service auth or Firebase auth)
 	r.Group(func(r chi.Router) {
-		r.Use(middleware.FirebaseAuth(deps.AuthService))
+		r.Use(middleware.InternalOrFirebaseAuth(deps.AuthService, deps.InternalAuthSecret))
 
 		// Documents
-		r.Get("/api/documents", placeholder("list_documents"))
-		r.Post("/api/documents/extract", placeholder("upload_document"))
-		r.Get("/api/documents/{id}", placeholder("get_document"))
-		r.Delete("/api/documents/{id}", placeholder("delete_document"))
-		r.Post("/api/documents/{id}/recover", placeholder("recover_document"))
-		r.Patch("/api/documents/{id}/tier", placeholder("update_tier"))
+		r.Get("/api/documents", handler.ListDocuments(docCRUD))
+		r.Post("/api/documents/extract", handler.UploadDocument(deps.DocService))
+		r.Get("/api/documents/{id}", handler.GetDocument(docCRUD))
+		r.Delete("/api/documents/{id}", handler.DeleteDocument(docCRUD))
+		r.Post("/api/documents/{id}/recover", handler.RecoverDocument(docCRUD))
+		r.Patch("/api/documents/{id}/tier", handler.UpdateDocumentTier(docCRUD))
 		r.Post("/api/documents/promote", placeholder("promote_tier"))
-		r.Patch("/api/documents/{id}/privilege", placeholder("toggle_doc_privilege"))
+		r.Patch("/api/documents/{id}/privilege", handler.ToggleDocPrivilege(docCRUD))
 
 		// Folders
-		r.Get("/api/documents/folders", placeholder("list_folders"))
-		r.Post("/api/documents/folders", placeholder("create_folder"))
-		r.Delete("/api/documents/folders/{id}", placeholder("delete_folder"))
+		r.Get("/api/documents/folders", handler.ListFolders(folderDeps))
+		r.Post("/api/documents/folders", handler.CreateFolder(folderDeps))
+		r.Delete("/api/documents/folders/{id}", handler.DeleteFolder(folderDeps))
 
 		// Privilege
-		r.Get("/api/privilege", placeholder("get_privilege"))
-		r.Post("/api/privilege", placeholder("toggle_privilege"))
+		r.Get("/api/privilege", handler.GetPrivilege(deps.PrivilegeState))
+		r.Post("/api/privilege", handler.TogglePrivilege(deps.PrivilegeState))
 
 		// Chat
-		r.Post("/api/chat", placeholder("chat"))
+		r.Post("/api/chat", handler.Chat(deps.ChatDeps))
 
 		// Audit
-		r.Get("/api/audit", placeholder("list_audit"))
-		r.Get("/api/audit/export", placeholder("export_audit"))
+		r.Get("/api/audit", handler.ListAudit(deps.AuditDeps))
+		r.Get("/api/audit/export", handler.ExportAudit(deps.AuditDeps))
 
 		// Export
-		r.Get("/api/export", placeholder("export_data"))
+		r.Get("/api/export", handler.ExportData(deps.ExportDeps))
 
 		// Forge
-		r.Post("/api/forge", placeholder("forge_generate"))
+		r.Post("/api/forge", handler.ForgeHandler(deps.ForgeSvc))
 	})
 
 	// 404 fallback
@@ -89,7 +116,6 @@ func New(deps *Dependencies) *chi.Mux {
 }
 
 // placeholder returns a handler that responds with a "not implemented" message.
-// These will be replaced with real handlers as epics are built.
 func placeholder(name string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

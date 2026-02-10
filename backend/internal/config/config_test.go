@@ -16,6 +16,7 @@ func clearEnv(t *testing.T) {
 		"FIREBASE_PROJECT_ID", "FRONTEND_URL", "CONFIDENCE_THRESHOLD",
 		"SELF_RAG_MAX_ITERATIONS", "CHUNK_SIZE_TOKENS", "CHUNK_OVERLAP_PERCENT",
 		"PROMPTS_DIR", "DEFAULT_PERSONA", "KMS_KEY_RING", "KMS_KEY_NAME",
+		"INTERNAL_AUTH_SECRET",
 	} {
 		os.Unsetenv(key)
 	}
@@ -96,6 +97,7 @@ func TestLoad_CustomValues(t *testing.T) {
 	setRequired(t)
 	t.Setenv("PORT", "9090")
 	t.Setenv("ENVIRONMENT", "production")
+	t.Setenv("INTERNAL_AUTH_SECRET", "test-secret-for-production")
 	t.Setenv("CONFIDENCE_THRESHOLD", "0.90")
 	t.Setenv("SELF_RAG_MAX_ITERATIONS", "5")
 	t.Setenv("FRONTEND_URL", "https://ragbox.co")

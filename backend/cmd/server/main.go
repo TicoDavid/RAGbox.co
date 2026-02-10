@@ -14,13 +14,15 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/connexus-ai/ragbox-backend/internal/config"
+	"github.com/connexus-ai/ragbox-backend/internal/gcpclient"
+	"github.com/connexus-ai/ragbox-backend/internal/handler"
 	"github.com/connexus-ai/ragbox-backend/internal/middleware"
 	"github.com/connexus-ai/ragbox-backend/internal/repository"
 	internalrouter "github.com/connexus-ai/ragbox-backend/internal/router"
 	"github.com/connexus-ai/ragbox-backend/internal/service"
 )
 
-const Version = "0.1.0"
+const Version = "0.2.0"
 
 func run() error {
 	ctx := context.Background()
@@ -54,18 +56,120 @@ func run() error {
 
 	authService := service.NewAuthService(authClient)
 
-	// Initialize Prometheus metrics
+	// ─── GCP clients ───────────────────────────────────────────────────
+
+	// Vertex AI generative model (Gemini)
+	genAI, err := gcpclient.NewGenAIAdapter(ctx, cfg.GCPProject, cfg.VertexAILocation, cfg.VertexAIModel)
+	if err != nil {
+		return fmt.Errorf("vertex ai genai: %w", err)
+	}
+	defer genAI.Close()
+	log.Println("vertex ai genai client initialized")
+
+	// Vertex AI embedding model (REST API with default credentials)
+	embeddingAdapter, err := gcpclient.NewEmbeddingAdapter(ctx, cfg.GCPProject, cfg.VertexAILocation, cfg.EmbeddingModel)
+	if err != nil {
+		return fmt.Errorf("vertex ai embedding: %w", err)
+	}
+	log.Println("vertex ai embedding client initialized")
+
+	// Cloud Storage
+	storageAdapter, err := gcpclient.NewStorageAdapter(ctx)
+	if err != nil {
+		return fmt.Errorf("cloud storage: %w", err)
+	}
+	defer storageAdapter.Close()
+	log.Println("cloud storage client initialized")
+
+	// ─── Repositories ──────────────────────────────────────────────────
+
+	docRepo := repository.NewDocumentRepo(pool)
+	folderRepo := repository.NewFolderRepo(pool)
+	chunkRepo := repository.NewChunkRepo(pool)
+	auditRepo := repository.NewAuditRepo(pool)
+
+	// ─── Services ──────────────────────────────────────────────────────
+
+	// Prompt loader (must come early — fatal if missing required files)
+	promptLoader, err := service.NewPromptLoader(cfg.PromptsDir)
+	if err != nil {
+		return fmt.Errorf("prompt loader: %w", err)
+	}
+	log.Println("prompt loader initialized")
+
+	// URL expiry
+	urlExpiry, err := time.ParseDuration(cfg.GCSSignedURLExpiry)
+	if err != nil {
+		urlExpiry = 15 * time.Minute
+	}
+
+	// Document service (signed URL generation + DB record creation)
+	docService := service.NewDocumentService(storageAdapter, docRepo, cfg.GCSBucketName, urlExpiry)
+
+	// Audit service (hash-chain + optional BigQuery)
+	auditService, err := service.NewAuditService(auditRepo, nil) // BQ disabled for now
+	if err != nil {
+		return fmt.Errorf("audit service: %w", err)
+	}
+	log.Println("audit service initialized")
+
+	// Generator service (Gemini answer generation)
+	generatorService := service.NewGeneratorService(genAI, cfg.VertexAIModel)
+	generatorService.SetPromptLoader(promptLoader)
+
+	// Self-RAG service (reflection loop)
+	selfRAGService := service.NewSelfRAGService(generatorService, cfg.SelfRAGMaxIter, cfg.ConfidenceThreshold)
+
+	// Retriever service (embedding + vector search + re-ranking)
+	retrieverService := service.NewRetrieverService(embeddingAdapter, chunkRepo)
+
+	// Forge service (template report generation)
+	forgeService := service.NewForgeService(genAI, storageAdapter, cfg.GCSBucketName)
+
+	// Privilege state (in-memory per-user toggle)
+	privilegeState := handler.NewPrivilegeState()
+
+	// ─── Prometheus metrics ────────────────────────────────────────────
+
 	reg := prometheus.NewRegistry()
 	metrics := middleware.NewMetrics(reg)
 
-	// Build router with all dependencies
+	// ─── Router ────────────────────────────────────────────────────────
+
 	router := internalrouter.New(&internalrouter.Dependencies{
-		DB:          pool,
-		AuthService: authService,
-		FrontendURL: cfg.FrontendURL,
-		Metrics:     metrics,
-		MetricsReg:  reg,
+		DB:                 pool,
+		AuthService:        authService,
+		FrontendURL:        cfg.FrontendURL,
+		Metrics:            metrics,
+		MetricsReg:         reg,
+		InternalAuthSecret: cfg.InternalAuthSecret,
+
+		DocService: docService,
+		DocRepo:    docRepo,
+		FolderRepo: folderRepo,
+
+		PrivilegeState: privilegeState,
+
+		ChatDeps: handler.ChatDeps{
+			Retriever: retrieverService,
+			Generator: generatorService,
+			SelfRAG:   selfRAGService,
+		},
+
+		AuditDeps: handler.AuditDeps{
+			Lister:   auditRepo,
+			Verifier: auditService,
+		},
+
+		ExportDeps: handler.ExportDeps{
+			DocRepo:     docRepo,
+			AuditLister: auditRepo,
+		},
+
+		ForgeSvc: forgeService,
 	})
+
+	// ─── HTTP server ───────────────────────────────────────────────────
 
 	port := fmt.Sprintf("%d", cfg.Port)
 	if p := os.Getenv("PORT"); p != "" {
@@ -76,8 +180,8 @@ func run() error {
 		Addr:         ":" + port,
 		Handler:      router,
 		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		WriteTimeout: 0, // Disabled for SSE streaming (chat endpoint)
+		IdleTimeout:  120 * time.Second,
 	}
 
 	errCh := make(chan error, 1)

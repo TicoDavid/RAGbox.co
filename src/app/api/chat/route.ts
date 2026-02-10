@@ -2,6 +2,7 @@
  * Chat API Route - RAGbox.co
  *
  * Proxies queries to the Go backend RAG pipeline.
+ * Uses internal auth (X-Internal-Auth + X-User-ID) instead of forwarding OAuth tokens.
  * Handles tool errors and converts them to Mercury-friendly responses.
  */
 
@@ -10,63 +11,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { isToolError, createErrorResponse } from '@/lib/mercury/toolErrors'
 
-const GO_BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
-
-/**
- * Execute a tool call against the Go backend with structured error handling.
- */
-// Used by tool execution flow (wired in when Go /api/tools/execute endpoint is live)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function executeToolSafely(
-  toolName: string,
-  params: Record<string, unknown>,
-  accessToken: string,
-  callerRole: string = 'mercury'
-): Promise<{ success: true; result: unknown } | { success: false; error: ReturnType<typeof createErrorResponse> }> {
-  try {
-    const response = await fetch(`${GO_BACKEND_URL}/api/tools/execute`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        tool: toolName,
-        params,
-        role: callerRole,
-      }),
-    })
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      if (isToolError(data.error || data)) {
-        return { success: false, error: createErrorResponse(data.error || data) }
-      }
-      return {
-        success: false,
-        error: createErrorResponse({
-          code: 'UPSTREAM_FAILURE',
-          message: data.message || 'Unknown error',
-          recoverable: true,
-          suggestion: 'Please try again.',
-        }),
-      }
-    }
-
-    return { success: true, result: data }
-  } catch (error) {
-    return {
-      success: false,
-      error: createErrorResponse({
-        code: 'UPSTREAM_FAILURE',
-        message: error instanceof Error ? error.message : 'Connection failed',
-        recoverable: true,
-        suggestion: 'Check your connection and try again.',
-      }),
-    }
-  }
-}
+const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
 
 export async function POST(request: NextRequest): Promise<NextResponse | Response> {
   try {
@@ -75,6 +21,14 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
     if (!session?.user) {
       return NextResponse.json(
         { success: false, error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
+
+    const userId = session.user.id || session.user.email || ''
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: 'Unable to determine user identity' },
         { status: 401 }
       )
     }
@@ -89,15 +43,13 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
       )
     }
 
-    // Get access token for Go backend
-    const accessToken = (session as unknown as Record<string, unknown>).accessToken as string | undefined
-
-    // Forward to Go backend
+    // Forward to Go backend with internal auth
     const backendResponse = await fetch(`${GO_BACKEND_URL}/api/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
+        'X-Internal-Auth': INTERNAL_AUTH_SECRET,
+        'X-User-ID': userId,
       },
       body: JSON.stringify({
         query,
