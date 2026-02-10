@@ -14,6 +14,9 @@ import {
   FileText,
   Loader2,
 } from 'lucide-react'
+import { useMercuryStore } from '@/stores/mercuryStore'
+import { usePrivilegeStore } from '@/stores/privilegeStore'
+import { Paperclip, Square, ArrowUp, ChevronDown, AlertTriangle } from 'lucide-react'
 import { VoiceTrigger } from './VoiceTrigger'
 import { PERSONAS } from './personaData'
 import { IntelligenceMatrix, IntelligenceBadge } from './IntelligenceMatrix'
@@ -189,6 +192,7 @@ export function InputBar() {
     if (attachment.mimeType?.includes('pdf')) return <FileText className="w-3 h-3" />
     return <FileUp className="w-3 h-3" />
   }
+  const canSend = inputValue.trim().length > 0 && !isStreaming
 
   return (
     <div className="shrink-0 px-4 py-4 bg-transparent">
@@ -409,6 +413,13 @@ export function InputBar() {
             )}
           </div>
         </div>
+        {/* Attach */}
+        <button
+          className="shrink-0 p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+          title="Attach File"
+        >
+          <Paperclip className="w-5 h-5" />
+        </button>
 
         {/* Legal Status Footer - Executive Refinement */}
         <div className="flex items-center justify-center gap-2 mt-3">
