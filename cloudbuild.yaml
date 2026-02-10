@@ -135,7 +135,7 @@ steps:
       - '--set-env-vars'
       - 'NODE_ENV=production,GOOGLE_CLOUD_PROJECT=${PROJECT_ID},GCP_REGION=${_REGION}'
       - '--set-secrets'
-      - 'DATABASE_URL=ragbox-prod-database-url:latest,FIREBASE_API_KEY=firebase-api-key:latest,FIREBASE_AUTH_DOMAIN=firebase-auth-domain:latest,FIREBASE_PROJECT_ID=firebase-project-id:latest'
+      - 'DATABASE_URL=ragbox-prod-database-url:latest,FIREBASE_API_KEY=firebase-api-key:latest,FIREBASE_AUTH_DOMAIN=firebase-auth-domain:latest,FIREBASE_PROJECT_ID=firebase-project-id:latest,NEXTAUTH_SECRET=nextauth-secret:latest,NEXTAUTH_URL=nextauth-url:latest,GOOGLE_CLIENT_ID=google-client-id:latest,GOOGLE_CLIENT_SECRET=google-client-secret:latest'
       - '--service-account'
       - 'ragbox-prod-cloudrun@${PROJECT_ID}.iam.gserviceaccount.com'
     waitFor: ['push-image']
