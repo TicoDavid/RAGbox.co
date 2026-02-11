@@ -13,7 +13,7 @@ export function EmptyState() {
           alt=""
           width={800}
           height={800}
-          className="h-[60vh] w-auto opacity-[0.03] mix-blend-screen select-none animate-[sanctuaryBreathe_10s_ease-in-out_infinite]"
+          className="h-[55vh] w-auto opacity-10 select-none animate-[sanctuaryBreathe_10s_ease-in-out_infinite]"
           priority
           draggable={false}
         />
