@@ -62,10 +62,7 @@ func (a *EmbeddingAdapter) EmbedTexts(ctx context.Context, texts []string) ([][]
 		return nil, fmt.Errorf("gcpclient.EmbedTexts marshal: %w", err)
 	}
 
-	url := fmt.Sprintf(
-		"https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/google/models/%s:predict",
-		a.location, a.project, a.location, a.model,
-	)
+	url := a.buildEndpointURL()
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(reqBody))
 	if err != nil {
@@ -99,6 +96,21 @@ func (a *EmbeddingAdapter) EmbedTexts(ctx context.Context, texts []string) ([][]
 // Embed implements service.QueryEmbedder.
 func (a *EmbeddingAdapter) Embed(ctx context.Context, texts []string) ([][]float32, error) {
 	return a.EmbedTexts(ctx, texts)
+}
+
+// buildEndpointURL returns the correct Vertex AI endpoint URL.
+// For "global" location, uses the non-regional endpoint.
+func (a *EmbeddingAdapter) buildEndpointURL() string {
+	if a.location == "global" {
+		return fmt.Sprintf(
+			"https://aiplatform.googleapis.com/v1/projects/%s/locations/global/publishers/google/models/%s:predict",
+			a.project, a.model,
+		)
+	}
+	return fmt.Sprintf(
+		"https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/google/models/%s:predict",
+		a.location, a.project, a.location, a.model,
+	)
 }
 
 // HealthCheck validates the embedding service connection.
