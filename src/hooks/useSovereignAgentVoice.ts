@@ -671,6 +671,7 @@ export function useSovereignAgentVoice(
     }
 
     ws.onerror = () => {
+      console.log('[AgentVoice] WebSocket unavailable - voice features disabled')
       setState('error')
       onError?.(new Error('WebSocket error'))
     }
@@ -683,7 +684,8 @@ export function useSovereignAgentVoice(
       setState('disconnected')
       setIsVADActive(false)
 
-      if (autoReconnect && event.code !== 1000) {
+      // Only auto-reconnect if we previously had a successful connection
+      if (autoReconnect && event.code !== 1000 && event.code !== 1006) {
         reconnectRef.current = setTimeout(connect, 3000)
       }
     }

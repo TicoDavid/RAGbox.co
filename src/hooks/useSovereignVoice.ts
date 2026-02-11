@@ -57,6 +57,9 @@ async function createSecureSession(): Promise<AgentSession> {
   }
 
   const data = await response.json()
+  if (data.available === false) {
+    throw new Error(data.message || 'Voice features coming soon')
+  }
   if (!data.success) {
     throw new Error(data.error || 'Session creation failed')
   }

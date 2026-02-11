@@ -26,14 +26,14 @@ export async function POST() {
       )
     }
 
-    // Verify server configuration (but don't expose it!)
+    // Check if voice service is configured
     const apiKey = process.env.INWORLD_API_KEY
     if (!apiKey) {
-      console.error('[Agent Session] INWORLD_API_KEY not configured')
-      return NextResponse.json(
-        { error: 'Voice service not configured' },
-        { status: 503 }
-      )
+      return NextResponse.json({
+        available: false,
+        message: 'Voice features coming soon. Text chat is fully available.',
+        code: 'VOICE_NOT_CONFIGURED',
+      }, { status: 200 })
     }
 
     // Generate secure session ID

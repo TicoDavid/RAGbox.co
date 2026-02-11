@@ -66,12 +66,26 @@ func run() error {
 	defer genAI.Close()
 	log.Println("vertex ai genai client initialized")
 
+	// Validate Vertex AI connection at startup
+	log.Println("Validating Vertex AI connection...")
+	if err := genAI.HealthCheck(ctx); err != nil {
+		return fmt.Errorf("vertex AI health check failed: %w", err)
+	}
+	log.Println("Vertex AI connection validated successfully")
+
 	// Vertex AI embedding model (REST API with default credentials)
 	embeddingAdapter, err := gcpclient.NewEmbeddingAdapter(ctx, cfg.GCPProject, cfg.VertexAILocation, cfg.EmbeddingModel)
 	if err != nil {
 		return fmt.Errorf("vertex ai embedding: %w", err)
 	}
 	log.Println("vertex ai embedding client initialized")
+
+	// Validate embedding connection at startup
+	log.Println("Validating Vertex AI Embeddings connection...")
+	if err := embeddingAdapter.HealthCheck(ctx); err != nil {
+		return fmt.Errorf("embedding health check failed: %w", err)
+	}
+	log.Println("Vertex AI Embeddings connection validated successfully")
 
 	// Cloud Storage
 	storageAdapter, err := gcpclient.NewStorageAdapter(ctx)

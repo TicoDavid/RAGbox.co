@@ -53,6 +53,19 @@ func (a *GenAIAdapter) Client() *genai.Client {
 	return a.client
 }
 
+// HealthCheck validates the Vertex AI connection by making a minimal API call.
+func (a *GenAIAdapter) HealthCheck(ctx context.Context) error {
+	model := a.client.GenerativeModel(a.model)
+	resp, err := model.GenerateContent(ctx, genai.Text("Reply with OK"))
+	if err != nil {
+		return fmt.Errorf("vertex AI health check failed: %w", err)
+	}
+	if len(resp.Candidates) == 0 {
+		return fmt.Errorf("vertex AI returned no candidates")
+	}
+	return nil
+}
+
 // Close closes the underlying client.
 func (a *GenAIAdapter) Close() {
 	a.client.Close()

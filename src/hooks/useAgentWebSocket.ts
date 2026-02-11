@@ -344,23 +344,22 @@ export function useAgentWebSocket(
       }
     }
 
-    ws.onerror = (event) => {
-      console.error('[AgentWS] WebSocket error:', event)
+    ws.onerror = () => {
+      console.log('[AgentWS] WebSocket unavailable - voice features disabled')
       setState('error')
       onError?.(new Error('WebSocket connection error'))
     }
 
     ws.onclose = (event) => {
-      console.log(`[AgentWS] Disconnected (${event.code}: ${event.reason})`)
       wsRef.current = null
       audioCaptureRef.current?.stop()
       audioPlayerRef.current?.stop()
       setState('disconnected')
 
-      // Auto-reconnect
-      if (autoReconnect && event.code !== 1000) {
+      // Only auto-reconnect if we previously had a successful connection (code !== 1006)
+      // 1006 = abnormal closure (never connected), 1000 = normal close
+      if (autoReconnect && event.code !== 1000 && event.code !== 1006) {
         reconnectTimeoutRef.current = setTimeout(() => {
-          console.log('[AgentWS] Attempting reconnect...')
           connect()
         }, 3000)
       }

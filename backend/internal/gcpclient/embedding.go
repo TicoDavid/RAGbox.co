@@ -100,3 +100,12 @@ func (a *EmbeddingAdapter) EmbedTexts(ctx context.Context, texts []string) ([][]
 func (a *EmbeddingAdapter) Embed(ctx context.Context, texts []string) ([][]float32, error) {
 	return a.EmbedTexts(ctx, texts)
 }
+
+// HealthCheck validates the embedding service connection.
+func (a *EmbeddingAdapter) HealthCheck(ctx context.Context) error {
+	_, err := a.Embed(ctx, []string{"health check"})
+	if err != nil {
+		return fmt.Errorf("embedding health check failed: %w", err)
+	}
+	return nil
+}
