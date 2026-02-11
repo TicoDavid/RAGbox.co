@@ -74,7 +74,8 @@ func run() error {
 	log.Println("Vertex AI connection validated successfully")
 
 	// Vertex AI embedding model (REST API with default credentials)
-	embeddingAdapter, err := gcpclient.NewEmbeddingAdapter(ctx, cfg.GCPProject, cfg.VertexAILocation, cfg.EmbeddingModel)
+	// Embeddings use a regional endpoint (text-embedding-004 is not on global)
+	embeddingAdapter, err := gcpclient.NewEmbeddingAdapter(ctx, cfg.GCPProject, cfg.EmbeddingLocation, cfg.EmbeddingModel)
 	if err != nil {
 		return fmt.Errorf("vertex ai embedding: %w", err)
 	}

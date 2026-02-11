@@ -17,6 +17,7 @@ type Config struct {
 	GCPRegion           string
 	VertexAILocation    string
 	VertexAIModel       string
+	EmbeddingLocation   string
 	EmbeddingModel      string
 	EmbeddingDimensions int
 	GCSBucketName       string
@@ -61,6 +62,7 @@ func Load() (*Config, error) {
 		GCPRegion:           envStr("GCP_REGION", "us-east4"),
 		VertexAILocation:    envStr("VERTEX_AI_LOCATION", "global"),
 		VertexAIModel:       envStr("VERTEX_AI_MODEL", "gemini-3-pro-preview"),
+		EmbeddingLocation:   envStr("VERTEX_AI_EMBEDDING_LOCATION", envStr("GCP_REGION", "us-east4")),
 		EmbeddingModel:      envStr("VERTEX_AI_EMBEDDING_MODEL", "text-embedding-004"),
 		EmbeddingDimensions: envInt("EMBEDDING_DIMENSIONS", 768),
 		GCSBucketName:       envStr("GCS_BUCKET_NAME", ""),
