@@ -50,6 +50,14 @@ func (sw *statusWriter) Write(b []byte) (int, error) {
 	return sw.ResponseWriter.Write(b)
 }
 
+// Flush implements http.Flusher, delegating to the underlying ResponseWriter.
+// Required for SSE streaming (chat endpoint).
+func (sw *statusWriter) Flush() {
+	if f, ok := sw.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
 func generateRequestID() string {
 	b := make([]byte, 8)
 	rand.Read(b)

@@ -117,6 +117,14 @@ func (mw *metricsWriter) Write(b []byte) (int, error) {
 	return mw.ResponseWriter.Write(b)
 }
 
+// Flush implements http.Flusher, delegating to the underlying ResponseWriter.
+// Required for SSE streaming (chat endpoint).
+func (mw *metricsWriter) Flush() {
+	if f, ok := mw.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
 // sanitizePath normalizes URL paths to prevent high-cardinality label values.
 // Replaces path segments that look like IDs with ":id".
 func sanitizePath(path string) string {
