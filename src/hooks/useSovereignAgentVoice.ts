@@ -499,6 +499,13 @@ export function useSovereignAgentVoice(
     onUIAction?.(action)
   }, [router, onUIAction])
 
+  // Safe WebSocket send — only sends if connection is OPEN
+  const wsSend = useCallback((data: string | ArrayBuffer) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(data)
+    }
+  }, [])
+
   // Handle VAD state changes
   const handleVADStateChange = useCallback((speaking: boolean) => {
     vadSpeakingRef.current = speaking
@@ -506,17 +513,15 @@ export function useSovereignAgentVoice(
     if (speaking) {
       // Speech started - notify server
       setState('listening')
-      wsRef.current?.send(JSON.stringify({ type: 'start' }))
-      console.log('[AgentVoice] VAD: Speech detected, starting capture')
+      wsSend(JSON.stringify({ type: 'start' }))
     } else {
       // Speech ended - notify server to process
       setState('processing')
-      wsRef.current?.send(JSON.stringify({ type: 'stop' }))
-      console.log('[AgentVoice] VAD: Silence detected, processing')
+      wsSend(JSON.stringify({ type: 'stop' }))
     }
-  }, [])
+  }, [wsSend])
 
-  // Connect to WebSocket
+  // Connect to WebSocket — resolves when OPEN, rejects on error/close
   const connect = useCallback(async () => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return
 
@@ -527,6 +532,7 @@ export function useSovereignAgentVoice(
       role,
       privilegeMode: privMode.toString(),
     })
+
     const ws = new WebSocket(`${wsUrl}?${params}`)
     wsRef.current = ws
 
@@ -534,17 +540,27 @@ export function useSovereignAgentVoice(
 
     ws.binaryType = 'arraybuffer'
 
-    ws.onopen = () => {
-      console.log('[AgentVoice] Connected')
-      setState('idle')
-      setTranscript(prev => [...prev, {
-        id: genId(),
-        type: 'system',
-        text: 'Mercury Voice connected. Say something to begin.',
-        isFinal: true,
-        timestamp: Date.now(),
-      }])
-    }
+    // Wait for WebSocket to actually open before resolving
+    await new Promise<void>((resolve, reject) => {
+      ws.onopen = () => {
+        console.log('[AgentVoice] Connected')
+        setState('idle')
+        setTranscript(prev => [...prev, {
+          id: genId(),
+          type: 'system',
+          text: 'Mercury Voice connected. Say something to begin.',
+          isFinal: true,
+          timestamp: Date.now(),
+        }])
+        resolve()
+      }
+
+      const rejectOnce = () => {
+        reject(new Error('WebSocket failed to connect'))
+      }
+      ws.onerror = rejectOnce
+      ws.onclose = rejectOnce
+    })
 
     ws.onmessage = async (event) => {
       // Binary = TTS audio
@@ -715,9 +731,16 @@ export function useSovereignAgentVoice(
   const enableVAD = useCallback(async () => {
     console.log('[AgentVoice] Enabling VAD mode')
 
-    // Connect if not connected
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      await connect()
+    // Connect if not connected — wait for actual OPEN state
+    try {
+      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+        await connect()
+      }
+    } catch {
+      console.log('[AgentVoice] Voice server unavailable - VAD mode not started')
+      setState('error')
+      onError?.(new Error('Voice server unavailable'))
+      return
     }
 
     // Stop any manual capture
@@ -733,11 +756,7 @@ export function useSovereignAgentVoice(
 
     vadCaptureRef.current = createAudioCaptureWithVAD(
       sampleRate,
-      (pcm) => {
-        if (wsRef.current?.readyState === WebSocket.OPEN) {
-          wsRef.current.send(pcm)
-        }
-      },
+      (pcm) => wsSend(pcm),
       handleVADStateChange,
       vadConfig
     )
@@ -760,7 +779,7 @@ export function useSovereignAgentVoice(
       isFinal: true,
       timestamp: Date.now(),
     }])
-  }, [connect, sampleRate, vadThreshold, vadSilenceMs, handleVADStateChange])
+  }, [connect, sampleRate, vadThreshold, vadSilenceMs, handleVADStateChange, wsSend, onError])
 
   // Disable VAD mode
   const disableVAD = useCallback(() => {
@@ -790,41 +809,43 @@ export function useSovereignAgentVoice(
   const startListening = useCallback(async () => {
     if (isVADActive) return // Don't use manual mode when VAD is active
 
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      await connect()
+    try {
+      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+        await connect()
+      }
+    } catch {
+      console.log('[AgentVoice] Voice server unavailable')
+      setState('error')
+      return
     }
 
     if (!captureRef.current) {
-      captureRef.current = await createAudioCapture(sampleRate, (pcm) => {
-        if (wsRef.current?.readyState === WebSocket.OPEN) {
-          wsRef.current.send(pcm)
-        }
-      })
+      captureRef.current = await createAudioCapture(sampleRate, (pcm) => wsSend(pcm))
     }
 
     playerRef.current?.stop()
     await captureRef.current.start()
-    wsRef.current?.send(JSON.stringify({ type: 'start' }))
+    wsSend(JSON.stringify({ type: 'start' }))
     setState('listening')
-  }, [connect, sampleRate, isVADActive])
+  }, [connect, sampleRate, isVADActive, wsSend])
 
   // Manual stop listening
   const stopListening = useCallback(() => {
     if (isVADActive) return // Don't use manual mode when VAD is active
 
     captureRef.current?.stop()
-    wsRef.current?.send(JSON.stringify({ type: 'stop' }))
+    wsSend(JSON.stringify({ type: 'stop' }))
     setState('processing')
-  }, [isVADActive])
+  }, [isVADActive, wsSend])
 
   // Barge-in (interrupt agent speech)
   const bargeIn = useCallback(() => {
     playerRef.current?.stop()
-    wsRef.current?.send(JSON.stringify({ type: 'barge_in' }))
+    wsSend(JSON.stringify({ type: 'barge_in' }))
     if (isVADActive) {
       setState('idle')
     }
-  }, [isVADActive])
+  }, [isVADActive, wsSend])
 
   // Clear transcript
   const clearTranscript = useCallback(() => {
