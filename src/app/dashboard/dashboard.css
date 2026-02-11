@@ -1,5 +1,11 @@
 /* dashboard.css - RAGbox Dashboard Theme */
 
+/* Sanctuary — the breathing monolith */
+@keyframes sanctuaryBreathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
 /* CSS Variables for Dashboard - works alongside Tailwind dark mode */
 .dashboard-root {
     /* Dark Theme (Default) */
