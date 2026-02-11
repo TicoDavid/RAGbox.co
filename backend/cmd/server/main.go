@@ -88,6 +88,26 @@ func run() error {
 	}
 	log.Println("Vertex AI Embeddings connection validated successfully")
 
+	// Document AI for text extraction
+	var docAIAdapter *gcpclient.DocumentAIAdapter
+	if cfg.DocAIProcessorID != "" {
+		docAIAdapter, err = gcpclient.NewDocumentAIAdapter(ctx, cfg.GCPProject, cfg.DocAILocation)
+		if err != nil {
+			return fmt.Errorf("document ai: %w", err)
+		}
+		defer docAIAdapter.Close()
+		log.Println("document ai client initialized")
+
+		log.Println("Validating Document AI connection...")
+		if err := docAIAdapter.HealthCheck(ctx); err != nil {
+			log.Printf("WARNING: Document AI health check failed: %v (processing will fail)", err)
+		} else {
+			log.Println("Document AI connection validated successfully")
+		}
+	} else {
+		log.Println("WARNING: DOCUMENT_AI_PROCESSOR_ID not set - document processing disabled")
+	}
+
 	// Cloud Storage
 	storageAdapter, err := gcpclient.NewStorageAdapter(ctx)
 	if err != nil {
@@ -142,6 +162,31 @@ func run() error {
 	// Forge service (template report generation)
 	forgeService := service.NewForgeService(genAI, storageAdapter, cfg.GCSBucketName)
 
+	// Pipeline service (document processing: parse → PII scan → chunk → embed)
+	var pipelineSvc *service.PipelineService
+	if docAIAdapter != nil {
+		processorName := fmt.Sprintf("projects/%s/locations/%s/processors/%s",
+			cfg.GCPProject, cfg.DocAILocation, cfg.DocAIProcessorID)
+		parserSvc := service.NewParserService(docAIAdapter, processorName)
+		dlpAdapter := gcpclient.NewStubDLPAdapter()
+		redactorSvc := service.NewRedactorService(dlpAdapter, cfg.GCPProject)
+		chunkerSvc := service.NewChunkerService(cfg.ChunkSizeTokens, float64(cfg.ChunkOverlapPercent)/100.0)
+		embedderSvc := service.NewEmbedderService(embeddingAdapter, chunkRepo)
+
+		pipelineSvc = service.NewPipelineService(
+			docRepo,
+			parserSvc,
+			redactorSvc,
+			chunkerSvc,
+			embedderSvc,
+			auditService,
+			cfg.GCSBucketName,
+		)
+		log.Println("pipeline service initialized")
+	} else {
+		log.Println("pipeline service disabled (no Document AI processor configured)")
+	}
+
 	// Privilege state (in-memory per-user toggle)
 	privilegeState := handler.NewPrivilegeState()
 
@@ -182,7 +227,8 @@ func run() error {
 			AuditLister: auditRepo,
 		},
 
-		ForgeSvc: forgeService,
+		ForgeSvc:    forgeService,
+		PipelineSvc: pipelineSvc,
 
 		UserEnsurer: userRepo,
 	})

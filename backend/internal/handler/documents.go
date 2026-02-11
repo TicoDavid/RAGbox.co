@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -20,8 +22,9 @@ type UploadRequest struct {
 }
 
 // UploadDocument returns a handler that generates a signed upload URL.
+// If a PipelineService is provided, it triggers async document processing after creation.
 // POST /api/documents/extract
-func UploadDocument(docService *service.DocumentService) http.HandlerFunc {
+func UploadDocument(docService *service.DocumentService, pipeline *service.PipelineService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := middleware.UserIDFromContext(r.Context())
 		if userID == "" {
@@ -44,6 +47,19 @@ func UploadDocument(docService *service.DocumentService) http.HandlerFunc {
 		if err != nil {
 			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: err.Error()})
 			return
+		}
+
+		// Trigger pipeline processing asynchronously
+		if pipeline != nil {
+			go func(docID string) {
+				ctx := context.Background()
+				log.Printf("[PIPELINE] Starting async processing for document %s", docID)
+				if err := pipeline.ProcessDocument(ctx, docID); err != nil {
+					log.Printf("[PIPELINE ERROR] Failed to process document %s: %v", docID, err)
+				} else {
+					log.Printf("[PIPELINE] Completed processing for document %s", docID)
+				}
+			}(resp.DocumentID)
 		}
 
 		respondJSON(w, http.StatusOK, envelope{Success: true, Data: resp})

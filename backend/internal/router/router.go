@@ -43,6 +43,9 @@ type Dependencies struct {
 	// Forge
 	ForgeSvc *service.ForgeService
 
+	// Pipeline (document processing)
+	PipelineSvc *service.PipelineService
+
 	// User auto-provisioning
 	UserEnsurer middleware.UserEnsurer
 }
@@ -74,7 +77,7 @@ func New(deps *Dependencies) *chi.Mux {
 
 		// Documents
 		r.Get("/api/documents", handler.ListDocuments(docCRUD))
-		r.Post("/api/documents/extract", handler.UploadDocument(deps.DocService))
+		r.Post("/api/documents/extract", handler.UploadDocument(deps.DocService, deps.PipelineSvc))
 		r.Get("/api/documents/{id}", handler.GetDocument(docCRUD))
 		r.Delete("/api/documents/{id}", handler.DeleteDocument(docCRUD))
 		r.Post("/api/documents/{id}/recover", handler.RecoverDocument(docCRUD))
