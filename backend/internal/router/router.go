@@ -46,6 +46,9 @@ type Dependencies struct {
 	// Pipeline (document processing)
 	PipelineSvc *service.PipelineService
 
+	// Ingest trigger
+	IngestDeps handler.IngestDeps
+
 	// User auto-provisioning
 	UserEnsurer middleware.UserEnsurer
 }
@@ -77,13 +80,14 @@ func New(deps *Dependencies) *chi.Mux {
 
 		// Documents
 		r.Get("/api/documents", handler.ListDocuments(docCRUD))
-		r.Post("/api/documents/extract", handler.UploadDocument(deps.DocService, deps.PipelineSvc))
+		r.Post("/api/documents/extract", handler.UploadDocument(deps.DocService))
 		r.Get("/api/documents/{id}", handler.GetDocument(docCRUD))
 		r.Delete("/api/documents/{id}", handler.DeleteDocument(docCRUD))
 		r.Post("/api/documents/{id}/recover", handler.RecoverDocument(docCRUD))
 		r.Patch("/api/documents/{id}/tier", handler.UpdateDocumentTier(docCRUD))
 		r.Post("/api/documents/promote", placeholder("promote_tier"))
 		r.Patch("/api/documents/{id}/privilege", handler.ToggleDocPrivilege(docCRUD))
+		r.Post("/api/documents/{id}/ingest", handler.IngestDocument(deps.IngestDeps))
 
 		// Folders
 		r.Get("/api/documents/folders", handler.ListFolders(folderDeps))

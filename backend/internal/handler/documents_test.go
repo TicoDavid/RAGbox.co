@@ -78,7 +78,7 @@ func TestUploadDocument_Success(t *testing.T) {
 	storage := &mockStorage{url: "https://storage.googleapis.com/signed"}
 	repo := &mockDocRepo{}
 	docSvc := service.NewDocumentService(storage, repo, "bucket", 15*time.Minute)
-	handler := UploadDocument(docSvc, nil)
+	handler := UploadDocument(docSvc)
 
 	body := `{"filename":"report.pdf","contentType":"application/pdf","sizeBytes":1048576}`
 	req := httptest.NewRequest(http.MethodPost, "/api/documents/extract", bytes.NewBufferString(body))
@@ -117,7 +117,7 @@ func TestUploadDocument_MissingFields(t *testing.T) {
 	storage := &mockStorage{url: "https://example.com"}
 	repo := &mockDocRepo{}
 	docSvc := service.NewDocumentService(storage, repo, "bucket", 15*time.Minute)
-	handler := UploadDocument(docSvc, nil)
+	handler := UploadDocument(docSvc)
 
 	body := `{"filename":"report.pdf"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/documents/extract", bytes.NewBufferString(body))
@@ -135,7 +135,7 @@ func TestUploadDocument_InvalidJSON(t *testing.T) {
 	storage := &mockStorage{url: "https://example.com"}
 	repo := &mockDocRepo{}
 	docSvc := service.NewDocumentService(storage, repo, "bucket", 15*time.Minute)
-	handler := UploadDocument(docSvc, nil)
+	handler := UploadDocument(docSvc)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/documents/extract", bytes.NewBufferString("{bad json"))
 	req = req.WithContext(middleware.WithUserID(req.Context(), "user-123"))
@@ -152,7 +152,7 @@ func TestUploadDocument_NoAuth(t *testing.T) {
 	storage := &mockStorage{url: "https://example.com"}
 	repo := &mockDocRepo{}
 	docSvc := service.NewDocumentService(storage, repo, "bucket", 15*time.Minute)
-	handler := UploadDocument(docSvc, nil)
+	handler := UploadDocument(docSvc)
 
 	body := `{"filename":"report.pdf","contentType":"application/pdf","sizeBytes":1024}`
 	req := httptest.NewRequest(http.MethodPost, "/api/documents/extract", bytes.NewBufferString(body))
@@ -170,7 +170,7 @@ func TestUploadDocument_UnsupportedType(t *testing.T) {
 	storage := &mockStorage{url: "https://example.com"}
 	repo := &mockDocRepo{}
 	docSvc := service.NewDocumentService(storage, repo, "bucket", 15*time.Minute)
-	handler := UploadDocument(docSvc, nil)
+	handler := UploadDocument(docSvc)
 
 	body := `{"filename":"virus.exe","contentType":"application/x-msdownload","sizeBytes":1024}`
 	req := httptest.NewRequest(http.MethodPost, "/api/documents/extract", bytes.NewBufferString(body))

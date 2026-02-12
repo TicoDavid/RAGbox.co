@@ -163,6 +163,9 @@ func run() error {
 	forgeService := service.NewForgeService(genAI, storageAdapter, cfg.GCSBucketName)
 
 	// Pipeline service (document processing: parse → PII scan → chunk → embed)
+	chunkerSvc := service.NewChunkerService(cfg.ChunkSizeTokens, float64(cfg.ChunkOverlapPercent)/100.0)
+	embedderSvc := service.NewEmbedderService(embeddingAdapter, chunkRepo)
+
 	var pipelineSvc *service.PipelineService
 	if docAIAdapter != nil {
 		processorName := fmt.Sprintf("projects/%s/locations/%s/processors/%s",
@@ -170,21 +173,19 @@ func run() error {
 		parserSvc := service.NewParserService(docAIAdapter, processorName)
 		dlpAdapter := gcpclient.NewStubDLPAdapter()
 		redactorSvc := service.NewRedactorService(dlpAdapter, cfg.GCPProject)
-		chunkerSvc := service.NewChunkerService(cfg.ChunkSizeTokens, float64(cfg.ChunkOverlapPercent)/100.0)
-		embedderSvc := service.NewEmbedderService(embeddingAdapter, chunkRepo)
 
 		pipelineSvc = service.NewPipelineService(
-			docRepo,
-			parserSvc,
-			redactorSvc,
-			chunkerSvc,
-			embedderSvc,
-			auditService,
-			cfg.GCSBucketName,
+			docRepo, parserSvc, redactorSvc, chunkerSvc, embedderSvc, auditService, cfg.GCSBucketName,
 		)
-		log.Println("pipeline service initialized")
+		log.Println("pipeline service initialized (Document AI parser)")
 	} else {
-		log.Println("pipeline service disabled (no Document AI processor configured)")
+		textParser := gcpclient.NewTextParser(storageAdapter)
+		noopRedactor := gcpclient.NewNoopRedactor()
+
+		pipelineSvc = service.NewPipelineService(
+			docRepo, textParser, noopRedactor, chunkerSvc, embedderSvc, auditService, cfg.GCSBucketName,
+		)
+		log.Println("pipeline service initialized (text parser fallback — no Document AI)")
 	}
 
 	// Privilege state (in-memory per-user toggle)
@@ -229,6 +230,11 @@ func run() error {
 
 		ForgeSvc:    forgeService,
 		PipelineSvc: pipelineSvc,
+
+		IngestDeps: handler.IngestDeps{
+			DocRepo:  docRepo,
+			Pipeline: pipelineSvc,
+		},
 
 		UserEnsurer: userRepo,
 	})
