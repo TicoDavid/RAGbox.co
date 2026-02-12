@@ -197,6 +197,7 @@ export function IntelligenceMatrix({ isOpen, onClose, anchorRef }: IntelligenceM
         const managedIds = new Set(MANAGED_FLEET.map(m => m.id))
         setUniverseModels(options.filter(m => !managedIds.has(m.id)))
       } catch (error) {
+        // ignored
       } finally {
         setIsLoading(false)
       }
@@ -322,6 +323,7 @@ export function IntelligenceMatrix({ isOpen, onClose, anchorRef }: IntelligenceM
             <button
               onClick={onClose}
               className="p-1 rounded hover:bg-white/10 text-gray-500 hover:text-white transition-colors"
+              aria-label="Close model selector"
             >
               <X className="w-4 h-4" />
             </button>
@@ -337,6 +339,7 @@ export function IntelligenceMatrix({ isOpen, onClose, anchorRef }: IntelligenceM
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search 200+ models (Claude, Llama, Mistral...)"
+                aria-label="Search AI models"
                 className="w-full pl-9 pr-3 py-2 bg-white/5 border border-white/10 rounded-lg
                            text-sm text-white placeholder-gray-500
                            focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20
@@ -346,6 +349,7 @@ export function IntelligenceMatrix({ isOpen, onClose, anchorRef }: IntelligenceM
                 <button
                   onClick={() => setSearchQuery('')}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                  aria-label="Clear search"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -466,6 +470,7 @@ export function IntelligenceBadge({ onClick }: IntelligenceBadgeProps) {
   return (
     <button
       onClick={onClick}
+      aria-label={`Active model: ${activeIntelligence.displayName}. Click to change`}
       className={`
         flex items-center gap-2 px-3 py-1.5 rounded-lg
         transition-all duration-500 ease-out group

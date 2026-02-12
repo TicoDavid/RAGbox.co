@@ -337,6 +337,7 @@ export function useAgentWebSocket(
             break
         }
       } catch (error) {
+        // ignored
       }
     }
 

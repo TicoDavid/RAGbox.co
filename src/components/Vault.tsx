@@ -18,6 +18,7 @@ import {
   Calendar,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { apiFetch } from '@/lib/api'
 import { useRagSounds } from '@/hooks/useRagSounds'
 import { usePrivilege } from '@/contexts/PrivilegeContext'
 import { useDocuments, Document } from '@/hooks/useDocuments'
@@ -119,7 +120,7 @@ export function Vault() {
       for (const file of droppedFiles) {
         try {
           // In production, upload to Cloud Storage first, then create document record
-          const response = await fetch('/api/documents', {
+          const response = await apiFetch('/api/documents', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -135,6 +136,7 @@ export function Vault() {
             refetch()
           }
         } catch (error) {
+          // ignored
         }
       }
     }
@@ -185,6 +187,7 @@ export function Vault() {
     // Use the hook's togglePrivilege function
     const success = await toggleDocPrivilege(id, newPrivilegeState, !newPrivilegeState)
     if (!success) {
+      // ignored
     }
   }, [playLockSound, toggleDocPrivilege])
 
@@ -204,6 +207,7 @@ export function Vault() {
   const deleteFile = async (id: string) => {
     const success = await deleteDocument(id)
     if (!success) {
+      // ignored
     }
   }
 

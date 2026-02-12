@@ -676,6 +676,7 @@ export function useSovereignAgentVoice(
             break
         }
       } catch (err) {
+        // ignored
       }
     }
 

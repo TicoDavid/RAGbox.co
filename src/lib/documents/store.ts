@@ -139,51 +139,47 @@ export async function setDocument(doc: Document): Promise<void> {
     error: PrismaIndexStatus.Failed,
   }
 
-  try {
-    await prisma.document.upsert({
-      where: { id: doc.id },
-      create: {
-        id: doc.id,
-        filename: doc.name,
-        originalName: doc.originalName,
-        mimeType: doc.mimeType,
-        fileType: doc.type,
-        sizeBytes: doc.size,
-        storagePath: doc.storagePath,
-        storageUri: doc.storageUri ?? null,
-        userId: doc.userId,
-        isPrivileged: doc.isPrivileged,
-        securityTier: doc.securityTier,
-        chunkCount: doc.chunkCount,
-        indexStatus: statusToPrisma[doc.status] ?? PrismaIndexStatus.Pending,
-        deletionStatus: deletionStatusMap[doc.deletionStatus] ?? PrismaDeletionStatus.Active,
-        metadata: doc.metadata ? JSON.parse(JSON.stringify(doc.metadata)) : undefined,
-        deletedAt: doc.deletedAt ? new Date(doc.deletedAt) : null,
-        hardDeleteAt: doc.hardDeleteScheduledAt ? new Date(doc.hardDeleteScheduledAt) : null,
-        extractedText: doc.extractedText ?? null,
-        vaultId: doc.vaultId ?? null,
-        folderId: doc.folderId ?? null,
-      },
-      update: {
-        filename: doc.name,
-        storagePath: doc.storagePath,
-        storageUri: doc.storageUri ?? null,
-        isPrivileged: doc.isPrivileged,
-        securityTier: doc.securityTier,
-        chunkCount: doc.chunkCount,
-        indexStatus: statusToPrisma[doc.status] ?? PrismaIndexStatus.Pending,
-        deletionStatus: deletionStatusMap[doc.deletionStatus] ?? PrismaDeletionStatus.Active,
-        metadata: doc.metadata ? JSON.parse(JSON.stringify(doc.metadata)) : undefined,
-        deletedAt: doc.deletedAt ? new Date(doc.deletedAt) : null,
-        hardDeleteAt: doc.hardDeleteScheduledAt ? new Date(doc.hardDeleteScheduledAt) : null,
-        extractedText: doc.extractedText ?? null,
-        vaultId: doc.vaultId ?? null,
-        folderId: doc.folderId ?? null,
-      },
-    })
-  } catch (error) {
-    throw error
-  }
+  await prisma.document.upsert({
+    where: { id: doc.id },
+    create: {
+      id: doc.id,
+      filename: doc.name,
+      originalName: doc.originalName,
+      mimeType: doc.mimeType,
+      fileType: doc.type,
+      sizeBytes: doc.size,
+      storagePath: doc.storagePath,
+      storageUri: doc.storageUri ?? null,
+      userId: doc.userId,
+      isPrivileged: doc.isPrivileged,
+      securityTier: doc.securityTier,
+      chunkCount: doc.chunkCount,
+      indexStatus: statusToPrisma[doc.status] ?? PrismaIndexStatus.Pending,
+      deletionStatus: deletionStatusMap[doc.deletionStatus] ?? PrismaDeletionStatus.Active,
+      metadata: doc.metadata ? JSON.parse(JSON.stringify(doc.metadata)) : undefined,
+      deletedAt: doc.deletedAt ? new Date(doc.deletedAt) : null,
+      hardDeleteAt: doc.hardDeleteScheduledAt ? new Date(doc.hardDeleteScheduledAt) : null,
+      extractedText: doc.extractedText ?? null,
+      vaultId: doc.vaultId ?? null,
+      folderId: doc.folderId ?? null,
+    },
+    update: {
+      filename: doc.name,
+      storagePath: doc.storagePath,
+      storageUri: doc.storageUri ?? null,
+      isPrivileged: doc.isPrivileged,
+      securityTier: doc.securityTier,
+      chunkCount: doc.chunkCount,
+      indexStatus: statusToPrisma[doc.status] ?? PrismaIndexStatus.Pending,
+      deletionStatus: deletionStatusMap[doc.deletionStatus] ?? PrismaDeletionStatus.Active,
+      metadata: doc.metadata ? JSON.parse(JSON.stringify(doc.metadata)) : undefined,
+      deletedAt: doc.deletedAt ? new Date(doc.deletedAt) : null,
+      hardDeleteAt: doc.hardDeleteScheduledAt ? new Date(doc.hardDeleteScheduledAt) : null,
+      extractedText: doc.extractedText ?? null,
+      vaultId: doc.vaultId ?? null,
+      folderId: doc.folderId ?? null,
+    },
+  })
 }
 
 /**

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { apiFetch } from '@/lib/api';
 import { DeepgramClient } from '@/lib/voice/deepgram-client';
 import { AudioCapture } from '@/lib/voice/audio-capture';
 import { AudioPlayback } from '@/lib/voice/audio-playback';
@@ -169,7 +170,7 @@ export function useVoiceChat(
       }
 
       // 2. Send transcript to /api/chat
-      const chatResponse = await fetch('/api/chat', {
+      const chatResponse = await apiFetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -231,7 +232,7 @@ export function useVoiceChat(
           }
         } catch (ttsError) {
           try {
-            const fallbackResponse = await fetch('/api/tts', {
+            const fallbackResponse = await apiFetch('/api/tts', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ text: spokenText, voice: state.voice, speakingRate: 1.1 }),
@@ -292,6 +293,7 @@ export function useVoiceChat(
         try {
           await startCapture();
         } catch (err) {
+          // ignored
         }
       }
     }
@@ -382,6 +384,7 @@ export function useVoiceChat(
         try {
           await startCapture();
         } catch (err) {
+          // ignored
         }
       }
     }

@@ -188,6 +188,7 @@ const VaultPanel: React.FC<VaultPanelProps> = ({
           }
         }
       } catch (err) {
+        // ignored
       }
     }
   };
@@ -218,14 +219,14 @@ const VaultPanel: React.FC<VaultPanelProps> = ({
               </button>
             </Tooltip>
           )}
-          <button className="icon-btn"><MenuIcon /></button>
+          <button className="icon-btn" aria-label="Vault menu"><MenuIcon /></button>
         </div>
       </div>
 
       <div className="vault-content">
         {/* Master Key Button */}
         <Tooltip content={TOOLTIPS.initializeVault} enabled={tooltipsEnabled} position="right">
-          <button className="create-vault-btn" onClick={onCreateVault}>
+          <button className="create-vault-btn" onClick={onCreateVault} aria-label="Initialize new vault">
             <div className="create-vault-glow" aria-hidden="true" />
             <PlusIcon />
             <span>Initialize Vault</span>
@@ -243,6 +244,10 @@ const VaultPanel: React.FC<VaultPanelProps> = ({
               onDragOver={(e) => handleDragOver(e, vault)}
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, vault)}
+              role="button"
+              tabIndex={0}
+              aria-label={`Open vault: ${vault.name}, ${vault.documentCount} documents, status: ${vault.status}`}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleVaultClick(vault.id) } }}
             >
               {/* Left status indicator */}
               <div className="vault-status-indicator">
