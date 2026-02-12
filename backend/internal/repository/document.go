@@ -239,6 +239,17 @@ func (r *DocumentRepo) TogglePrivilege(ctx context.Context, id string, privilege
 	return nil
 }
 
+func (r *DocumentRepo) Update(ctx context.Context, id string, name string) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE documents SET original_name = $1, updated_at = $2 WHERE id = $3`,
+		name, time.Now().UTC(), id,
+	)
+	if err != nil {
+		return fmt.Errorf("repository.Update: %w", err)
+	}
+	return nil
+}
+
 func marshalMeta(meta json.RawMessage) ([]byte, error) {
 	if meta == nil {
 		return nil, nil

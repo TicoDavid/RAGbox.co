@@ -1,3 +1,4 @@
+/** @canonical This is the primary voice hook used in the dashboard. See also: deprecated hooks in src/hooks/ */
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';

@@ -1,3 +1,9 @@
+/**
+ * @deprecated This hook implements the Gemini Live voice session approach and
+ * is no longer the canonical voice implementation. Use `useVoiceChat` from
+ * `src/app/dashboard/hooks/useVoiceChat.ts` instead, which provides the
+ * Deepgram-based continuous-listening model used in the dashboard.
+ */
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'

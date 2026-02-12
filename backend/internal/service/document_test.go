@@ -76,6 +76,10 @@ func (m *mockDocRepo) TogglePrivilege(ctx context.Context, id string, privileged
 	return nil
 }
 
+func (m *mockDocRepo) Update(ctx context.Context, id string, name string) error {
+	return nil
+}
+
 func TestGenerateUploadURL_Success(t *testing.T) {
 	storage := &mockStorage{url: "https://storage.googleapis.com/signed-url"}
 	repo := &mockDocRepo{}

@@ -52,6 +52,7 @@ func (m *mockDocRepo) SoftDelete(ctx context.Context, id string) error          
 func (m *mockDocRepo) Recover(ctx context.Context, id string) error                                 { return nil }
 func (m *mockDocRepo) UpdateTier(ctx context.Context, id string, tier int) error                    { return nil }
 func (m *mockDocRepo) TogglePrivilege(ctx context.Context, id string, privileged bool) error        { return nil }
+func (m *mockDocRepo) Update(ctx context.Context, id string, name string) error                    { return nil }
 
 // mockFolderRepo implements service.FolderRepository for testing.
 type mockFolderRepo struct{}
@@ -74,6 +75,7 @@ func newTestRouter(authErr error) http.Handler {
 		DB:             &mockDB{},
 		AuthService:    service.NewAuthService(client),
 		FrontendURL:    "http://localhost:3000",
+		Version:        "0.2.0",
 		DocRepo:        &mockDocRepo{},
 		FolderRepo:     &mockFolderRepo{},
 		PrivilegeState: handler.NewPrivilegeState(),
@@ -104,8 +106,8 @@ func TestHealth_IsPublic(t *testing.T) {
 	if body["status"] != "ok" {
 		t.Errorf("status = %q, want %q", body["status"], "ok")
 	}
-	if body["version"] != "1.0.0" {
-		t.Errorf("version = %q, want %q", body["version"], "1.0.0")
+	if body["version"] != "0.2.0" {
+		t.Errorf("version = %q, want %q", body["version"], "0.2.0")
 	}
 }
 

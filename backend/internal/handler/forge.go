@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/connexus-ai/ragbox-backend/internal/middleware"
 	"github.com/connexus-ai/ragbox-backend/internal/service"
@@ -45,7 +47,10 @@ func ForgeHandler(forgeSvc *service.ForgeService) http.HandlerFunc {
 			return
 		}
 
-		result, err := forgeSvc.Generate(r.Context(), req)
+		ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
+		defer cancel()
+
+		result, err := forgeSvc.Generate(ctx, req)
 		if err != nil {
 			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: err.Error()})
 			return

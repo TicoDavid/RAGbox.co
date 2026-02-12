@@ -47,6 +47,9 @@ func (m *pipelineMockRepo) UpdateTier(ctx context.Context, id string, tier int) 
 func (m *pipelineMockRepo) TogglePrivilege(ctx context.Context, id string, p bool) error {
 	return nil
 }
+func (m *pipelineMockRepo) Update(ctx context.Context, id string, name string) error {
+	return nil
+}
 
 type pipelineMockParser struct {
 	result *ParseResult

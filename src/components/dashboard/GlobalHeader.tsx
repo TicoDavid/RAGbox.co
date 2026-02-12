@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import Image from 'next/image'
+import { useTheme } from 'next-themes'
 import { useSession, signOut } from 'next-auth/react'
 import { usePrivilegeStore } from '@/stores/privilegeStore'
 import { useVaultStore } from '@/stores/vaultStore'
@@ -61,7 +62,7 @@ export function GlobalHeader() {
   const { isEnabled: privilegeMode, toggle: togglePrivilege } = usePrivilegeStore()
   const activePersona = useMercuryStore((s) => s.activePersona)
   const setPersona = useMercuryStore((s) => s.setPersona)
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
+  const { setTheme, resolvedTheme } = useTheme()
   const [searchOpen, setSearchOpen] = useState(false)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [activeProfile, setActiveProfile] = useState<string>('work')
@@ -130,10 +131,7 @@ export function GlobalHeader() {
   }, [searchOpen])
 
   const handleThemeToggle = () => {
-    const next = theme === 'dark' ? 'light' : 'dark'
-    setTheme(next)
-    document.documentElement.classList.toggle('light', next === 'light')
-    document.documentElement.classList.toggle('dark', next === 'dark')
+    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')
   }
 
   const userInitials = session?.user?.name
@@ -421,10 +419,10 @@ export function GlobalHeader() {
           <button
             onClick={handleThemeToggle}
             className="p-2 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
-            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            title={`Switch to ${resolvedTheme === 'dark' ? 'light' : 'dark'} mode`}
+            aria-label={`Switch to ${resolvedTheme === 'dark' ? 'light' : 'dark'} mode`}
           >
-            {theme === 'dark' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+            {resolvedTheme === 'dark' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
           </button>
 
           {/* Settings */}

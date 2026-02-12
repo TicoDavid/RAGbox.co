@@ -3,6 +3,7 @@ package router
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/prometheus/client_golang/prometheus"
@@ -17,6 +18,7 @@ type Dependencies struct {
 	DB                 handler.DBPinger
 	AuthService        *service.AuthService
 	FrontendURL        string
+	Version            string
 	Metrics            *middleware.Metrics
 	MetricsReg         *prometheus.Registry
 	InternalAuthSecret string
@@ -71,7 +73,7 @@ func New(deps *Dependencies) *chi.Mux {
 	}
 
 	// Public routes (no auth)
-	r.Get("/api/health", handler.Health(deps.DB))
+	r.Get("/api/health", handler.Health(deps.DB, deps.Version))
 	if deps.MetricsReg != nil {
 		r.Handle("/metrics", middleware.MetricsHandler(deps.MetricsReg))
 	}
@@ -89,26 +91,32 @@ func New(deps *Dependencies) *chi.Mux {
 			r.Use(middleware.RateLimit(deps.GeneralRateLimiter))
 		}
 
+		// Non-SSE routes get a 30s write timeout to prevent slow-read attacks.
+		// Chat (SSE) is registered separately below without the timeout.
+		timeout30s := middleware.Timeout(30 * time.Second)
+
 		// Documents
-		r.Get("/api/documents", handler.ListDocuments(docCRUD))
-		r.Post("/api/documents/extract", handler.UploadDocument(deps.DocService))
-		r.Get("/api/documents/{id}", handler.GetDocument(docCRUD))
-		r.Delete("/api/documents/{id}", handler.DeleteDocument(docCRUD))
-		r.Post("/api/documents/{id}/recover", handler.RecoverDocument(docCRUD))
-		r.Patch("/api/documents/{id}/tier", handler.UpdateDocumentTier(docCRUD))
-		r.Patch("/api/documents/{id}/privilege", handler.ToggleDocPrivilege(docCRUD))
-		r.Post("/api/documents/{id}/ingest", handler.IngestDocument(deps.IngestDeps))
+		r.With(timeout30s).Get("/api/documents", handler.ListDocuments(docCRUD))
+		r.With(timeout30s).Post("/api/documents/extract", handler.UploadDocument(deps.DocService))
+		r.With(timeout30s).Get("/api/documents/{id}", handler.GetDocument(docCRUD))
+		r.With(timeout30s).Patch("/api/documents/{id}", handler.UpdateDocument(docCRUD))
+		r.With(timeout30s).Delete("/api/documents/{id}", handler.DeleteDocument(docCRUD))
+		r.With(timeout30s).Post("/api/documents/{id}/recover", handler.RecoverDocument(docCRUD))
+		r.With(timeout30s).Patch("/api/documents/{id}/tier", handler.UpdateDocumentTier(docCRUD))
+		r.With(timeout30s).Patch("/api/documents/{id}/privilege", handler.ToggleDocPrivilege(docCRUD))
+		// Ingest may take longer (pipeline processing)
+		r.With(middleware.Timeout(120 * time.Second)).Post("/api/documents/{id}/ingest", handler.IngestDocument(deps.IngestDeps))
 
 		// Folders
-		r.Get("/api/documents/folders", handler.ListFolders(folderDeps))
-		r.Post("/api/documents/folders", handler.CreateFolder(folderDeps))
-		r.Delete("/api/documents/folders/{id}", handler.DeleteFolder(folderDeps))
+		r.With(timeout30s).Get("/api/documents/folders", handler.ListFolders(folderDeps))
+		r.With(timeout30s).Post("/api/documents/folders", handler.CreateFolder(folderDeps))
+		r.With(timeout30s).Delete("/api/documents/folders/{id}", handler.DeleteFolder(folderDeps))
 
 		// Privilege
-		r.Get("/api/privilege", handler.GetPrivilege(deps.PrivilegeState))
-		r.Post("/api/privilege", handler.TogglePrivilege(deps.PrivilegeState))
+		r.With(timeout30s).Get("/api/privilege", handler.GetPrivilege(deps.PrivilegeState))
+		r.With(timeout30s).Post("/api/privilege", handler.TogglePrivilege(deps.PrivilegeState))
 
-		// Chat — stricter rate limit (10/min)
+		// Chat — SSE streaming, NO write timeout. Stricter rate limit (10/min).
 		if deps.ChatRateLimiter != nil {
 			r.With(middleware.RateLimit(deps.ChatRateLimiter)).Post("/api/chat", handler.Chat(deps.ChatDeps))
 		} else {
@@ -116,18 +124,18 @@ func New(deps *Dependencies) *chi.Mux {
 		}
 
 		// Audit
-		r.Get("/api/audit", handler.ListAudit(deps.AuditDeps))
-		r.Get("/api/audit/export", handler.ExportAudit(deps.AuditDeps))
+		r.With(timeout30s).Get("/api/audit", handler.ListAudit(deps.AuditDeps))
+		r.With(timeout30s).Get("/api/audit/export", handler.ExportAudit(deps.AuditDeps))
 
-		// Export
-		r.Get("/api/export", handler.ExportData(deps.ExportDeps))
+		// Export (ZIP generation can take a while)
+		r.With(middleware.Timeout(60 * time.Second)).Get("/api/export", handler.ExportData(deps.ExportDeps))
 
-		// Forge — strictest rate limit (5/min)
+		// Forge — AI generation, 60s timeout. Strictest rate limit (5/min).
+		forgeMiddleware := []func(http.Handler) http.Handler{middleware.Timeout(60 * time.Second)}
 		if deps.ForgeRateLimiter != nil {
-			r.With(middleware.RateLimit(deps.ForgeRateLimiter)).Post("/api/forge", handler.ForgeHandler(deps.ForgeSvc))
-		} else {
-			r.Post("/api/forge", handler.ForgeHandler(deps.ForgeSvc))
+			forgeMiddleware = append(forgeMiddleware, middleware.RateLimit(deps.ForgeRateLimiter))
 		}
+		r.With(forgeMiddleware...).Post("/api/forge", handler.ForgeHandler(deps.ForgeSvc))
 	})
 
 	// 404 fallback

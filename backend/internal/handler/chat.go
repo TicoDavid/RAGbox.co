@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -26,6 +27,7 @@ type ChatDeps struct {
 	Retriever *service.RetrieverService
 	Generator service.Generator
 	SelfRAG   *service.SelfRAGService
+	Metrics   *middleware.Metrics // optional, for silence trigger tracking
 }
 
 // Chat returns an SSE streaming handler for Mercury chat.
@@ -88,7 +90,8 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			return
 		}
 
-		ctx := r.Context()
+		ctx, cancel := context.WithTimeout(r.Context(), 120*time.Second)
+		defer cancel()
 
 		// Step 1: Retrieve
 		sendEvent(w, flusher, "status", `{"stage":"retrieving"}`)
@@ -102,6 +105,9 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 		}
 
 		if len(retrieval.Chunks) == 0 {
+			if deps.Metrics != nil {
+				deps.Metrics.IncrementSilenceTrigger()
+			}
 			silence := service.BuildSilenceResponse(0.0, req.Query)
 			silenceJSON, _ := json.Marshal(silence)
 			sendEvent(w, flusher, "silence", string(silenceJSON))
@@ -137,6 +143,9 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 
 		// Step 4: Stream result
 		if result.SilenceTriggered {
+			if deps.Metrics != nil {
+				deps.Metrics.IncrementSilenceTrigger()
+			}
 			silence := service.BuildSilenceResponse(result.FinalConfidence, req.Query)
 			silenceJSON, _ := json.Marshal(silence)
 			sendEvent(w, flusher, "silence", string(silenceJSON))

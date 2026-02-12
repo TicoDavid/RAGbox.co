@@ -1,3 +1,33 @@
+/**
+ * RAGbox.co - Next.js Configuration
+ *
+ * =====================================================================
+ * AI SERVICE ENVIRONMENT VARIABLES (Beta)
+ * =====================================================================
+ *
+ * REQUIRED (Next.js frontend):
+ *   GOOGLE_CLOUD_PROJECT        - GCP project ID (e.g. "ragbox-sovereign-prod")
+ *   DEEPGRAM_API_KEY            - Deepgram STT key for voice chat (useVoiceChat)
+ *   GO_BACKEND_URL              - URL of the Go backend Cloud Run service
+ *                                 (e.g. "https://ragbox-backend-xxxxx.us-east4.run.app")
+ *
+ * OPTIONAL (Next.js frontend):
+ *   OPENROUTER_API_KEY          - OpenRouter key for Intelligence Matrix
+ *                                 model selection (multi-model routing)
+ *   DEEPSEEK_API_KEY            - DeepSeek API key for OCR fallback
+ *   DEEPSEEK_ENDPOINT_URL       - DeepSeek endpoint URL for OCR fallback
+ *
+ * BACKEND-ONLY (configured in Go backend, NOT needed in Next.js):
+ *   VERTEX_AI_LOCATION          - Vertex AI region (set in Go backend env)
+ *   VERTEX_AI_MODEL             - Gemini model ID (set in Go backend env)
+ *   DOCUMENT_AI_PROCESSOR_ID    - Document AI processor (Go backend)
+ *   DLP_DEIDENTIFY_TEMPLATE     - Cloud DLP template (Go backend)
+ *   BIGQUERY_DATASET            - BigQuery audit dataset (Go backend)
+ *   BIGQUERY_TABLE              - BigQuery audit table (Go backend)
+ *
+ * =====================================================================
+ */
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Strict mode for better development experience
@@ -49,7 +79,7 @@ const nextConfig = {
   experimental: {
     // Enable server actions
     serverActions: {
-      bodySizeLimit: '100mb',
+      bodySizeLimit: '50mb',
     },
     // Server-side external packages (native modules that shouldn't be bundled)
     serverComponentsExternalPackages: ['ws', 'bufferutil', 'utf-8-validate', 'pdf-parse', 'mammoth'],

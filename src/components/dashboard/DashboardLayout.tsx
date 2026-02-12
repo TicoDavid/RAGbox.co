@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import React, { useState, useEffect, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useVaultStore } from '@/stores/vaultStore'
 import { usePrivilegeStore } from '@/stores/privilegeStore'
+import { useIsDesktop, useIsTablet } from '@/hooks/useMediaQuery'
 import { GlobalHeader } from './GlobalHeader'
 import { VaultPanel } from './vault/VaultPanel'
 import { SovereignExplorer } from './vault/SovereignExplorer'
@@ -22,6 +23,9 @@ import {
   Shield,
   Download,
   FileText,
+  Menu,
+  X,
+  Wrench,
 } from 'lucide-react'
 import IngestionModal from '@/app/dashboard/components/IngestionModal'
 
@@ -225,10 +229,114 @@ function ExportPanel() {
 }
 
 // ============================================================================
+// MOBILE OVERLAY COMPONENT
+// ============================================================================
+
+interface MobileOverlayProps {
+  isOpen: boolean
+  onClose: () => void
+  side: 'left' | 'right'
+  children: React.ReactNode
+}
+
+function MobileOverlay({ isOpen, onClose, side, children }: MobileOverlayProps) {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+            onClick={onClose}
+          />
+
+          {/* Panel */}
+          <motion.div
+            initial={{ x: side === 'left' ? '-100%' : '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: side === 'left' ? '-100%' : '100%' }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            className={`fixed top-0 bottom-0 z-50 w-[85vw] max-w-[400px]
+              bg-[var(--bg-secondary)] shadow-2xl
+              ${side === 'left' ? 'left-0 border-r' : 'right-0 border-l'} border-white/10`}
+          >
+            {/* Close button */}
+            <div className={`absolute top-3 z-10 ${side === 'left' ? 'right-3' : 'left-3'}`}>
+              <button
+                onClick={onClose}
+                aria-label="Close panel"
+                className="w-9 h-9 flex items-center justify-center rounded-lg
+                           text-slate-400 hover:text-white hover:bg-white/10
+                           transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="h-full overflow-y-auto">
+              {children}
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}
+
+// ============================================================================
+// MOBILE TOOLBAR (hamburger + tools buttons shown only on mobile)
+// ============================================================================
+
+interface MobileToolbarProps {
+  onLeftOpen: () => void
+  onRightOpen: () => void
+}
+
+function MobileToolbar({ onLeftOpen, onRightOpen }: MobileToolbarProps) {
+  return (
+    <div className="flex md:hidden items-center justify-between px-3 py-2
+                    bg-[var(--bg-secondary)] border-b border-white/5">
+      <button
+        onClick={onLeftOpen}
+        aria-label="Open vault menu"
+        className="w-10 h-10 flex items-center justify-center rounded-xl
+                   text-slate-400 hover:text-white hover:bg-white/10
+                   transition-colors"
+      >
+        <Menu className="w-5 h-5" />
+      </button>
+
+      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        Mercury
+      </span>
+
+      <button
+        onClick={onRightOpen}
+        aria-label="Open tools menu"
+        className="w-10 h-10 flex items-center justify-center rounded-xl
+                   text-slate-400 hover:text-white hover:bg-white/10
+                   transition-colors"
+      >
+        <Wrench className="w-5 h-5" />
+      </button>
+    </div>
+  )
+}
+
+// ============================================================================
 // MAIN DASHBOARD LAYOUT
 // ============================================================================
 
 export function DashboardLayout() {
+  // Responsive breakpoints
+  const isDesktop = useIsDesktop()   // >= 1024px
+  const isTablet = useIsTablet()     // >= 768px
+  const isMobile = !isTablet         // < 768px
+
   // Store state
   const isVaultCollapsed = useVaultStore((s) => s.isCollapsed)
   const setVaultCollapsed = useVaultStore((s) => s.setCollapsed)
@@ -244,6 +352,26 @@ export function DashboardLayout() {
   const [rightTab, setRightTab] = useState<RightRailTab>('inspector')
   const [isIngestionOpen, setIsIngestionOpen] = useState(false)
 
+  // Mobile overlay state
+  const [mobileLeftOpen, setMobileLeftOpen] = useState(false)
+  const [mobileRightOpen, setMobileRightOpen] = useState(false)
+
+  // Close mobile overlays when transitioning to tablet/desktop
+  useEffect(() => {
+    if (isTablet) {
+      setMobileLeftOpen(false)
+      setMobileRightOpen(false)
+    }
+  }, [isTablet])
+
+  // On tablet (not desktop), force panels collapsed — icon-only rails
+  useEffect(() => {
+    if (isTablet && !isDesktop) {
+      setLeftExpanded(false)
+      setRightExpanded(false)
+    }
+  }, [isTablet, isDesktop])
+
   // Sync with vault store
   useEffect(() => {
     setLeftExpanded(!isVaultCollapsed)
@@ -254,29 +382,39 @@ export function DashboardLayout() {
   }, [fetchPrivilege])
 
   // Handlers
-  const handleLeftTabClick = (tab: LeftRailTab) => {
+  const handleLeftTabClick = useCallback((tab: LeftRailTab) => {
+    // On tablet (not desktop), open as mobile overlay instead of inline expansion
+    if (isTablet && !isDesktop) {
+      setLeftTab(tab)
+      setMobileLeftOpen(true)
+      return
+    }
+
     if (leftExpanded && leftTab === tab) {
-      // Already on this tab, collapse
       setLeftExpanded(false)
       setVaultCollapsed(true)
     } else {
-      // Open to this tab
       setLeftTab(tab)
       setLeftExpanded(true)
       setVaultCollapsed(false)
     }
-  }
+  }, [isTablet, isDesktop, leftExpanded, leftTab, setVaultCollapsed])
 
-  const handleRightTabClick = (tab: RightRailTab) => {
+  const handleRightTabClick = useCallback((tab: RightRailTab) => {
+    // On tablet (not desktop), open as mobile overlay instead of inline expansion
+    if (isTablet && !isDesktop) {
+      setRightTab(tab)
+      setMobileRightOpen(true)
+      return
+    }
+
     if (rightExpanded && rightTab === tab) {
-      // Already on this tab, collapse
       setRightExpanded(false)
     } else {
-      // Open to this tab
       setRightTab(tab)
       setRightExpanded(true)
     }
-  }
+  }, [isTablet, isDesktop, rightExpanded, rightTab])
 
   const handleIngestionUpload = async (files: File[]) => {
     for (const file of files) {
@@ -338,73 +476,153 @@ export function DashboardLayout() {
     <div className="flex flex-col h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] overflow-hidden font-jakarta">
       <GlobalHeader />
 
+      {/* Mobile toolbar — hamburger + tools buttons (visible < 768px) */}
+      {isMobile && (
+        <MobileToolbar
+          onLeftOpen={() => setMobileLeftOpen(true)}
+          onRightOpen={() => setMobileRightOpen(true)}
+        />
+      )}
+
       <div className="flex-1 flex overflow-hidden">
         {/* ============================================ */}
-        {/* LEFT SIDE: Rail + Panel */}
+        {/* LEFT SIDE: Rail + Panel (hidden on mobile) */}
         {/* ============================================ */}
-        <div className="flex shrink-0">
-          {/* Icon Rail */}
-          <div style={{ width: RAIL_WIDTH }} className="shrink-0">
-            <LeftStealthRail
-              isExpanded={leftExpanded}
-              activeTab={leftExpanded ? leftTab : null}
-              onTabClick={handleLeftTabClick}
-              onAddClick={() => setIsIngestionOpen(true)}
-              onCollapse={() => {
-                setLeftExpanded(false)
-                setVaultCollapsed(true)
-              }}
-              onExpandVault={toggleExplorerMode}
-            />
-          </div>
-
-          {/* Expandable Panel */}
-          <motion.div
-            initial={false}
-            animate={{ width: leftExpanded ? LEFT_PANEL_WIDTH : 0 }}
-            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-            className="overflow-hidden border-r border-white/5"
-          >
-            <div style={{ width: LEFT_PANEL_WIDTH }} className="h-full bg-[var(--bg-secondary)]">
-              {renderLeftContent()}
+        {isTablet && (
+          <div className="flex shrink-0">
+            {/* Icon Rail */}
+            <div style={{ width: RAIL_WIDTH }} className="shrink-0">
+              <LeftStealthRail
+                isExpanded={isDesktop && leftExpanded}
+                activeTab={isDesktop && leftExpanded ? leftTab : null}
+                onTabClick={handleLeftTabClick}
+                onAddClick={() => setIsIngestionOpen(true)}
+                onCollapse={() => {
+                  setLeftExpanded(false)
+                  setVaultCollapsed(true)
+                }}
+                onExpandVault={toggleExplorerMode}
+              />
             </div>
-          </motion.div>
-        </div>
+
+            {/* Expandable Panel (only on desktop) */}
+            {isDesktop && (
+              <motion.div
+                initial={false}
+                animate={{ width: leftExpanded ? LEFT_PANEL_WIDTH : 0 }}
+                transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                className="overflow-hidden border-r border-white/5"
+              >
+                <div style={{ width: LEFT_PANEL_WIDTH }} className="h-full bg-[var(--bg-secondary)]">
+                  {renderLeftContent()}
+                </div>
+              </motion.div>
+            )}
+          </div>
+        )}
 
         {/* ============================================ */}
-        {/* CENTER: Mercury (Chat) */}
+        {/* CENTER: Mercury (Chat) — always visible */}
         {/* ============================================ */}
         <div className="flex-1 min-w-0 overflow-hidden">
           <MercuryPanel />
         </div>
 
         {/* ============================================ */}
-        {/* RIGHT SIDE: Panel + Rail */}
+        {/* RIGHT SIDE: Panel + Rail (hidden on mobile) */}
         {/* ============================================ */}
-        <div className="flex shrink-0">
-          {/* Expandable Panel */}
-          <motion.div
-            initial={false}
-            animate={{ width: rightExpanded ? RIGHT_PANEL_WIDTH : 0 }}
-            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-            className="overflow-hidden border-l border-white/5"
-          >
-            <div style={{ width: RIGHT_PANEL_WIDTH }} className="h-full bg-[var(--bg-secondary)]">
-              {renderRightContent()}
-            </div>
-          </motion.div>
+        {isTablet && (
+          <div className="flex shrink-0">
+            {/* Expandable Panel (only on desktop) */}
+            {isDesktop && (
+              <motion.div
+                initial={false}
+                animate={{ width: rightExpanded ? RIGHT_PANEL_WIDTH : 0 }}
+                transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                className="overflow-hidden border-l border-white/5"
+              >
+                <div style={{ width: RIGHT_PANEL_WIDTH }} className="h-full bg-[var(--bg-secondary)]">
+                  {renderRightContent()}
+                </div>
+              </motion.div>
+            )}
 
-          {/* Icon Rail */}
+            {/* Icon Rail */}
+            <div style={{ width: RAIL_WIDTH }} className="shrink-0">
+              <RightStealthRail
+                isExpanded={isDesktop && rightExpanded}
+                activeTab={isDesktop && rightExpanded ? rightTab : null}
+                onTabClick={handleRightTabClick}
+                onCollapse={() => setRightExpanded(false)}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ============================================ */}
+      {/* MOBILE OVERLAYS */}
+      {/* ============================================ */}
+
+      {/* Left overlay: Vault navigation + panel content */}
+      <MobileOverlay
+        isOpen={mobileLeftOpen}
+        onClose={() => setMobileLeftOpen(false)}
+        side="left"
+      >
+        <div className="flex h-full">
+          {/* Rail icons */}
+          <div style={{ width: RAIL_WIDTH }} className="shrink-0">
+            <LeftStealthRail
+              isExpanded={true}
+              activeTab={leftTab}
+              onTabClick={(tab) => {
+                setLeftTab(tab)
+              }}
+              onAddClick={() => {
+                setMobileLeftOpen(false)
+                setIsIngestionOpen(true)
+              }}
+              onCollapse={() => setMobileLeftOpen(false)}
+              onExpandVault={() => {
+                setMobileLeftOpen(false)
+                toggleExplorerMode()
+              }}
+            />
+          </div>
+
+          {/* Panel content */}
+          <div className="flex-1 min-w-0 bg-[var(--bg-secondary)]">
+            {renderLeftContent()}
+          </div>
+        </div>
+      </MobileOverlay>
+
+      {/* Right overlay: Tools navigation + panel content */}
+      <MobileOverlay
+        isOpen={mobileRightOpen}
+        onClose={() => setMobileRightOpen(false)}
+        side="right"
+      >
+        <div className="flex h-full">
+          {/* Panel content */}
+          <div className="flex-1 min-w-0 bg-[var(--bg-secondary)]">
+            {renderRightContent()}
+          </div>
+
+          {/* Rail icons */}
           <div style={{ width: RAIL_WIDTH }} className="shrink-0">
             <RightStealthRail
-              isExpanded={rightExpanded}
-              activeTab={rightExpanded ? rightTab : null}
-              onTabClick={handleRightTabClick}
-              onCollapse={() => setRightExpanded(false)}
+              isExpanded={true}
+              activeTab={rightTab}
+              onTabClick={(tab) => {
+                setRightTab(tab)
+              }}
+              onCollapse={() => setMobileRightOpen(false)}
             />
           </div>
         </div>
-      </div>
+      </MobileOverlay>
 
       {/* Ingestion Modal */}
       <IngestionModal

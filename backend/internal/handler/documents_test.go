@@ -73,6 +73,7 @@ func (m *mockDocRepo) UpdateTier(ctx context.Context, id string, tier int) error
 func (m *mockDocRepo) TogglePrivilege(ctx context.Context, id string, privileged bool) error {
 	return nil
 }
+func (m *mockDocRepo) Update(ctx context.Context, id string, name string) error { return nil }
 
 func TestUploadDocument_Success(t *testing.T) {
 	storage := &mockStorage{url: "https://storage.googleapis.com/signed"}
@@ -194,6 +195,7 @@ type crudDocRepo struct {
 	getErr    error
 	listErr   error
 	deleteErr error
+	updateErr error
 }
 
 func (m *crudDocRepo) Create(ctx context.Context, doc *model.Document) error { return nil }
@@ -223,6 +225,9 @@ func (m *crudDocRepo) Recover(ctx context.Context, id string) error      { retur
 func (m *crudDocRepo) UpdateTier(ctx context.Context, id string, tier int) error { return nil }
 func (m *crudDocRepo) TogglePrivilege(ctx context.Context, id string, privileged bool) error {
 	return nil
+}
+func (m *crudDocRepo) Update(ctx context.Context, id string, name string) error {
+	return m.updateErr
 }
 
 func TestListDocuments_Success(t *testing.T) {

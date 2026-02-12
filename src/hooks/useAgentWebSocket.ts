@@ -1,5 +1,9 @@
 /**
- * useAgentWebSocket - Client-side WebSocket hook for voice AI
+ * @deprecated useAgentWebSocket - Client-side WebSocket hook for voice AI
+ *
+ * This hook is deprecated. Use `useVoiceChat` from
+ * `src/app/dashboard/hooks/useVoiceChat.ts` instead, which is the canonical
+ * Deepgram-based voice implementation used in the dashboard.
  *
  * Connects to the RAGbox Voice Server for full-duplex audio streaming.
  * Handles: audio capture, WebSocket messaging, TTS playback, tool calls.
@@ -78,7 +82,9 @@ interface UseAgentWebSocketReturn {
 // ============================================================================
 
 /**
- * Create audio worklet for capturing microphone input
+ * Create audio capture for microphone input.
+ * Uses AudioWorkletNode (preferred) with automatic fallback to
+ * ScriptProcessorNode for older browsers that lack AudioWorklet support.
  */
 async function createAudioCapture(
   sampleRate: number,
@@ -90,8 +96,58 @@ async function createAudioCapture(
 }> {
   let mediaStream: MediaStream | null = null
   let audioContext: AudioContext | null = null
-  let scriptProcessor: ScriptProcessorNode | null = null
+  let workletNode: AudioWorkletNode | null = null
+  let legacyProcessor: ScriptProcessorNode | null = null
+  let sourceNode: MediaStreamAudioSourceNode | null = null
   let active = false
+
+  /**
+   * Try to set up AudioWorkletNode. Returns true on success.
+   */
+  async function trySetupWorklet(
+    ctx: AudioContext,
+    source: MediaStreamAudioSourceNode
+  ): Promise<boolean> {
+    try {
+      await ctx.audioWorklet.addModule('/audio-capture-processor.js')
+      workletNode = new AudioWorkletNode(ctx, 'audio-capture-processor')
+      workletNode.port.onmessage = (event: MessageEvent) => {
+        if (active) {
+          onAudioChunk(event.data as ArrayBuffer)
+        }
+      }
+      source.connect(workletNode)
+      workletNode.connect(ctx.destination)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  /**
+   * Fallback: ScriptProcessorNode for browsers without AudioWorklet.
+   */
+  function setupLegacyProcessor(
+    ctx: AudioContext,
+    source: MediaStreamAudioSourceNode
+  ): void {
+    legacyProcessor = ctx.createScriptProcessor(4096, 1, 1)
+
+    legacyProcessor.onaudioprocess = (event) => {
+      if (!active) return
+
+      const float32 = event.inputBuffer.getChannelData(0)
+      const int16 = new Int16Array(float32.length)
+      for (let i = 0; i < float32.length; i++) {
+        const s = Math.max(-1, Math.min(1, float32[i]))
+        int16[i] = s < 0 ? s * 0x8000 : s * 0x7fff
+      }
+      onAudioChunk(int16.buffer)
+    }
+
+    source.connect(legacyProcessor)
+    legacyProcessor.connect(ctx.destination)
+  }
 
   return {
     async start() {
@@ -110,36 +166,33 @@ async function createAudioCapture(
 
       // Create audio context
       audioContext = new AudioContext({ sampleRate })
-      const source = audioContext.createMediaStreamSource(mediaStream)
+      sourceNode = audioContext.createMediaStreamSource(mediaStream)
 
-      // Use ScriptProcessorNode for audio capture (deprecated but widely supported)
-      // In production, consider AudioWorklet for better performance
-      scriptProcessor = audioContext.createScriptProcessor(4096, 1, 1)
-
-      scriptProcessor.onaudioprocess = (event) => {
-        if (!active) return
-
-        const float32 = event.inputBuffer.getChannelData(0)
-        // Convert Float32 to Int16 PCM
-        const int16 = new Int16Array(float32.length)
-        for (let i = 0; i < float32.length; i++) {
-          const s = Math.max(-1, Math.min(1, float32[i]))
-          int16[i] = s < 0 ? s * 0x8000 : s * 0x7fff
-        }
-        onAudioChunk(int16.buffer)
+      // Try AudioWorklet first, fall back to ScriptProcessorNode
+      const workletReady = await trySetupWorklet(audioContext, sourceNode)
+      if (!workletReady) {
+        setupLegacyProcessor(audioContext, sourceNode)
       }
 
-      source.connect(scriptProcessor)
-      scriptProcessor.connect(audioContext.destination)
       active = true
     },
 
     stop() {
       active = false
 
-      if (scriptProcessor) {
-        scriptProcessor.disconnect()
-        scriptProcessor = null
+      if (workletNode) {
+        workletNode.disconnect()
+        workletNode = null
+      }
+
+      if (legacyProcessor) {
+        legacyProcessor.disconnect()
+        legacyProcessor = null
+      }
+
+      if (sourceNode) {
+        sourceNode.disconnect()
+        sourceNode = null
       }
 
       if (audioContext) {

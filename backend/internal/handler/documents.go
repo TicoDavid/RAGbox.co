@@ -255,6 +255,57 @@ func UpdateDocumentTier(deps DocCRUDDeps) http.HandlerFunc {
 	}
 }
 
+// UpdateDocumentRequest is the request body for document name updates.
+type UpdateDocumentRequest struct {
+	Name string `json:"name"`
+}
+
+// UpdateDocument handles PATCH /api/documents/{id}.
+func UpdateDocument(deps DocCRUDDeps) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID := middleware.UserIDFromContext(r.Context())
+		if userID == "" {
+			respondJSON(w, http.StatusUnauthorized, envelope{Success: false, Error: "unauthorized"})
+			return
+		}
+
+		docID := chi.URLParam(r, "id")
+		if docID == "" {
+			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "document id required"})
+			return
+		}
+
+		doc, err := deps.DocRepo.GetByID(r.Context(), docID)
+		if err != nil || doc.UserID != userID {
+			respondJSON(w, http.StatusNotFound, envelope{Success: false, Error: "document not found"})
+			return
+		}
+
+		var req UpdateDocumentRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "invalid request body"})
+			return
+		}
+
+		if req.Name == "" {
+			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "name is required"})
+			return
+		}
+
+		if len(req.Name) > maxFilenameLength {
+			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "name exceeds 255 character limit"})
+			return
+		}
+
+		if err := deps.DocRepo.Update(r.Context(), docID, req.Name); err != nil {
+			respondJSON(w, http.StatusInternalServerError, envelope{Success: false, Error: "failed to update document"})
+			return
+		}
+
+		respondJSON(w, http.StatusOK, envelope{Success: true})
+	}
+}
+
 // ToggleDocPrivilegeRequest is the request body for document privilege toggle.
 type ToggleDocPrivilegeRequest struct {
 	Privileged bool `json:"privileged"`

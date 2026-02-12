@@ -224,6 +224,7 @@ func run() error {
 		DB:                 pool,
 		AuthService:        authService,
 		FrontendURL:        cfg.FrontendURL,
+		Version:            Version,
 		Metrics:            metrics,
 		MetricsReg:         reg,
 		InternalAuthSecret: cfg.InternalAuthSecret,
@@ -238,6 +239,7 @@ func run() error {
 			Retriever: retrieverService,
 			Generator: generatorService,
 			SelfRAG:   selfRAGService,
+			Metrics:   metrics,
 		},
 
 		AuditDeps: handler.AuditDeps{

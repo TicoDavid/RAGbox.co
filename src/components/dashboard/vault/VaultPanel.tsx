@@ -16,6 +16,8 @@ export function VaultPanel() {
   const toggleExplorerMode = useVaultStore((s) => s.toggleExplorerMode)
   const fetchDocuments = useVaultStore((s) => s.fetchDocuments)
   const fetchFolders = useVaultStore((s) => s.fetchFolders)
+  const isLoading = useVaultStore((s) => s.isLoading)
+  const documents = useVaultStore((s) => s.documents)
   const selectedItemId = useVaultStore((s) => s.selectedItemId)
   const uploadDocument = useVaultStore((s) => s.uploadDocument)
   const currentPath = useVaultStore((s) => s.currentPath)
@@ -106,13 +108,30 @@ export function VaultPanel() {
 
       {/* Body: Column Browser + optional Preview */}
       <div className="flex-1 flex overflow-hidden min-h-0">
-        <div className={`flex-1 overflow-hidden ${selectedItemId ? 'border-r border-[var(--border-default)]' : ''}`}>
-          <ColumnBrowser />
-        </div>
-        {selectedItemId && (
-          <div className="w-[180px] shrink-0 overflow-hidden">
-            <PreviewPane />
+        {isLoading && Object.keys(documents).length === 0 ? (
+          <div className="flex-1 p-4 space-y-3">
+            {/* Vault loading skeleton */}
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3 px-3 py-2.5">
+                <div className="w-8 h-8 rounded-lg animate-pulse bg-white/5" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-3.5 rounded animate-pulse bg-white/5" style={{ width: `${60 + (i * 7) % 30}%` }} />
+                  <div className="h-2.5 rounded animate-pulse bg-white/5 w-1/3" />
+                </div>
+              </div>
+            ))}
           </div>
+        ) : (
+          <>
+            <div className={`flex-1 overflow-hidden ${selectedItemId ? 'border-r border-[var(--border-default)]' : ''}`}>
+              <ColumnBrowser />
+            </div>
+            {selectedItemId && (
+              <div className="w-[180px] shrink-0 overflow-hidden">
+                <PreviewPane />
+              </div>
+            )}
+          </>
         )}
       </div>
 

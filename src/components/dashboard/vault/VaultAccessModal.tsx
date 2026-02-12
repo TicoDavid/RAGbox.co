@@ -582,19 +582,37 @@ interface MemberRowProps {
   onRevoke: () => void;
 }
 
+function MemberAvatar({ name, avatar }: { name: string; avatar?: string }) {
+  const [imgFailed, setImgFailed] = React.useState(false);
+  const initial = name.charAt(0).toUpperCase();
+
+  if (avatar && !imgFailed) {
+    return (
+      <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white font-medium overflow-hidden">
+        <img
+          src={avatar}
+          alt={name}
+          className="w-full h-full object-cover"
+          onError={() => setImgFailed(true)}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white font-medium">
+      {initial}
+    </div>
+  );
+}
+
 function MemberRow({ member, isEditing, onEdit, onCancelEdit, onUpdateClearance, onRevoke }: MemberRowProps) {
   const level = CLEARANCE_LEVELS[member.clearance];
 
   return (
     <div className="flex items-center gap-3 p-3 rounded-xl bg-black/20 border border-white/5 hover:border-white/10 transition-colors">
-      {/* Avatar */}
-      <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white font-medium overflow-hidden">
-        {member.avatar ? (
-          <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
-        ) : (
-          member.name.charAt(0).toUpperCase()
-        )}
-      </div>
+      {/* Avatar with fallback to initials */}
+      <MemberAvatar name={member.name} avatar={member.avatar} />
 
       {/* Info */}
       <div className="flex-1 min-w-0">
