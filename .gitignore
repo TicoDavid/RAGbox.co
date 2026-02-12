@@ -44,3 +44,9 @@ progress.txt
 agents.md
 *.jsonl
 test-document.txt
+
+# Local Claude settings
+.claude/settings.local.json
+
+# Generated artifacts
+artifacts/
