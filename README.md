@@ -50,7 +50,7 @@ RAGbox uses a split-service architecture: a **Next.js frontend** and a **Go back
 | AI | Vertex AI (Gemini, text-embedding-004) |
 | Auth | Firebase Authentication, NextAuth.js |
 | Storage | Cloud Storage with CMEK encryption |
-| Document Processing | Document AI (OCR), Cloud DLP (PII redaction) |
+| Document Processing | Document AI (OCR) |
 | Monitoring | Prometheus metrics, Cloud Logging |
 | Infrastructure | Cloud Run, Terraform, Cloud Build |
 | Testing | Jest 30 (frontend), Go testing (backend) |
@@ -135,7 +135,7 @@ RAGbox.co/
 ## Core Features
 
 ### The Vault (Document Management)
-Three-panel layout with collapsible rail, column browser for folder navigation, document preview, and storage tracking. Drag-and-drop upload backed by Cloud Storage, Document AI text extraction, and Cloud DLP PII redaction.
+Three-panel layout with collapsible rail, column browser for folder navigation, document preview, and storage tracking. Drag-and-drop upload backed by Cloud Storage and Document AI text extraction.
 
 ### Mercury (Query Interface)
 Streaming RAG chat powered by Vertex AI. The backend pipeline: query embedding (768-dim) → top-20 vector search → weighted re-ranking (0.7 similarity + 0.15 recency + 0.15 parent document) → dedup (max 2 per doc) → top-5 results. SSE streaming with inline citations, confidence scoring, and the **Silence Protocol** — refuses to answer when confidence falls below 85%.
@@ -163,20 +163,21 @@ The Go backend exposes these endpoints (all require Firebase auth unless noted):
 |-------|--------|-------------|
 | `/health` | GET | Health check (no auth) |
 | `/metrics` | GET | Prometheus metrics (no auth) |
-| `/api/v1/documents` | GET | List user documents |
-| `/api/v1/documents` | POST | Upload document |
-| `/api/v1/documents/{id}` | GET/DELETE | Get/soft-delete document |
-| `/api/v1/documents/{id}/recover` | POST | Recover deleted document |
-| `/api/v1/documents/{id}/tier` | PATCH | Update security tier |
-| `/api/v1/documents/{id}/privilege` | PATCH | Toggle privilege flag |
-| `/api/v1/documents/ingest` | POST | Ingest document (parse → chunk → embed) |
-| `/api/v1/folders` | GET/POST | List/create folders |
-| `/api/v1/folders/{id}` | PATCH/DELETE | Update/delete folder |
-| `/api/v1/chat` | POST | RAG query (SSE streaming) |
-| `/api/v1/audit` | GET | List audit logs (with filters) |
-| `/api/v1/audit/export` | GET | Export audit as plain-text report |
-| `/api/v1/forge/generate` | POST | Generate document from template |
-| `/api/v1/export` | GET | GDPR data export (ZIP) |
+| `/api/documents` | GET | List user documents |
+| `/api/documents/extract` | POST | Upload document (signed URL flow) |
+| `/api/documents/{id}` | GET/PATCH/DELETE | Get/update/soft-delete document |
+| `/api/documents/{id}/recover` | POST | Recover deleted document |
+| `/api/documents/{id}/tier` | PATCH | Update security tier |
+| `/api/documents/{id}/privilege` | PATCH | Toggle privilege flag |
+| `/api/documents/{id}/ingest` | POST | Ingest document (parse → chunk → embed) |
+| `/api/documents/folders` | GET/POST | List/create folders |
+| `/api/documents/folders/{id}` | DELETE | Delete folder |
+| `/api/privilege` | GET/POST | Get/toggle privilege mode |
+| `/api/chat` | POST | RAG query (SSE streaming) |
+| `/api/audit` | GET | List audit logs (with filters) |
+| `/api/audit/export` | GET | Export audit as plain-text report |
+| `/api/forge` | POST | Generate document from template |
+| `/api/export` | GET | GDPR data export (ZIP) |
 
 ## Frontend API Routes
 
@@ -303,7 +304,6 @@ Terraform manages all GCP resources:
 - Cloud Storage (CMEK-encrypted document bucket)
 - Vertex AI (embeddings + LLM)
 - Document AI (OCR processor)
-- Cloud DLP (PII redaction)
 - BigQuery (immutable audit logs)
 - Cloud KMS (encryption keys)
 - VPC, connectors, firewall rules
@@ -319,7 +319,6 @@ Terraform manages all GCP resources:
 - Privilege mode safety guards with audit trail
 - Immutable audit logging with SHA-256 hash-chain verification
 - Silence Protocol for low-confidence query suppression
-- Cloud DLP PII redaction on document ingestion
 - Output firewall for response safety filtering
 - Prometheus monitoring (request count, duration, error rate, silence triggers)
 - Security headers and CORS middleware
@@ -341,6 +340,12 @@ See `.env.example` for the full list. Key variables:
 | `FIREBASE_PROJECT_ID` | Firebase project (backend) |
 | `INTERNAL_AUTH_SECRET` | Service-to-service auth secret |
 | `FRONTEND_URL` | Allowed CORS origin (backend) |
+
+## Roadmap
+
+- Cloud DLP PII redaction on document ingestion (planned)
+- Versioned API routes (`/api/v1/`)
+- E2E tests (Playwright)
 
 ## License
 
