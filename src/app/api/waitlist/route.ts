@@ -66,8 +66,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       message: 'Welcome to the Pioneer list! Check your email.',
       alreadyExists: false,
     })
-  } catch (error) {
-    console.error('[Waitlist API] Error:', error)
+  } catch {
     return NextResponse.json(
       { error: 'Failed to join waitlist. Please try again.' },
       { status: 500 }

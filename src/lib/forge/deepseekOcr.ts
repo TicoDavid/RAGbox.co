@@ -69,9 +69,7 @@ Return ONLY valid JSON, no markdown.`
       },
       confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.7,
     }
-  } catch (error) {
-    console.error('[FORGE] Template analysis failed:', error)
-
+  } catch {
     // Return a basic analysis on failure
     return {
       templateId: `tmpl_${Date.now()}`,

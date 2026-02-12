@@ -134,15 +134,12 @@ export function useVoiceChat(
       deepgram.sendAudio(audioData);
     });
 
-    console.log('[VoiceChat] AudioCapture started');
   }, []);
 
   // --- Process transcript and auto-resume ---
 
   const processAndResume = useCallback(async (text: string) => {
     if (!text.trim()) return;
-
-    console.log('[VoiceChat] Processing transcript:', text);
 
     // 1. Pause AudioCapture (prevent feedback loop)
     stopCapture();
@@ -202,8 +199,6 @@ export function useVoiceChat(
 
       // 3. Synthesize + play TTS response
       if (modeRef.current !== 'off' && inworldRef.current && playbackRef.current) {
-        console.log('[VoiceChat] Synthesizing TTS...');
-
         const responseContext: ResponseContext = {
           confidence,
           isGreeting: /^(hi|hello|hey|good morning|good afternoon)/i.test(text),
@@ -227,8 +222,7 @@ export function useVoiceChat(
 
               // 4. Auto-restart AudioCapture if still in ON mode
               if (modeRef.current === 'on') {
-                startCapture().catch(err => {
-                  console.error('[VoiceChat] Failed to restart capture:', err);
+                startCapture().catch(() => {
                 });
               }
             });
@@ -236,7 +230,6 @@ export function useVoiceChat(
             setState(prev => ({ ...prev, isSpeaking: false }));
           }
         } catch (ttsError) {
-          console.warn('[VoiceChat] TTS failed, falling back to Google TTS:', ttsError);
           try {
             const fallbackResponse = await fetch('/api/tts', {
               method: 'POST',
@@ -252,16 +245,14 @@ export function useVoiceChat(
                 audio.onended = () => {
                   setState(prev => ({ ...prev, isSpeaking: false }));
                   if (modeRef.current === 'on') {
-                    startCapture().catch(err => {
-                      console.error('[VoiceChat] Failed to restart capture after fallback TTS:', err);
+                    startCapture().catch(() => {
                     });
                   }
                 };
                 audio.onerror = () => {
                   setState(prev => ({ ...prev, isSpeaking: false }));
                   if (modeRef.current === 'on') {
-                    startCapture().catch(err => {
-                      console.error('[VoiceChat] Failed to restart capture after TTS error:', err);
+                    startCapture().catch(() => {
                     });
                   }
                 };
@@ -289,7 +280,6 @@ export function useVoiceChat(
         setState(prev => ({ ...prev, isProcessing: false }));
       }
     } catch (error) {
-      console.error('[VoiceChat] Error:', error);
       setState(prev => ({
         ...prev,
         isSpeaking: false,
@@ -302,7 +292,6 @@ export function useVoiceChat(
         try {
           await startCapture();
         } catch (err) {
-          console.error('[VoiceChat] Failed to restart capture after error:', err);
         }
       }
     }
@@ -327,7 +316,6 @@ export function useVoiceChat(
           silenceTimerRef.current = setTimeout(() => {
             const finalText = accumulatedTranscriptRef.current.trim();
             if (finalText) {
-              console.log('[VoiceChat] Silence detected (2s) — processing');
               processAndResume(finalText);
             }
           }, SILENCE_TIMEOUT_MS);
@@ -340,28 +328,23 @@ export function useVoiceChat(
           silenceTimerRef.current = setTimeout(() => {
             const finalText = accumulatedTranscriptRef.current.trim();
             if (finalText) {
-              console.log('[VoiceChat] Utterance end + silence — processing');
               processAndResume(finalText);
             }
           }, SILENCE_TIMEOUT_MS);
         }
       },
       onConnectionChange: (connState) => {
-        console.log('[VoiceChat] Deepgram connection:', connState);
         if (connState === 'error') {
           setState(prev => ({ ...prev, error: 'Voice connection error' }));
         }
       },
       onError: (error) => {
-        console.error('[VoiceChat] Deepgram error:', error);
         setState(prev => ({ ...prev, error: error.message }));
       },
     });
 
     deepgramRef.current = deepgram;
     await deepgram.connect();
-
-    console.log('[VoiceChat] Deepgram connected');
   }, [clearSilenceTimer, processAndResume]);
 
   // --- Play welcome TTS ---
@@ -384,8 +367,7 @@ export function useVoiceChat(
 
           // After welcome finishes, start listening if still ON
           if (modeRef.current === 'on') {
-            startCapture().catch(err => {
-              console.error('[VoiceChat] Failed to start capture after welcome:', err);
+            startCapture().catch(() => {
             });
           }
         });
@@ -393,7 +375,6 @@ export function useVoiceChat(
         setState(prev => ({ ...prev, isSpeaking: false }));
       }
     } catch (e) {
-      console.warn('[VoiceChat] Welcome TTS failed:', e);
       setState(prev => ({ ...prev, isSpeaking: false }));
 
       // Start listening anyway even if welcome TTS fails
@@ -401,7 +382,6 @@ export function useVoiceChat(
         try {
           await startCapture();
         } catch (err) {
-          console.error('[VoiceChat] Failed to start capture:', err);
         }
       }
     }
@@ -439,7 +419,6 @@ export function useVoiceChat(
       playWelcome();
 
     } catch (error) {
-      console.error('[VoiceChat] Error turning on:', error);
       setMode('off');
       setState(prev => ({
         ...prev,
@@ -482,16 +461,13 @@ export function useVoiceChat(
       stopCapture();
       accumulatedTranscriptRef.current = '';
       setState(prev => ({ ...prev, transcript: '' }));
-      console.log('[VoiceChat] Muted — mic paused, Deepgram still connected');
     } else if (modeRef.current === 'mute') {
       // MUTE -> ON
       setMode('on');
       accumulatedTranscriptRef.current = '';
-      startCapture().catch(err => {
-        console.error('[VoiceChat] Failed to resume capture:', err);
+      startCapture().catch(() => {
         setState(prev => ({ ...prev, error: 'Failed to resume microphone' }));
       });
-      console.log('[VoiceChat] Unmuted — mic resumed');
     }
   }, [setMode, clearSilenceTimer, stopCapture, startCapture]);
 
@@ -502,8 +478,7 @@ export function useVoiceChat(
 
     // Resume listening after interruption if in ON mode
     if (modeRef.current === 'on') {
-      startCapture().catch(err => {
-        console.error('[VoiceChat] Failed to restart capture after interrupt:', err);
+      startCapture().catch(() => {
       });
     }
   }, [startCapture]);

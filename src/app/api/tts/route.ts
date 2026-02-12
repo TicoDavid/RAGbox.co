@@ -56,8 +56,6 @@ export async function POST(request: NextRequest) {
     // Get voice config
     const voiceConfig = VOICES[voice as VoiceId] || VOICES['aria'];
 
-    console.log(`[TTS] Synthesizing ${text.length} chars with voice: ${voiceConfig.name}`);
-
     // Synthesize speech
     const [response] = await ttsClient.synthesizeSpeech({
       input: { text },
@@ -89,7 +87,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[TTS] Error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json({ error: message }, { status: 500 });
   }

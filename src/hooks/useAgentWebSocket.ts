@@ -262,7 +262,6 @@ export function useAgentWebSocket(
     audioPlayerRef.current = createAudioPlayer(sampleRate)
 
     ws.onopen = () => {
-      console.log('[AgentWS] Connected')
     }
 
     ws.onmessage = async (event) => {
@@ -328,24 +327,20 @@ export function useAgentWebSocket(
                 const result = await onToolCall(msg.call)
                 ws.send(JSON.stringify({ type: 'tool_result', name: msg.call.name, result }))
               } catch (error) {
-                console.error('[AgentWS] Tool call failed:', error)
                 ws.send(JSON.stringify({ type: 'tool_result', name: msg.call.name, result: { error: String(error) } }))
               }
             }
             break
 
           case 'error':
-            console.error('[AgentWS] Server error:', msg.message)
             onError?.(new Error(msg.message))
             break
         }
       } catch (error) {
-        console.error('[AgentWS] Failed to parse message:', error)
       }
     }
 
     ws.onerror = () => {
-      console.log('[AgentWS] WebSocket unavailable - voice features disabled')
       setState('error')
       onError?.(new Error('WebSocket connection error'))
     }
@@ -387,7 +382,6 @@ export function useAgentWebSocket(
   // Start listening (begin audio capture)
   const startListening = useCallback(async () => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      console.warn('[AgentWS] Not connected')
       return
     }
 

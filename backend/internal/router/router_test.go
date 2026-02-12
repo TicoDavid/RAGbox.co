@@ -58,6 +58,7 @@ type mockFolderRepo struct{}
 
 func (m *mockFolderRepo) Create(ctx context.Context, folder *model.Folder) error              { return nil }
 func (m *mockFolderRepo) ListByUser(ctx context.Context, userID string) ([]model.Folder, error) { return nil, nil }
+func (m *mockFolderRepo) GetByID(ctx context.Context, id string) (*model.Folder, error)       { return &model.Folder{ID: id, UserID: "test-user"}, nil }
 func (m *mockFolderRepo) Delete(ctx context.Context, id string) error                          { return nil }
 
 // mockAuditLister implements handler.AuditLister for testing.

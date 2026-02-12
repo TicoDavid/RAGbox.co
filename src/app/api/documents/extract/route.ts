@@ -129,24 +129,32 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // Step 4: Trigger ingestion pipeline on Go backend (fire-and-forget)
+  // Step 4: Trigger ingestion pipeline on Go backend (with retry)
   const ingestUrl = new URL(`/api/documents/${documentId}/ingest`, GO_BACKEND_URL)
-  try {
-    const ingestRes = await fetch(ingestUrl.toString(), {
-      method: 'POST',
-      headers: {
-        'X-Internal-Auth': INTERNAL_AUTH_SECRET,
-        'X-User-ID': userId,
-      },
-    })
-    if (!ingestRes.ok) {
-      console.warn(`[extract] Ingest trigger returned ${ingestRes.status} for ${documentId}`)
+  let ingestOk = false
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const ingestRes = await fetch(ingestUrl.toString(), {
+        method: 'POST',
+        headers: {
+          'X-Internal-Auth': INTERNAL_AUTH_SECRET,
+          'X-User-ID': userId,
+        },
+      })
+      if (ingestRes.ok || ingestRes.status === 202) {
+        ingestOk = true
+        break
+      }
+      // Non-retryable client errors
+      if (ingestRes.status >= 400 && ingestRes.status < 500) break
+    } catch {
+      // Network error — retry after short delay
+      if (attempt < 2) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)))
     }
-  } catch (err) {
-    console.warn(`[extract] Failed to trigger ingest for ${documentId}:`, err)
   }
+  const ingestWarning = ingestOk ? undefined : 'Document uploaded but indexing failed to start. Re-upload or contact support.'
 
-  // Step 5: Return metadata to frontend
+  // Step 5: Return metadata to frontend (include warning if ingest failed)
   const bucketName = process.env.GCS_BUCKET_NAME || ''
   return NextResponse.json({
     success: true,
@@ -156,5 +164,6 @@ export async function POST(request: NextRequest) {
       gcsUri: bucketName ? `gs://${bucketName}/${objectName}` : objectName,
       mimeType: contentType,
     },
+    ...(ingestWarning ? { warning: ingestWarning } : {}),
   })
 }

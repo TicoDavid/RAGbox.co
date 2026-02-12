@@ -247,8 +247,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         }
         setSettings({ ...defaultSettings, ...parsed })
       }
-    } catch (e) {
-      console.error('Failed to load settings:', e)
+    } catch {
+      // Silently ignore
     }
     setIsHydrated(true)
   }, [])
@@ -258,8 +258,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     if (isHydrated) {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
-      } catch (e) {
-        console.error('Failed to save settings:', e)
+      } catch {
+        // Silently ignore
       }
     }
   }, [settings, isHydrated])

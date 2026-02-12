@@ -72,7 +72,6 @@ export async function retrieveChunks(
       securityTier: docMap.get(r.document_id)?.securityTier ?? 0,
     }))
   } catch (error) {
-    console.error('[Retriever] Vector search failed:', error)
     return []
   }
 }

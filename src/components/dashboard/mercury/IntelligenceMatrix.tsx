@@ -197,7 +197,6 @@ export function IntelligenceMatrix({ isOpen, onClose, anchorRef }: IntelligenceM
         const managedIds = new Set(MANAGED_FLEET.map(m => m.id))
         setUniverseModels(options.filter(m => !managedIds.has(m.id)))
       } catch (error) {
-        console.error('[IntelligenceMatrix] Failed to load models:', error)
       } finally {
         setIsLoading(false)
       }

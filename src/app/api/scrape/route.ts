@@ -108,8 +108,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       truncated: content.length >= maxLength,
     })
   } catch (error) {
-    console.error('Scrape error:', error)
-
     if (error instanceof Error && error.name === 'TimeoutError') {
       return NextResponse.json({ error: 'Request timed out' }, { status: 504 })
     }

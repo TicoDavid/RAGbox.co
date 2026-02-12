@@ -61,9 +61,8 @@ export async function createAuditLog(input: CreateAuditLogInput): Promise<AuditL
       userAgent: entry.userAgent ?? undefined,
       createdAt: entry.createdAt,
     }
-  } catch (error) {
-    // Fallback: log to console if DB is unavailable
-    console.error('Database audit log failed, logging to console:', error)
+  } catch {
+    // Fallback: return in-memory entry if DB is unavailable
     const fallbackEntry: AuditLogEntry = {
       id: `audit_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
       ...input,
@@ -98,8 +97,7 @@ export async function getAuditLogs(
       userAgent: entry.userAgent ?? undefined,
       createdAt: entry.createdAt,
     }))
-  } catch (error) {
-    console.error('Database audit query failed:', error)
+  } catch {
     return []
   }
 }

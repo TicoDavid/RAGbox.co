@@ -6,10 +6,9 @@ const nextConfig = {
   // Enable standalone output for Docker deployment
   output: 'standalone',
 
-  // Environment variables (runtime)
-  env: {
-    OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
-  },
+  // Environment variables (runtime) — API keys must NOT be exposed here
+  // Access OPENROUTER_API_KEY via process.env in server-side code only
+  env: {},
 
   // Image optimization configuration
   images: {
@@ -73,6 +72,23 @@ const nextConfig = {
           {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "font-src 'self' https://fonts.gstatic.com",
+              "img-src 'self' data: blob: https://storage.googleapis.com https://*.googleusercontent.com",
+              "media-src 'self' https://storage.googleapis.com",
+              "connect-src 'self' https://*.googleapis.com https://*.deepgram.com https://openrouter.ai wss://*.deepgram.com wss:",
+              "frame-ancestors 'none'",
+            ].join('; '),
           },
         ],
       },

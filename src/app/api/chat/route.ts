@@ -98,9 +98,7 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
     // Handle JSON response
     const data = await backendResponse.json()
     return NextResponse.json(data)
-  } catch (error) {
-    console.error('[Chat API] Unhandled error:', error)
-
+  } catch {
     return NextResponse.json({
       success: false,
       response: 'I encountered an unexpected issue. Please try again, and if this persists, contact support.',

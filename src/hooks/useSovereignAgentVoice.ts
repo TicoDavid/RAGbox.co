@@ -221,7 +221,6 @@ function createAudioCaptureWithVAD(
               // Speech confirmed - start capturing
               isSpeaking = true
               onVADStateChange(true)
-              console.log('[VAD] Speech started')
             }
           }
         } else {
@@ -234,7 +233,6 @@ function createAudioCaptureWithVAD(
               // Silence confirmed - stop capturing
               isSpeaking = false
               onVADStateChange(false)
-              console.log('[VAD] Speech ended')
             }
           }
         }
@@ -461,8 +459,6 @@ export function useSovereignAgentVoice(
 
   // Handle UI actions from agent
   const handleUIAction = useCallback((action: UIAction) => {
-    console.log('[AgentVoice] UI Action:', action)
-
     switch (action.type) {
       case 'navigate':
         router.push(action.path as string)
@@ -543,7 +539,6 @@ export function useSovereignAgentVoice(
     // Wait for WebSocket to actually open before resolving
     await new Promise<void>((resolve, reject) => {
       ws.onopen = () => {
-        console.log('[AgentVoice] Connected')
         setState('idle')
         setTranscript(prev => [...prev, {
           id: genId(),
@@ -677,17 +672,14 @@ export function useSovereignAgentVoice(
             break
 
           case 'error':
-            console.error('[AgentVoice] Server error:', msg.message)
             onError?.(new Error(msg.message))
             break
         }
       } catch (err) {
-        console.error('[AgentVoice] Parse error:', err)
       }
     }
 
     ws.onerror = () => {
-      console.log('[AgentVoice] WebSocket unavailable - voice features disabled')
       setState('error')
       onError?.(new Error('WebSocket error'))
     }
@@ -729,15 +721,12 @@ export function useSovereignAgentVoice(
 
   // Enable VAD mode (hands-free)
   const enableVAD = useCallback(async () => {
-    console.log('[AgentVoice] Enabling VAD mode')
-
     // Connect if not connected — wait for actual OPEN state
     try {
       if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
         await connect()
       }
     } catch {
-      console.log('[AgentVoice] Voice server unavailable - VAD mode not started')
       setState('error')
       onError?.(new Error('Voice server unavailable'))
       return
@@ -783,8 +772,6 @@ export function useSovereignAgentVoice(
 
   // Disable VAD mode
   const disableVAD = useCallback(() => {
-    console.log('[AgentVoice] Disabling VAD mode')
-
     if (audioLevelIntervalRef.current) {
       clearInterval(audioLevelIntervalRef.current)
       audioLevelIntervalRef.current = null
@@ -814,7 +801,6 @@ export function useSovereignAgentVoice(
         await connect()
       }
     } catch {
-      console.log('[AgentVoice] Voice server unavailable')
       setState('error')
       return
     }

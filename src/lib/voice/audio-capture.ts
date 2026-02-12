@@ -90,9 +90,7 @@ export class AudioCapture {
       }
 
       this.isCapturing = true;
-      console.log(`[AudioCapture] Started (${useWorklet ? 'AudioWorklet' : 'ScriptProcessor'})`);
     } catch (error) {
-      console.error('[AudioCapture] Start error:', error);
       this.stop();
       throw error;
     }
@@ -115,7 +113,6 @@ export class AudioCapture {
       this.workletNode.connect(this.audioContext.destination);
       return true;
     } catch (error) {
-      console.warn('[AudioCapture] AudioWorklet not supported, falling back to ScriptProcessor:', error);
       return false;
     }
   }
@@ -206,8 +203,6 @@ export class AudioCapture {
       this.stream.getTracks().forEach(track => track.stop());
       this.stream = null;
     }
-
-    console.log('[AudioCapture] Stopped');
   }
 
   isActive(): boolean {

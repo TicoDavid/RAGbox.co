@@ -25,7 +25,6 @@ export default function TemplateLibrary({ onSelect, selectedTemplateId, onUpload
           setTemplates(data.templates || [])
         }
       } catch (error) {
-        console.error('[FORGE] Failed to fetch templates:', error)
       } finally {
         setIsLoading(false)
       }

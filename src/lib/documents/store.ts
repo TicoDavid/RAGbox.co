@@ -122,8 +122,7 @@ export async function getDocument(id: string): Promise<Document | undefined> {
     const row = await prisma.document.findUnique({ where: { id } })
     if (!row) return undefined
     return mapPrismaDocument(row)
-  } catch (error) {
-    console.error('getDocument failed:', error)
+  } catch {
     return undefined
   }
 }
@@ -183,7 +182,6 @@ export async function setDocument(doc: Document): Promise<void> {
       },
     })
   } catch (error) {
-    console.error('setDocument failed:', error)
     throw error
   }
 }
@@ -203,8 +201,7 @@ export async function deleteDocument(id: string): Promise<boolean> {
       },
     })
     return true
-  } catch (error) {
-    console.error('deleteDocument failed:', error)
+  } catch {
     return false
   }
 }
@@ -266,8 +263,7 @@ export async function getDocumentsForUser(
     })
 
     return rows.map(mapPrismaDocument)
-  } catch (error) {
-    console.error('getDocumentsForUser failed:', error)
+  } catch {
     return []
   }
 }
@@ -294,8 +290,7 @@ export async function getDocumentsByTier(
 
     const rows = await prisma.document.findMany({ where })
     return rows.map(mapPrismaDocument)
-  } catch (error) {
-    console.error('getDocumentsByTier failed:', error)
+  } catch {
     return []
   }
 }
@@ -310,8 +305,7 @@ export async function updateDocumentTier(id: string, tier: number): Promise<Docu
       data: { securityTier: tier },
     })
     return mapPrismaDocument(row)
-  } catch (error) {
-    console.error('updateDocumentTier failed:', error)
+  } catch {
     return undefined
   }
 }
@@ -340,7 +334,7 @@ export async function ensureUser(user: {
         lastLoginAt: new Date(),
       },
     })
-  } catch (error) {
-    console.error('ensureUser failed:', error)
+  } catch {
+    // Silently ignore
   }
 }

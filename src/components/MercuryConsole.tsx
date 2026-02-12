@@ -128,7 +128,6 @@ export default function MercuryConsole({ privilegeMode, onCitationClick }: Mercu
       ));
 
     } catch (error) {
-      console.error('Chat error:', error);
       setMessages(prev => prev.map(msg =>
         msg.id === assistantId
           ? { ...msg, content: '> ERROR: INTERROGATION VECTOR FAILED\n> RETRY OR CONTACT SYSTEMS ADMIN', isStreaming: false }

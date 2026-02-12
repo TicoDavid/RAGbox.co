@@ -32,10 +32,8 @@ export async function promoteToTier1(documentId: string): Promise<boolean> {
       data: { securityTier: SecurityTier.Standard },
     })
 
-    console.log(`[AutoPromotion] Document ${documentId} promoted to Tier 1 (Standard)`)
     return true
-  } catch (error) {
-    console.error(`[AutoPromotion] Failed to promote document ${documentId}:`, error)
+  } catch {
     return false
   }
 }
@@ -62,13 +60,8 @@ export async function purgeStaleDropZone(): Promise<number> {
       },
     })
 
-    if (result.count > 0) {
-      console.log(`[AutoPromotion] Purged ${result.count} stale Drop Zone documents`)
-    }
-
     return result.count
-  } catch (error) {
-    console.error('[AutoPromotion] Failed to purge stale drop zone:', error)
+  } catch {
     return 0
   }
 }

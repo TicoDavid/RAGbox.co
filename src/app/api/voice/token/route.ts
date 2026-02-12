@@ -4,7 +4,6 @@ export async function POST(req: NextRequest) {
   const apiKey = process.env.DEEPGRAM_API_KEY;
 
   if (!apiKey) {
-    console.error('[Voice Token] DEEPGRAM_API_KEY not configured');
     return NextResponse.json(
       { error: 'Voice service not configured' },
       { status: 503 }
@@ -30,8 +29,7 @@ export async function POST(req: NextRequest) {
       key: apiKey,
       expiresAt: new Date(Date.now() + 60000).toISOString(),
     });
-  } catch (error) {
-    console.error('[Voice Token] Deepgram token error:', error);
+  } catch {
     return NextResponse.json(
       { error: 'Failed to validate voice credentials' },
       { status: 500 }

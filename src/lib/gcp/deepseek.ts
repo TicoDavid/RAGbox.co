@@ -55,7 +55,6 @@ export async function analyzeWithDeepSeek(
         tokensUsed: data.usage?.total_tokens || 0,
       }
     } catch (error) {
-      console.warn('[FORGE] DeepSeek unavailable, falling back to Gemini:', error)
     }
   }
 

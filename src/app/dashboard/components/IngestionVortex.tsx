@@ -42,7 +42,7 @@ const IngestionVortex: React.FC<IngestionVortexProps> = ({ onFileDrop, theme = '
 
       if (audioRef.current) {
         audioRef.current.currentTime = 0;
-        audioRef.current.play().catch(err => console.log("Audio play failed (interaction policy)", err));
+        audioRef.current.play().catch(() => {});
       }
 
 
@@ -86,7 +86,7 @@ const IngestionVortex: React.FC<IngestionVortexProps> = ({ onFileDrop, theme = '
 
           if (audioRef.current) {
             audioRef.current.currentTime = 0;
-            audioRef.current.play().catch(err => console.log("Audio play failed", err));
+            audioRef.current.play().catch(() => {});
           }
 
           // Convert file handles to File objects
@@ -101,7 +101,6 @@ const IngestionVortex: React.FC<IngestionVortexProps> = ({ onFileDrop, theme = '
       } catch (err) {
         // User cancelled or API not supported - fall back to input
         if ((err as Error).name === 'AbortError') return;
-        console.log('File System Access API failed, using fallback', err);
       }
     }
 
@@ -117,7 +116,7 @@ const IngestionVortex: React.FC<IngestionVortexProps> = ({ onFileDrop, theme = '
 
         if (audioRef.current) {
           audioRef.current.currentTime = 0;
-          audioRef.current.play().catch(err => console.log("Audio play failed", err));
+          audioRef.current.play().catch(() => {});
         }
 
         // Convert FileList to array and pass all files

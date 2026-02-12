@@ -48,8 +48,6 @@ export async function executeRAGPipeline(
   // SOVEREIGN BYPASS: Empty vault does NOT block the AI
   // Instead, fallback to Direct Chat with vault-awareness
   if (accessibleDocIds.length === 0) {
-    console.log('[RAG Pipeline] Empty vault detected - activating Sovereign Direct Chat fallback')
-
     // Inject empty-vault context into the system prompt
     const enhancedPrompt = options.systemPrompt
       ? `${options.systemPrompt}\n\n${EMPTY_VAULT_CONTEXT}`

@@ -72,7 +72,6 @@ export class AudioPlayback {
 
       this.currentSource.start();
     } catch (error) {
-      console.error('[AudioPlayback] Decode error:', error);
       this.playNext();
     }
   }

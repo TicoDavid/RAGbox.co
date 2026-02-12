@@ -32,8 +32,7 @@ export async function getAccessibleDocumentIds(
     return documents
       .filter((doc): doc is typeof doc => isQueryable(doc.securityTier, privilegeMode))
       .map((doc) => doc.id)
-  } catch (error) {
-    console.error('[TierFilter] Failed to get accessible documents:', error)
+  } catch {
     return []
   }
 }
@@ -58,8 +57,7 @@ export async function isDocumentAccessible(
     if (doc.indexStatus !== 'Indexed') return false
 
     return isQueryable(doc.securityTier, privilegeMode)
-  } catch (error) {
-    console.error('[TierFilter] Access check failed:', error)
+  } catch {
     return false
   }
 }

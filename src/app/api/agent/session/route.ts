@@ -69,8 +69,7 @@ export async function POST() {
       // Session metadata
       expiresIn: SESSION_TTL_MS,
     })
-  } catch (error) {
-    console.error('[Agent Session] Failed to create session:', error)
+  } catch {
     return NextResponse.json(
       { error: 'Failed to create voice session' },
       { status: 500 }

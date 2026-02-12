@@ -188,7 +188,6 @@ const VaultPanel: React.FC<VaultPanelProps> = ({
           }
         }
       } catch (err) {
-        console.error("Drop failed", err);
       }
     }
   };

@@ -97,7 +97,16 @@ func DeleteFolder(deps FolderDeps) http.HandlerFunc {
 			return
 		}
 
-		_ = userID // Ownership check would require GetByID — simplified for now
+		// Verify folder exists and belongs to requesting user
+		folder, err := deps.FolderRepo.GetByID(r.Context(), folderID)
+		if err != nil {
+			respondJSON(w, http.StatusNotFound, envelope{Success: false, Error: "folder not found"})
+			return
+		}
+		if folder.UserID != userID {
+			respondJSON(w, http.StatusForbidden, envelope{Success: false, Error: "access denied"})
+			return
+		}
 
 		if err := deps.FolderRepo.Delete(r.Context(), folderID); err != nil {
 			respondJSON(w, http.StatusInternalServerError, envelope{Success: false, Error: "failed to delete folder"})

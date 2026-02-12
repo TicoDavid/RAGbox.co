@@ -646,7 +646,6 @@ export function SovereignStudio() {
         },
       })
     } catch (error) {
-      console.error('[Studio] Generation failed:', error)
       setGeneration({
         ...generation,
         phase: 'error',

@@ -89,7 +89,6 @@ export async function embedBatch(texts: string[]): Promise<EmbeddingResult[]> {
         })
       }
     } catch (error) {
-      console.error(`[Embeddings] Batch ${i / MAX_BATCH_SIZE} failed:`, error)
       // Fill failed entries with empty results
       for (let j = 0; j < batch.length; j++) {
         results.push({ embedding: [], tokenCount: 0 })
@@ -129,7 +128,6 @@ export async function embedQuery(text: string): Promise<number[]> {
     const data = await response.json()
     return data.predictions[0].embeddings.values
   } catch (error) {
-    console.error('[Embeddings] Query embedding failed:', error)
     throw error
   }
 }

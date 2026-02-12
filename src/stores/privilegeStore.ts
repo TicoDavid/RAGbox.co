@@ -31,7 +31,6 @@ export const usePrivilegeStore = create<PrivilegeState>()(
 
             set({ isEnabled: newState, lastChanged: new Date() })
           } catch (error) {
-            console.error('Failed to toggle privilege mode:', error)
             throw error
           }
         },
@@ -42,8 +41,8 @@ export const usePrivilegeStore = create<PrivilegeState>()(
             if (!res.ok) throw new Error('Failed to fetch privilege state')
             const data = await res.json()
             set({ isEnabled: data.data?.privilegeMode ?? data.isPrivileged ?? false })
-          } catch (error) {
-            console.error('Failed to fetch privilege state:', error)
+          } catch {
+            // Silently ignore
           }
         },
       }),

@@ -10,8 +10,6 @@ import { NextResponse } from 'next/server'
  */
 
 export async function POST() {
-  console.warn('[SECURITY] Deprecated /api/inworld/token endpoint called. Use /api/agent/session instead.')
-
   return NextResponse.json(
     {
       error: 'This endpoint is deprecated for security reasons',

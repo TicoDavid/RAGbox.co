@@ -42,7 +42,6 @@ export default function AuditPage() {
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
     } catch (error) {
-      console.error('Export failed:', error)
       alert('Failed to export audit report. Please try again.')
     } finally {
       setIsExporting(false)

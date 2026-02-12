@@ -61,7 +61,6 @@ async function ensureTableExists(): Promise<void> {
 
     if (!datasetExists) {
       await client.createDataset(DATASET_ID, { location: 'US' })
-      console.log(`[BigQuery] Created dataset: ${DATASET_ID}`)
     }
 
     const table = dataset.table(TABLE_ID)
@@ -75,12 +74,10 @@ async function ensureTableExists(): Promise<void> {
           field: 'timestamp',
         },
       })
-      console.log(`[BigQuery] Created table: ${DATASET_ID}.${TABLE_ID}`)
     }
 
     tableInitialized = true
   } catch (error) {
-    console.warn('[BigQuery] Table initialization failed (audit writes will be skipped):', error)
     tableInitialized = true
     tableInitFailed = true
   }
@@ -280,7 +277,6 @@ export async function checkBigQueryHealth(): Promise<boolean> {
     const [datasets] = await client.getDatasets()
     return datasets.length >= 0
   } catch (error) {
-    console.error('BigQuery health check failed:', error)
     return false
   }
 }

@@ -93,8 +93,6 @@ export async function indexDocument(
       },
     })
 
-    console.log(`[Indexer] Indexed ${chunks.length} chunks for document ${documentId}`)
-
     // Auto-promote from Tier 0 to Tier 1 after successful indexing
     await promoteToTier1(documentId)
 
@@ -104,8 +102,6 @@ export async function indexDocument(
       status: 'Indexed',
     }
   } catch (error) {
-    console.error(`[Indexer] Failed to index document ${documentId}:`, error)
-
     try {
       await prisma.document.update({
         where: { id: documentId },

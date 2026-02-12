@@ -102,7 +102,6 @@ export function useVoice(options: UseVoiceOptions = {}): UseVoiceReturn {
       },
       onConnectionChange: setConnectionState,
       onError: (error) => {
-        console.error('[useVoice] Error:', error);
         setVoiceState('error');
         options.onError?.(error);
       },
@@ -122,7 +121,6 @@ export function useVoice(options: UseVoiceOptions = {}): UseVoiceReturn {
 
       setVoiceState('listening');
     } catch (error) {
-      console.error('[useVoice] Start error:', error);
       setVoiceState('error');
       options.onError?.(error as Error);
     }
@@ -166,7 +164,6 @@ export function useVoice(options: UseVoiceOptions = {}): UseVoiceReturn {
         (level) => setAudioLevel(level)
       );
     } catch (error) {
-      console.error('[useVoice] Speak error:', error);
       setVoiceState('error');
       options.onError?.(error as Error);
     }

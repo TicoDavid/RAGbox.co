@@ -236,11 +236,9 @@ export async function generateArtifact(
 
   try {
     // 1. Fetch document content
-    console.log(`[Studio] Fetching ${request.sourceDocumentIds.length} documents...`)
     const documentContent = await fetchDocumentContent(request.sourceDocumentIds, userId)
 
     // 2. Generate artifact content with AI
-    console.log(`[Studio] Generating ${request.artifactType} artifact...`)
     const aiContent = await generateArtifactContent(request.artifactType, documentContent, request)
 
     // 3. Process based on artifact type
@@ -342,14 +340,12 @@ export async function generateArtifact(
     }
 
     // 4. Upload to GCS
-    console.log(`[Studio] Uploading artifact: ${fileName}`)
     const { gcsUri, downloadUrl } = await uploadArtifact(finalContent, fileName, mimeType, userId)
 
     // 5. Record artifact in database (if table exists)
     const artifactId = `art_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
 
     const processingTimeMs = Date.now() - startTime
-    console.log(`[Studio] Artifact generated in ${processingTimeMs}ms: ${fileName}`)
 
     return {
       success: true,
@@ -367,7 +363,6 @@ export async function generateArtifact(
       },
     }
   } catch (error) {
-    console.error('[Studio] Generation failed:', error)
     throw error
   }
 }

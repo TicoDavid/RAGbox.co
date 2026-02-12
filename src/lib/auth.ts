@@ -14,7 +14,7 @@ const otpStore = globalThis.otpStore ?? new Map<string, { code: string; expires:
 globalThis.otpStore = otpStore;
 
 // Verify OAuth credentials are present (no values logged)
-if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+if (process.env.NODE_ENV === "development" && (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET)) {
   console.warn("[Auth Config] Google OAuth credentials not configured");
 }
 
@@ -22,16 +22,20 @@ export const authOptions: NextAuthOptions = {
   // Enable debug mode in development
   debug: process.env.NODE_ENV === "development",
 
-  // Custom logger to capture OAuth errors
+  // Logger: only log errors in production, debug in development
   logger: {
     error(code, metadata) {
-      console.error("[NextAuth Error]", code, JSON.stringify(metadata, null, 2));
+      if (process.env.NODE_ENV === "development") {
+        console.error("[NextAuth Error]", code, JSON.stringify(metadata, null, 2));
+      }
     },
     warn(code) {
-      console.warn("[NextAuth Warn]", code);
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[NextAuth Warn]", code);
+      }
     },
     debug(code, metadata) {
-      console.log("[NextAuth Debug]", code, metadata);
+      // Only in development — never log to production
     },
   },
 
@@ -66,7 +70,6 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.otp) {
-          console.log("[OTP Auth] Missing credentials");
           return null;
         }
 
@@ -74,18 +77,7 @@ export const authOptions: NextAuthOptions = {
         const enteredOtp = String(credentials.otp).trim();
         const stored = otpStore.get(email);
 
-        console.log("[OTP Auth] Validating:", {
-          email,
-          enteredOtp,
-          hasStored: !!stored,
-          storedCode: stored?.code,
-          expired: stored ? stored.expires < Date.now() : null,
-          storeSize: otpStore.size,
-          allKeys: Array.from(otpStore.keys())
-        });
-
         if (!stored) {
-          console.log("[OTP Auth] No stored OTP found for email");
           return null;
         }
 
@@ -93,17 +85,8 @@ export const authOptions: NextAuthOptions = {
         const isMatch = stored.code === enteredOtp;
         const isValid = stored.expires > Date.now();
 
-        console.log("[OTP Auth] Comparison:", {
-          isMatch,
-          isValid,
-          storedCode: stored.code,
-          enteredCode: enteredOtp,
-          expiresIn: Math.round((stored.expires - Date.now()) / 1000) + "s"
-        });
-
         if (isMatch && isValid) {
           otpStore.delete(email);
-          console.log("[OTP Auth] Success! User authenticated:", email);
           return {
             id: email,
             email: email,
@@ -111,7 +94,6 @@ export const authOptions: NextAuthOptions = {
           };
         }
 
-        console.log("[OTP Auth] Failed - match:", isMatch, "valid:", isValid);
         return null;
       },
     }),
@@ -124,15 +106,9 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     async signIn({ user, account, profile }) {
-      console.log("[NextAuth] SignIn callback:", {
-        provider: account?.provider,
-        email: user?.email,
-        name: user?.name
-      });
       return true;
     },
     async redirect({ url, baseUrl }) {
-      console.log("[NextAuth] Redirect callback:", { url, baseUrl });
       // Handle relative URLs (e.g., "/dashboard")
       if (url.startsWith("/")) {
         return `${baseUrl}${url}`;
@@ -182,8 +158,6 @@ export function generateOTP(email: string): string {
     expires: Date.now() + 10 * 60 * 1000, // 10 minutes
   });
 
-  console.log("[OTP] Generated for", normalizedEmail, ":", code, "| Store size:", otpStore.size);
-
   return code;
 }
 
@@ -193,10 +167,8 @@ export function hasValidOTP(email: string): boolean {
   return !!stored && stored.expires > Date.now();
 }
 
-// Debug helper - list all OTPs (dev only)
+// Debug helper - list all OTPs (dev only, never logs secrets in production)
 export function debugOTPStore(): void {
-  console.log("[OTP Store] Current entries:");
-  otpStore.forEach((value, key) => {
-    console.log(`  ${key}: ${value.code} (expires in ${Math.round((value.expires - Date.now()) / 1000)}s)`);
-  });
+  if (process.env.NODE_ENV !== "development") return;
+  console.log("[OTP Store] entry count:", otpStore.size);
 }

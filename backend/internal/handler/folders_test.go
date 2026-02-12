@@ -17,11 +17,13 @@ import (
 
 // stubFolderRepo implements service.FolderRepository for testing.
 type stubFolderRepo struct {
-	folders   []model.Folder
-	created   *model.Folder
-	createErr error
-	listErr   error
-	deleteErr error
+	folders    []model.Folder
+	created    *model.Folder
+	createErr  error
+	listErr    error
+	deleteErr  error
+	getByIDErr error
+	getByID    *model.Folder
 }
 
 func (s *stubFolderRepo) Create(ctx context.Context, folder *model.Folder) error {
@@ -37,6 +39,17 @@ func (s *stubFolderRepo) ListByUser(ctx context.Context, userID string) ([]model
 		return nil, s.listErr
 	}
 	return s.folders, nil
+}
+
+func (s *stubFolderRepo) GetByID(ctx context.Context, id string) (*model.Folder, error) {
+	if s.getByIDErr != nil {
+		return nil, s.getByIDErr
+	}
+	if s.getByID != nil {
+		return s.getByID, nil
+	}
+	// Default: return a folder owned by "user-1"
+	return &model.Folder{ID: id, Name: "Test", UserID: "user-1"}, nil
 }
 
 func (s *stubFolderRepo) Delete(ctx context.Context, id string) error {
@@ -147,6 +160,42 @@ func TestDeleteFolder_Success(t *testing.T) {
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+}
+
+func TestDeleteFolder_ForbiddenWrongOwner(t *testing.T) {
+	repo := &stubFolderRepo{
+		getByID: &model.Folder{ID: "f1", Name: "Test", UserID: "other-user"},
+	}
+	deps := FolderDeps{FolderRepo: repo}
+	handler := DeleteFolder(deps)
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/documents/folders/f1", nil)
+	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
+	req = withFolderChiParam(req, "id", "f1")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("status = %d, want 403", rec.Code)
+	}
+}
+
+func TestDeleteFolder_NotFound(t *testing.T) {
+	repo := &stubFolderRepo{
+		getByIDErr: fmt.Errorf("not found"),
+	}
+	deps := FolderDeps{FolderRepo: repo}
+	handler := DeleteFolder(deps)
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/documents/folders/f1", nil)
+	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
+	req = withFolderChiParam(req, "id", "f1")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want 404", rec.Code)
 	}
 }
 

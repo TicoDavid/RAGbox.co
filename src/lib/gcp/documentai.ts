@@ -16,7 +16,6 @@ function getClient(): DocumentProcessorServiceClient {
 
 async function extractTextFromPdf(gcsUri: string): Promise<string> {
   if (!projectId || !processorId) {
-    console.warn('[DocumentAI] Not configured - returning empty text')
     return ''
   }
 
@@ -34,14 +33,12 @@ async function extractTextFromPdf(gcsUri: string): Promise<string> {
     const [result] = await getClient().processDocument(request)
     return result.document?.text || ''
   } catch (error) {
-    console.error('[DocumentAI] Failed to process PDF:', error)
     return ''
   }
 }
 
 async function extractTextFromImage(gcsUri: string): Promise<string> {
   if (!projectId || !processorId) {
-    console.warn('[DocumentAI] Not configured - returning empty text')
     return ''
   }
 
@@ -59,7 +56,6 @@ async function extractTextFromImage(gcsUri: string): Promise<string> {
     const [result] = await getClient().processDocument(request)
     return result.document?.text || ''
   } catch (error) {
-    console.error('[DocumentAI] Failed to process image:', error)
     return ''
   }
 }

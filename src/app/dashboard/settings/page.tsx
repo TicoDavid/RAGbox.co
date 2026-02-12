@@ -66,7 +66,6 @@ export default function SettingsPage() {
       setExportStatus('success')
       setExportMessage('Your data has been exported successfully.')
     } catch (error) {
-      console.error('Export failed:', error)
       setExportStatus('error')
       setExportMessage(error instanceof Error ? error.message : 'Failed to export data. Please try again.')
     } finally {

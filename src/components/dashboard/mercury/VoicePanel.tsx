@@ -136,8 +136,6 @@ export function VoicePanel({
 
   const handleToolCall = useCallback(async (call: { id: string; name: string; parameters: Record<string, unknown> }) => {
     // Handle tool calls from the agent
-    console.log('[VoicePanel] Tool call:', call)
-
     // Example tool handlers
     switch (call.name) {
       case 'search_documents':
@@ -167,7 +165,7 @@ export function VoicePanel({
     wsUrl,
     autoReconnect: true,
     onToolCall: handleToolCall,
-    onError: (error) => console.error('[VoicePanel] Error:', error),
+    onError: () => {},
   })
 
   // Auto-connect when panel opens

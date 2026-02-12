@@ -42,6 +42,7 @@ type DocumentRepository interface {
 type FolderRepository interface {
 	Create(ctx context.Context, folder *model.Folder) error
 	ListByUser(ctx context.Context, userID string) ([]model.Folder, error)
+	GetByID(ctx context.Context, id string) (*model.Folder, error)
 	Delete(ctx context.Context, id string) error
 }
 

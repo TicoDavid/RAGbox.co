@@ -66,7 +66,6 @@ async function ensureTableExists(): Promise<boolean> {
     const [datasetExists] = await dataset.exists()
     if (!datasetExists) {
       await client.createDataset(DATASET_ID, { location: 'US' })
-      console.log(`[Veritas] Created dataset: ${DATASET_ID}`)
     }
 
     // Check/create table
@@ -80,13 +79,11 @@ async function ensureTableExists(): Promise<boolean> {
           field: 'timestamp',
         },
       })
-      console.log(`[Veritas] Created table: ${DATASET_ID}.${TABLE_ID}`)
     }
 
     tableInitialized = true
     return true
   } catch (error) {
-    console.warn('[Veritas] BigQuery table init failed (audit writes disabled):', error)
     tableInitialized = true
     tableInitFailed = true
     return false
@@ -108,7 +105,6 @@ export async function logAuditEvent(input: AuditEventInput): Promise<AuditEvent 
     // Ensure table exists before inserting
     const ready = await ensureTableExists()
     if (!ready) {
-      console.log(`[Veritas] Skipped (BQ unavailable): ${event.action}`)
       return null
     }
 
@@ -118,11 +114,9 @@ export async function logAuditEvent(input: AuditEventInput): Promise<AuditEvent 
       .table(TABLE_ID)
       .insert([row])
 
-    console.log(`[Veritas] Logged: ${event.action} by ${event.userId}`)
     return event
   } catch (error) {
-    // Non-fatal: log error but don't block the operation
-    console.error('[Veritas] Audit log failed (non-fatal):', error)
+    // Non-fatal: don't block the operation
     return null
   }
 }

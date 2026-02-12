@@ -135,7 +135,6 @@ export function Vault() {
             refetch()
           }
         } catch (error) {
-          console.error('Failed to upload file:', error)
         }
       }
     }
@@ -186,7 +185,6 @@ export function Vault() {
     // Use the hook's togglePrivilege function
     const success = await toggleDocPrivilege(id, newPrivilegeState, !newPrivilegeState)
     if (!success) {
-      console.error('Failed to update privilege')
     }
   }, [playLockSound, toggleDocPrivilege])
 
@@ -206,7 +204,6 @@ export function Vault() {
   const deleteFile = async (id: string) => {
     const success = await deleteDocument(id)
     if (!success) {
-      console.error('Failed to delete document')
     }
   }
 

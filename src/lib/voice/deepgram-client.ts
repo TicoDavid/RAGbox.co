@@ -68,7 +68,6 @@ export class DeepgramClient {
       this.ws = new WebSocket(url, ['token', key]);
 
       this.ws.onopen = () => {
-        console.log('[Deepgram] Connected');
         this.setState('connected');
         this.reconnectAttempts = 0;
         this.startKeepAlive();
@@ -79,17 +78,14 @@ export class DeepgramClient {
       };
 
       this.ws.onerror = () => {
-        console.error('[Deepgram] WebSocket error');
         this.callbacks.onError?.(new Error('Voice connection error'));
       };
 
       this.ws.onclose = (event) => {
-        console.log('[Deepgram] Disconnected:', event.code, event.reason);
         this.stopKeepAlive();
         this.handleClose();
       };
     } catch (error) {
-      console.error('[Deepgram] Connection error:', error);
       this.setState('error');
       this.callbacks.onError?.(error as Error);
       throw error;
@@ -120,7 +116,6 @@ export class DeepgramClient {
         this.callbacks.onUtteranceEnd?.();
       }
     } catch (error) {
-      console.error('[Deepgram] Message parse error:', error);
     }
   }
 
@@ -131,7 +126,6 @@ export class DeepgramClient {
       this.setState('reconnecting');
       this.reconnectAttempts++;
       const delay = Math.pow(2, this.reconnectAttempts - 1) * 1000;
-      console.log(`[Deepgram] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
       setTimeout(() => this.connect(), delay);
     } else if (this.reconnectAttempts >= this.MAX_RECONNECTS) {
       this.setState('error');

@@ -55,6 +55,18 @@ func (r *FolderRepo) ListByUser(ctx context.Context, userID string) ([]model.Fol
 	return folders, nil
 }
 
+func (r *FolderRepo) GetByID(ctx context.Context, id string) (*model.Folder, error) {
+	var f model.Folder
+	err := r.pool.QueryRow(ctx,
+		`SELECT id, name, user_id, parent_id, created_at, updated_at FROM folders WHERE id = $1`,
+		id,
+	).Scan(&f.ID, &f.Name, &f.UserID, &f.ParentID, &f.CreatedAt, &f.UpdatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("repository.FolderGetByID: %w", err)
+	}
+	return &f, nil
+}
+
 func (r *FolderRepo) Delete(ctx context.Context, id string) error {
 	_, err := r.pool.Exec(ctx, `DELETE FROM folders WHERE id = $1`, id)
 	if err != nil {

@@ -67,7 +67,6 @@ export async function createGeminiLiveSession(config: GeminiLiveConfig): Promise
     let setupSent = false;
 
     ws.on('open', () => {
-      console.log('[GeminiLive] WebSocket connected');
       isConnected = true;
 
       // Send setup message with full Vertex AI resource path
@@ -92,7 +91,6 @@ export async function createGeminiLiveSession(config: GeminiLiveConfig): Promise
 
       ws.send(JSON.stringify(setupMessage));
       setupSent = true;
-      console.log('[GeminiLive] Setup message sent');
     });
 
     ws.on('message', (data: WebSocket.Data) => {
@@ -101,7 +99,6 @@ export async function createGeminiLiveSession(config: GeminiLiveConfig): Promise
 
         // Handle setup complete
         if (message.setupComplete) {
-          console.log('[GeminiLive] Setup complete');
           config.onConnected?.();
           resolve(session);
           return;
@@ -113,14 +110,12 @@ export async function createGeminiLiveSession(config: GeminiLiveConfig): Promise
 
           // Check for turn completion
           if (content.turnComplete) {
-            console.log('[GeminiLive] Turn complete');
             config.onTurnComplete?.();
             return;
           }
 
           // Check for interruption
           if (content.interrupted) {
-            console.log('[GeminiLive] Interrupted');
             config.onInterrupted?.();
             return;
           }
@@ -143,16 +138,13 @@ export async function createGeminiLiveSession(config: GeminiLiveConfig): Promise
 
         // Handle tool calls (future: RAG integration)
         if (message.toolCall) {
-          console.log('[GeminiLive] Tool call received:', message.toolCall);
         }
 
       } catch (error) {
-        console.error('[GeminiLive] Error parsing message:', error);
       }
     });
 
     ws.on('error', (error) => {
-      console.error('[GeminiLive] WebSocket error:', error);
       config.onError?.(error);
       if (!setupSent) {
         reject(error);
@@ -161,7 +153,6 @@ export async function createGeminiLiveSession(config: GeminiLiveConfig): Promise
 
     ws.on('close', (code, reason) => {
       const reasonStr = reason?.toString() || 'Unknown reason';
-      console.log(`[GeminiLive] WebSocket closed: ${code} - ${reasonStr}`);
       isConnected = false;
 
       // Handle specific error codes
@@ -178,7 +169,6 @@ export async function createGeminiLiveSession(config: GeminiLiveConfig): Promise
     const session: GeminiLiveSession = {
       sendAudio: (audioBase64: string) => {
         if (!isConnected) {
-          console.warn('[GeminiLive] Cannot send audio - not connected');
           return;
         }
 
@@ -198,7 +188,6 @@ export async function createGeminiLiveSession(config: GeminiLiveConfig): Promise
 
       sendText: (text: string) => {
         if (!isConnected) {
-          console.warn('[GeminiLive] Cannot send text - not connected');
           return;
         }
 

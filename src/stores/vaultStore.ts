@@ -154,8 +154,8 @@ export const useVaultStore = create<VaultState>()(
               }
             }
             set({ folders })
-          } catch (error) {
-            console.error('Failed to fetch folders:', error)
+          } catch {
+            // Silently ignore
           }
         },
 

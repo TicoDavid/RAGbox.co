@@ -96,14 +96,10 @@ export class RAGboxClient {
     const totalChars = context.reduce((sum, c) => sum + c.length, 0);
     const estimatedTokens = totalChars / CHARS_PER_TOKEN;
 
-    console.log(`[RAGboxClient] Context size: ${context.length} docs, ~${Math.round(estimatedTokens / 1000)}K tokens`);
-
     // If within limits, return as-is
     if (totalChars <= MAX_CONTEXT_CHARS) {
       return context;
     }
-
-    console.log(`[RAGboxClient] Truncating context from ~${Math.round(estimatedTokens / 1000)}K to ~${MAX_CONTEXT_TOKENS / 1000}K tokens`);
 
     // Strategy: Allocate equal space per doc, truncate each
     const charsPerDoc = Math.floor(MAX_CONTEXT_CHARS / context.length);
@@ -114,9 +110,6 @@ export class RAGboxClient {
       // Truncate with ellipsis indicator
       return doc.substring(0, charsPerDoc - 50) + '\n\n[... document truncated due to size limits ...]';
     });
-
-    const newTotal = truncated.reduce((sum, c) => sum + c.length, 0);
-    console.log(`[RAGboxClient] Truncated to ~${Math.round(newTotal / CHARS_PER_TOKEN / 1000)}K tokens`);
 
     return truncated;
   }
@@ -162,7 +155,6 @@ export class RAGboxClient {
         finishReason,
       };
     } catch (error) {
-      console.error('[RAGboxClient] Chat error:', error);
       throw error;
     }
   }
@@ -197,7 +189,6 @@ export class RAGboxClient {
 
       callbacks.onComplete(fullText);
     } catch (error) {
-      console.error('[RAGboxClient] Stream error:', error);
       callbacks.onError(error instanceof Error ? error : new Error(String(error)));
     }
   }
@@ -264,8 +255,6 @@ Provide a clear, well-structured answer with citations using [1], [2], etc.`;
         confidence: Math.min(confidence, 0.98),
       };
     } catch (error) {
-      console.error('[RAGboxClient] Query error:', error);
-
       // Check for token limit errors and provide clearer message
       const errorMessage = error instanceof Error ? error.message : String(error);
       if (errorMessage.includes('token count') || errorMessage.includes('exceeds the maximum')) {

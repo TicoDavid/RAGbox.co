@@ -17,23 +17,17 @@ export async function POST(request: NextRequest) {
     const otp = generateOTP(normalizedEmail);
 
     // In production, send email via SendGrid/Resend/etc
-    // For development, log to console
-    console.log(`\n🔐 OTP for ${normalizedEmail}: ${otp}\n`);
-
-    // Debug: show all stored OTPs
+    // In development, return OTP in response for testing
     if (process.env.NODE_ENV === "development") {
       debugOTPStore();
     }
 
-    // For demo: return OTP in response (REMOVE IN PRODUCTION)
     return NextResponse.json({
       success: true,
       message: "OTP sent to email",
-      // Remove this in production - only for testing
       ...(process.env.NODE_ENV === "development" && { otp }),
     });
-  } catch (error) {
-    console.error("Send OTP error:", error);
+  } catch {
     return NextResponse.json(
       { error: "Failed to send OTP" },
       { status: 500 }

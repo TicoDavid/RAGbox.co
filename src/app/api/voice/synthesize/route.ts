@@ -38,8 +38,6 @@ export async function POST(req: NextRequest) {
     );
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error('[Deepgram TTS] Error:', response.status, error);
       return NextResponse.json(
         { error: 'TTS synthesis failed' },
         { status: response.status }
@@ -54,8 +52,7 @@ export async function POST(req: NextRequest) {
         'Content-Length': audioData.byteLength.toString(),
       },
     });
-  } catch (error) {
-    console.error('[TTS] Route error:', error);
+  } catch {
     return NextResponse.json(
       { error: 'TTS service error' },
       { status: 500 }

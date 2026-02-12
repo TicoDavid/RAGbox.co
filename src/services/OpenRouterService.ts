@@ -84,7 +84,6 @@ export async function verifyAndFetchModels(apiKey: string): Promise<OpenRouterVe
       models: sortedModels,
     }
   } catch (error) {
-    console.error('OpenRouter verification failed:', error)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Network error',

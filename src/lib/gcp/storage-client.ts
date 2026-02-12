@@ -111,7 +111,6 @@ export class StorageClient {
     try {
       await this.bucket.file(fileName).delete()
     } catch (error) {
-      console.error(`Failed to delete GCS file ${gcsUri}:`, error)
       throw error
     }
   }

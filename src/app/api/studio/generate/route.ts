@@ -75,12 +75,7 @@ export async function POST(request: NextRequest) {
 
     const generationRequest: GenerationRequest = validation.data
 
-    // 3. Log the request
-    console.log(`[Studio API] Generating ${generationRequest.artifactType} for user: ${userId}`)
-    console.log(`[Studio API] Source doc IDs: ${JSON.stringify(generationRequest.sourceDocumentIds)}`)
-    console.log(`[Studio API] Tone: ${generationRequest.brandConfig.tone}`)
-
-    // 4. Generate artifact
+    // 3. Generate artifact
     const result = await generateArtifact(generationRequest, userId)
 
     // 5. Return success response
@@ -89,8 +84,6 @@ export async function POST(request: NextRequest) {
       data: result,
     })
   } catch (error) {
-    console.error('[Studio API] Generation failed:', error)
-
     const message = error instanceof Error ? error.message : 'Unknown error'
     const isUserError = message.includes('No accessible documents') ||
                         message.includes('At least one document')

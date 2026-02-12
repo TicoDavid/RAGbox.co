@@ -40,8 +40,6 @@ export async function POST(request: NextRequest) {
           activeSessions.delete(userId);
         }
 
-        console.log(`[Voice API] Starting new session for ${userId}`);
-
         // Create new session - but we need a way to stream responses back
         // For this, we'll return immediately and use SSE for responses
         return NextResponse.json({
@@ -92,7 +90,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
   } catch (error) {
-    console.error('[Voice API] Error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json({ error: message }, { status: 500 });
   }
@@ -119,8 +116,6 @@ export async function GET(request: NextRequest) {
     const voiceParam = searchParams.get('voice') as GeminiVoice | null;
     const voice: GeminiVoice = voiceParam && VALID_VOICES.includes(voiceParam) ? voiceParam : (sessionVoices.get(userId) || 'Puck');
 
-    console.log(`[Voice API] SSE connection requested for ${userId} with voice: ${voice}`);
-
     // Create SSE stream
     const encoder = new TextEncoder();
     let liveSession: GeminiLiveSession | null = null;
@@ -136,7 +131,6 @@ export async function GET(request: NextRequest) {
           liveSession = await createGeminiLiveSession({
             voice: voice,
             onConnected: () => {
-              console.log(`[Voice API] Gemini session connected for ${userId}`);
               activeSessions.set(userId, liveSession!);
               sendEvent('connected', { sessionId: userId });
             },
@@ -153,11 +147,9 @@ export async function GET(request: NextRequest) {
               sendEvent('interrupted', {});
             },
             onError: (error) => {
-              console.error(`[Voice API] Gemini error for ${userId}:`, error);
               sendEvent('error', { message: error.message });
             },
             onDisconnected: () => {
-              console.log(`[Voice API] Gemini session disconnected for ${userId}`);
               activeSessions.delete(userId);
               sendEvent('disconnected', {});
               controller.close();
@@ -165,7 +157,6 @@ export async function GET(request: NextRequest) {
           });
 
         } catch (error) {
-          console.error(`[Voice API] Failed to create session for ${userId}:`, error);
           const message = error instanceof Error ? error.message : 'Unknown error';
           sendEvent('error', { message });
           controller.close();
@@ -173,7 +164,6 @@ export async function GET(request: NextRequest) {
       },
 
       cancel() {
-        console.log(`[Voice API] SSE connection cancelled for ${userId}`);
         if (liveSession) {
           liveSession.close();
           activeSessions.delete(userId);
@@ -190,7 +180,6 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[Voice API] SSE Error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json({ error: message }, { status: 500 });
   }

@@ -109,8 +109,7 @@ export function PrivilegeProvider({
             error: 'Failed to fetch privilege state',
           }))
         }
-      } catch (error) {
-        console.error('Failed to fetch privilege state:', error)
+      } catch {
         setState((prev) => ({
           ...prev,
           isLoading: false,
@@ -162,8 +161,7 @@ export function PrivilegeProvider({
           lastChanged: new Date(),
           isLoading: false,
         }))
-      } catch (error) {
-        console.error('Failed to update privilege mode:', error)
+      } catch {
         // Revert on error
         setState((prev) => ({
           ...prev,

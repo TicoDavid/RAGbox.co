@@ -132,11 +132,9 @@ export function useSovereignVoice(config: SovereignVoiceConfig = {}): SovereignV
       setTranscript('')
 
       // Step 1: Create secure server-side session (no secrets exposed)
-      console.log('[Voice] Creating secure session...')
       const session = await createSecureSession()
       sessionRef.current = session
       setSessionId(session.sessionId)
-      console.log('[Voice] Session created:', session.sessionId)
 
       // Step 2: Request microphone access
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -199,7 +197,6 @@ export function useSovereignVoice(config: SovereignVoiceConfig = {}): SovereignV
       }
 
       recognition.onerror = (event) => {
-        console.error('[Voice] Speech recognition error:', event.error)
         if (event.error !== 'no-speech') {
           setError(`Voice error: ${event.error}`)
           onError?.(`Voice error: ${event.error}`)
@@ -221,11 +218,9 @@ export function useSovereignVoice(config: SovereignVoiceConfig = {}): SovereignV
       recognitionRef.current = recognition
       recognition.start()
       setState('listening')
-      console.log('[Voice] Listening started')
 
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to connect to voice service'
-      console.error('[Voice] Connection failed:', message)
       setError(message)
       onError?.(message)
       setState('error')
@@ -235,7 +230,6 @@ export function useSovereignVoice(config: SovereignVoiceConfig = {}): SovereignV
 
   // Disconnect from voice service
   const disconnect = useCallback(() => {
-    console.log('[Voice] Disconnecting...')
     cleanup()
     setState('idle')
     setTranscript('')
