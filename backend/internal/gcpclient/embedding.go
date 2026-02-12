@@ -39,7 +39,8 @@ type embeddingRequest struct {
 }
 
 type embeddingInstance struct {
-	Content string `json:"content"`
+	Content  string `json:"content"`
+	TaskType string `json:"task_type"`
 }
 
 type embeddingResponse struct {
@@ -50,11 +51,25 @@ type embeddingResponse struct {
 	} `json:"predictions"`
 }
 
-// EmbedTexts generates embeddings for a batch of texts.
+// EmbedTexts generates embeddings for a batch of texts using RETRIEVAL_DOCUMENT task type.
+// Use this for document chunks that will be stored and searched against.
 func (a *EmbeddingAdapter) EmbedTexts(ctx context.Context, texts []string) ([][]float32, error) {
+	return a.embedWithTaskType(ctx, texts, "RETRIEVAL_DOCUMENT")
+}
+
+// Embed generates embeddings for a batch of texts using RETRIEVAL_QUERY task type.
+// Use this for search queries. Implements service.QueryEmbedder.
+func (a *EmbeddingAdapter) Embed(ctx context.Context, texts []string) ([][]float32, error) {
+	return a.embedWithTaskType(ctx, texts, "RETRIEVAL_QUERY")
+}
+
+// embedWithTaskType is the shared implementation that sends texts to the Vertex AI embedding API
+// with the specified task_type. text-embedding-004 produces different vector spaces for
+// RETRIEVAL_DOCUMENT vs RETRIEVAL_QUERY, optimized for asymmetric retrieval.
+func (a *EmbeddingAdapter) embedWithTaskType(ctx context.Context, texts []string, taskType string) ([][]float32, error) {
 	instances := make([]embeddingInstance, len(texts))
 	for i, t := range texts {
-		instances[i] = embeddingInstance{Content: t}
+		instances[i] = embeddingInstance{Content: t, TaskType: taskType}
 	}
 
 	reqBody, err := json.Marshal(embeddingRequest{Instances: instances})
@@ -91,11 +106,6 @@ func (a *EmbeddingAdapter) EmbedTexts(ctx context.Context, texts []string) ([][]
 		results[i] = p.Embeddings.Values
 	}
 	return results, nil
-}
-
-// Embed implements service.QueryEmbedder.
-func (a *EmbeddingAdapter) Embed(ctx context.Context, texts []string) ([][]float32, error) {
-	return a.EmbedTexts(ctx, texts)
 }
 
 // buildEndpointURL returns the correct Vertex AI endpoint URL.
