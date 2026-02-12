@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 import type { VaultItem, FolderNode } from '@/types/ragbox'
 import { apiFetch } from '@/lib/api'
+import { toast } from 'sonner'
 
 interface VaultState {
   // Data
@@ -195,27 +196,35 @@ export const useVaultStore = create<VaultState>()(
           try {
             const res = await apiFetch(`/api/documents/${id}`, { method: 'DELETE' })
             if (!res.ok) throw new Error('Delete failed')
+            toast.success('Document deleted')
           } catch (error) {
+            toast.error('Failed to delete document')
             get().fetchDocuments()
             throw error
           }
         },
 
         updateDocument: async (id, updates) => {
-          const res = await apiFetch(`/api/documents/${id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(updates),
-          })
+          try {
+            const res = await apiFetch(`/api/documents/${id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(updates),
+            })
 
-          if (!res.ok) throw new Error('Update failed')
-          const data = await res.json()
-          set((state) => ({
-            documents: {
-              ...state.documents,
-              [id]: { ...state.documents[id], ...data },
-            },
-          }))
+            if (!res.ok) throw new Error('Update failed')
+            const data = await res.json()
+            set((state) => ({
+              documents: {
+                ...state.documents,
+                [id]: { ...state.documents[id], ...data },
+              },
+            }))
+            toast.success('Document renamed')
+          } catch (error) {
+            toast.error('Failed to update document')
+            throw error
+          }
         },
 
         togglePrivilege: async (id) => {
@@ -224,69 +233,87 @@ export const useVaultStore = create<VaultState>()(
 
           const newPrivileged = !doc.isPrivileged
 
-          const makeRequest = async (confirmUnmark?: boolean) => {
-            const body: { privileged: boolean; filename: string; confirmUnmark?: boolean } = {
-              privileged: newPrivileged,
-              filename: doc.name,
-            }
-            if (confirmUnmark) body.confirmUnmark = true
+          try {
+            const makeRequest = async (confirmUnmark?: boolean) => {
+              const body: { privileged: boolean; filename: string; confirmUnmark?: boolean } = {
+                privileged: newPrivileged,
+                filename: doc.name,
+              }
+              if (confirmUnmark) body.confirmUnmark = true
 
-            return apiFetch(`/api/documents/${id}/privilege`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(body),
-            })
+              return apiFetch(`/api/documents/${id}/privilege`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+              })
+            }
+
+            let res = await makeRequest()
+
+            if (!res.ok) {
+              const errorData = await res.json().catch(() => null)
+              const code = errorData?.code
+
+              if (code === 'PRIVILEGE_MODE_SAFETY') {
+                throw new Error(errorData?.message ?? 'Cannot remove privilege protection while in Privileged Mode. Exit Privileged Mode first.')
+              }
+
+              if (code === 'CONFIRM_UNMARK_REQUIRED') {
+                const confirmed = window.confirm(
+                  errorData?.message ?? 'Removing privilege protection will make this document visible in normal mode. Continue?'
+                )
+                if (!confirmed) return
+
+                res = await makeRequest(true)
+                if (!res.ok) throw new Error('Privilege toggle failed')
+              } else {
+                throw new Error(errorData?.message ?? 'Privilege toggle failed')
+              }
+            }
+
+            set((state) => ({
+              documents: {
+                ...state.documents,
+                [id]: { ...state.documents[id], isPrivileged: newPrivileged },
+              },
+            }))
+            toast.success('Privilege updated')
+          } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Failed to update privilege')
+            throw error
           }
-
-          let res = await makeRequest()
-
-          if (!res.ok) {
-            const errorData = await res.json().catch(() => null)
-            const code = errorData?.code
-
-            if (code === 'PRIVILEGE_MODE_SAFETY') {
-              throw new Error(errorData?.message ?? 'Cannot remove privilege protection while in Privileged Mode. Exit Privileged Mode first.')
-            }
-
-            if (code === 'CONFIRM_UNMARK_REQUIRED') {
-              const confirmed = window.confirm(
-                errorData?.message ?? 'Removing privilege protection will make this document visible in normal mode. Continue?'
-              )
-              if (!confirmed) return
-
-              res = await makeRequest(true)
-              if (!res.ok) throw new Error('Privilege toggle failed')
-            } else {
-              throw new Error(errorData?.message ?? 'Privilege toggle failed')
-            }
-          }
-
-          set((state) => ({
-            documents: {
-              ...state.documents,
-              [id]: { ...state.documents[id], isPrivileged: newPrivileged },
-            },
-          }))
         },
 
         createFolder: async (name, parentId) => {
-          const res = await apiFetch('/api/documents/folders', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, parentId }),
-          })
+          try {
+            const res = await apiFetch('/api/documents/folders', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name, parentId }),
+            })
 
-          if (!res.ok) throw new Error('Folder creation failed')
-          get().fetchFolders()
+            if (!res.ok) throw new Error('Folder creation failed')
+            get().fetchFolders()
+            toast.success('Folder created')
+          } catch (error) {
+            toast.error('Failed to create folder')
+            throw error
+          }
         },
 
         deleteFolder: async (id) => {
-          const res = await apiFetch(`/api/documents/folders/${id}`, {
-            method: 'DELETE',
-          })
+          try {
+            const res = await apiFetch(`/api/documents/folders/${id}`, {
+              method: 'DELETE',
+            })
 
-          if (!res.ok) throw new Error('Folder deletion failed')
-          get().fetchFolders()
+            if (!res.ok) throw new Error('Folder deletion failed')
+            get().fetchFolders()
+            toast.success('Folder deleted')
+          } catch (error) {
+            toast.error('Failed to delete folder')
+            throw error
+          }
         },
       }),
       {

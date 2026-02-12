@@ -92,6 +92,7 @@ func InternalOrFirebaseAuth(authService *service.AuthService, secret string, ens
 
 // FirebaseAuth returns middleware that verifies Firebase ID tokens.
 // Requests without a valid token receive a 401 JSON response.
+// Used by: unit tests. Production uses InternalOrFirebaseAuth instead.
 func FirebaseAuth(authService *service.AuthService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

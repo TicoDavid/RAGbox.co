@@ -17,6 +17,7 @@ import {
 } from './Icons';
 import ArtifactCard from './ArtifactCard';
 import { getInsightTypeName } from '../insight-detection';
+import type { InsightType } from '../types';
 
 interface StudioPanelProps {
   artifacts: Artifact[];
@@ -136,7 +137,7 @@ const CrucibleIcon = () => (
 interface IntelReceivedAnimationProps {
   title: string;
   progress: number;
-  insightType?: string;
+  insightType?: InsightType;
 }
 
 const getStatusText = (progress: number): string => {
@@ -170,7 +171,7 @@ const IntelReceivedAnimation: React.FC<IntelReceivedAnimationProps> = ({ title, 
         <h2 className="intel-headline">INTEL RECEIVED</h2>
         {insightType && (
           <div className="intel-source-badge">
-            FROM: {getInsightTypeName(insightType as any).toUpperCase()}
+            FROM: {getInsightTypeName(insightType).toUpperCase()}
           </div>
         )}
         <h3 className="intel-title">FORGING ARTIFACT: {title}</h3>

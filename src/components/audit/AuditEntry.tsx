@@ -24,7 +24,7 @@ import {
   X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { AuditEvent, AuditAction, AuditSeverity } from '@/lib/audit/types'
+import type { AuditEvent, AuditAction, AuditSeverity } from '@/lib/audit/audit-types'
 
 interface AuditEntryProps {
   event: AuditEvent

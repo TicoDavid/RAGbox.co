@@ -103,6 +103,7 @@ func New(deps *Dependencies) *chi.Mux {
 		r.With(timeout30s).Delete("/api/documents/{id}", handler.DeleteDocument(docCRUD))
 		r.With(timeout30s).Post("/api/documents/{id}/recover", handler.RecoverDocument(docCRUD))
 		r.With(timeout30s).Patch("/api/documents/{id}/tier", handler.UpdateDocumentTier(docCRUD))
+		// Note: GET /documents/{id}/privilege is not needed — privilege status is included in GET /documents/{id}
 		r.With(timeout30s).Patch("/api/documents/{id}/privilege", handler.ToggleDocPrivilege(docCRUD))
 		// Ingest may take longer (pipeline processing)
 		r.With(middleware.Timeout(120 * time.Second)).Post("/api/documents/{id}/ingest", handler.IngestDocument(deps.IngestDeps))

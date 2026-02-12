@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import type { AssetType, GeneratedAsset } from '@/types/ragbox'
 import { apiFetch } from '@/lib/api'
+import { toast } from 'sonner'
 
 interface ForgeState {
   assets: GeneratedAsset[]
@@ -57,6 +58,7 @@ export const useForgeStore = create<ForgeState>()(
         }))
       } catch (error) {
         set({ isGenerating: false, currentGenerationType: null })
+        toast.error('Failed to generate asset')
         throw error
       }
     },

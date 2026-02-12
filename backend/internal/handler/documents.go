@@ -142,6 +142,10 @@ func GetDocument(deps DocCRUDDeps) http.HandlerFunc {
 			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "document id required"})
 			return
 		}
+		if !validateUUID(docID) {
+			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "invalid document ID format"})
+			return
+		}
 
 		doc, err := deps.DocRepo.GetByID(r.Context(), docID)
 		if err != nil {
@@ -172,6 +176,10 @@ func DeleteDocument(deps DocCRUDDeps) http.HandlerFunc {
 			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "document id required"})
 			return
 		}
+		if !validateUUID(docID) {
+			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "invalid document ID format"})
+			return
+		}
 
 		doc, err := deps.DocRepo.GetByID(r.Context(), docID)
 		if err != nil || doc.UserID != userID {
@@ -198,6 +206,11 @@ func RecoverDocument(deps DocCRUDDeps) http.HandlerFunc {
 		}
 
 		docID := chi.URLParam(r, "id")
+		if !validateUUID(docID) {
+			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "invalid document ID format"})
+			return
+		}
+
 		doc, err := deps.DocRepo.GetByID(r.Context(), docID)
 		if err != nil || doc.UserID != userID {
 			respondJSON(w, http.StatusNotFound, envelope{Success: false, Error: "document not found"})
@@ -228,6 +241,11 @@ func UpdateDocumentTier(deps DocCRUDDeps) http.HandlerFunc {
 		}
 
 		docID := chi.URLParam(r, "id")
+		if !validateUUID(docID) {
+			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "invalid document ID format"})
+			return
+		}
+
 		doc, err := deps.DocRepo.GetByID(r.Context(), docID)
 		if err != nil || doc.UserID != userID {
 			respondJSON(w, http.StatusNotFound, envelope{Success: false, Error: "document not found"})
@@ -272,6 +290,10 @@ func UpdateDocument(deps DocCRUDDeps) http.HandlerFunc {
 		docID := chi.URLParam(r, "id")
 		if docID == "" {
 			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "document id required"})
+			return
+		}
+		if !validateUUID(docID) {
+			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "invalid document ID format"})
 			return
 		}
 
@@ -321,6 +343,11 @@ func ToggleDocPrivilege(deps DocCRUDDeps) http.HandlerFunc {
 		}
 
 		docID := chi.URLParam(r, "id")
+		if !validateUUID(docID) {
+			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "invalid document ID format"})
+			return
+		}
+
 		doc, err := deps.DocRepo.GetByID(r.Context(), docID)
 		if err != nil || doc.UserID != userID {
 			respondJSON(w, http.StatusNotFound, envelope{Success: false, Error: "document not found"})

@@ -3,7 +3,7 @@ package gcpclient
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"strings"
 
 	"github.com/connexus-ai/ragbox-backend/internal/service"
@@ -41,7 +41,7 @@ func (p *TextParser) Extract(ctx context.Context, gcsURI string) (*service.Parse
 	}
 
 	text := string(data)
-	log.Printf("[TEXT_PARSER] Extracted %d chars from gs://%s/%s", len(text), bucket, object)
+	slog.Info("text parser extracted content", "chars", len(text), "bucket", bucket, "object", object)
 
 	return &service.ParseResult{
 		Text:  text,

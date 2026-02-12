@@ -28,7 +28,7 @@ func (m *mockIngester) ProcessDocument(ctx context.Context, docID string) error 
 func TestIngestDocument_Success(t *testing.T) {
 	repo := &crudDocRepo{
 		singleDoc: &model.Document{
-			ID:          "doc-1",
+			ID:          "10000000-0000-0000-0000-000000000001",
 			UserID:      "user-1",
 			IndexStatus: model.IndexPending,
 		},
@@ -39,7 +39,7 @@ func TestIngestDocument_Success(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/api/documents/doc-1/ingest", nil)
 	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
-	req = withChiParam(req, "id", "doc-1")
+	req = withChiParam(req, "id", "10000000-0000-0000-0000-000000000001")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -73,9 +73,9 @@ func TestIngestDocument_NotFound(t *testing.T) {
 	deps := IngestDeps{DocRepo: repo}
 	h := IngestDocument(deps)
 
-	req := httptest.NewRequest(http.MethodPost, "/api/documents/missing/ingest", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/documents/20000000-0000-0000-0000-000000000002/ingest", nil)
 	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
-	req = withChiParam(req, "id", "missing")
+	req = withChiParam(req, "id", "20000000-0000-0000-0000-000000000002")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -87,7 +87,7 @@ func TestIngestDocument_NotFound(t *testing.T) {
 func TestIngestDocument_Forbidden(t *testing.T) {
 	repo := &crudDocRepo{
 		singleDoc: &model.Document{
-			ID:          "doc-1",
+			ID:          "10000000-0000-0000-0000-000000000001",
 			UserID:      "other-user",
 			IndexStatus: model.IndexPending,
 		},
@@ -97,7 +97,7 @@ func TestIngestDocument_Forbidden(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/api/documents/doc-1/ingest", nil)
 	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
-	req = withChiParam(req, "id", "doc-1")
+	req = withChiParam(req, "id", "10000000-0000-0000-0000-000000000001")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -109,7 +109,7 @@ func TestIngestDocument_Forbidden(t *testing.T) {
 func TestIngestDocument_NotPending(t *testing.T) {
 	repo := &crudDocRepo{
 		singleDoc: &model.Document{
-			ID:          "doc-1",
+			ID:          "10000000-0000-0000-0000-000000000001",
 			UserID:      "user-1",
 			IndexStatus: model.IndexIndexed,
 		},
@@ -119,7 +119,7 @@ func TestIngestDocument_NotPending(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/api/documents/doc-1/ingest", nil)
 	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
-	req = withChiParam(req, "id", "doc-1")
+	req = withChiParam(req, "id", "10000000-0000-0000-0000-000000000001")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 

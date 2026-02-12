@@ -10,7 +10,7 @@ export function EmptyState() {
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
         <Image
           src="https://storage.googleapis.com/connexusai-assets/RAGb%C3%B6x_ICON.png"
-          alt=""
+          alt="RAGbox watermark"
           width={800}
           height={800}
           className="h-[55vh] w-auto opacity-25 select-none animate-[sanctuaryBreathe_10s_ease-in-out_infinite]"

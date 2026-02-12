@@ -3,7 +3,7 @@ package middleware
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -24,8 +24,12 @@ func Logging(next http.Handler) http.Handler {
 		next.ServeHTTP(sw, r)
 
 		latency := time.Since(start)
-		log.Printf("[%s] %s %s %d %dms",
-			requestID, r.Method, r.URL.Path, sw.status, latency.Milliseconds())
+		slog.Info("http request",
+			"request_id", requestID,
+			"method", r.Method,
+			"path", r.URL.Path,
+			"status", sw.status,
+			"latency_ms", latency.Milliseconds())
 	})
 }
 

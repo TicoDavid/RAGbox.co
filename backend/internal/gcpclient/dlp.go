@@ -2,7 +2,7 @@ package gcpclient
 
 import (
 	"context"
-	"log"
+	"log/slog"
 
 	"github.com/connexus-ai/ragbox-backend/internal/service"
 )
@@ -19,6 +19,6 @@ func NewStubDLPAdapter() *StubDLPAdapter {
 
 // InspectContent returns empty findings (no-op for MVP).
 func (a *StubDLPAdapter) InspectContent(ctx context.Context, project string, text string, infoTypes []string) ([]service.Finding, error) {
-	log.Println("DLP scanning skipped (stub adapter)")
+	slog.Info("DLP scanning skipped", "reason", "stub_adapter")
 	return []service.Finding{}, nil
 }

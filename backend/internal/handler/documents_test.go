@@ -272,9 +272,9 @@ func TestGetDocument_NotFound(t *testing.T) {
 	deps := DocCRUDDeps{DocRepo: repo}
 	handler := GetDocument(deps)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/documents/missing-id", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/documents/20000000-0000-0000-0000-000000000002", nil)
 	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
-	req = withChiParam(req, "id", "missing-id")
+	req = withChiParam(req, "id", "20000000-0000-0000-0000-000000000002")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -284,13 +284,13 @@ func TestGetDocument_NotFound(t *testing.T) {
 }
 
 func TestDeleteDocument_Success(t *testing.T) {
-	repo := &crudDocRepo{singleDoc: &model.Document{ID: "d1", UserID: "user-1"}}
+	repo := &crudDocRepo{singleDoc: &model.Document{ID: "10000000-0000-0000-0000-000000000001", UserID: "user-1"}}
 	deps := DocCRUDDeps{DocRepo: repo}
 	handler := DeleteDocument(deps)
 
-	req := httptest.NewRequest(http.MethodDelete, "/api/documents/d1", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/api/documents/10000000-0000-0000-0000-000000000001", nil)
 	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
-	req = withChiParam(req, "id", "d1")
+	req = withChiParam(req, "id", "10000000-0000-0000-0000-000000000001")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -300,13 +300,13 @@ func TestDeleteDocument_Success(t *testing.T) {
 }
 
 func TestGetDocument_Success(t *testing.T) {
-	repo := &crudDocRepo{singleDoc: &model.Document{ID: "d1", UserID: "user-1", Filename: "test.pdf"}}
+	repo := &crudDocRepo{singleDoc: &model.Document{ID: "10000000-0000-0000-0000-000000000001", UserID: "user-1", Filename: "test.pdf"}}
 	deps := DocCRUDDeps{DocRepo: repo}
 	handler := GetDocument(deps)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/documents/d1", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/documents/10000000-0000-0000-0000-000000000001", nil)
 	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
-	req = withChiParam(req, "id", "d1")
+	req = withChiParam(req, "id", "10000000-0000-0000-0000-000000000001")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -316,13 +316,13 @@ func TestGetDocument_Success(t *testing.T) {
 }
 
 func TestGetDocument_Forbidden(t *testing.T) {
-	repo := &crudDocRepo{singleDoc: &model.Document{ID: "d1", UserID: "other-user"}}
+	repo := &crudDocRepo{singleDoc: &model.Document{ID: "10000000-0000-0000-0000-000000000001", UserID: "other-user"}}
 	deps := DocCRUDDeps{DocRepo: repo}
 	handler := GetDocument(deps)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/documents/d1", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/documents/10000000-0000-0000-0000-000000000001", nil)
 	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
-	req = withChiParam(req, "id", "d1")
+	req = withChiParam(req, "id", "10000000-0000-0000-0000-000000000001")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -332,13 +332,13 @@ func TestGetDocument_Forbidden(t *testing.T) {
 }
 
 func TestRecoverDocument_Success(t *testing.T) {
-	repo := &crudDocRepo{singleDoc: &model.Document{ID: "d1", UserID: "user-1"}}
+	repo := &crudDocRepo{singleDoc: &model.Document{ID: "10000000-0000-0000-0000-000000000001", UserID: "user-1"}}
 	deps := DocCRUDDeps{DocRepo: repo}
 	handler := RecoverDocument(deps)
 
-	req := httptest.NewRequest(http.MethodPost, "/api/documents/d1/recover", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/documents/10000000-0000-0000-0000-000000000001/recover", nil)
 	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
-	req = withChiParam(req, "id", "d1")
+	req = withChiParam(req, "id", "10000000-0000-0000-0000-000000000001")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -361,14 +361,14 @@ func TestRecoverDocument_Unauthorized(t *testing.T) {
 }
 
 func TestUpdateDocumentTier_Success(t *testing.T) {
-	repo := &crudDocRepo{singleDoc: &model.Document{ID: "d1", UserID: "user-1"}}
+	repo := &crudDocRepo{singleDoc: &model.Document{ID: "10000000-0000-0000-0000-000000000001", UserID: "user-1"}}
 	deps := DocCRUDDeps{DocRepo: repo}
 	handler := UpdateDocumentTier(deps)
 
 	body, _ := json.Marshal(UpdateTierRequest{Tier: 2})
-	req := httptest.NewRequest(http.MethodPatch, "/api/documents/d1/tier", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPatch, "/api/documents/10000000-0000-0000-0000-000000000001/tier", bytes.NewReader(body))
 	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
-	req = withChiParam(req, "id", "d1")
+	req = withChiParam(req, "id", "10000000-0000-0000-0000-000000000001")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -391,14 +391,14 @@ func TestUpdateDocumentTier_Unauthorized(t *testing.T) {
 }
 
 func TestToggleDocPrivilege_Success(t *testing.T) {
-	repo := &crudDocRepo{singleDoc: &model.Document{ID: "d1", UserID: "user-1"}}
+	repo := &crudDocRepo{singleDoc: &model.Document{ID: "10000000-0000-0000-0000-000000000001", UserID: "user-1"}}
 	deps := DocCRUDDeps{DocRepo: repo}
 	handler := ToggleDocPrivilege(deps)
 
 	body, _ := json.Marshal(ToggleDocPrivilegeRequest{Privileged: true})
-	req := httptest.NewRequest(http.MethodPatch, "/api/documents/d1/privilege", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPatch, "/api/documents/10000000-0000-0000-0000-000000000001/privilege", bytes.NewReader(body))
 	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
-	req = withChiParam(req, "id", "d1")
+	req = withChiParam(req, "id", "10000000-0000-0000-0000-000000000001")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -438,9 +438,9 @@ func TestDeleteDocument_NotFound(t *testing.T) {
 	deps := DocCRUDDeps{DocRepo: repo}
 	handler := DeleteDocument(deps)
 
-	req := httptest.NewRequest(http.MethodDelete, "/api/documents/missing", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/api/documents/20000000-0000-0000-0000-000000000002", nil)
 	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
-	req = withChiParam(req, "id", "missing")
+	req = withChiParam(req, "id", "20000000-0000-0000-0000-000000000002")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -451,15 +451,15 @@ func TestDeleteDocument_NotFound(t *testing.T) {
 
 func TestDeleteDocument_RepoError(t *testing.T) {
 	repo := &crudDocRepo{
-		singleDoc: &model.Document{ID: "d1", UserID: "user-1"},
+		singleDoc: &model.Document{ID: "10000000-0000-0000-0000-000000000001", UserID: "user-1"},
 		deleteErr: fmt.Errorf("db error"),
 	}
 	deps := DocCRUDDeps{DocRepo: repo}
 	handler := DeleteDocument(deps)
 
-	req := httptest.NewRequest(http.MethodDelete, "/api/documents/d1", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/api/documents/10000000-0000-0000-0000-000000000001", nil)
 	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
-	req = withChiParam(req, "id", "d1")
+	req = withChiParam(req, "id", "10000000-0000-0000-0000-000000000001")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -501,9 +501,9 @@ func TestRecoverDocument_NotFound(t *testing.T) {
 	deps := DocCRUDDeps{DocRepo: repo}
 	handler := RecoverDocument(deps)
 
-	req := httptest.NewRequest(http.MethodPost, "/api/documents/missing/recover", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/documents/20000000-0000-0000-0000-000000000002/recover", nil)
 	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
-	req = withChiParam(req, "id", "missing")
+	req = withChiParam(req, "id", "20000000-0000-0000-0000-000000000002")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -518,9 +518,9 @@ func TestUpdateDocumentTier_NotFound(t *testing.T) {
 	handler := UpdateDocumentTier(deps)
 
 	body, _ := json.Marshal(UpdateTierRequest{Tier: 1})
-	req := httptest.NewRequest(http.MethodPatch, "/api/documents/missing/tier", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPatch, "/api/documents/20000000-0000-0000-0000-000000000002/tier", bytes.NewReader(body))
 	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
-	req = withChiParam(req, "id", "missing")
+	req = withChiParam(req, "id", "20000000-0000-0000-0000-000000000002")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -535,9 +535,9 @@ func TestToggleDocPrivilege_NotFound(t *testing.T) {
 	handler := ToggleDocPrivilege(deps)
 
 	body, _ := json.Marshal(ToggleDocPrivilegeRequest{Privileged: true})
-	req := httptest.NewRequest(http.MethodPatch, "/api/documents/missing/privilege", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPatch, "/api/documents/20000000-0000-0000-0000-000000000002/privilege", bytes.NewReader(body))
 	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
-	req = withChiParam(req, "id", "missing")
+	req = withChiParam(req, "id", "20000000-0000-0000-0000-000000000002")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 

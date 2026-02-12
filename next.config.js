@@ -81,8 +81,23 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '50mb',
     },
-    // Server-side external packages (native modules that shouldn't be bundled)
-    serverComponentsExternalPackages: ['ws', 'bufferutil', 'utf-8-validate', 'pdf-parse', 'mammoth'],
+    // Server-side external packages (native/heavy modules that shouldn't be bundled)
+    serverComponentsExternalPackages: [
+      'ws',
+      'bufferutil',
+      'utf-8-validate',
+      'pdf-parse',
+      'mammoth',
+      '@google-cloud/vertexai',
+      '@google-cloud/aiplatform',
+      '@google-cloud/text-to-speech',
+      '@google-cloud/storage',
+      '@google-cloud/bigquery',
+      '@google-cloud/documentai',
+      '@google-cloud/logging',
+      'google-auth-library',
+      '@prisma/client',
+    ],
   },
 
   // Headers for security

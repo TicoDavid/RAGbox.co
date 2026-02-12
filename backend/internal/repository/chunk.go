@@ -118,6 +118,7 @@ func (r *ChunkRepo) SimilaritySearch(ctx context.Context, queryVec []float32, to
 }
 
 // DeleteByDocumentID removes all chunks for a document.
+// Used by: document re-indexing (planned), integration tests.
 func (r *ChunkRepo) DeleteByDocumentID(ctx context.Context, documentID string) error {
 	_, err := r.pool.Exec(ctx, `DELETE FROM document_chunks WHERE document_id = $1`, documentID)
 	if err != nil {
@@ -127,6 +128,7 @@ func (r *ChunkRepo) DeleteByDocumentID(ctx context.Context, documentID string) e
 }
 
 // CountByDocumentID returns the number of chunks for a document.
+// Used by: document detail endpoint (planned), integration tests.
 func (r *ChunkRepo) CountByDocumentID(ctx context.Context, documentID string) (int, error) {
 	var count int
 	err := r.pool.QueryRow(ctx, `SELECT count(*) FROM document_chunks WHERE document_id = $1`, documentID).Scan(&count)

@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -25,6 +25,9 @@ import (
 const Version = "0.2.0"
 
 func run() error {
+	// Set up structured JSON logging
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
+
 	ctx := context.Background()
 
 	// Load configuration
@@ -39,7 +42,7 @@ func run() error {
 		return fmt.Errorf("database pool: %w", err)
 	}
 	defer pool.Close()
-	log.Println("database pool connected")
+	slog.Info("database pool connected")
 
 	// Initialize Firebase auth
 	app, err := firebase.NewApp(ctx, &firebase.Config{
@@ -64,14 +67,14 @@ func run() error {
 		return fmt.Errorf("vertex ai genai: %w", err)
 	}
 	defer genAI.Close()
-	log.Println("vertex ai genai client initialized")
+	slog.Info("vertex ai genai client initialized")
 
 	// Validate Vertex AI connection at startup
-	log.Println("Validating Vertex AI connection...")
+	slog.Info("validating vertex ai connection")
 	if err := genAI.HealthCheck(ctx); err != nil {
 		return fmt.Errorf("vertex AI health check failed: %w", err)
 	}
-	log.Println("Vertex AI connection validated successfully")
+	slog.Info("vertex ai connection validated")
 
 	// Vertex AI embedding model (REST API with default credentials)
 	// Embeddings use a regional endpoint (text-embedding-004 is not on global)
@@ -79,14 +82,14 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("vertex ai embedding: %w", err)
 	}
-	log.Println("vertex ai embedding client initialized")
+	slog.Info("vertex ai embedding client initialized")
 
 	// Validate embedding connection at startup
-	log.Println("Validating Vertex AI Embeddings connection...")
+	slog.Info("validating vertex ai embeddings connection")
 	if err := embeddingAdapter.HealthCheck(ctx); err != nil {
 		return fmt.Errorf("embedding health check failed: %w", err)
 	}
-	log.Println("Vertex AI Embeddings connection validated successfully")
+	slog.Info("vertex ai embeddings connection validated")
 
 	// Document AI for text extraction
 	var docAIAdapter *gcpclient.DocumentAIAdapter
@@ -96,16 +99,16 @@ func run() error {
 			return fmt.Errorf("document ai: %w", err)
 		}
 		defer docAIAdapter.Close()
-		log.Println("document ai client initialized")
+		slog.Info("document ai client initialized")
 
-		log.Println("Validating Document AI connection...")
+		slog.Info("validating document ai connection")
 		if err := docAIAdapter.HealthCheck(ctx); err != nil {
-			log.Printf("WARNING: Document AI health check failed: %v (processing will fail)", err)
+			slog.Warn("document ai health check failed", "error", err)
 		} else {
-			log.Println("Document AI connection validated successfully")
+			slog.Info("document ai connection validated")
 		}
 	} else {
-		log.Println("WARNING: DOCUMENT_AI_PROCESSOR_ID not set - document processing disabled")
+		slog.Warn("document ai processor not configured", "reason", "DOCUMENT_AI_PROCESSOR_ID not set")
 	}
 
 	// Cloud Storage
@@ -114,7 +117,7 @@ func run() error {
 		return fmt.Errorf("cloud storage: %w", err)
 	}
 	defer storageAdapter.Close()
-	log.Println("cloud storage client initialized")
+	slog.Info("cloud storage client initialized")
 
 	// ─── Repositories ──────────────────────────────────────────────────
 
@@ -131,7 +134,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("prompt loader: %w", err)
 	}
-	log.Println("prompt loader initialized")
+	slog.Info("prompt loader initialized")
 
 	// URL expiry
 	urlExpiry, err := time.ParseDuration(cfg.GCSSignedURLExpiry)
@@ -147,7 +150,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("audit service: %w", err)
 	}
-	log.Println("audit service initialized")
+	slog.Info("audit service initialized")
 
 	// Generator service (Gemini answer generation)
 	generatorService := service.NewGeneratorService(genAI, cfg.VertexAIModel)
@@ -177,7 +180,7 @@ func run() error {
 		pipelineSvc = service.NewPipelineService(
 			docRepo, parserSvc, redactorSvc, chunkerSvc, embedderSvc, auditService, cfg.GCSBucketName,
 		)
-		log.Println("pipeline service initialized (Document AI parser)")
+		slog.Info("pipeline service initialized", "parser", "document_ai")
 	} else {
 		textParser := gcpclient.NewTextParser(storageAdapter)
 		noopRedactor := gcpclient.NewNoopRedactor()
@@ -185,7 +188,7 @@ func run() error {
 		pipelineSvc = service.NewPipelineService(
 			docRepo, textParser, noopRedactor, chunkerSvc, embedderSvc, auditService, cfg.GCSBucketName,
 		)
-		log.Println("pipeline service initialized (text parser fallback — no Document AI)")
+		slog.Info("pipeline service initialized", "parser", "text_fallback")
 	}
 
 	// Privilege state (in-memory per-user toggle)
@@ -216,7 +219,7 @@ func run() error {
 	})
 	defer forgeRL.Stop()
 
-	log.Println("rate limiters initialized (general: 60/min, chat: 10/min, forge: 5/min)")
+	slog.Info("rate limiters initialized", "general", "60/min", "chat", "10/min", "forge", "5/min")
 
 	// ─── Router ────────────────────────────────────────────────────────
 
@@ -284,7 +287,7 @@ func run() error {
 
 	errCh := make(chan error, 1)
 	go func() {
-		log.Printf("ragbox-backend v%s starting on port %s", Version, port)
+		slog.Info("server starting", "version", Version, "port", port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			errCh <- err
 		}
@@ -296,7 +299,7 @@ func run() error {
 
 	select {
 	case sig := <-quit:
-		log.Printf("received signal %s, shutting down gracefully", sig)
+		slog.Info("received shutdown signal", "signal", sig)
 	case err := <-errCh:
 		return fmt.Errorf("server error: %w", err)
 	}
@@ -308,12 +311,13 @@ func run() error {
 		return fmt.Errorf("graceful shutdown failed: %w", err)
 	}
 
-	log.Println("server stopped")
+	slog.Info("server stopped")
 	return nil
 }
 
 func main() {
 	if err := run(); err != nil {
-		log.Fatal(err)
+		slog.Error("fatal startup error", "error", err)
+		os.Exit(1)
 	}
 }

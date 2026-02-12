@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -204,7 +204,7 @@ func (a *GenAIAdapter) HealthCheck(ctx context.Context) error {
 	if resp == "" {
 		return fmt.Errorf("vertex AI returned empty response (model: %s)", a.model)
 	}
-	log.Printf("Vertex AI health check passed for model: %s (location: %s)", a.model, a.location)
+	slog.Info("vertex ai health check passed", "model", a.model, "location", a.location)
 	return nil
 }
 

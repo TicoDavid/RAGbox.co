@@ -3,6 +3,7 @@ import { Space_Grotesk, Inter, JetBrains_Mono, Plus_Jakarta_Sans } from 'next/fo
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { AuthProvider } from '@/components/providers/AuthProvider'
 import { SettingsProvider } from '@/contexts/SettingsContext'
+import { Toaster } from 'sonner'
 import './globals.css'
 
 // 1. Authority (Headers)
@@ -60,6 +61,17 @@ export default function RootLayout({
             </ThemeProvider>
           </SettingsProvider>
         </AuthProvider>
+        <Toaster
+          theme="dark"
+          position="bottom-right"
+          toastOptions={{
+            style: {
+              background: '#112240',
+              border: '1px solid #233554',
+              color: '#E5E7EB',
+            },
+          }}
+        />
       </body>
     </html>
   )

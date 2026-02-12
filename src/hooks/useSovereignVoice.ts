@@ -163,7 +163,7 @@ export function useSovereignVoice(config: SovereignVoiceConfig = {}): SovereignV
       source.connect(analyserRef.current)
 
       // Step 4: Use Web Speech API as fallback (WebSocket full-duplex coming in Phase 2)
-      // TODO: Replace with WebSocket connection to session.wsUrl for full Inworld integration
+      // Voice WebSocket: future enhancement for full duplex audio streaming
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
       if (!SpeechRecognition) {
         throw new Error('Speech recognition not supported in this browser')

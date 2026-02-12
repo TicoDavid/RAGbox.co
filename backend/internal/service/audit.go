@@ -5,7 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -110,7 +110,7 @@ func (s *AuditService) LogWithDetails(ctx context.Context, action, userID, resou
 	if s.bq != nil {
 		go func() {
 			if err := s.bq.WriteAuditEntry(context.Background(), entry); err != nil {
-				log.Printf("WARNING: BigQuery audit write failed: %v", err)
+				slog.Warn("bigquery audit write failed", "error", err)
 			}
 		}()
 	}

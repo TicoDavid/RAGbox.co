@@ -68,7 +68,7 @@ export function SovereignCertificate({ document, userName = 'Sovereign User' }: 
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.06]">
         <img
           src="https://storage.googleapis.com/connexusai-assets/BabyBlue_RAGb%C3%B6x.png"
-          alt=""
+          alt="RAGbox watermark"
           className="w-40 h-auto select-none"
           draggable={false}
         />

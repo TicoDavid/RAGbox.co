@@ -3,7 +3,7 @@ package gcpclient
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 
 	documentai "cloud.google.com/go/documentai/apiv1"
 	"cloud.google.com/go/documentai/apiv1/documentaipb"
@@ -59,7 +59,7 @@ func (a *DocumentAIAdapter) ProcessDocument(ctx context.Context, processor strin
 	}
 
 	pageCount := len(resp.Document.Pages)
-	log.Printf("Document AI extracted %d pages, %d chars", pageCount, len(resp.Document.Text))
+	slog.Info("document ai text extracted", "pages", pageCount, "chars", len(resp.Document.Text))
 
 	// Extract entities if present
 	var entities []service.Entity
@@ -91,7 +91,7 @@ func (a *DocumentAIAdapter) HealthCheck(ctx context.Context) error {
 		return fmt.Errorf("gcpclient.DocumentAI.HealthCheck: %w", err)
 	}
 
-	log.Printf("Document AI health check passed (project: %s, location: %s)", a.project, a.location)
+	slog.Info("document ai health check passed", "project", a.project, "location", a.location)
 	return nil
 }
 

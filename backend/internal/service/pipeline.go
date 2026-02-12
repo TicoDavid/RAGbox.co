@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 
 	"github.com/connexus-ai/ragbox-backend/internal/model"
 )
@@ -81,89 +81,89 @@ func NewPipelineService(
 // ProcessDocument runs the full ingestion pipeline for a document.
 // It is designed to be called asynchronously (via goroutine).
 func (s *PipelineService) ProcessDocument(ctx context.Context, docID string) error {
-	log.Printf("[PIPELINE] Starting processing for document %s", docID)
+	slog.Info("pipeline starting", "document_id", docID)
 
 	doc, err := s.docRepo.GetByID(ctx, docID)
 	if err != nil {
-		log.Printf("[PIPELINE ERROR] Failed to get document %s: %v", docID, err)
+		slog.Error("pipeline failed to get document", "document_id", docID, "error", err)
 		return fmt.Errorf("pipeline.ProcessDocument: get document: %w", err)
 	}
-	log.Printf("[PIPELINE] Processing document: %s (type: %s, size: %d bytes)", doc.Filename, doc.MimeType, doc.SizeBytes)
+	slog.Info("pipeline processing document", "document_id", docID, "filename", doc.Filename, "mime_type", doc.MimeType, "size_bytes", doc.SizeBytes)
 
 	// Mark as processing
 	if err := s.docRepo.UpdateStatus(ctx, docID, model.IndexProcessing); err != nil {
-		log.Printf("[PIPELINE ERROR] Failed to update status to Processing: %v", err)
+		slog.Error("pipeline failed to update status", "document_id", docID, "target_status", "processing", "error", err)
 		return fmt.Errorf("pipeline.ProcessDocument: set processing: %w", err)
 	}
 
 	// Step 1: Parse — extract text via Document AI
 	gcsURI := fmt.Sprintf("gs://%s/%s", s.bucketName, ptrStr(doc.StoragePath))
-	log.Printf("[PIPELINE] Step 1: Extracting text from %s", gcsURI)
+	slog.Info("pipeline step 1: extracting text", "document_id", docID, "gcs_uri", gcsURI)
 	parsed, err := s.parser.Extract(ctx, gcsURI)
 	if err != nil {
-		log.Printf("[PIPELINE ERROR] Text extraction failed for doc %s: %v", docID, err)
+		slog.Error("pipeline text extraction failed", "document_id", docID, "error", err)
 		s.failDocument(ctx, docID, "parse_failed", err)
 		return fmt.Errorf("pipeline.ProcessDocument: parse: %w", err)
 	}
-	log.Printf("[PIPELINE] Extracted %d characters, %d pages", len(parsed.Text), parsed.Pages)
+	slog.Info("pipeline text extracted", "document_id", docID, "chars", len(parsed.Text), "pages", parsed.Pages)
 
 	// Step 2: Scan for PII/PHI
-	log.Printf("[PIPELINE] Step 2: Scanning for PII")
+	slog.Info("pipeline step 2: scanning for PII", "document_id", docID)
 	scanResult, err := s.redactor.Scan(ctx, parsed.Text)
 	if err != nil {
-		log.Printf("[PIPELINE WARNING] PII scan failed for doc %s (non-fatal): %v", docID, err)
+		slog.Warn("pipeline PII scan failed (non-fatal)", "document_id", docID, "error", err)
 		// PII scan failure is non-fatal — continue pipeline
 	} else if scanResult.FindingCount > 0 {
-		log.Printf("[PIPELINE] Found %d PII instances (types: %v), continuing without redaction", scanResult.FindingCount, scanResult.Types)
+		slog.Info("pipeline PII findings detected", "document_id", docID, "count", scanResult.FindingCount, "types", scanResult.Types)
 	} else {
-		log.Printf("[PIPELINE] No PII findings")
+		slog.Info("pipeline no PII findings", "document_id", docID)
 	}
 
 	// Step 3: Store extracted text
-	log.Printf("[PIPELINE] Step 3: Storing extracted text")
+	slog.Info("pipeline step 3: storing extracted text", "document_id", docID)
 	if err := s.docRepo.UpdateText(ctx, docID, parsed.Text, parsed.Pages); err != nil {
-		log.Printf("[PIPELINE ERROR] Failed to store extracted text: %v", err)
+		slog.Error("pipeline failed to store extracted text", "document_id", docID, "error", err)
 		s.failDocument(ctx, docID, "store_text_failed", err)
 		return fmt.Errorf("pipeline.ProcessDocument: store text: %w", err)
 	}
 
 	// Step 4: Chunk
-	log.Printf("[PIPELINE] Step 4: Chunking text (%d chars)", len(parsed.Text))
+	slog.Info("pipeline step 4: chunking text", "document_id", docID, "chars", len(parsed.Text))
 	chunks, err := s.chunker.Chunk(ctx, parsed.Text, docID)
 	if err != nil {
-		log.Printf("[PIPELINE ERROR] Chunking failed for doc %s: %v", docID, err)
+		slog.Error("pipeline chunking failed", "document_id", docID, "error", err)
 		s.failDocument(ctx, docID, "chunk_failed", err)
 		return fmt.Errorf("pipeline.ProcessDocument: chunk: %w", err)
 	}
-	log.Printf("[PIPELINE] Created %d chunks", len(chunks))
+	slog.Info("pipeline chunks created", "document_id", docID, "chunk_count", len(chunks))
 
 	// Step 5: Embed and store vectors
-	log.Printf("[PIPELINE] Step 5: Generating embeddings for %d chunks", len(chunks))
+	slog.Info("pipeline step 5: generating embeddings", "document_id", docID, "chunk_count", len(chunks))
 	if err := s.embedder.EmbedAndStore(ctx, chunks); err != nil {
-		log.Printf("[PIPELINE ERROR] Embedding failed for doc %s: %v", docID, err)
+		slog.Error("pipeline embedding failed", "document_id", docID, "error", err)
 		s.failDocument(ctx, docID, "embed_failed", err)
 		return fmt.Errorf("pipeline.ProcessDocument: embed: %w", err)
 	}
-	log.Printf("[PIPELINE] Embeddings stored successfully")
+	slog.Info("pipeline embeddings stored", "document_id", docID)
 
 	// Step 6: Update status to Indexed
 	if err := s.docRepo.UpdateStatus(ctx, docID, model.IndexIndexed); err != nil {
-		log.Printf("[PIPELINE ERROR] Failed to update status to Indexed: %v", err)
+		slog.Error("pipeline failed to update status to indexed", "document_id", docID, "error", err)
 		return fmt.Errorf("pipeline.ProcessDocument: set indexed: %w", err)
 	}
 	if err := s.docRepo.UpdateChunkCount(ctx, docID, len(chunks)); err != nil {
-		log.Printf("[PIPELINE WARNING] Failed to update chunk count: %v", err)
+		slog.Warn("pipeline failed to update chunk count", "document_id", docID, "error", err)
 		return fmt.Errorf("pipeline.ProcessDocument: update chunk count: %w", err)
 	}
 
 	// Step 7: Audit
 	if s.audit != nil {
 		if err := s.audit.Log(ctx, model.AuditDocumentUpload, doc.UserID, doc.ID, "document"); err != nil {
-			log.Printf("[PIPELINE WARNING] Audit log failed for doc %s: %v", docID, err)
+			slog.Warn("pipeline audit log failed", "document_id", docID, "error", err)
 		}
 	}
 
-	log.Printf("[PIPELINE] Completed processing for document %s (%d chunks indexed)", docID, len(chunks))
+	slog.Info("pipeline completed", "document_id", docID, "chunk_count", len(chunks))
 	return nil
 }
 

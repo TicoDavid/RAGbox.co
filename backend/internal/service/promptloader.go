@@ -2,7 +2,7 @@ package service
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -56,14 +56,14 @@ func (p *PromptLoader) load() error {
 	for _, pattern := range patterns {
 		matches, err := filepath.Glob(filepath.Join(p.promptsDir, pattern))
 		if err != nil {
-			log.Printf("WARNING: failed to glob %s: %v", pattern, err)
+			slog.Warn("failed to glob prompt pattern", "pattern", pattern, "error", err)
 			continue
 		}
 		for _, path := range matches {
 			name := strings.TrimSuffix(filepath.Base(path), ".txt")
 			data, err := os.ReadFile(path)
 			if err != nil {
-				log.Printf("WARNING: failed to read persona file %s: %v", path, err)
+				slog.Warn("failed to read persona file", "path", path, "error", err)
 				continue
 			}
 			personas[name] = string(data)

@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 import { apiFetch } from '@/lib/api'
+import { toast } from 'sonner'
 
 interface PrivilegeState {
   isEnabled: boolean
@@ -20,15 +21,21 @@ export const usePrivilegeStore = create<PrivilegeState>()(
         toggle: async () => {
           const newState = !get().isEnabled
 
-          const res = await apiFetch('/api/privilege', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ privileged: newState }),
-          })
+          try {
+            const res = await apiFetch('/api/privilege', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ privileged: newState }),
+            })
 
-          if (!res.ok) throw new Error('Privilege toggle failed')
+            if (!res.ok) throw new Error('Privilege toggle failed')
 
-          set({ isEnabled: newState, lastChanged: new Date() })
+            set({ isEnabled: newState, lastChanged: new Date() })
+            toast.success(newState ? 'Privilege mode enabled' : 'Privilege mode disabled')
+          } catch (error) {
+            toast.error('Failed to toggle privilege mode')
+            throw error
+          }
         },
 
         fetch: async () => {

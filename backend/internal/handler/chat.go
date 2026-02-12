@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -98,7 +98,7 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 
 		retrieval, err := deps.Retriever.Retrieve(ctx, req.Query, req.PrivilegeMode)
 		if err != nil {
-			log.Printf("[CHAT ERROR] Retrieval failed for user %s: %v", userID, err)
+			slog.Error("chat retrieval failed", "user_id", userID, "stage", "retrieval", "error", err)
 			sendEvent(w, flusher, "error", fmt.Sprintf(`{"message":%q}`, err.Error()))
 			sendEvent(w, flusher, "done", `{}`)
 			return
@@ -126,7 +126,7 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 
 		initial, err := deps.Generator.Generate(ctx, req.Query, retrieval.Chunks, opts)
 		if err != nil {
-			log.Printf("[CHAT ERROR] Generation failed for user %s: %v", userID, err)
+			slog.Error("chat generation failed", "user_id", userID, "stage", "generation", "error", err)
 			sendEvent(w, flusher, "error", fmt.Sprintf(`{"message":%q}`, err.Error()))
 			sendEvent(w, flusher, "done", `{}`)
 			return
@@ -135,7 +135,7 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 		// Step 3: Self-RAG Reflection
 		result, err := deps.SelfRAG.Reflect(ctx, req.Query, retrieval.Chunks, initial)
 		if err != nil {
-			log.Printf("[CHAT ERROR] Self-RAG reflection failed for user %s: %v", userID, err)
+			slog.Error("chat self-rag reflection failed", "user_id", userID, "stage", "reflection", "error", err)
 			sendEvent(w, flusher, "error", fmt.Sprintf(`{"message":%q}`, err.Error()))
 			sendEvent(w, flusher, "done", `{}`)
 			return

@@ -103,10 +103,9 @@ export function ToolConfirmationDialog({
     recognition.continuous = false
     recognition.interimResults = true
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recognition.onresult = (event: any) => {
-      const transcript = Array.from(event.results as SpeechRecognitionResultList)
-        .map((r: SpeechRecognitionResult) => r[0].transcript)
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map((r) => r[0].transcript)
         .join('')
         .toLowerCase()
         .trim()

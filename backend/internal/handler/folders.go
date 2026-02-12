@@ -106,6 +106,10 @@ func DeleteFolder(deps FolderDeps) http.HandlerFunc {
 			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "folder id required"})
 			return
 		}
+		if !validateUUID(folderID) {
+			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "invalid folder ID format"})
+			return
+		}
 
 		// Verify folder exists and belongs to requesting user
 		folder, err := deps.FolderRepo.GetByID(r.Context(), folderID)

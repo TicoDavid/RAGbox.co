@@ -2,7 +2,7 @@ package gcpclient
 
 import (
 	"context"
-	"log"
+	"log/slog"
 
 	"github.com/connexus-ai/ragbox-backend/internal/service"
 )
@@ -18,7 +18,7 @@ func NewNoopRedactor() *NoopRedactor {
 
 // Scan always returns an empty ScanResult with no findings.
 func (r *NoopRedactor) Scan(ctx context.Context, text string) (*service.ScanResult, error) {
-	log.Println("[NOOP_REDACTOR] PII scanning skipped (no-op)")
+	slog.Info("PII scanning skipped", "reason", "noop_redactor")
 	return &service.ScanResult{
 		Findings:     nil,
 		FindingCount: 0,

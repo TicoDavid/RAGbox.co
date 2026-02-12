@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { apiFetch } from '@/lib/api'
+import { toast } from 'sonner'
 
 /**
  * Settings Page - /dashboard/settings
@@ -66,9 +67,11 @@ export default function SettingsPage() {
 
       setExportStatus('success')
       setExportMessage('Your data has been exported successfully.')
+      toast.success('Data exported successfully')
     } catch (error) {
       setExportStatus('error')
       setExportMessage(error instanceof Error ? error.message : 'Failed to export data. Please try again.')
+      toast.error('Failed to export data')
     } finally {
       setIsExporting(false)
     }

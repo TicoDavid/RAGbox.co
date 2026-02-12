@@ -152,9 +152,9 @@ func TestDeleteFolder_Success(t *testing.T) {
 	deps := FolderDeps{FolderRepo: repo}
 	handler := DeleteFolder(deps)
 
-	req := httptest.NewRequest(http.MethodDelete, "/api/documents/folders/f1", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/api/documents/folders/30000000-0000-0000-0000-000000000003", nil)
 	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
-	req = withFolderChiParam(req, "id", "f1")
+	req = withFolderChiParam(req, "id", "30000000-0000-0000-0000-000000000003")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -165,14 +165,14 @@ func TestDeleteFolder_Success(t *testing.T) {
 
 func TestDeleteFolder_ForbiddenWrongOwner(t *testing.T) {
 	repo := &stubFolderRepo{
-		getByID: &model.Folder{ID: "f1", Name: "Test", UserID: "other-user"},
+		getByID: &model.Folder{ID: "30000000-0000-0000-0000-000000000003", Name: "Test", UserID: "other-user"},
 	}
 	deps := FolderDeps{FolderRepo: repo}
 	handler := DeleteFolder(deps)
 
-	req := httptest.NewRequest(http.MethodDelete, "/api/documents/folders/f1", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/api/documents/folders/30000000-0000-0000-0000-000000000003", nil)
 	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
-	req = withFolderChiParam(req, "id", "f1")
+	req = withFolderChiParam(req, "id", "30000000-0000-0000-0000-000000000003")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -188,9 +188,9 @@ func TestDeleteFolder_NotFound(t *testing.T) {
 	deps := FolderDeps{FolderRepo: repo}
 	handler := DeleteFolder(deps)
 
-	req := httptest.NewRequest(http.MethodDelete, "/api/documents/folders/f1", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/api/documents/folders/30000000-0000-0000-0000-000000000003", nil)
 	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
-	req = withFolderChiParam(req, "id", "f1")
+	req = withFolderChiParam(req, "id", "30000000-0000-0000-0000-000000000003")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -217,9 +217,9 @@ func TestDeleteFolder_RepoError(t *testing.T) {
 	deps := FolderDeps{FolderRepo: repo}
 	handler := DeleteFolder(deps)
 
-	req := httptest.NewRequest(http.MethodDelete, "/api/documents/folders/f1", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/api/documents/folders/30000000-0000-0000-0000-000000000003", nil)
 	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
-	req = withFolderChiParam(req, "id", "f1")
+	req = withFolderChiParam(req, "id", "30000000-0000-0000-0000-000000000003")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 

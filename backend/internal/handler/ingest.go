@@ -2,7 +2,7 @@ package handler
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -40,6 +40,10 @@ func IngestDocument(deps IngestDeps) http.HandlerFunc {
 			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "document id required"})
 			return
 		}
+		if !validateUUID(docID) {
+			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "invalid document ID format"})
+			return
+		}
 
 		doc, err := deps.DocRepo.GetByID(r.Context(), docID)
 		if err != nil {
@@ -63,11 +67,11 @@ func IngestDocument(deps IngestDeps) http.HandlerFunc {
 		go func(id string) {
 			ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 			defer cancel()
-			log.Printf("[INGEST] Starting pipeline for document %s", id)
+			slog.Info("ingest starting pipeline", "document_id", id)
 			if err := deps.Pipeline.ProcessDocument(ctx, id); err != nil {
-				log.Printf("[INGEST ERROR] Pipeline failed for document %s: %v", id, err)
+				slog.Error("ingest pipeline failed", "document_id", id, "error", err)
 			} else {
-				log.Printf("[INGEST] Pipeline completed for document %s", id)
+				slog.Info("ingest pipeline completed", "document_id", id)
 			}
 		}(docID)
 
