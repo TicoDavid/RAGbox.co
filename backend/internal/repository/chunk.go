@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -90,8 +91,15 @@ func (r *ChunkRepo) SimilaritySearch(ctx context.Context, queryVec []float32, to
 		ORDER BY dc.embedding <=> $1::vector
 		LIMIT $3`
 
+	slog.Info("[DEBUG-REPO] executing similarity search",
+		"top_k", topK,
+		"threshold", threshold,
+		"exclude_privileged", excludePrivileged,
+	)
+
 	rows, err := r.pool.Query(ctx, query, embedding, threshold, topK)
 	if err != nil {
+		slog.Error("[DEBUG-REPO] similarity search query failed", "error", err)
 		return nil, fmt.Errorf("repository.SimilaritySearch: %w", err)
 	}
 	defer rows.Close()
@@ -113,6 +121,12 @@ func (r *ChunkRepo) SimilaritySearch(ctx context.Context, queryVec []float32, to
 		}
 		results = append(results, cr)
 	}
+
+	slog.Info("[DEBUG-REPO] similarity search complete",
+		"results_count", len(results),
+		"threshold", threshold,
+		"top_k", topK,
+	)
 
 	return results, nil
 }

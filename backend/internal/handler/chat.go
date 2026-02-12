@@ -40,11 +40,27 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			return
 		}
 
+		slog.Info("[DEBUG-CHAT] request received",
+			"user_id", userID,
+			"remote_addr", r.RemoteAddr,
+			"x_internal_auth_present", r.Header.Get("X-Internal-Auth") != "",
+			"x_user_id_header", r.Header.Get("X-User-ID"),
+		)
+
 		var req ChatRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "invalid request body"})
 			return
 		}
+
+		slog.Info("[DEBUG-CHAT] parsed request",
+			"user_id", userID,
+			"query", req.Query,
+			"query_len", len(req.Query),
+			"privilege_mode", req.PrivilegeMode,
+			"mode", req.Mode,
+			"persona", req.Persona,
+		)
 
 		if req.Query == "" {
 			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "query is required"})
@@ -104,7 +120,29 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			return
 		}
 
+		slog.Info("[DEBUG-CHAT] retrieval complete",
+			"user_id", userID,
+			"chunks_returned", len(retrieval.Chunks),
+			"total_candidates", retrieval.TotalCandidates,
+		)
+		for i, c := range retrieval.Chunks {
+			slog.Info("[DEBUG-CHAT] chunk",
+				"rank", i,
+				"doc_id", c.Document.ID,
+				"doc_name", c.Document.OriginalName,
+				"similarity", fmt.Sprintf("%.4f", c.Similarity),
+				"final_score", fmt.Sprintf("%.4f", c.FinalScore),
+				"chunk_index", c.Chunk.ChunkIndex,
+				"content_preview", truncate(c.Chunk.Content, 80),
+			)
+		}
+
 		if len(retrieval.Chunks) == 0 {
+			slog.Warn("[DEBUG-CHAT] SILENCE: zero chunks retrieved — triggering silence protocol",
+				"user_id", userID,
+				"query", req.Query,
+				"privilege_mode", req.PrivilegeMode,
+			)
 			if deps.Metrics != nil {
 				deps.Metrics.IncrementSilenceTrigger()
 			}
@@ -179,6 +217,14 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 func sendEvent(w http.ResponseWriter, f http.Flusher, event, data string) {
 	fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, data)
 	f.Flush()
+}
+
+// truncate returns the first n characters of s, appending "…" if truncated.
+func truncate(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n] + "…"
 }
 
 // splitIntoTokens splits text into word-level tokens for streaming.

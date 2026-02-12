@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"math"
 	"sort"
 	"time"
@@ -86,11 +87,35 @@ func (s *RetrieverService) Retrieve(ctx context.Context, query string, privilege
 	}
 	queryVec := queryVecs[0]
 
+	slog.Info("[DEBUG-RETRIEVER] query embedded",
+		"query", query,
+		"vec_dim", len(queryVec),
+		"vec_first3", fmt.Sprintf("%.4f, %.4f, %.4f", safeIdx(queryVec, 0), safeIdx(queryVec, 1), safeIdx(queryVec, 2)),
+	)
+
 	// 2. Vector search (top-20, threshold 0.7)
 	excludePrivileged := !privilegeMode
 	candidates, err := s.searcher.SimilaritySearch(ctx, queryVec, defaultTopK, defaultThreshold, excludePrivileged)
 	if err != nil {
 		return nil, fmt.Errorf("service.Retrieve: search: %w", err)
+	}
+
+	slog.Info("[DEBUG-RETRIEVER] similarity search done",
+		"candidates", len(candidates),
+		"top_k", defaultTopK,
+		"threshold", defaultThreshold,
+		"exclude_privileged", excludePrivileged,
+	)
+	for i, c := range candidates {
+		if i < 5 { // log top 5 only
+			slog.Info("[DEBUG-RETRIEVER] candidate",
+				"rank", i,
+				"similarity", fmt.Sprintf("%.4f", c.Similarity),
+				"doc_id", c.Document.ID,
+				"doc_name", c.Document.OriginalName,
+				"chunk_idx", c.Chunk.ChunkIndex,
+			)
+		}
 	}
 
 	if len(candidates) == 0 {
@@ -173,6 +198,14 @@ func parentDocBoost(chunkCount int) float64 {
 	}
 	cap := 50.0
 	return math.Min(float64(chunkCount)/cap, 1.0)
+}
+
+// safeIdx returns vec[i] or 0 if out of bounds.
+func safeIdx(vec []float32, i int) float32 {
+	if i < len(vec) {
+		return vec[i]
+	}
+	return 0
 }
 
 // deduplicate limits the number of chunks from any single document.
