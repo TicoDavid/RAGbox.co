@@ -17,9 +17,10 @@
 | Phase 3: Integration | 1 | 2 | 1 | 0 | 4 |
 | Phase 4: Visual/UX | 1 | 2 | 3 | 1 | 7 |
 | Phase 5: Code Quality | 2 | 4 | 5 | 3 | 14 |
-| **TOTAL** | **7** | **14** | **15** | **7** | **43** |
+| Phase 5b: Backend Deep Audit | 1 | 2 | 3 | 4 | 10 |
+| **TOTAL** | **8** | **16** | **18** | **11** | **53** |
 
-**Verdict:** NOT beta-ready. 7 critical + 14 high issues must be resolved first.
+**Verdict:** NOT beta-ready. 8 critical + 16 high issues must be resolved first.
 
 ---
 
@@ -538,74 +539,189 @@ No tests for: Mercury chat, auth flow, forge panel, audit page, voice features, 
 
 ---
 
+## PHASE 5b: Backend Deep Audit
+
+### ISSUE-044: Authorization Bypass — Any User Can Delete Any Folder
+**Phase:** 5b | **Severity:** CRITICAL
+**Component:** Backend
+**Description:** `handler/folders.go:100` has `_ = userID` with comment "Ownership check would require GetByID — simplified for now". **Any authenticated user can delete any other user's folder by ID.** This is a security vulnerability that allows data destruction across user boundaries.
+**Expected:** Folder deletion requires ownership verification
+**Actual:** No ownership check — only authentication, no authorization
+**Fix:** Add ownership check via `GetFolderByID` before delete, return 403 if not owner
+**Effort:** 1 hour
+
+### ISSUE-045: Race Condition — PrivilegeState Map (No Mutex)
+**Phase:** 5b | **Severity:** HIGH
+**Component:** Backend
+**Description:** `handler/privilege.go` uses `map[string]bool` for per-user privilege state with no mutex/sync protection. Concurrent requests from different users will cause a Go data race (undefined behavior, potential crash). Go maps are not safe for concurrent read/write.
+**Expected:** Thread-safe state management
+**Actual:** Unprotected map — data race under concurrent load
+**Fix:** Add `sync.RWMutex` around map access, or move state to database
+**Effort:** 1 hour
+
+### ISSUE-046: Race Condition — AuditService lastHash (No Mutex)
+**Phase:** 5b | **Severity:** HIGH
+**Component:** Backend
+**Description:** `service/audit.go:41` — the `lastHash` field used for SHA-256 hash-chain integrity is read and written without mutex protection. Concurrent audit log writes could create a broken hash chain (SEC 17a-4 WORM compliance risk) or trigger a data race panic.
+**Expected:** Thread-safe hash chain
+**Actual:** Unprotected field — hash chain integrity broken under concurrency
+**Fix:** Add `sync.Mutex` around `lastHash` read/write in `Log()` method
+**Effort:** 0.5 hours
+
+### ISSUE-047: WriteTimeout=0 Globally (Slow-Read Attack Vector)
+**Phase:** 5b | **Severity:** MEDIUM
+**Component:** Backend
+**Description:** `cmd/server/main.go:253` sets `WriteTimeout: 0` (disabled) to support SSE streaming on `/api/chat`. However, this disables write timeout for ALL endpoints, leaving non-streaming endpoints (upload, documents, audit, export, forge) vulnerable to slow-read attacks where a client reads the response extremely slowly, holding the connection indefinitely.
+**Expected:** SSE-only timeout exemption
+**Actual:** All endpoints have no write timeout
+**Fix:** Use per-handler timeout middleware or `http.TimeoutHandler` wrapper for non-SSE routes
+**Effort:** 2 hours
+
+### ISSUE-048: Version Constant Mismatch
+**Phase:** 5b | **Severity:** MEDIUM
+**Component:** Backend
+**Description:** Two different version constants exist:
+- `cmd/server/main.go:25` → `const Version = "0.2.0"` (used in startup log)
+- `handler/health.go:10` → `const version = "1.0.0"` (returned in health check response)
+
+**Expected:** Single source of truth for version
+**Actual:** Health check reports 1.0.0, server logs 0.2.0
+**Fix:** Remove `health.go` constant, import version from main package
+**Effort:** 0.25 hours
+
+### ISSUE-049: IncrementSilenceTrigger Never Called
+**Phase:** 5b | **Severity:** MEDIUM
+**Component:** Backend
+**Description:** `middleware/monitoring.go:95` defines `IncrementSilenceTrigger()` on the Metrics struct, but the chat handler never calls it when Silence Protocol triggers. The Prometheus `silence_triggers_total` metric always reads 0.
+**Expected:** Silence trigger metric incremented when Silence Protocol fires
+**Actual:** Metric defined but never recorded
+**Fix:** Add `deps.Metrics.IncrementSilenceTrigger()` call in chat handler silence path
+**Effort:** 0.25 hours
+
+### ISSUE-050: 50+ Unstructured Log Statements (Backend)
+**Phase:** 5b | **Severity:** LOW
+**Component:** Backend
+**Description:** Entire backend uses `log.Printf`/`log.Println` (50+ calls) instead of structured logging (slog, zap, zerolog). This makes log parsing, filtering, and aggregation in Cloud Logging difficult. Key offenders:
+- `cmd/server/main.go` — 20 startup log lines
+- `internal/service/pipeline.go` — 20 pipeline progress lines
+- `internal/handler/chat.go` — 3 error log lines
+
+**Expected:** Structured JSON logging for production
+**Actual:** Unstructured plaintext logs
+**Fix:** Replace with `slog` (Go 1.21+ stdlib) with JSON handler
+**Effort:** 4 hours
+
+### ISSUE-051: No UUID Format Validation on Path Parameters
+**Phase:** 5b | **Severity:** LOW
+**Component:** Backend
+**Description:** All handlers accepting `{id}` path params pass the raw string to repository queries without validating UUID format. Invalid IDs (e.g., `abc`, `../../etc`) hit the database and return generic "not found" errors instead of 400 Bad Request.
+**Expected:** 400 for malformed IDs
+**Actual:** Database query with invalid UUID, returns 404/500
+**Fix:** Add UUID validation helper, return 400 on invalid format
+**Effort:** 1 hour
+
+### ISSUE-052: No Query Length Limit on Chat Input
+**Phase:** 5b | **Severity:** LOW
+**Component:** Backend
+**Description:** `handler/chat.go` accepts `Query` field with no length validation. An extremely long query would be sent to Vertex AI embedding + Gemini generation, potentially causing timeout or excessive billing.
+**Expected:** Query length capped (e.g., 10,000 chars)
+**Actual:** Unbounded
+**Fix:** Add max length validation in chat handler
+**Effort:** 0.25 hours
+
+### ISSUE-053: Unused Backend Functions (Dead Code)
+**Phase:** 5b | **Severity:** LOW
+**Component:** Backend
+**Description:** Several functions are defined but never called in production:
+- `middleware.FirebaseAuth()` — only called in tests, router uses `InternalOrFirebaseAuth` instead
+- `repository.ChunkRepo.DeleteByDocumentID()` — defined but never called
+- `repository.ChunkRepo.CountByDocumentID()` — defined but never called
+
+**Expected:** No dead code
+**Actual:** 3 unused exported functions
+**Fix:** Remove or mark with `// Used by:` comment if planned for future use
+**Effort:** 0.5 hours
+
+---
+
 ## Prioritized Repair List
 
 ### Critical (Beta Blockers) — Fix Immediately
 
 | # | Issue | Component | Effort |
 |---|-------|-----------|--------|
-| 1 | ISSUE-001: No Error Boundaries | Frontend | 3h |
-| 2 | ISSUE-002: No Loading States (App Router) | Frontend | 2h |
-| 3 | ISSUE-023: Missing HSTS + CSP Headers | Frontend | 1h |
-| 4 | ISSUE-030: 188 Console Statements | Frontend | 6h |
-| 5 | ISSUE-031: OTP Codes Logged in Plaintext | Frontend | 0.5h |
-| 6 | ISSUE-019: Upload Pipeline Silent Failure | Integration | 2h |
-| 7 | ISSUE-024: OpenRouter Key in Client Bundle | Frontend | 0.5h |
-| | | **Subtotal** | **15h** |
+| 1 | ISSUE-044: DeleteFolder Auth Bypass (ANY user can delete ANY folder) | Backend | 1h |
+| 2 | ISSUE-001: No Error Boundaries | Frontend | 3h |
+| 3 | ISSUE-002: No Loading States (App Router) | Frontend | 2h |
+| 4 | ISSUE-023: Missing HSTS + CSP Headers | Frontend | 1h |
+| 5 | ISSUE-030: 188 Console Statements | Frontend | 6h |
+| 6 | ISSUE-031: OTP Codes Logged in Plaintext | Frontend | 0.5h |
+| 7 | ISSUE-019: Upload Pipeline Silent Failure | Integration | 2h |
+| 8 | ISSUE-024: OpenRouter Key in Client Bundle | Frontend | 0.5h |
+| | | **Subtotal** | **16h** |
 
 ### High Priority — Fix Before Beta
 
 | # | Issue | Component | Effort |
 |---|-------|-----------|--------|
-| 8 | ISSUE-003: Missing Template API Routes | Frontend | 4h |
-| 9 | ISSUE-005: Minimal Accessibility | Frontend | 6h |
-| 10 | ISSUE-013: No Go Backend Rate Limiting | Backend | 4h |
-| 11 | ISSUE-020: Dual Fetch Patterns | Frontend | 3h |
-| 12 | ISSUE-021: Search Not Connected | Integration | 3h |
-| 13 | ISSUE-029: Form Keyboard Handling | Frontend | 2h |
-| 14 | ISSUE-034: Hardcoded localhost URLs | Frontend | 2h |
-| 15 | ISSUE-035: Backend No Security Headers | Backend | 1h |
-| 16 | ISSUE-036: Backend Input Validation | Backend | 4h |
-| 17 | ISSUE-012: promote_tier Returns 501 | Backend | 0.5h |
-| 18 | ISSUE-004: Deprecated Inworld Endpoint | Frontend | 0.5h |
-| 19 | ISSUE-017: Voice Route Error Handling | Frontend | 1h |
-| | | **Subtotal** | **31h** |
+| 9 | ISSUE-045: PrivilegeState Race Condition (no mutex) | Backend | 1h |
+| 10 | ISSUE-046: AuditService lastHash Race Condition | Backend | 0.5h |
+| 11 | ISSUE-003: Missing Template API Routes | Frontend | 4h |
+| 12 | ISSUE-005: Minimal Accessibility | Frontend | 6h |
+| 13 | ISSUE-013: No Go Backend Rate Limiting | Backend | 4h |
+| 14 | ISSUE-020: Dual Fetch Patterns | Frontend | 3h |
+| 15 | ISSUE-021: Search Not Connected | Integration | 3h |
+| 16 | ISSUE-029: Form Keyboard Handling | Frontend | 2h |
+| 17 | ISSUE-034: Hardcoded localhost URLs | Frontend | 2h |
+| 18 | ISSUE-035: Backend No Security Headers | Backend | 1h |
+| 19 | ISSUE-036: Backend Input Validation | Backend | 4h |
+| 20 | ISSUE-012: promote_tier Returns 501 | Backend | 0.5h |
+| 21 | ISSUE-004: Deprecated Inworld Endpoint | Frontend | 0.5h |
+| 22 | ISSUE-017: Voice Route Error Handling | Frontend | 1h |
+| | | **Subtotal** | **32.5h** |
 
 ### Medium Priority — Fix After Beta Launch
 
 | # | Issue | Component | Effort |
 |---|-------|-----------|--------|
-| 20 | ISSUE-006: Duplicate Privilege State | Frontend | 2h |
-| 21 | ISSUE-007: Legacy Component Cleanup | Frontend | 3h |
-| 22 | ISSUE-008: Multiple Voice Hooks | Frontend | 4h |
-| 23 | ISSUE-009: VaultAccessModal Mock Data | Frontend | 1h |
-| 24 | ISSUE-014: Forge Route Mismatch | Integration | 1h |
-| 25 | ISSUE-015: Missing PATCH /documents/{id} | Backend | 2h |
-| 26 | ISSUE-022: Forge Template Library | Integration | 4h |
-| 27 | ISSUE-025: No Dashboard Theme Toggle | Frontend | 1h |
-| 28 | ISSUE-026: Responsive Design | Frontend | 8h |
-| 29 | ISSUE-027: Missing Loading States | Frontend | 4h |
-| 30 | ISSUE-037: Backend Request Timeouts | Backend | 2h |
-| 31 | ISSUE-038: 100MB bodySizeLimit | Frontend | 0.25h |
-| 32 | ISSUE-039: Deprecated ScriptProcessor | Frontend | 2h |
-| 33 | ISSUE-040: Duplicate Client Libraries | Frontend | 3h |
-| 34 | ISSUE-041: Multiple AI Service Keys | Frontend | 1h |
-| | | **Subtotal** | **38.25h** |
+| 23 | ISSUE-047: WriteTimeout=0 Globally (slow-read attack) | Backend | 2h |
+| 24 | ISSUE-048: Version Constant Mismatch (0.2.0 vs 1.0.0) | Backend | 0.25h |
+| 25 | ISSUE-049: IncrementSilenceTrigger Never Called | Backend | 0.25h |
+| 26 | ISSUE-006: Duplicate Privilege State | Frontend | 2h |
+| 27 | ISSUE-007: Legacy Component Cleanup | Frontend | 3h |
+| 28 | ISSUE-008: Multiple Voice Hooks | Frontend | 4h |
+| 29 | ISSUE-009: VaultAccessModal Mock Data | Frontend | 1h |
+| 30 | ISSUE-014: Forge Route Mismatch | Integration | 1h |
+| 31 | ISSUE-015: Missing PATCH /documents/{id} | Backend | 2h |
+| 32 | ISSUE-022: Forge Template Library | Integration | 4h |
+| 33 | ISSUE-025: No Dashboard Theme Toggle | Frontend | 1h |
+| 34 | ISSUE-026: Responsive Design | Frontend | 8h |
+| 35 | ISSUE-027: Missing Loading States | Frontend | 4h |
+| 36 | ISSUE-037: Backend Request Timeouts | Backend | 2h |
+| 37 | ISSUE-038: 100MB bodySizeLimit | Frontend | 0.25h |
+| 38 | ISSUE-039: Deprecated ScriptProcessor | Frontend | 2h |
+| 39 | ISSUE-040: Duplicate Client Libraries | Frontend | 3h |
+| 40 | ISSUE-041: Multiple AI Service Keys | Frontend | 1h |
+| | | **Subtotal** | **40.75h** |
 
 ### Low Priority — Polish
 
 | # | Issue | Component | Effort |
 |---|-------|-----------|--------|
-| 35 | ISSUE-010: Console.log OTP (dev) | Frontend | 0.5h |
-| 36 | ISSUE-011: Image Alt Text Review | Frontend | 0.5h |
-| 37 | ISSUE-016: Dead About Route | Frontend | 0.25h |
-| 38 | ISSUE-018: Privilege GET Spec Mismatch | Docs | 0.25h |
-| 39 | ISSUE-028: No Toast System | Frontend | 3h |
-| 40 | ISSUE-032: 1 Non-blocking TODO | Frontend | 0h |
-| 41 | ISSUE-033: 2 TypeScript any Types | Frontend | 0.5h |
-| 42 | ISSUE-042: Low Frontend Test Coverage | Frontend | 16h |
-| 43 | ISSUE-043: Bundle Size Audit | Frontend | 1h |
-| | | **Subtotal** | **22h** |
+| 41 | ISSUE-050: 50+ Unstructured Backend Logs | Backend | 4h |
+| 42 | ISSUE-051: No UUID Validation on Path Params | Backend | 1h |
+| 43 | ISSUE-052: No Query Length Limit on Chat | Backend | 0.25h |
+| 44 | ISSUE-053: Unused Backend Functions | Backend | 0.5h |
+| 45 | ISSUE-010: Console.log OTP (dev) | Frontend | 0.5h |
+| 46 | ISSUE-011: Image Alt Text Review | Frontend | 0.5h |
+| 47 | ISSUE-016: Dead About Route | Frontend | 0.25h |
+| 48 | ISSUE-018: Privilege GET Spec Mismatch | Docs | 0.25h |
+| 49 | ISSUE-028: No Toast System | Frontend | 3h |
+| 50 | ISSUE-032: 1 Non-blocking TODO | Frontend | 0h |
+| 51 | ISSUE-033: 2 TypeScript any Types | Frontend | 0.5h |
+| 52 | ISSUE-042: Low Frontend Test Coverage | Frontend | 16h |
+| 53 | ISSUE-043: Bundle Size Audit | Frontend | 1h |
+| | | **Subtotal** | **27.75h** |
 
 ---
 
@@ -613,13 +729,18 @@ No tests for: Mercury chat, auth flow, forge panel, audit page, voice features, 
 
 | Priority | Hours |
 |----------|-------|
-| Critical | 15h |
-| High | 31h |
-| Medium | 38.25h |
-| Low | 22h |
-| **Total** | **106.25h** |
+| Critical | 16h |
+| High | 32.5h |
+| Medium | 40.75h |
+| Low | 27.75h |
+| **Total** | **117h** |
 
-**Recommendation:** Focus on Critical (15h) + High (31h) = **46 hours** of work to reach beta-ready state. Medium and Low issues can be addressed post-launch in prioritized sprints.
+**Recommendation:** Focus on Critical (16h) + High (32.5h) = **48.5 hours** of work to reach beta-ready state. Medium and Low issues can be addressed post-launch in prioritized sprints.
+
+**Top 3 Urgent Fixes:**
+1. **ISSUE-044** — DeleteFolder authorization bypass (security vulnerability, 1h fix)
+2. **ISSUE-045/046** — Race conditions in PrivilegeState + AuditService (data corruption risk, 1.5h fix)
+3. **ISSUE-024/031** — API key in client bundle + OTP plaintext logging (secret exposure, 1h fix)
 
 ---
 
