@@ -129,7 +129,24 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // Step 4: Return metadata to frontend
+  // Step 4: Trigger ingestion pipeline on Go backend (fire-and-forget)
+  const ingestUrl = new URL(`/api/documents/${documentId}/ingest`, GO_BACKEND_URL)
+  try {
+    const ingestRes = await fetch(ingestUrl.toString(), {
+      method: 'POST',
+      headers: {
+        'X-Internal-Auth': INTERNAL_AUTH_SECRET,
+        'X-User-ID': userId,
+      },
+    })
+    if (!ingestRes.ok) {
+      console.warn(`[extract] Ingest trigger returned ${ingestRes.status} for ${documentId}`)
+    }
+  } catch (err) {
+    console.warn(`[extract] Failed to trigger ingest for ${documentId}:`, err)
+  }
+
+  // Step 5: Return metadata to frontend
   const bucketName = process.env.GCS_BUCKET_NAME || ''
   return NextResponse.json({
     success: true,
