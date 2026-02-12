@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useMemo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { useVaultStore } from '@/stores/vaultStore'
 import {
   ChevronLeft,
@@ -10,96 +9,30 @@ import {
   FileText,
   Folder,
   FolderOpen,
-  Shield,
   ShieldCheck,
   ShieldAlert,
-  ShieldOff,
   Trash2,
   MessageSquare,
   Search,
   Plus,
   ArrowUpDown,
-  Check,
   Download,
   History,
   Eye,
-  Lock,
   X,
   Home,
   Users,
-  Globe,
-  Building,
-  Brain,
   BrainCog,
 } from 'lucide-react'
 import IngestionModal from '@/app/dashboard/components/IngestionModal'
 import { VaultAccessModal, type ClearanceLevel, type VaultMember, type LinkExpiration } from './VaultAccessModal'
-
-// ============================================================================
-// SECURITY TIER TYPES & DEFINITIONS
-// ============================================================================
-
-export type SecurityTier = 'general' | 'internal' | 'confidential' | 'sovereign'
-
-export const SECURITY_TIERS: Record<SecurityTier, {
-  level: number
-  label: string
-  description: string
-  icon: typeof Globe
-  color: string
-  bg: string
-  border: string
-  glow?: string
-}> = {
-  general: {
-    level: 1,
-    label: 'General',
-    description: 'Public knowledge, Marketing materials',
-    icon: Globe,
-    color: 'text-emerald-400',
-    bg: 'bg-emerald-500/10',
-    border: 'border-emerald-500/20',
-  },
-  internal: {
-    level: 2,
-    label: 'Internal',
-    description: 'Standard operational docs',
-    icon: Building,
-    color: 'text-blue-400',
-    bg: 'bg-blue-500/10',
-    border: 'border-blue-500/20',
-  },
-  confidential: {
-    level: 3,
-    label: 'Confidential',
-    description: 'Client contracts, Financial drafts',
-    icon: Lock,
-    color: 'text-amber-400',
-    bg: 'bg-amber-500/10',
-    border: 'border-amber-500/20',
-  },
-  sovereign: {
-    level: 4,
-    label: 'Sovereign',
-    description: 'Eyes Only - Air-Gapped by default',
-    icon: ShieldOff,
-    color: 'text-red-400',
-    bg: 'bg-red-500/10',
-    border: 'border-red-500/20',
-    glow: 'shadow-[0_0_15px_rgba(239,68,68,0.3)]',
-  },
-}
-
-// Convert legacy numeric tier to new system
-function tierToSecurity(tier: number): SecurityTier {
-  switch (tier) {
-    case 1: return 'general'
-    case 2: return 'internal'
-    case 3: return 'confidential'
-    case 4: return 'sovereign'
-    default: return 'general'
-  }
-}
+import {
+  type SecurityTier,
+  tierToSecurity,
+  SecurityBadge,
+  SecurityDropdown,
+  RagIndexToggle,
+} from './security'
 
 // ============================================================================
 // UTILITIES
@@ -144,193 +77,6 @@ function generateHash(id: string): string {
     hash += chars[Math.floor(Math.random() * 16)]
   }
   return hash
-}
-
-// ============================================================================
-// SECURITY BADGE COMPONENT (4-TIER SOVEREIGN STANDARD)
-// ============================================================================
-
-interface SecurityBadgeProps {
-  security: SecurityTier
-  size?: 'normal' | 'large'
-  showPulse?: boolean
-}
-
-function SecurityBadge({ security, size = 'normal', showPulse = true }: SecurityBadgeProps) {
-  const config = SECURITY_TIERS[security]
-  const Icon = config.icon
-  const isSovereign = security === 'sovereign'
-
-  if (size === 'large') {
-    return (
-      <div className={`
-        relative flex items-center gap-2 px-4 py-2.5 rounded-lg
-        ${config.bg} border ${config.border} backdrop-blur-sm
-        ${isSovereign && config.glow ? config.glow : ''}
-      `}>
-        {/* Sovereign pulse effect */}
-        {isSovereign && showPulse && (
-          <div className="absolute inset-0 rounded-lg bg-red-500/20 animate-pulse" />
-        )}
-        <Icon className={`relative w-5 h-5 ${config.color}`} />
-        <div className="relative">
-          <span className={`text-sm font-semibold ${config.color}`}>{config.label}</span>
-          <p className="text-[10px] text-slate-500 mt-0.5">{config.description}</p>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <span className={`
-      relative inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium
-      ${config.color} ${config.bg} border ${config.border} backdrop-blur-sm
-      ${isSovereign && config.glow ? config.glow : ''}
-    `}>
-      {/* Sovereign pulse effect */}
-      {isSovereign && showPulse && (
-        <span className="absolute inset-0 rounded-md bg-red-500/20 animate-pulse" />
-      )}
-      <Icon className="relative w-3.5 h-3.5" />
-      <span className="relative">{config.label}</span>
-    </span>
-  )
-}
-
-// ============================================================================
-// SECURITY TIER DROPDOWN (FOR INSPECTOR)
-// ============================================================================
-
-interface SecurityDropdownProps {
-  value: SecurityTier
-  onChange: (tier: SecurityTier) => void
-}
-
-function SecurityDropdown({ value, onChange }: SecurityDropdownProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const config = SECURITY_TIERS[value]
-  const Icon = config.icon
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={`
-          w-full flex items-center justify-between gap-2 px-4 py-3 rounded-lg
-          ${config.bg} border ${config.border} backdrop-blur-sm
-          hover:bg-opacity-80 transition-all cursor-pointer
-          ${value === 'sovereign' ? config.glow : ''}
-        `}
-      >
-        <div className="flex items-center gap-2">
-          <Icon className={`w-5 h-5 ${config.color}`} />
-          <div className="text-left">
-            <span className={`text-sm font-semibold ${config.color}`}>{config.label}</span>
-            <p className="text-[10px] text-slate-500">{config.description}</p>
-          </div>
-        </div>
-        <ChevronDown className={`w-4 h-4 ${config.color} transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-      </button>
-
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="absolute top-full mt-2 left-0 right-0 z-50
-                       bg-[#0A192F]/95 backdrop-blur-xl border border-white/10
-                       rounded-xl overflow-hidden shadow-xl"
-          >
-            {(Object.entries(SECURITY_TIERS) as [SecurityTier, typeof SECURITY_TIERS[SecurityTier]][]).map(([key, tier]) => {
-              const TierIcon = tier.icon
-              const isSelected = key === value
-              return (
-                <button
-                  key={key}
-                  onClick={() => { onChange(key); setIsOpen(false) }}
-                  className={`
-                    w-full flex items-center gap-3 px-4 py-3 text-left transition-all
-                    ${isSelected ? tier.bg : 'hover:bg-white/5'}
-                  `}
-                >
-                  <TierIcon className={`w-5 h-5 ${tier.color}`} />
-                  <div className="flex-1">
-                    <span className={`text-sm font-medium ${tier.color}`}>{tier.label}</span>
-                    <p className="text-[10px] text-slate-500">{tier.description}</p>
-                  </div>
-                  {isSelected && <Check className={`w-4 h-4 ${tier.color}`} />}
-                </button>
-              )
-            })}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  )
-}
-
-// ============================================================================
-// RAG INDEXING TOGGLE (INTELLIGENCE CONTROLS)
-// ============================================================================
-
-interface RagIndexToggleProps {
-  enabled: boolean
-  onChange: (enabled: boolean) => void
-}
-
-function RagIndexToggle({ enabled, onChange }: RagIndexToggleProps) {
-  return (
-    <div className={`
-      p-4 rounded-xl border transition-all
-      ${enabled
-        ? 'bg-blue-500/5 border-blue-500/20'
-        : 'bg-red-500/5 border-red-500/20'
-      }
-    `}>
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          {enabled ? (
-            <Brain className="w-5 h-5 text-blue-400" />
-          ) : (
-            <BrainCog className="w-5 h-5 text-red-400" />
-          )}
-          <span className={`text-sm font-semibold ${enabled ? 'text-blue-400' : 'text-red-400'}`}>
-            {enabled ? 'Indexed for RAG' : 'RAG Disabled'}
-          </span>
-        </div>
-
-        {/* Toggle Switch */}
-        <button
-          onClick={() => onChange(!enabled)}
-          className={`
-            relative w-12 h-6 rounded-full transition-colors
-            ${enabled ? 'bg-blue-500' : 'bg-slate-700'}
-          `}
-        >
-          <motion.div
-            className="absolute top-1 w-4 h-4 rounded-full bg-white shadow-md"
-            animate={{ left: enabled ? '28px' : '4px' }}
-            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-          />
-        </button>
-      </div>
-
-      <p className="text-xs text-slate-500">
-        {enabled
-          ? 'AI can see and cite this document in responses.'
-          : 'Document is stored but AI cannot access or cite it.'
-        }
-      </p>
-
-      {!enabled && (
-        <div className="mt-2 flex items-center gap-1.5 text-[10px] text-red-400 uppercase tracking-wider font-semibold">
-          <ShieldAlert className="w-3 h-3" />
-          Vector Database Excluded
-        </div>
-      )}
-    </div>
-  )
 }
 
 // ============================================================================
