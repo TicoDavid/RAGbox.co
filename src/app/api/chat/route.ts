@@ -14,6 +14,7 @@ const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
 
 export async function POST(request: NextRequest): Promise<NextResponse | Response> {
+  console.error('[CHAT ROUTE HIT]', { GO_BACKEND_URL, INTERNAL_AUTH_SECRET_LEN: INTERNAL_AUTH_SECRET.length })
   try {
     // Auth check — decode JWT directly from cookie (no internal HTTP call)
     const token = await getToken({ req: request })
@@ -43,7 +44,9 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
     }
 
     // Forward to Go backend with internal auth
-    const backendResponse = await fetch(`${GO_BACKEND_URL}/api/chat`, {
+    const targetUrl = `${GO_BACKEND_URL}/api/chat`
+    console.error('[CHAT ROUTE] forwarding to backend', { targetUrl, userId, queryLen: query.length, stream })
+    const backendResponse = await fetch(targetUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -61,6 +64,7 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
 
     // If backend returned a tool error
     if (!backendResponse.ok) {
+      console.error('[CHAT ROUTE] backend returned non-ok', { status: backendResponse.status, statusText: backendResponse.statusText })
       const errorBody = await backendResponse.json().catch(() => null)
 
       if (errorBody && isToolError(errorBody.error || errorBody)) {
@@ -98,7 +102,8 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
     // Handle JSON response
     const data = await backendResponse.json()
     return NextResponse.json(data)
-  } catch {
+  } catch (err) {
+    console.error('[CHAT ROUTE] CAUGHT ERROR', err instanceof Error ? { message: err.message, cause: err.cause, stack: err.stack?.split('\n').slice(0, 5) } : err)
     return NextResponse.json({
       success: false,
       response: 'I encountered an unexpected issue. Please try again, and if this persists, contact support.',
