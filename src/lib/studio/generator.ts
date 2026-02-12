@@ -234,135 +234,131 @@ export async function generateArtifact(
 ): Promise<GenerationResult> {
   const startTime = Date.now()
 
-  try {
-    // 1. Fetch document content
-    const documentContent = await fetchDocumentContent(request.sourceDocumentIds, userId)
+  // 1. Fetch document content
+  const documentContent = await fetchDocumentContent(request.sourceDocumentIds, userId)
 
-    // 2. Generate artifact content with AI
-    const aiContent = await generateArtifactContent(request.artifactType, documentContent, request)
+  // 2. Generate artifact content with AI
+  const aiContent = await generateArtifactContent(request.artifactType, documentContent, request)
 
-    // 3. Process based on artifact type
-    let finalContent: Buffer | string
-    let fileName: string
-    let fileType: string
-    let mimeType: string
-    let previewContent: string | undefined
+  // 3. Process based on artifact type
+  let finalContent: Buffer | string
+  let fileName: string
+  let fileType: string
+  let mimeType: string
+  let previewContent: string | undefined
 
-    const timestamp = new Date().toISOString().split('T')[0]
-    const safeName = (request.title || request.artifactType).replace(/[^a-zA-Z0-9]/g, '_')
+  const timestamp = new Date().toISOString().split('T')[0]
+  const safeName = (request.title || request.artifactType).replace(/[^a-zA-Z0-9]/g, '_')
 
-    switch (request.artifactType) {
-      case 'audio': {
-        const script = parseAIResponse<NarrationScript>(aiContent)
-        finalContent = await generateAudio(script)
-        fileName = `${safeName}_Audio_${timestamp}.mp3`
-        fileType = 'mp3'
-        mimeType = 'audio/mpeg'
-        previewContent = script.introduction.substring(0, 500)
-        break
-      }
-
-      case 'video': {
-        // For video, we generate the script JSON (frontend will create the video)
-        const script = parseAIResponse<NarrationScript>(aiContent)
-        finalContent = JSON.stringify(script, null, 2)
-        fileName = `${safeName}_Video_Script_${timestamp}.json`
-        fileType = 'json'
-        mimeType = 'application/json'
-        previewContent = script.introduction.substring(0, 500)
-        break
-      }
-
-      case 'mindmap': {
-        const mindmap = parseAIResponse<MindMapStructure>(aiContent)
-        const mermaid = generateMermaidDiagram(mindmap)
-        finalContent = JSON.stringify({ ...mindmap, mermaidCode: mermaid }, null, 2)
-        fileName = `${safeName}_MindMap_${timestamp}.json`
-        fileType = 'json'
-        mimeType = 'application/json'
-        previewContent = mermaid
-        break
-      }
-
-      case 'report': {
-        // Report comes back as Markdown
-        finalContent = aiContent
-        fileName = `${safeName}_Report_${timestamp}.md`
-        fileType = 'md'
-        mimeType = 'text/markdown'
-        previewContent = aiContent.substring(0, 1000)
-        break
-      }
-
-      case 'compliance': {
-        const drill = parseAIResponse<ComplianceDrill>(aiContent)
-        finalContent = JSON.stringify(drill, null, 2)
-        fileName = `${safeName}_Compliance_Drill_${timestamp}.json`
-        fileType = 'json'
-        mimeType = 'application/json'
-        previewContent = `${drill.cards.length} flashcards, ${drill.quiz.length} quiz questions`
-        break
-      }
-
-      case 'infographic': {
-        // Infographic data for frontend rendering
-        finalContent = aiContent
-        fileName = `${safeName}_Infographic_${timestamp}.json`
-        fileType = 'json'
-        mimeType = 'application/json'
-        previewContent = aiContent.substring(0, 500)
-        break
-      }
-
-      case 'deck': {
-        const deck = parseAIResponse<DeckStructure>(aiContent)
-        finalContent = generateDeckJSON(deck)
-        fileName = `${safeName}_Deck_${timestamp}.json`
-        fileType = 'json'
-        mimeType = 'application/json'
-        previewContent = `${deck.slides.length} slides: ${deck.title}`
-        break
-      }
-
-      case 'evidence': {
-        const log = parseAIResponse<EvidenceLog>(aiContent)
-        const csv = generateEvidenceCSV(log)
-        finalContent = csv
-        fileName = `${safeName}_Evidence_Log_${timestamp}.csv`
-        fileType = 'csv'
-        mimeType = 'text/csv'
-        previewContent = log.summary
-        break
-      }
-
-      default:
-        throw new Error(`Unknown artifact type: ${request.artifactType}`)
+  switch (request.artifactType) {
+    case 'audio': {
+      const script = parseAIResponse<NarrationScript>(aiContent)
+      finalContent = await generateAudio(script)
+      fileName = `${safeName}_Audio_${timestamp}.mp3`
+      fileType = 'mp3'
+      mimeType = 'audio/mpeg'
+      previewContent = script.introduction.substring(0, 500)
+      break
     }
 
-    // 4. Upload to GCS
-    const { gcsUri, downloadUrl } = await uploadArtifact(finalContent, fileName, mimeType, userId)
-
-    // 5. Record artifact in database (if table exists)
-    const artifactId = `art_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
-
-    const processingTimeMs = Date.now() - startTime
-
-    return {
-      success: true,
-      artifactId,
-      fileName,
-      fileType,
-      mimeType,
-      downloadUrl,
-      previewContent,
-      metadata: {
-        generatedAt: new Date().toISOString(),
-        sourceDocuments: request.sourceDocumentIds.length,
-        tone: request.brandConfig.tone,
-        processingTimeMs,
-      },
+    case 'video': {
+      // For video, we generate the script JSON (frontend will create the video)
+      const script = parseAIResponse<NarrationScript>(aiContent)
+      finalContent = JSON.stringify(script, null, 2)
+      fileName = `${safeName}_Video_Script_${timestamp}.json`
+      fileType = 'json'
+      mimeType = 'application/json'
+      previewContent = script.introduction.substring(0, 500)
+      break
     }
-  } catch (error) {
-    throw error
+
+    case 'mindmap': {
+      const mindmap = parseAIResponse<MindMapStructure>(aiContent)
+      const mermaid = generateMermaidDiagram(mindmap)
+      finalContent = JSON.stringify({ ...mindmap, mermaidCode: mermaid }, null, 2)
+      fileName = `${safeName}_MindMap_${timestamp}.json`
+      fileType = 'json'
+      mimeType = 'application/json'
+      previewContent = mermaid
+      break
+    }
+
+    case 'report': {
+      // Report comes back as Markdown
+      finalContent = aiContent
+      fileName = `${safeName}_Report_${timestamp}.md`
+      fileType = 'md'
+      mimeType = 'text/markdown'
+      previewContent = aiContent.substring(0, 1000)
+      break
+    }
+
+    case 'compliance': {
+      const drill = parseAIResponse<ComplianceDrill>(aiContent)
+      finalContent = JSON.stringify(drill, null, 2)
+      fileName = `${safeName}_Compliance_Drill_${timestamp}.json`
+      fileType = 'json'
+      mimeType = 'application/json'
+      previewContent = `${drill.cards.length} flashcards, ${drill.quiz.length} quiz questions`
+      break
+    }
+
+    case 'infographic': {
+      // Infographic data for frontend rendering
+      finalContent = aiContent
+      fileName = `${safeName}_Infographic_${timestamp}.json`
+      fileType = 'json'
+      mimeType = 'application/json'
+      previewContent = aiContent.substring(0, 500)
+      break
+    }
+
+    case 'deck': {
+      const deck = parseAIResponse<DeckStructure>(aiContent)
+      finalContent = generateDeckJSON(deck)
+      fileName = `${safeName}_Deck_${timestamp}.json`
+      fileType = 'json'
+      mimeType = 'application/json'
+      previewContent = `${deck.slides.length} slides: ${deck.title}`
+      break
+    }
+
+    case 'evidence': {
+      const log = parseAIResponse<EvidenceLog>(aiContent)
+      const csv = generateEvidenceCSV(log)
+      finalContent = csv
+      fileName = `${safeName}_Evidence_Log_${timestamp}.csv`
+      fileType = 'csv'
+      mimeType = 'text/csv'
+      previewContent = log.summary
+      break
+    }
+
+    default:
+      throw new Error(`Unknown artifact type: ${request.artifactType}`)
+  }
+
+  // 4. Upload to GCS
+  const { gcsUri, downloadUrl } = await uploadArtifact(finalContent, fileName, mimeType, userId)
+
+  // 5. Record artifact in database (if table exists)
+  const artifactId = `art_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
+
+  const processingTimeMs = Date.now() - startTime
+
+  return {
+    success: true,
+    artifactId,
+    fileName,
+    fileType,
+    mimeType,
+    downloadUrl,
+    previewContent,
+    metadata: {
+      generatedAt: new Date().toISOString(),
+      sourceDocuments: request.sourceDocumentIds.length,
+      tone: request.brandConfig.tone,
+      processingTimeMs,
+    },
   }
 }

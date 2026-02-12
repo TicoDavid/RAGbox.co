@@ -129,34 +129,30 @@ export class RAGboxClient {
    * Supports custom system prompt and chat history
    */
   async chat(message: string, options?: ChatOptions): Promise<ChatResponse> {
-    try {
-      const model = this.getModel(options?.systemPrompt);
-      const history = options?.history ? this.formatHistory(options.history) : [];
+    const model = this.getModel(options?.systemPrompt);
+    const history = options?.history ? this.formatHistory(options.history) : [];
 
-      // Build request with history if provided
-      let result: GenerateContentResult;
+    // Build request with history if provided
+    let result: GenerateContentResult;
 
-      if (history.length > 0) {
-        // Use chat session for multi-turn conversation
-        const chat = model.startChat({ history });
-        result = await chat.sendMessage(message);
-      } else {
-        // Single turn
-        result = await model.generateContent(message);
-      }
-
-      const response = result.response;
-      const answer = response.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      const finishReason = response.candidates?.[0]?.finishReason;
-
-      return {
-        answer,
-        model: MODEL,
-        finishReason,
-      };
-    } catch (error) {
-      throw error;
+    if (history.length > 0) {
+      // Use chat session for multi-turn conversation
+      const chat = model.startChat({ history });
+      result = await chat.sendMessage(message);
+    } else {
+      // Single turn
+      result = await model.generateContent(message);
     }
+
+    const response = result.response;
+    const answer = response.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const finishReason = response.candidates?.[0]?.finishReason;
+
+    return {
+      answer,
+      model: MODEL,
+      finishReason,
+    };
   }
 
   /**

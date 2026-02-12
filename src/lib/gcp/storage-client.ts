@@ -108,11 +108,7 @@ export class StorageClient {
    */
   async deleteFile(gcsUri: string): Promise<void> {
     const fileName = gcsUri.replace(`gs://${BUCKET_NAME}/`, '')
-    try {
-      await this.bucket.file(fileName).delete()
-    } catch (error) {
-      throw error
-    }
+    await this.bucket.file(fileName).delete()
   }
 
   /**

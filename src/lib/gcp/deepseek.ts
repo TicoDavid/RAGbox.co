@@ -55,6 +55,7 @@ export async function analyzeWithDeepSeek(
         tokensUsed: data.usage?.total_tokens || 0,
       }
     } catch (error) {
+      // ignored
     }
   }
 

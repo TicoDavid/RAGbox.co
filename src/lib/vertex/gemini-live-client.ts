@@ -138,9 +138,11 @@ export async function createGeminiLiveSession(config: GeminiLiveConfig): Promise
 
         // Handle tool calls (future: RAG integration)
         if (message.toolCall) {
+          // ignored
         }
 
       } catch (error) {
+        // ignored
       }
     });
 

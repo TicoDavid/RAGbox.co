@@ -20,19 +20,15 @@ export const usePrivilegeStore = create<PrivilegeState>()(
         toggle: async () => {
           const newState = !get().isEnabled
 
-          try {
-            const res = await apiFetch('/api/privilege', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ privileged: newState }),
-            })
+          const res = await apiFetch('/api/privilege', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ privileged: newState }),
+          })
 
-            if (!res.ok) throw new Error('Privilege toggle failed')
+          if (!res.ok) throw new Error('Privilege toggle failed')
 
-            set({ isEnabled: newState, lastChanged: new Date() })
-          } catch (error) {
-            throw error
-          }
+          set({ isEnabled: newState, lastChanged: new Date() })
         },
 
         fetch: async () => {

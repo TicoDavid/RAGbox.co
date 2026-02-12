@@ -116,6 +116,7 @@ export class DeepgramClient {
         this.callbacks.onUtteranceEnd?.();
       }
     } catch (error) {
+      // ignored
     }
   }
 

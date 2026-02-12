@@ -103,33 +103,29 @@ export async function embedBatch(texts: string[]): Promise<EmbeddingResult[]> {
  * Generate query embedding (uses RETRIEVAL_QUERY task type)
  */
 export async function embedQuery(text: string): Promise<number[]> {
-  try {
-    const response = await fetch(
-      `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${EMBEDDING_MODEL}:predict`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${await getAccessToken()}`,
+  const response = await fetch(
+    `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${EMBEDDING_MODEL}:predict`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${await getAccessToken()}`,
+      },
+      body: JSON.stringify({
+        instances: [{ content: text, task_type: 'RETRIEVAL_QUERY' }],
+        parameters: {
+          outputDimensionality: EMBEDDING_DIMENSIONS,
         },
-        body: JSON.stringify({
-          instances: [{ content: text, task_type: 'RETRIEVAL_QUERY' }],
-          parameters: {
-            outputDimensionality: EMBEDDING_DIMENSIONS,
-          },
-        }),
-      }
-    )
-
-    if (!response.ok) {
-      throw new Error(`Query embedding failed: ${response.status}`)
+      }),
     }
+  )
 
-    const data = await response.json()
-    return data.predictions[0].embeddings.values
-  } catch (error) {
-    throw error
+  if (!response.ok) {
+    throw new Error(`Query embedding failed: ${response.status}`)
   }
+
+  const data = await response.json()
+  return data.predictions[0].embeddings.values
 }
 
 /**
