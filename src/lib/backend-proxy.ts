@@ -8,7 +8,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 
-const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === 'production' ? (() => { throw new Error('GO_BACKEND_URL or NEXT_PUBLIC_API_URL must be set in production') })() : 'http://localhost:8080')
+function getBackendUrl(): string {
+  const url = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL
+  if (url) return url
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('GO_BACKEND_URL or NEXT_PUBLIC_API_URL must be set in production')
+  }
+  return 'http://localhost:8080'
+}
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
 
 interface ProxyOptions {
@@ -45,7 +52,7 @@ export async function proxyToBackend(
 
   // Build backend URL
   const backendPath = options?.backendPath ?? request.nextUrl.pathname
-  const url = new URL(backendPath, GO_BACKEND_URL)
+  const url = new URL(backendPath, getBackendUrl())
 
   // Forward query params from the original request
   request.nextUrl.searchParams.forEach((value, key) => {
