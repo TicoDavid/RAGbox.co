@@ -173,7 +173,7 @@ func run() error {
 	if docAIAdapter != nil {
 		processorName := fmt.Sprintf("projects/%s/locations/%s/processors/%s",
 			cfg.GCPProject, cfg.DocAILocation, cfg.DocAIProcessorID)
-		parserSvc := service.NewParserService(docAIAdapter, processorName)
+		parserSvc := service.NewParserService(docAIAdapter, processorName, storageAdapter, cfg.GCSBucketName)
 		dlpAdapter := gcpclient.NewStubDLPAdapter()
 		redactorSvc := service.NewRedactorService(dlpAdapter, cfg.GCPProject)
 

@@ -164,6 +164,7 @@ export async function POST(request: NextRequest) {
       const ingestRes = await fetch(ingestUrl.toString(), {
         method: 'POST',
         headers: {
+          'Content-Length': '0',
           'X-Internal-Auth': INTERNAL_AUTH_SECRET,
           'X-User-ID': userId,
         },

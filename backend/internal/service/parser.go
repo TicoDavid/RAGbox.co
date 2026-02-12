@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"path/filepath"
 	"strings"
 )
@@ -33,24 +34,43 @@ type DocumentAIResponse struct {
 	Entities []Entity
 }
 
-// ParserService extracts text from documents via Document AI.
+// ObjectDownloader abstracts downloading an object from Cloud Storage.
+type ObjectDownloader interface {
+	Download(ctx context.Context, bucket, object string) ([]byte, error)
+}
+
+// ParserService extracts text from documents via Document AI,
+// with native extraction for formats that Document AI does not support (e.g. .docx).
 type ParserService struct {
-	client    DocumentAIClient
-	processor string // projects/{project}/locations/{loc}/processors/{id}
+	client     DocumentAIClient
+	processor  string // projects/{project}/locations/{loc}/processors/{id}
+	downloader ObjectDownloader
+	bucketName string
 }
 
 // NewParserService creates a ParserService.
-func NewParserService(client DocumentAIClient, processor string) *ParserService {
+// downloader and bucketName are optional — if nil, .docx extraction is unavailable.
+func NewParserService(client DocumentAIClient, processor string, downloader ObjectDownloader, bucketName string) *ParserService {
 	return &ParserService{
-		client:    client,
-		processor: processor,
+		client:     client,
+		processor:  processor,
+		downloader: downloader,
+		bucketName: bucketName,
 	}
 }
 
 // Extract processes a document stored in GCS and returns extracted text, page count, and entities.
+// For .docx files, it uses native ZIP+XML extraction instead of Document AI.
 func (s *ParserService) Extract(ctx context.Context, gcsURI string) (*ParseResult, error) {
 	if gcsURI == "" {
 		return nil, fmt.Errorf("service.Extract: gcsURI is empty")
+	}
+
+	ext := strings.ToLower(filepath.Ext(gcsURI))
+
+	// Route .docx files through native extraction (Document AI OCR doesn't support .docx)
+	if ext == ".docx" {
+		return s.extractDocx(ctx, gcsURI)
 	}
 
 	mimeType := detectMimeType(gcsURI)
@@ -69,6 +89,53 @@ func (s *ParserService) Extract(ctx context.Context, gcsURI string) (*ParseResul
 		Pages:    resp.Pages,
 		Entities: resp.Entities,
 	}, nil
+}
+
+// extractDocx downloads a .docx from GCS and extracts text natively via ZIP+XML parsing.
+func (s *ParserService) extractDocx(ctx context.Context, gcsURI string) (*ParseResult, error) {
+	if s.downloader == nil {
+		return nil, fmt.Errorf("service.Extract: .docx extraction requires ObjectDownloader (not configured)")
+	}
+
+	bucket, object, err := parseGCSURI(gcsURI)
+	if err != nil {
+		return nil, fmt.Errorf("service.Extract: %w", err)
+	}
+
+	slog.Info("extracting docx natively", "gcs_uri", gcsURI)
+
+	data, err := s.downloader.Download(ctx, bucket, object)
+	if err != nil {
+		return nil, fmt.Errorf("service.Extract: download docx: %w", err)
+	}
+
+	text, err := extractDocxText(data)
+	if err != nil {
+		return nil, fmt.Errorf("service.Extract: parse docx: %w", err)
+	}
+
+	slog.Info("docx text extracted", "chars", len(text), "gcs_uri", gcsURI)
+
+	return &ParseResult{
+		Text:  text,
+		Pages: 1, // docx doesn't have reliable page count without rendering
+	}, nil
+}
+
+// parseGCSURI splits "gs://bucket/path/to/object" into bucket and object.
+func parseGCSURI(uri string) (bucket, object string, err error) {
+	if uri == "" {
+		return "", "", fmt.Errorf("empty GCS URI")
+	}
+	if !strings.HasPrefix(uri, "gs://") {
+		return "", "", fmt.Errorf("invalid GCS URI %q: must start with gs://", uri)
+	}
+	trimmed := strings.TrimPrefix(uri, "gs://")
+	idx := strings.Index(trimmed, "/")
+	if idx < 0 || idx == 0 {
+		return "", "", fmt.Errorf("invalid GCS URI %q: missing object path", uri)
+	}
+	return trimmed[:idx], trimmed[idx+1:], nil
 }
 
 // detectMimeType infers the MIME type from a GCS URI's file extension.
