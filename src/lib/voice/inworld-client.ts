@@ -5,6 +5,7 @@
  * Maps response context to emotion prefixes for natural voice output.
  */
 
+import { apiFetch } from '@/lib/api';
 import { TTSRequest, ResponseContext } from './types';
 
 export class InworldClient {
@@ -28,7 +29,7 @@ export class InworldClient {
       text = `[${request.emotion}] ${text}`;
     }
 
-    const response = await fetch('/api/voice/synthesize', {
+    const response = await apiFetch('/api/voice/synthesize', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

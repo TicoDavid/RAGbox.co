@@ -25,6 +25,7 @@ import {
   type ReactNode,
 } from 'react'
 import { useRagSounds } from '@/hooks/useRagSounds'
+import { apiFetch } from '@/lib/api'
 
 // Types
 interface PrivilegeState {
@@ -89,7 +90,7 @@ export function PrivilegeProvider({
       try {
         setState((prev) => ({ ...prev, isLoading: true, error: null }))
 
-        const response = await fetch('/api/privilege', {
+        const response = await apiFetch('/api/privilege', {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
         })
@@ -137,7 +138,7 @@ export function PrivilegeProvider({
       playLockSound()
 
       try {
-        const response = await fetch('/api/privilege', {
+        const response = await apiFetch('/api/privilege', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ privileged: enabled }),

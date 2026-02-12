@@ -15,6 +15,7 @@ interface VaultState {
   selectedItemId: string | null
   isLoading: boolean
   error: string | null
+  searchQuery: string
 
   // Storage
   storage: { used: number; total: number }
@@ -27,6 +28,7 @@ interface VaultState {
   selectAndChat: (id: string) => void // Select file and switch to chat mode
   navigate: (path: string[]) => void
   selectItem: (id: string | null) => void
+  setSearchQuery: (query: string) => void
 
   // API Actions
   fetchDocuments: () => Promise<void>
@@ -53,6 +55,7 @@ export const useVaultStore = create<VaultState>()(
         selectedItemId: null,
         isLoading: false,
         error: null,
+        searchQuery: '',
         storage: { used: 0, total: 1073741824 },
 
         toggleCollapse: () => set((state) => ({ isCollapsed: !state.isCollapsed })),
@@ -76,10 +79,17 @@ export const useVaultStore = create<VaultState>()(
 
         selectItem: (id) => set({ selectedItemId: id }),
 
+        setSearchQuery: (query) => set({ searchQuery: query }),
+
         fetchDocuments: async () => {
           set({ isLoading: true, error: null })
           try {
-            const res = await apiFetch('/api/documents')
+            const search = get().searchQuery
+            const params = new URLSearchParams()
+            if (search) params.set('search', search)
+            const queryString = params.toString()
+            const url = queryString ? `/api/documents?${queryString}` : '/api/documents'
+            const res = await apiFetch(url)
             if (!res.ok) throw new Error('Failed to fetch documents')
             const json = await res.json()
             const docList = json.data?.documents ?? json.documents ?? []

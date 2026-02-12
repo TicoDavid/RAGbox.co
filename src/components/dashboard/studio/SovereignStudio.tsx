@@ -24,6 +24,7 @@ import {
   AlertCircle,
   Plus,
 } from 'lucide-react'
+import { apiFetch } from '@/lib/api'
 import { useVaultStore } from '@/stores/vaultStore'
 
 // ============================================================================
@@ -115,6 +116,8 @@ function BrandDNAAccordion({
       {/* Header */}
       <button
         onClick={onToggle}
+        aria-expanded={isExpanded}
+        aria-label="Toggle brand DNA configuration"
         className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors"
       >
         <div className="flex items-center gap-3">
@@ -196,6 +199,7 @@ function BrandDNAAccordion({
                 <select
                   value={config.tone}
                   onChange={(e) => onChange({ ...config, tone: e.target.value as ToneOption })}
+                  aria-label="Voice and tone"
                   className="w-full px-3 py-2 rounded-lg bg-slate-900/50 border border-slate-600 text-sm text-white focus:border-amber-500/50 focus:outline-none transition-colors"
                 >
                   {TONES.map((tone) => (
@@ -245,6 +249,7 @@ function ArtifactCard({
       disabled={disabled}
       whileHover={{ scale: 1.02, y: -2 }}
       whileTap={{ scale: 0.98 }}
+      aria-label={`Generate ${artifact.label}: ${artifact.desc}`}
       className={`
         w-full p-3 rounded-xl text-left transition-all duration-200
         bg-[#112240] hover:bg-[#1e3a8a]/60
@@ -334,6 +339,7 @@ function FileSelectorModal({
           <button
             onClick={onClose}
             className="p-2 rounded-lg hover:bg-white/5 transition-colors"
+            aria-label="Close source selector"
           >
             <X className="w-4 h-4 text-slate-400" />
           </button>
@@ -357,6 +363,7 @@ function FileSelectorModal({
                   onUploadClick?.()
                 }}
                 className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-black font-semibold text-sm hover:from-amber-400 hover:to-orange-400 transition-all shadow-lg shadow-amber-500/20"
+                aria-label="Upload evidence files"
               >
                 <Plus className="w-5 h-5" />
                 Upload Evidence
@@ -519,6 +526,7 @@ function GenerationError({
       <button
         onClick={onDismiss}
         className="w-full px-4 py-2 rounded-lg text-sm text-slate-300 bg-slate-800/50 hover:bg-slate-800 transition-colors"
+        aria-label="Try generating again"
       >
         Try Again
       </button>
@@ -559,6 +567,7 @@ function ArtifactResult({
         <button
           onClick={onDownload}
           className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-amber-500 text-black font-medium text-sm hover:bg-amber-400 transition-colors"
+          aria-label={`Download ${name}`}
         >
           <Download className="w-4 h-4" />
           Download
@@ -566,6 +575,7 @@ function ArtifactResult({
         <button
           onClick={onDismiss}
           className="px-4 py-2 rounded-lg text-sm text-slate-400 hover:bg-white/5 transition-colors"
+          aria-label="Dismiss artifact result"
         >
           Dismiss
         </button>
@@ -617,7 +627,7 @@ export function SovereignStudio() {
     })
 
     try {
-      const response = await fetch('/api/studio/generate', {
+      const response = await apiFetch('/api/studio/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

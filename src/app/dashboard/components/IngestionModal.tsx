@@ -313,6 +313,7 @@ const IngestionModal: React.FC<IngestionModalProps> = ({
             <button
               onClick={onClose}
               className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+              aria-label="Close data airlock"
             >
               <CloseIcon />
             </button>
@@ -322,7 +323,7 @@ const IngestionModal: React.FC<IngestionModalProps> = ({
           <div className="flex-1 grid grid-cols-[220px_1fr] min-h-0 overflow-hidden">
 
             {/* ========== LEFT PANEL: Source Menu - Dark Midnight ========== */}
-            <nav className="bg-[#030508] border-r border-white/5 py-4 overflow-y-auto">
+            <nav className="bg-[#030508] border-r border-white/5 py-4 overflow-y-auto" aria-label="Data source selection">
               <div className="px-4 mb-3">
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Select Source</p>
               </div>
@@ -415,11 +416,13 @@ const IngestionModal: React.FC<IngestionModalProps> = ({
                         onChange={(e) => setUrlInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleAddUrl()}
                         placeholder="Enter URL to capture..."
+                        aria-label="URL to capture"
                         className="flex-1 h-12 px-4 bg-slate-900/50 border border-slate-700/50 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-[#2463EB] focus:ring-1 focus:ring-[#2463EB]"
                       />
                       <button
                         onClick={handleAddUrl}
                         disabled={!urlInput.trim()}
+                        aria-label="Capture URL"
                         className="px-4 h-12 bg-[#2463EB] hover:bg-[#3b7aff] disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-all flex items-center gap-2"
                       >
                         <FetchIcon />
@@ -467,7 +470,7 @@ const IngestionModal: React.FC<IngestionModalProps> = ({
                     <p className="text-sm text-slate-500 mt-1 text-center max-w-xs">
                       Link your SharePoint or OneDrive account to browse and import documents.
                     </p>
-                    <button className="mt-4 px-6 py-2.5 bg-[#2463EB] hover:bg-[#3b7aff] text-white font-medium rounded-lg transition-all">
+                    <button className="mt-4 px-6 py-2.5 bg-[#2463EB] hover:bg-[#3b7aff] text-white font-medium rounded-lg transition-all" aria-label="Connect cloud storage account">
                       Connect Account
                     </button>
                     <p className="text-xs text-slate-600 mt-3">Coming Soon</p>
@@ -481,6 +484,7 @@ const IngestionModal: React.FC<IngestionModalProps> = ({
                       value={textInput}
                       onChange={(e) => setTextInput(e.target.value)}
                       placeholder="Paste your text content here..."
+                      aria-label="Paste text content"
                       className="w-full h-40 p-4 bg-slate-900/50 border border-slate-700/50 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-[#2463EB] focus:ring-1 focus:ring-[#2463EB] resize-none"
                     />
                     <button
@@ -501,6 +505,7 @@ const IngestionModal: React.FC<IngestionModalProps> = ({
                   accept=".pdf,.doc,.docx,.txt,.md,.csv,.xlsx,.xls"
                   onChange={handleFileSelect}
                   className="hidden"
+                  aria-label="Select files to upload"
                 />
               </div>
 
@@ -541,6 +546,7 @@ const IngestionModal: React.FC<IngestionModalProps> = ({
                           <button
                             onClick={() => handleRemoveItem(item.id)}
                             className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-all"
+                            aria-label={`Remove ${item.name}`}
                           >
                             <TrashIcon />
                           </button>
@@ -561,6 +567,7 @@ const IngestionModal: React.FC<IngestionModalProps> = ({
             <button
               onClick={handleIngest}
               disabled={stagedItems.length === 0}
+              aria-label={`Ingest ${stagedItems.length} staged items`}
               className={`
                 px-8 py-3 font-bold text-sm rounded-lg transition-all duration-300 flex items-center gap-2
                 ${stagedItems.length > 0

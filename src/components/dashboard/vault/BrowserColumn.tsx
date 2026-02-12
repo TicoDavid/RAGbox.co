@@ -58,6 +58,7 @@ export function BrowserColumn({
           <button
             key={folder.id}
             onClick={() => onSelectFolder(folder.id)}
+            aria-label={`Open folder: ${folder.name}`}
             className={`w-[calc(100%-16px)] mx-2 mb-1 flex items-center gap-3 px-3 py-3 min-h-[56px] text-left rounded-lg transition-all duration-200 ${
               selectedId === folder.id
                 ? 'bg-[var(--brand-blue)] text-white shadow-lg shadow-[var(--brand-blue)]/20'
@@ -100,6 +101,7 @@ export function BrowserColumn({
           <button
             key={doc.id}
             onClick={() => onSelectDocument(doc.id)}
+            aria-label={`Select document: ${doc.name}`}
             className={`w-[calc(100%-16px)] mx-2 mb-1 flex items-start gap-3 px-3 py-3 min-h-[56px] text-left rounded-lg transition-all duration-200 ${
               selectedId === doc.id
                 ? 'bg-[var(--brand-blue)] text-white shadow-lg shadow-[var(--brand-blue)]/20'

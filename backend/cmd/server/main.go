@@ -196,6 +196,28 @@ func run() error {
 	reg := prometheus.NewRegistry()
 	metrics := middleware.NewMetrics(reg)
 
+	// ─── Rate limiters ────────────────────────────────────────────────
+
+	generalRL := middleware.NewRateLimiter(middleware.RateLimiterConfig{
+		MaxRequests: 60,
+		Window:      1 * time.Minute,
+	})
+	defer generalRL.Stop()
+
+	chatRL := middleware.NewRateLimiter(middleware.RateLimiterConfig{
+		MaxRequests: 10,
+		Window:      1 * time.Minute,
+	})
+	defer chatRL.Stop()
+
+	forgeRL := middleware.NewRateLimiter(middleware.RateLimiterConfig{
+		MaxRequests: 5,
+		Window:      1 * time.Minute,
+	})
+	defer forgeRL.Stop()
+
+	log.Println("rate limiters initialized (general: 60/min, chat: 10/min, forge: 5/min)")
+
 	// ─── Router ────────────────────────────────────────────────────────
 
 	router := internalrouter.New(&internalrouter.Dependencies{
@@ -237,6 +259,10 @@ func run() error {
 		},
 
 		UserEnsurer: userRepo,
+
+		GeneralRateLimiter: generalRL,
+		ChatRateLimiter:    chatRL,
+		ForgeRateLimiter:   forgeRL,
 	})
 
 	// ─── HTTP server ───────────────────────────────────────────────────

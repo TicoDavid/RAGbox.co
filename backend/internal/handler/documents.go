@@ -4,12 +4,16 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 
 	"github.com/connexus-ai/ragbox-backend/internal/middleware"
+	"github.com/connexus-ai/ragbox-backend/internal/model"
 	"github.com/connexus-ai/ragbox-backend/internal/service"
 )
+
+const maxFilenameLength = 255
 
 // UploadRequest is the request body for document upload URL generation.
 type UploadRequest struct {
@@ -37,6 +41,30 @@ func UploadDocument(docService *service.DocumentService) http.HandlerFunc {
 
 		if req.Filename == "" || req.ContentType == "" || req.SizeBytes == 0 {
 			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "filename, contentType, and sizeBytes are required"})
+			return
+		}
+
+		// Validate filename length
+		if len(req.Filename) > maxFilenameLength {
+			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "filename exceeds 255 character limit"})
+			return
+		}
+
+		// Validate filename has no path traversal characters
+		if strings.Contains(req.Filename, "..") || strings.Contains(req.Filename, "/") || strings.Contains(req.Filename, "\\") {
+			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "filename contains invalid path characters"})
+			return
+		}
+
+		// Validate content type
+		if !model.AllowedMimeTypes[req.ContentType] {
+			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "unsupported content type"})
+			return
+		}
+
+		// Validate file size (max 50MB)
+		if req.SizeBytes > model.MaxFileSizeBytes {
+			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "file size exceeds 50MB limit"})
 			return
 		}
 
@@ -80,11 +108,13 @@ func ListDocuments(deps DocCRUDDeps) http.HandlerFunc {
 		limit, _ := strconv.Atoi(q.Get("limit"))
 		offset, _ := strconv.Atoi(q.Get("offset"))
 		privilegeMode := q.Get("privilegeMode") == "true"
+		search := strings.TrimSpace(q.Get("search"))
 
 		docs, total, err := deps.DocRepo.ListByUser(r.Context(), userID, service.ListOpts{
 			Limit:         limit,
 			Offset:        offset,
 			PrivilegeMode: privilegeMode,
+			Search:        search,
 		})
 		if err != nil {
 			respondJSON(w, http.StatusInternalServerError, envelope{Success: false, Error: "failed to list documents"})
@@ -207,6 +237,12 @@ func UpdateDocumentTier(deps DocCRUDDeps) http.HandlerFunc {
 		var req UpdateTierRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "invalid request body"})
+			return
+		}
+
+		// Validate tier range
+		if req.Tier < 1 || req.Tier > 5 {
+			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "tier must be between 1 and 5"})
 			return
 		}
 

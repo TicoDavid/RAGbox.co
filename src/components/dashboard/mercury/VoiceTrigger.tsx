@@ -194,6 +194,7 @@ export function VoiceTrigger({
           ${disabled ? 'opacity-50 cursor-not-allowed' : `cursor-pointer ${inlineClasses}`}
         `}
         title={isActive ? 'Stop listening' : 'Start voice input'}
+        aria-label={isActive ? 'Stop voice input' : 'Start voice input'}
       >
         {/* Pulse animation ring */}
         <AnimatePresence>

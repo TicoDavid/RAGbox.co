@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
+import { apiFetch } from '@/lib/api'
 
 // ============================================================================
 // TYPES
@@ -46,7 +47,7 @@ export interface SovereignVoiceReturn {
 // ============================================================================
 
 async function createSecureSession(): Promise<AgentSession> {
-  const response = await fetch('/api/agent/session', {
+  const response = await apiFetch('/api/agent/session', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
   })

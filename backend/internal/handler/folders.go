@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -12,6 +13,8 @@ import (
 	"github.com/connexus-ai/ragbox-backend/internal/model"
 	"github.com/connexus-ai/ragbox-backend/internal/service"
 )
+
+const maxFolderNameLength = 100
 
 // FolderDeps bundles dependencies for folder handlers.
 type FolderDeps struct {
@@ -58,8 +61,15 @@ func CreateFolder(deps FolderDeps) http.HandlerFunc {
 			return
 		}
 
+		req.Name = strings.TrimSpace(req.Name)
 		if req.Name == "" {
 			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "folder name is required"})
+			return
+		}
+
+		// Validate folder name length
+		if len(req.Name) > maxFolderNameLength {
+			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "folder name exceeds 100 character limit"})
 			return
 		}
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { apiFetch } from '@/lib/api'
 import { Download, Loader2, CheckCircle2, AlertCircle, FileArchive, FileText, Database } from 'lucide-react'
 
 type ExportFormat = 'zip' | 'json' | 'pdf'
@@ -16,7 +17,7 @@ export default function ExportSettings() {
     setExportStatus('idle')
 
     try {
-      const response = await fetch(`/api/export?format=${selectedFormat}`)
+      const response = await apiFetch(`/api/export?format=${selectedFormat}`)
       if (!response.ok) {
         const error = await response.json().catch(() => ({ error: 'Export failed' }))
         throw new Error(error.error || 'Export failed')

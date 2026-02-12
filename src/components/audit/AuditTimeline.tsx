@@ -14,6 +14,7 @@ import {
   CheckCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { apiFetch } from '@/lib/api'
 import { AuditEvent, AuditAction, AuditSeverity } from '@/lib/audit/types'
 import { AuditEntry, AuditEntryDetailModal } from './AuditEntry'
 
@@ -97,7 +98,7 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
       if (endDate) params.set('endDate', endDate)
       if (searchTerm) params.set('search', searchTerm)
 
-      const response = await fetch(`/api/audit?${params.toString()}`)
+      const response = await apiFetch(`/api/audit?${params.toString()}`)
       if (!response.ok) {
         throw new Error('Failed to fetch audit logs')
       }
@@ -149,6 +150,7 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
               placeholder="Search audit logs..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              aria-label="Search audit logs"
               className={cn(
                 'w-full pl-11 pr-4 py-3 rounded-xl',
                 'dark:bg-white/5 bg-black/5',
@@ -163,6 +165,8 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
           {/* Filter toggle */}
           <motion.button
             onClick={() => setShowFilters(!showFilters)}
+            aria-label="Toggle filters"
+            aria-expanded={showFilters}
             className={cn(
               'flex items-center gap-2 px-4 py-3 rounded-xl',
               'border transition-all duration-200',
@@ -184,6 +188,7 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
           <motion.button
             onClick={fetchLogs}
             disabled={isLoading}
+            aria-label="Refresh audit logs"
             className={cn(
               'w-11 h-11 rounded-xl flex items-center justify-center',
               'dark:bg-white/5 bg-black/5',
@@ -225,6 +230,7 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
                     <select
                       value={actionFilter}
                       onChange={(e) => setActionFilter(e.target.value as AuditAction | '')}
+                      aria-label="Filter by action type"
                       className={cn(
                         'w-full px-3 py-2 rounded-lg text-sm',
                         'dark:bg-black/30 bg-white',
@@ -249,6 +255,7 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
                     <select
                       value={severityFilter}
                       onChange={(e) => setSeverityFilter(e.target.value as AuditSeverity | '')}
+                      aria-label="Filter by severity"
                       className={cn(
                         'w-full px-3 py-2 rounded-lg text-sm',
                         'dark:bg-black/30 bg-white',
@@ -274,6 +281,7 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
                       type="date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
+                      aria-label="Filter start date"
                       className={cn(
                         'w-full px-3 py-2 rounded-lg text-sm',
                         'dark:bg-black/30 bg-white',
@@ -293,6 +301,7 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
                       type="date"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
+                      aria-label="Filter end date"
                       className={cn(
                         'w-full px-3 py-2 rounded-lg text-sm',
                         'dark:bg-black/30 bg-white',
@@ -360,6 +369,7 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1 || isLoading}
+              aria-label="Previous page"
               className={cn(
                 'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium',
                 'transition-all duration-200',
@@ -389,6 +399,8 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
                     key={pageNum}
                     onClick={() => setPage(pageNum)}
                     disabled={isLoading}
+                    aria-label={`Go to page ${pageNum}`}
+                    aria-current={pageNum === page ? 'page' : undefined}
                     className={cn(
                       'w-8 h-8 rounded-lg text-sm font-medium',
                       'transition-all duration-200',
@@ -406,6 +418,7 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages || isLoading}
+              aria-label="Next page"
               className={cn(
                 'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium',
                 'transition-all duration-200',

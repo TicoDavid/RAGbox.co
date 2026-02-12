@@ -74,6 +74,7 @@ export function VaultPanel() {
             onClick={() => setIsIngestionOpen(true)}
             className="p-2 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--brand-blue)] hover:bg-[var(--bg-tertiary)] transition-colors"
             title="Add to Vault"
+            aria-label="Add document to vault"
           >
             <Plus className="w-5 h-5" />
           </button>
@@ -81,6 +82,7 @@ export function VaultPanel() {
             onClick={toggleExplorerMode}
             className="p-2 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--brand-blue)] hover:bg-[var(--bg-tertiary)] transition-colors"
             title="Explorer Mode"
+            aria-label="Open explorer mode"
           >
             <Maximize2 className="w-5 h-5" />
           </button>
@@ -88,6 +90,7 @@ export function VaultPanel() {
             onClick={toggleCollapse}
             className="p-2 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors"
             title="Collapse"
+            aria-label="Collapse vault panel"
           >
             <X className="w-5 h-5" />
           </button>

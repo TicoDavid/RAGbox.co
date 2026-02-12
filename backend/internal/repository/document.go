@@ -87,9 +87,16 @@ func (r *DocumentRepo) ListByUser(ctx context.Context, userID string, opts servi
 	var total int
 	countQuery := `SELECT count(*) FROM documents WHERE user_id = $1 AND deletion_status = 'Active'`
 	args := []interface{}{userID}
+	argIdx := 2 // next placeholder index
 
 	if !opts.PrivilegeMode {
 		countQuery += ` AND is_privileged = false`
+	}
+
+	if opts.Search != "" {
+		countQuery += fmt.Sprintf(` AND (filename ILIKE $%d OR original_name ILIKE $%d)`, argIdx, argIdx)
+		args = append(args, "%"+opts.Search+"%")
+		argIdx++
 	}
 
 	err := r.pool.QueryRow(ctx, countQuery, args...).Scan(&total)
@@ -110,13 +117,23 @@ func (r *DocumentRepo) ListByUser(ctx context.Context, userID string, opts servi
 			folder_id, created_at, updated_at
 		FROM documents WHERE user_id = $1 AND deletion_status = 'Active'`
 
+	listArgs := []interface{}{userID}
+	listArgIdx := 2
+
 	if !opts.PrivilegeMode {
 		listQuery += ` AND is_privileged = false`
 	}
 
-	listQuery += ` ORDER BY created_at DESC LIMIT $2 OFFSET $3`
+	if opts.Search != "" {
+		listQuery += fmt.Sprintf(` AND (filename ILIKE $%d OR original_name ILIKE $%d)`, listArgIdx, listArgIdx)
+		listArgs = append(listArgs, "%"+opts.Search+"%")
+		listArgIdx++
+	}
 
-	rows, err := r.pool.Query(ctx, listQuery, userID, limit, opts.Offset)
+	listQuery += fmt.Sprintf(` ORDER BY created_at DESC LIMIT $%d OFFSET $%d`, listArgIdx, listArgIdx+1)
+	listArgs = append(listArgs, limit, opts.Offset)
+
+	rows, err := r.pool.Query(ctx, listQuery, listArgs...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("repository.ListByUser: query: %w", err)
 	}

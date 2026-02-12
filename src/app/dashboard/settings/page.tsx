@@ -16,6 +16,7 @@ import {
   Lock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { apiFetch } from '@/lib/api'
 
 /**
  * Settings Page - /dashboard/settings
@@ -41,7 +42,7 @@ export default function SettingsPage() {
     setExportMessage('')
 
     try {
-      const response = await fetch('/api/export')
+      const response = await apiFetch('/api/export')
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({ error: 'Export failed' }))
@@ -149,6 +150,7 @@ export default function SettingsPage() {
                   <motion.button
                     onClick={handleExport}
                     disabled={isExporting}
+                    aria-label={isExporting ? 'Preparing data export' : 'Export all user data'}
                     className={cn(
                       'flex items-center justify-center gap-2 px-6 py-3 rounded-xl',
                       'dark:bg-electric-600 bg-electric-500',
@@ -450,6 +452,10 @@ function SettingsItem({
         )}
         {isToggle && (
           <div
+            role="switch"
+            aria-checked={value === 'Enabled'}
+            aria-label={label}
+            tabIndex={0}
             className={cn(
               'w-8 h-4 rounded-full relative cursor-pointer',
               value === 'Enabled'

@@ -19,6 +19,7 @@ export function ContextBar() {
         onClick={clearConversation}
         className="p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
         title="Clear Chat"
+        aria-label="Clear conversation"
       >
         <RefreshCw className="w-4 h-4" />
       </button>

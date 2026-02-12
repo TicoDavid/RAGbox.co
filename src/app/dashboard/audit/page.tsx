@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { Scale, Download, Shield, Clock, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { apiFetch } from '@/lib/api'
 import { AuditTimeline } from '@/components/audit/AuditTimeline'
 
 /**
@@ -21,7 +22,7 @@ export default function AuditPage() {
   const handleExport = useCallback(async () => {
     setIsExporting(true)
     try {
-      const response = await fetch('/api/audit/export?format=pdf')
+      const response = await apiFetch('/api/audit/export?format=pdf')
 
       if (!response.ok) {
         throw new Error('Export failed')
@@ -90,6 +91,7 @@ export default function AuditPage() {
           <motion.button
             onClick={handleExport}
             disabled={isExporting}
+            aria-label={isExporting ? 'Generating audit report' : 'Export audit report as PDF'}
             className={cn(
               'flex items-center gap-2 px-5 py-3 rounded-xl',
               'dark:bg-electric-600/20 bg-electric-100',

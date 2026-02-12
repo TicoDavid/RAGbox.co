@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { apiFetch } from '@/lib/api'
 import { X, Hammer, Loader2, Download, CheckCircle2, AlertCircle } from 'lucide-react'
 import TemplateLibrary from './TemplateLibrary'
-import TemplateUpload from './TemplateUpload'
 import TemplatePreview from './TemplatePreview'
 import type { TemplateAnalysis } from '@/types/templateAnalysis'
 
@@ -12,13 +12,14 @@ interface TemplateSelectorProps {
   onClose: () => void
 }
 
-type Step = 'select' | 'upload' | 'fill' | 'generating' | 'done' | 'error'
+type Step = 'select' | 'fill' | 'generating' | 'done' | 'error'
 
 export default function TemplateSelector({ sourceContext, onClose }: TemplateSelectorProps) {
   const [step, setStep] = useState<Step>('select')
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateAnalysis | null>(null)
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({})
   const [generatedUrl, setGeneratedUrl] = useState<string | null>(null)
+  const [generatedTitle, setGeneratedTitle] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const handleTemplateSelect = useCallback((template: TemplateAnalysis) => {
@@ -34,21 +35,6 @@ export default function TemplateSelector({ sourceContext, onClose }: TemplateSel
     setStep('fill')
   }, [])
 
-  const handleAnalysisComplete = useCallback(async (templateId: string) => {
-    try {
-      const response = await fetch(`/api/templates?id=${templateId}`)
-      if (response.ok) {
-        const data = await response.json()
-        if (data.template) {
-          handleTemplateSelect(data.template)
-        }
-      }
-    } catch {
-      setErrorMessage('Failed to load analyzed template')
-      setStep('error')
-    }
-  }, [handleTemplateSelect])
-
   const handleFieldChange = useCallback((fieldName: string, value: string) => {
     setFieldValues(prev => ({ ...prev, [fieldName]: value }))
   }, [])
@@ -60,16 +46,22 @@ export default function TemplateSelector({ sourceContext, onClose }: TemplateSel
     setErrorMessage(null)
 
     try {
-      const response = await fetch('/api/forge/generate', {
+      // Build query from topic field + source context
+      const topic = fieldValues['topic'] || ''
+      const query = topic
+        ? `${topic}\n\nContext:\n${sourceContext}`
+        : sourceContext
+
+      // POST /api/forge matches the Go backend's ForgeRequest schema:
+      //   { template: string, query: string, chunks: [], persona: string }
+      const response = await apiFetch('/api/forge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          templateId: selectedTemplate.templateId,
-          templateName: selectedTemplate.name,
-          category: selectedTemplate.category,
-          fields: selectedTemplate.fields,
-          fieldValues,
-          sourceContext,
+          template: selectedTemplate.templateId,
+          query,
+          chunks: [],
+          persona: '',
         }),
       })
 
@@ -79,7 +71,10 @@ export default function TemplateSelector({ sourceContext, onClose }: TemplateSel
       }
 
       const result = await response.json()
-      setGeneratedUrl(result.downloadUrl || null)
+      // Go backend wraps in { success: true, data: ForgeResult }
+      const forgeResult = result.data || result
+      setGeneratedUrl(forgeResult.downloadUrl || null)
+      setGeneratedTitle(forgeResult.title || selectedTemplate.name)
       setStep('done')
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : 'Generation failed')
@@ -91,12 +86,12 @@ export default function TemplateSelector({ sourceContext, onClose }: TemplateSel
     if (generatedUrl) {
       const a = document.createElement('a')
       a.href = generatedUrl
-      a.download = `${selectedTemplate?.name || 'document'}.txt`
+      a.download = `${generatedTitle || selectedTemplate?.name || 'document'}.txt`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
     }
-  }, [generatedUrl, selectedTemplate])
+  }, [generatedUrl, generatedTitle, selectedTemplate])
 
   const requiredMissing = selectedTemplate?.fields
     .filter(f => f.required && !fieldValues[f.name]?.trim())
@@ -122,20 +117,8 @@ export default function TemplateSelector({ sourceContext, onClose }: TemplateSel
             <TemplateLibrary
               onSelect={handleTemplateSelect}
               selectedTemplateId={selectedTemplate?.templateId}
-              onUploadClick={() => setStep('upload')}
+              onUploadClick={() => {/* Upload disabled - coming soon */}}
             />
-          )}
-
-          {step === 'upload' && (
-            <div className="space-y-4">
-              <button
-                onClick={() => setStep('select')}
-                className="text-[10px] text-[#00F0FF] hover:underline"
-              >
-                Back to library
-              </button>
-              <TemplateUpload onAnalysisComplete={handleAnalysisComplete} />
-            </div>
           )}
 
           {step === 'fill' && selectedTemplate && (
@@ -176,6 +159,9 @@ export default function TemplateSelector({ sourceContext, onClose }: TemplateSel
             <div className="flex flex-col items-center gap-3 py-12">
               <CheckCircle2 size={32} className="text-green-500" />
               <div className="text-sm text-white">Document forged successfully</div>
+              {generatedTitle && (
+                <div className="text-[10px] text-[#888]">{generatedTitle}</div>
+              )}
               {generatedUrl && (
                 <button
                   onClick={handleDownload}

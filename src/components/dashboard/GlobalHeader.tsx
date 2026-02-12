@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import { useSession, signOut } from 'next-auth/react'
 import { usePrivilegeStore } from '@/stores/privilegeStore'
+import { useVaultStore } from '@/stores/vaultStore'
 import {
   Search,
   Settings,
@@ -79,6 +80,54 @@ export function GlobalHeader() {
   // Get persona categories
   const executivePersonas = PERSONAS.filter((p) => p.category === 'EXECUTIVE')
   const compliancePersonas = PERSONAS.filter((p) => p.category === 'COMPLIANCE')
+
+  // Search: wire to vault store with 300ms debounce
+  const setSearchQuery = useVaultStore((s) => s.setSearchQuery)
+  const fetchDocuments = useVaultStore((s) => s.fetchDocuments)
+  const [searchInput, setSearchInput] = useState('')
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearchInput(value)
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      debounceRef.current = setTimeout(() => {
+        setSearchQuery(value)
+        fetchDocuments()
+      }, 300)
+    },
+    [setSearchQuery, fetchDocuments]
+  )
+
+  // Clean up debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [])
+
+  // Focus search input when search bar opens
+  useEffect(() => {
+    if (searchOpen && searchInputRef.current) {
+      searchInputRef.current.focus()
+    }
+  }, [searchOpen])
+
+  // Keyboard shortcut: Cmd/Ctrl+K toggles search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setSearchOpen((prev) => !prev)
+      }
+      if (e.key === 'Escape' && searchOpen) {
+        setSearchOpen(false)
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [searchOpen])
 
   const handleThemeToggle = () => {
     const next = theme === 'dark' ? 'light' : 'dark'
@@ -167,15 +216,41 @@ export function GlobalHeader() {
 
         {/* Center Section - Search (Absolutely Centered) */}
         <div className="absolute left-1/2 -translate-x-1/2">
-          <button
-            onClick={() => setSearchOpen(!searchOpen)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-tertiary)] hover:border-[var(--border-strong)] transition-colors"
-            style={{ minWidth: 200 }}
-          >
-            <Search className="w-4 h-4" />
-            <span className="text-sm">Search documents...</span>
-            <kbd className="ml-auto text-[10px] font-mono bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded">⌘K</kbd>
-          </button>
+          {searchOpen ? (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-[var(--brand-blue)] bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors" style={{ minWidth: 320 }}>
+              <Search className="w-4 h-4 text-[var(--text-tertiary)] shrink-0" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchInput}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                placeholder="Search documents..."
+                aria-label="Search documents"
+                className="flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--text-tertiary)]"
+              />
+              {searchInput && (
+                <button
+                  onClick={() => { handleSearchChange(''); setSearchOpen(false) }}
+                  className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+                  aria-label="Clear search"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+              <kbd className="text-[10px] font-mono bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] px-1.5 py-0.5 rounded shrink-0">Esc</kbd>
+            </div>
+          ) : (
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-tertiary)] hover:border-[var(--border-strong)] transition-colors"
+              style={{ minWidth: 200 }}
+              aria-label="Search documents"
+            >
+              <Search className="w-4 h-4" />
+              <span className="text-sm">Search documents...</span>
+              <kbd className="ml-auto text-[10px] font-mono bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded">&#8984;K</kbd>
+            </button>
+          )}
         </div>
 
         {/* Right Section - Actions */}
@@ -184,6 +259,8 @@ export function GlobalHeader() {
           <div className="relative" ref={personaMenuRef}>
             <button
               onClick={() => setPersonaMenuOpen(!personaMenuOpen)}
+              aria-label={`Select persona: ${currentPersona.label}`}
+              aria-expanded={personaMenuOpen}
               className={`
                 flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300
                 ${isWhistleblowerMode
@@ -313,6 +390,8 @@ export function GlobalHeader() {
           <div className="relative group">
             <button
               onClick={() => togglePrivilege()}
+              aria-label={privilegeMode ? 'Disable privilege mode' : 'Enable privilege mode'}
+              aria-pressed={privilegeMode}
               className={`p-2 rounded-md transition-all duration-300 ${
                 privilegeMode
                   ? 'text-amber-400 bg-amber-900/30 shadow-[0_0_15px_rgba(255,171,0,0.4)] animate-[pulse-glow_2s_ease-in-out_infinite]'
@@ -343,6 +422,7 @@ export function GlobalHeader() {
             onClick={handleThemeToggle}
             className="p-2 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
             title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
           >
             {theme === 'dark' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
           </button>
@@ -352,6 +432,7 @@ export function GlobalHeader() {
             onClick={() => setSettingsOpen(true)}
             className="p-2 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
             title="Settings"
+            aria-label="Open settings"
           >
             <Settings className="w-5 h-5" />
           </button>
@@ -360,6 +441,8 @@ export function GlobalHeader() {
           <div className="relative ml-1" ref={profileMenuRef}>
             <button
               onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+              aria-label="User profile menu"
+              aria-expanded={profileMenuOpen}
               className={`flex items-center gap-1.5 p-1 rounded-full transition-all ${
                 profileMenuOpen ? 'ring-2 ring-[var(--brand-blue)] ring-offset-2 ring-offset-[var(--bg-secondary)]' : ''
               }`}
@@ -546,7 +629,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
 
       {/* Modal - Wide layout */}
       <div className="relative w-full max-w-4xl mx-4 h-[80vh] max-h-[700px] bg-[#0B1221]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
@@ -564,6 +647,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
           <button
             onClick={onClose}
             className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            aria-label="Close settings"
           >
             <X className="w-5 h-5" />
           </button>
@@ -572,7 +656,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
         {/* Body - Sidebar + Content */}
         <div className="flex flex-1 overflow-hidden">
           {/* Left Sidebar */}
-          <nav className="w-56 shrink-0 bg-[var(--bg-secondary)]/50 border-r border-white/10 overflow-y-auto py-4">
+          <nav className="w-56 shrink-0 bg-[var(--bg-secondary)]/50 border-r border-white/10 overflow-y-auto py-4" aria-label="Settings navigation">
             {SIDEBAR_CATEGORIES.map((category) => (
               <div key={category.id} className="mb-4">
                 <div className="px-4 py-1.5 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
@@ -650,7 +734,7 @@ function ProfileSettings() {
               </span>
             </div>
           </div>
-          <button className="px-4 py-2 text-sm text-slate-300 hover:text-white border border-white/20 hover:border-white/40 rounded-lg transition-colors">
+          <button className="px-4 py-2 text-sm text-slate-300 hover:text-white border border-white/20 hover:border-white/40 rounded-lg transition-colors" aria-label="Edit profile">
             Edit Profile
           </button>
         </div>
@@ -762,7 +846,7 @@ function BillingSettings() {
       </div>
 
       {/* Manage Subscription */}
-      <button className="w-full flex items-center justify-between p-4 bg-white/5 border border-white/10 hover:border-white/30 rounded-xl transition-colors group">
+      <button className="w-full flex items-center justify-between p-4 bg-white/5 border border-white/10 hover:border-white/30 rounded-xl transition-colors group" aria-label="Manage subscription">
         <div className="flex items-center gap-3">
           <CreditCard className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
           <div className="text-left">
@@ -821,6 +905,7 @@ function VoiceSettings() {
             step="500"
             value={voice.silenceThreshold}
             onChange={(e) => updateVoice({ silenceThreshold: parseInt(e.target.value) })}
+            aria-label="Silence threshold"
             className="w-full h-2 bg-slate-700 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-cyan-400"
           />
           <div className="flex justify-between text-[10px] text-slate-500 mt-1">
@@ -930,7 +1015,7 @@ function SecuritySettings() {
               <p className="text-sm font-medium text-slate-300">MacBook Pro</p>
               <p className="text-xs text-slate-500">macOS · Safari · Last active yesterday</p>
             </div>
-            <button className="text-xs text-red-400 hover:text-red-300 transition-colors">
+            <button className="text-xs text-red-400 hover:text-red-300 transition-colors" aria-label="Revoke session">
               Revoke
             </button>
           </div>
@@ -939,7 +1024,7 @@ function SecuritySettings() {
 
       {/* Security Actions */}
       <div className="space-y-3">
-        <button className="w-full flex items-center justify-between p-4 bg-white/5 border border-white/10 hover:border-white/30 rounded-lg transition-colors group">
+        <button className="w-full flex items-center justify-between p-4 bg-white/5 border border-white/10 hover:border-white/30 rounded-lg transition-colors group" aria-label="Two-factor authentication settings">
           <div className="flex items-center gap-3">
             <Shield className="w-4 h-4 text-slate-400" />
             <span className="text-sm text-slate-300 group-hover:text-white">Two-Factor Authentication</span>
@@ -947,7 +1032,7 @@ function SecuritySettings() {
           <span className="text-xs text-emerald-400">Enabled</span>
         </button>
 
-        <button className="w-full flex items-center justify-between p-4 bg-red-500/10 border border-red-500/30 hover:border-red-500/50 rounded-lg transition-colors">
+        <button className="w-full flex items-center justify-between p-4 bg-red-500/10 border border-red-500/30 hover:border-red-500/50 rounded-lg transition-colors" aria-label="Sign out all devices">
           <div className="flex items-center gap-3">
             <LogOut className="w-4 h-4 text-red-400" />
             <span className="text-sm text-red-400">Sign Out All Devices</span>
@@ -1720,6 +1805,9 @@ function ToggleSetting({
       </div>
       <button
         onClick={onToggle}
+        role="switch"
+        aria-checked={enabled}
+        aria-label={label}
         className={`w-11 h-6 rounded-full transition-colors ${
           enabled ? 'bg-[var(--brand-blue)]' : 'bg-slate-700'
         }`}

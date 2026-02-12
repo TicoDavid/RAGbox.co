@@ -337,6 +337,7 @@ export function AuditEntryDetailModal({ event, isOpen, onClose }: AuditEntryDeta
               <button
                 onClick={onClose}
                 className="w-8 h-8 rounded-lg flex items-center justify-center dark:text-white/40 text-black/40 dark:hover:bg-white/10 hover:bg-black/10 transition-colors"
+                aria-label="Close audit entry details"
               >
                 <X className="w-5 h-5" />
               </button>

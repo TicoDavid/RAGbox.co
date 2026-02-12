@@ -1,3 +1,5 @@
+import { apiFetch } from '@/lib/api';
+
 /**
  * Deepgram STT WebSocket Client
  *
@@ -44,7 +46,7 @@ export class DeepgramClient {
 
     try {
       // Get token from our API
-      const tokenRes = await fetch('/api/voice/token', { method: 'POST' });
+      const tokenRes = await apiFetch('/api/voice/token', { method: 'POST' });
       if (!tokenRes.ok) {
         throw new Error('Failed to get voice token');
       }

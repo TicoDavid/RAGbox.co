@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -38,6 +39,7 @@ type BigQueryWriter interface {
 type AuditService struct {
 	repo     AuditRepository
 	bq       BigQueryWriter // nil means BQ disabled
+	mu       sync.Mutex     // protects lastHash for concurrent writes
 	lastHash string
 }
 
@@ -93,9 +95,11 @@ func (s *AuditService) LogWithDetails(ctx context.Context, action, userID, resou
 	}
 
 	// Compute hash chain: SHA-256(previousHash + action + timestamp + details)
+	s.mu.Lock()
 	hash := computeHash(s.lastHash, entry)
 	entry.DetailsHash = &hash
 	s.lastHash = hash
+	s.mu.Unlock()
 
 	// Write to PostgreSQL (immediate)
 	if err := s.repo.Create(ctx, entry); err != nil {

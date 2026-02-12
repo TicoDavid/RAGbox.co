@@ -21,7 +21,7 @@ export function ConversationThread() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-6">
+    <div className="flex-1 overflow-y-auto px-4 py-6" role="log" aria-label="Conversation messages" aria-live="polite">
       {/* Focus Column - Constrained width for readability */}
       <div className="max-w-3xl mx-auto">
         {messages.map((msg) => (

@@ -49,6 +49,34 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			return
 		}
 
+		// Validate query length
+		if len(req.Query) > 10000 {
+			respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "query exceeds 10000 character limit"})
+			return
+		}
+
+		// Validate mode if provided
+		if req.Mode != "" {
+			switch req.Mode {
+			case "concise", "detailed", "risk-analysis":
+				// valid
+			default:
+				respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "mode must be one of: concise, detailed, risk-analysis"})
+				return
+			}
+		}
+
+		// Validate persona if provided
+		if req.Persona != "" {
+			switch req.Persona {
+			case "default", "cfo", "legal":
+				// valid
+			default:
+				respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "persona must be one of: default, cfo, legal"})
+				return
+			}
+		}
+
 		// Set SSE headers
 		w.Header().Set("Content-Type", "text/event-stream")
 		w.Header().Set("Cache-Control", "no-cache")

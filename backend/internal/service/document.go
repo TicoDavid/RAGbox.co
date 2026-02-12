@@ -51,6 +51,7 @@ type ListOpts struct {
 	Limit         int
 	Offset        int
 	PrivilegeMode bool
+	Search        string
 }
 
 // SignedURLResponse is returned to the client with the upload URL.

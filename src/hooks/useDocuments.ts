@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { apiFetch } from '@/lib/api'
 import type { DocumentDTO } from '@/types/api'
 import type { DeletionStatus } from '@/types/models'
 
@@ -81,7 +82,7 @@ export function useDocuments(options: UseDocumentsOptions = {}): UseDocumentsRet
         status: statusFilter,
       })
 
-      const response = await fetch(`/api/documents?${params.toString()}`)
+      const response = await apiFetch(`/api/documents?${params.toString()}`)
 
       if (!response.ok) {
         throw new Error('Failed to fetch documents')
@@ -99,7 +100,7 @@ export function useDocuments(options: UseDocumentsOptions = {}): UseDocumentsRet
 
   const deleteDocument = useCallback(async (id: string): Promise<boolean> => {
     try {
-      const response = await fetch(`/api/documents/${id}`, {
+      const response = await apiFetch(`/api/documents/${id}`, {
         method: 'DELETE',
       })
 
@@ -120,7 +121,7 @@ export function useDocuments(options: UseDocumentsOptions = {}): UseDocumentsRet
   const updateDocument = useCallback(
     async (id: string, updates: Partial<DocumentDTO>): Promise<DocumentDTO | null> => {
       try {
-        const response = await fetch(`/api/documents/${id}`, {
+        const response = await apiFetch(`/api/documents/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updates),
@@ -152,7 +153,7 @@ export function useDocuments(options: UseDocumentsOptions = {}): UseDocumentsRet
         // Use ref to avoid stale closure over documents state
         const document = documentsRef.current.find((doc) => doc.id === id)
 
-        const response = await fetch(`/api/documents/${id}/privilege`, {
+        const response = await apiFetch(`/api/documents/${id}/privilege`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

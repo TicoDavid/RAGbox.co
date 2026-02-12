@@ -49,7 +49,13 @@ export async function POST() {
 
     // Determine WebSocket URL based on environment
     const wsProtocol = process.env.NODE_ENV === 'production' ? 'wss' : 'ws'
-    const host = process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'localhost:3000'
+    const host = process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '')
+    if (!host) {
+      return NextResponse.json(
+        { error: 'NEXT_PUBLIC_APP_URL not configured' },
+        { status: 503 }
+      )
+    }
 
     // Return ONLY safe, non-secret data
     return NextResponse.json({

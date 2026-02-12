@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { Send, Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { apiFetch } from '@/lib/api';
 
 // Types
 interface Citation {
@@ -83,7 +84,7 @@ export default function MercuryConsole({ privilegeMode, onCitationClick }: Mercu
         .filter(m => m.role === 'user' || m.role === 'assistant')
         .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
 
-      const response = await fetch('/api/chat', {
+      const response = await apiFetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

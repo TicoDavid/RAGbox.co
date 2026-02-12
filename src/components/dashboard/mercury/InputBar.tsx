@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useRef, useEffect, useState, useCallback } from 'react'
+import { apiFetch } from '@/lib/api'
 import { useMercuryStore, type SessionAttachment } from '@/stores/mercuryStore'
 import { usePrivilegeStore } from '@/stores/privilegeStore'
 import {
@@ -79,7 +80,7 @@ export function InputBar() {
     if (!urlValue.trim()) return
     const attachmentId = addAttachment({ name: urlValue, type: 'url', url: urlValue })
     updateAttachment(attachmentId, { status: 'processing' })
-    fetch('/api/scrape', {
+    apiFetch('/api/scrape', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url: urlValue }),
@@ -127,7 +128,7 @@ export function InputBar() {
   }, [addAttachment, updateAttachment])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       sendMessage(privilegeMode)
     }
@@ -172,7 +173,7 @@ export function InputBar() {
               >
                 {attachment.status === 'processing' ? <Loader2 className="w-3 h-3 animate-spin" /> : getAttachmentIcon(attachment)}
                 <span className="max-w-[120px] truncate">{attachment.name}</span>
-                <button onClick={() => removeAttachment(attachment.id)} className="ml-0.5 p-0.5 rounded-full hover:bg-white/10 transition-colors">
+                <button onClick={() => removeAttachment(attachment.id)} className="ml-0.5 p-0.5 rounded-full hover:bg-white/10 transition-colors" aria-label={`Remove attachment ${attachment.name}`}>
                   <X className="w-3 h-3" />
                 </button>
               </div>
@@ -191,35 +192,37 @@ export function InputBar() {
               onClick={() => setIsInjectMenuOpen(!isInjectMenuOpen)}
               className={`p-1.5 rounded-full transition-all duration-200 ${isInjectMenuOpen ? 'text-amber-400 bg-amber-500/20' : 'text-amber-700 hover:text-amber-400 hover:bg-amber-500/10'}`}
               title="Inject Context"
+              aria-label="Attach context"
+              aria-expanded={isInjectMenuOpen}
             >
               <Paperclip className="w-5 h-5" />
             </button>
 
             {isInjectMenuOpen && (
               <>
-                <div className="fixed inset-0 z-40" onClick={() => { setIsInjectMenuOpen(false); setShowUrlInput(false) }} />
+                <div className="fixed inset-0 z-40" onClick={() => { setIsInjectMenuOpen(false); setShowUrlInput(false) }} aria-hidden="true" />
                 <div className="absolute bottom-full left-0 mb-2 w-52 bg-[#0a0f1a]/98 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-50 py-1 overflow-hidden">
                   <div className="px-3 py-2 border-b border-white/5">
                     <p className="text-[10px] font-semibold text-cyan-400 uppercase tracking-wider">Inject Context</p>
                     <p className="text-[10px] text-slate-500">Session only</p>
                   </div>
-                  <button onClick={() => fileInputRef.current?.click()} className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors">
+                  <button onClick={() => fileInputRef.current?.click()} className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors" aria-label="Upload file">
                     <FileUp className="w-4 h-4 text-cyan-400" />
                     <div><span className="block">Upload File</span><span className="text-[10px] text-slate-500">PDF, DOCX, TXT</span></div>
                   </button>
-                  <button onClick={() => imageInputRef.current?.click()} className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors">
+                  <button onClick={() => imageInputRef.current?.click()} className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors" aria-label="Add image">
                     <Image className="w-4 h-4 text-purple-400" />
                     <div><span className="block">Add Image</span><span className="text-[10px] text-slate-500">Screenshots, Charts</span></div>
                   </button>
                   {showUrlInput ? (
                     <div className="px-3 py-2 border-t border-white/5">
                       <div className="flex gap-2">
-                        <input type="url" value={urlValue} onChange={(e) => setUrlValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleUrlAdd()} placeholder="https://..." autoFocus className="flex-1 px-2 py-1.5 text-xs bg-slate-900/50 border border-slate-700 rounded-md text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500" />
-                        <button onClick={handleUrlAdd} disabled={!urlValue.trim()} className="px-2 py-1.5 text-xs bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-black font-medium rounded-md transition-colors">Add</button>
+                        <input type="url" value={urlValue} onChange={(e) => setUrlValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleUrlAdd()} placeholder="https://..." autoFocus className="flex-1 px-2 py-1.5 text-xs bg-slate-900/50 border border-slate-700 rounded-md text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500" aria-label="URL to scrape" />
+                        <button onClick={handleUrlAdd} disabled={!urlValue.trim()} className="px-2 py-1.5 text-xs bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-black font-medium rounded-md transition-colors" aria-label="Add URL">Add</button>
                       </div>
                     </div>
                   ) : (
-                    <button onClick={() => setShowUrlInput(true)} className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors">
+                    <button onClick={() => setShowUrlInput(true)} className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors" aria-label="Add URL">
                       <Link className="w-4 h-4 text-emerald-400" />
                       <div><span className="block">Add URL</span><span className="text-[10px] text-slate-500">Quick scrape</span></div>
                     </button>
@@ -227,8 +230,8 @@ export function InputBar() {
                 </div>
               </>
             )}
-            <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.txt,.md,.csv,.xlsx,.xls" multiple onChange={(e) => handleFileSelect(e.target.files)} />
-            <input ref={imageInputRef} type="file" className="hidden" accept="image/*" multiple onChange={(e) => handleFileSelect(e.target.files, true)} />
+            <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.txt,.md,.csv,.xlsx,.xls" multiple onChange={(e) => handleFileSelect(e.target.files)} aria-label="Upload files" />
+            <input ref={imageInputRef} type="file" className="hidden" accept="image/*" multiple onChange={(e) => handleFileSelect(e.target.files, true)} aria-label="Upload images" />
           </div>
 
           <textarea
@@ -238,13 +241,14 @@ export function InputBar() {
             onKeyDown={handleKeyDown}
             placeholder={attachments.length > 0 ? 'Ask about attached context...' : 'Ask anything...'}
             rows={1}
+            aria-label="Message input"
             className="flex-1 bg-transparent text-sm text-white placeholder:text-slate-500 resize-none outline-none min-h-[24px] max-h-[120px] py-0.5 pr-2"
           />
 
           <div className="flex items-center gap-1 shrink-0">
             <VoiceTrigger onTranscript={handleVoiceTranscript} onSubmit={handleVoiceSubmit} disabled={isStreaming} size="default" variant="inline" />
             {isStreaming ? (
-              <button onClick={stopStreaming} className="p-2 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors" title="Stop">
+              <button onClick={stopStreaming} className="p-2 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors" title="Stop" aria-label="Stop streaming">
                 <Square className="w-4 h-4" />
               </button>
             ) : (
@@ -252,7 +256,8 @@ export function InputBar() {
                 onClick={handleSubmit}
                 disabled={!canSend}
                 className={`p-2 rounded-full transition-all duration-300 ${canSend ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-black hover:from-amber-300 hover:to-amber-500 shadow-lg shadow-amber-500/20' : 'bg-amber-900/20 text-amber-800 cursor-not-allowed'}`}
-                title="Send (Shift+Enter)"
+                title="Send (Enter)"
+                aria-label="Send message"
               >
                 <ArrowUp className="w-4 h-4" />
               </button>

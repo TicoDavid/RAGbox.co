@@ -76,13 +76,14 @@ export function PreviewPane() {
 
       {/* Actions - Premium Buttons */}
       <div className="mt-auto flex flex-col gap-2">
-        <button className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-[#00F0FF] text-black text-sm font-semibold hover:bg-[#00d4e0] transition-colors shadow-[0_0_20px_-5px_rgba(0,240,255,0.4)]">
+        <button className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-[#00F0FF] text-black text-sm font-semibold hover:bg-[#00d4e0] transition-colors shadow-[0_0_20px_-5px_rgba(0,240,255,0.4)]" aria-label={`Download ${item.name}`}>
           <Download className="w-4 h-4" />
           Download Asset
         </button>
         <button
           onClick={() => togglePrivilege(item.id)}
           className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-white/10 text-sm text-slate-400 hover:text-white hover:bg-white/5 hover:border-white/20 transition-all"
+          aria-label={item.isPrivileged ? `Remove privilege from ${item.name}` : `Mark ${item.name} as privileged`}
         >
           <Shield className="w-4 h-4" />
           {item.isPrivileged ? 'Remove Privilege' : 'Mark Privileged'}
@@ -90,6 +91,7 @@ export function PreviewPane() {
         <button
           onClick={() => deleteDocument(item.id)}
           className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-red-500/20 text-sm text-red-400/70 hover:text-red-400 hover:bg-red-950/30 hover:border-red-500/30 transition-all"
+          aria-label={`Delete ${item.name}`}
         >
           <Trash2 className="w-4 h-4" />
           Delete

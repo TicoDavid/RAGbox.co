@@ -60,7 +60,7 @@ function WaveformBars({ isActive, color = 'cyan' }: { isActive: boolean; color?:
 
 function TranscriptView({ messages }: { messages: TranscriptMessage[] }) {
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-thin scrollbar-thumb-gray-700">
+    <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-thin scrollbar-thumb-gray-700" role="log" aria-label="Voice transcript" aria-live="polite">
       {messages.length === 0 ? (
         <div className="text-center text-gray-500 text-sm py-8">
           <Mic className="w-8 h-8 mx-auto mb-2 opacity-50" />
@@ -249,6 +249,7 @@ export function VoicePanel({
             <button
               onClick={onClose}
               className="p-1.5 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-gray-200 transition-colors"
+              aria-label="Close voice panel"
             >
               <X className="w-4 h-4" />
             </button>
@@ -289,6 +290,7 @@ export function VoicePanel({
                 isMuted ? 'bg-red-900/30 text-red-400' : 'hover:bg-gray-800 text-gray-400'
               }`}
               title={isMuted ? 'Unmute' : 'Mute'}
+              aria-label={isMuted ? 'Unmute audio' : 'Mute audio'}
             >
               {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
             </button>
@@ -296,6 +298,7 @@ export function VoicePanel({
               onClick={clearTranscript}
               className="p-2 rounded-lg hover:bg-gray-800 text-gray-400 text-xs"
               title="Clear transcript"
+              aria-label="Clear transcript"
             >
               Clear
             </button>
@@ -305,6 +308,7 @@ export function VoicePanel({
           <motion.button
             onClick={handleMainAction}
             whileTap={{ scale: 0.95 }}
+            aria-label={mainButton.label}
             className={`
               px-6 py-2.5 rounded-full flex items-center gap-2
               font-medium text-white transition-all
@@ -323,6 +327,7 @@ export function VoicePanel({
                 onClick={disconnect}
                 className="p-2 rounded-lg hover:bg-gray-800 text-gray-400 text-xs"
                 title="Disconnect"
+                aria-label="End voice session"
               >
                 End
               </button>
@@ -330,6 +335,7 @@ export function VoicePanel({
             <button
               className="p-2 rounded-lg hover:bg-gray-800 text-gray-400"
               title="Voice settings"
+              aria-label="Voice settings"
             >
               <Settings className="w-4 h-4" />
             </button>

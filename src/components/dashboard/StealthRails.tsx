@@ -41,6 +41,7 @@ function RailIcon({ icon: Icon, label, isActive, onClick, side }: RailIconProps)
     <div className="relative group">
       <button
         onClick={onClick}
+        aria-label={label}
         className={`
           relative w-11 h-11 flex items-center justify-center rounded-xl
           transition-all duration-200
@@ -102,7 +103,7 @@ export function LeftStealthRail({
   const isVaultActive = isExpanded && activeTab === 'vault'
 
   return (
-    <div className="h-full flex flex-col bg-[#0A192F] border-r border-white/10">
+    <div className="h-full flex flex-col bg-[#0A192F] border-r border-white/10" role="navigation" aria-label="Vault navigation">
       {/* Icon Stack */}
       <div className="flex-1 flex flex-col items-center py-4 gap-2">
         {/* Vault - with expand functionality */}
@@ -110,6 +111,7 @@ export function LeftStealthRail({
           <button
             onClick={() => onTabClick('vault')}
             onDoubleClick={() => onExpandVault?.()}
+            aria-label="Vault"
             className={`
               relative w-11 h-11 flex items-center justify-center rounded-xl
               transition-all duration-200
@@ -144,6 +146,7 @@ export function LeftStealthRail({
                        border border-cyan-400/30 hover:border-cyan-400/50
                        transition-all duration-200 group relative"
             title="Expand to Sovereign Explorer"
+            aria-label="Expand to Sovereign Explorer"
           >
             <Maximize2 className="w-4 h-4" />
             {/* Tooltip */}
@@ -189,6 +192,7 @@ export function LeftStealthRail({
         <div className="pb-4 flex justify-center">
           <button
             onClick={onCollapse}
+            aria-label="Collapse left panel"
             className="w-8 h-8 flex items-center justify-center rounded-lg
                        text-slate-500 hover:text-white hover:bg-white/5
                        transition-colors"
@@ -219,7 +223,7 @@ export function RightStealthRail({
   onCollapse,
 }: RightRailProps) {
   return (
-    <div className="h-full flex flex-col bg-[#0A192F] border-l border-white/10">
+    <div className="h-full flex flex-col bg-[#0A192F] border-l border-white/10" role="navigation" aria-label="Tools navigation">
       {/* Icon Stack */}
       <div className="flex-1 flex flex-col items-center py-4 gap-2">
         {/* Mercury Voice Agent */}
@@ -273,6 +277,7 @@ export function RightStealthRail({
         <div className="pb-4 flex justify-center">
           <button
             onClick={onCollapse}
+            aria-label="Collapse right panel"
             className="w-8 h-8 flex items-center justify-center rounded-lg
                        text-slate-500 hover:text-white hover:bg-white/5
                        transition-colors"

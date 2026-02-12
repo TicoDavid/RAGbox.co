@@ -51,6 +51,11 @@ type Dependencies struct {
 
 	// User auto-provisioning
 	UserEnsurer middleware.UserEnsurer
+
+	// Rate limiters (nil = no rate limiting)
+	GeneralRateLimiter *middleware.RateLimiter
+	ChatRateLimiter    *middleware.RateLimiter
+	ForgeRateLimiter   *middleware.RateLimiter
 }
 
 // New creates and configures the Chi router with all routes.
@@ -58,6 +63,7 @@ func New(deps *Dependencies) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Global middleware
+	r.Use(middleware.SecurityHeaders)
 	r.Use(middleware.Logging)
 	r.Use(middleware.CORS(deps.FrontendURL))
 	if deps.Metrics != nil {
@@ -78,6 +84,11 @@ func New(deps *Dependencies) *chi.Mux {
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.InternalOrFirebaseAuth(deps.AuthService, deps.InternalAuthSecret, deps.UserEnsurer))
 
+		// General rate limit for all authenticated endpoints
+		if deps.GeneralRateLimiter != nil {
+			r.Use(middleware.RateLimit(deps.GeneralRateLimiter))
+		}
+
 		// Documents
 		r.Get("/api/documents", handler.ListDocuments(docCRUD))
 		r.Post("/api/documents/extract", handler.UploadDocument(deps.DocService))
@@ -85,7 +96,6 @@ func New(deps *Dependencies) *chi.Mux {
 		r.Delete("/api/documents/{id}", handler.DeleteDocument(docCRUD))
 		r.Post("/api/documents/{id}/recover", handler.RecoverDocument(docCRUD))
 		r.Patch("/api/documents/{id}/tier", handler.UpdateDocumentTier(docCRUD))
-		r.Post("/api/documents/promote", placeholder("promote_tier"))
 		r.Patch("/api/documents/{id}/privilege", handler.ToggleDocPrivilege(docCRUD))
 		r.Post("/api/documents/{id}/ingest", handler.IngestDocument(deps.IngestDeps))
 
@@ -98,8 +108,12 @@ func New(deps *Dependencies) *chi.Mux {
 		r.Get("/api/privilege", handler.GetPrivilege(deps.PrivilegeState))
 		r.Post("/api/privilege", handler.TogglePrivilege(deps.PrivilegeState))
 
-		// Chat
-		r.Post("/api/chat", handler.Chat(deps.ChatDeps))
+		// Chat — stricter rate limit (10/min)
+		if deps.ChatRateLimiter != nil {
+			r.With(middleware.RateLimit(deps.ChatRateLimiter)).Post("/api/chat", handler.Chat(deps.ChatDeps))
+		} else {
+			r.Post("/api/chat", handler.Chat(deps.ChatDeps))
+		}
 
 		// Audit
 		r.Get("/api/audit", handler.ListAudit(deps.AuditDeps))
@@ -108,8 +122,12 @@ func New(deps *Dependencies) *chi.Mux {
 		// Export
 		r.Get("/api/export", handler.ExportData(deps.ExportDeps))
 
-		// Forge
-		r.Post("/api/forge", handler.ForgeHandler(deps.ForgeSvc))
+		// Forge — strictest rate limit (5/min)
+		if deps.ForgeRateLimiter != nil {
+			r.With(middleware.RateLimit(deps.ForgeRateLimiter)).Post("/api/forge", handler.ForgeHandler(deps.ForgeSvc))
+		} else {
+			r.Post("/api/forge", handler.ForgeHandler(deps.ForgeSvc))
+		}
 	})
 
 	// 404 fallback
@@ -123,16 +141,4 @@ func New(deps *Dependencies) *chi.Mux {
 	})
 
 	return r
-}
-
-// placeholder returns a handler that responds with a "not implemented" message.
-func placeholder(name string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotImplemented)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"error":   name + " not yet implemented",
-		})
-	}
 }
