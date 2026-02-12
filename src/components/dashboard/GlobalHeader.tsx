@@ -63,6 +63,7 @@ export function GlobalHeader() {
   const activePersona = useMercuryStore((s) => s.activePersona)
   const setPersona = useMercuryStore((s) => s.setPersona)
   const { setTheme, resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [activeProfile, setActiveProfile] = useState<string>('work')
@@ -100,6 +101,10 @@ export function GlobalHeader() {
     },
     [setSearchQuery, fetchDocuments]
   )
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Clean up debounce timer on unmount
   useEffect(() => {
@@ -415,15 +420,17 @@ export function GlobalHeader() {
             </div>
           </div>
 
-          {/* Theme Toggle */}
-          <button
-            onClick={handleThemeToggle}
-            className="p-2 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
-            title={`Switch to ${resolvedTheme === 'dark' ? 'light' : 'dark'} mode`}
-            aria-label={`Switch to ${resolvedTheme === 'dark' ? 'light' : 'dark'} mode`}
-          >
-            {resolvedTheme === 'dark' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-          </button>
+          {/* Theme Toggle — guarded by mounted to prevent hydration mismatch */}
+          {mounted && (
+            <button
+              onClick={handleThemeToggle}
+              className="p-2 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+              title={`Switch to ${resolvedTheme === 'dark' ? 'light' : 'dark'} mode`}
+              aria-label={`Switch to ${resolvedTheme === 'dark' ? 'light' : 'dark'} mode`}
+            >
+              {resolvedTheme === 'dark' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+            </button>
+          )}
 
           {/* Settings */}
           <button

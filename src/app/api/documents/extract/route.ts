@@ -4,6 +4,24 @@ import { getToken } from 'next-auth/jwt'
 const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
 
+// Fallback MIME type detection by file extension when browser reports empty type
+const EXT_MIME_MAP: Record<string, string> = {
+  '.pdf': 'application/pdf',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.txt': 'text/plain',
+  '.csv': 'text/csv',
+  '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+}
+
+function resolveContentType(file: File): string {
+  if (file.type && file.type !== 'application/octet-stream') return file.type
+  const ext = file.name.toLowerCase().match(/\.[^.]+$/)?.[0] || ''
+  return EXT_MIME_MAP[ext] || file.type || 'application/octet-stream'
+}
+
 export async function POST(request: NextRequest) {
   // Auth check
   const token = await getToken({ req: request })
@@ -41,8 +59,17 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const contentType = file.type || 'application/octet-stream'
+  const contentType = resolveContentType(file)
   const folderId = formData.get('folderId') as string | null
+
+  // Validate content type before sending to backend
+  const ALLOWED_TYPES = new Set(Object.values(EXT_MIME_MAP))
+  if (!ALLOWED_TYPES.has(contentType)) {
+    return NextResponse.json(
+      { success: false, error: `Unsupported file type: ${contentType}. Supported: PDF, DOCX, TXT, CSV, XLSX, PNG, JPG` },
+      { status: 400 }
+    )
+  }
 
   // Validate file size before loading into memory (50MB limit)
   const MAX_FILE_SIZE = 50 * 1024 * 1024
