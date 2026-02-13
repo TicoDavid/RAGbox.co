@@ -11,6 +11,8 @@ import { SovereignExplorer } from './vault/explorer'
 import { MercuryPanel } from './mercury/MercuryPanel'
 import { MercuryVoicePanel } from './mercury/MercuryVoicePanel'
 import { SovereignStudio } from './studio'
+import { IntelligencePanel } from './intelligence'
+import { useContentIntelligenceStore } from '@/stores/contentIntelligenceStore'
 import {
   LeftStealthRail,
   RightStealthRail,
@@ -262,6 +264,8 @@ export function DashboardLayout() {
   const isExplorerMode = useVaultStore((s) => s.isExplorerMode)
   const toggleExplorerMode = useVaultStore((s) => s.toggleExplorerMode)
   const fetchPrivilege = usePrivilegeStore((s) => s.fetch)
+  const gapSummary = useContentIntelligenceStore((s) => s.gapSummary)
+  const fetchGapSummary = useContentIntelligenceStore((s) => s.fetchGapSummary)
   const uploadDocument = useVaultStore((s) => s.uploadDocument)
 
   // Rail state
@@ -299,6 +303,10 @@ export function DashboardLayout() {
   useEffect(() => {
     fetchPrivilege()
   }, [fetchPrivilege])
+
+  useEffect(() => {
+    fetchGapSummary()
+  }, [fetchGapSummary])
 
   // Handlers
   const handleLeftTabClick = useCallback((tab: LeftRailTab) => {
@@ -372,6 +380,8 @@ export function DashboardLayout() {
         return <AuditPanel />
       case 'export':
         return <ExportPanel />
+      case 'intelligence':
+        return <IntelligencePanel />
       default:
         return null
     }
@@ -471,6 +481,7 @@ export function DashboardLayout() {
                 activeTab={isDesktop && rightExpanded ? rightTab : null}
                 onTabClick={handleRightTabClick}
                 onCollapse={() => setRightExpanded(false)}
+                intelligenceBadge={gapSummary?.openGaps}
               />
             </div>
           </div>

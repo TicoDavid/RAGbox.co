@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Mic,
   Maximize2,
+  Lightbulb,
 } from 'lucide-react'
 
 // ============================================================================
@@ -21,7 +22,7 @@ import {
 // ============================================================================
 
 export type LeftRailTab = 'vault' | 'recent' | 'starred'
-export type RightRailTab = 'mercury' | 'studio' | 'audit' | 'export'
+export type RightRailTab = 'mercury' | 'studio' | 'audit' | 'export' | 'intelligence'
 
 interface RailIconProps {
   icon: React.ElementType
@@ -29,13 +30,14 @@ interface RailIconProps {
   isActive?: boolean
   onClick: () => void
   side: 'left' | 'right'
+  badge?: number
 }
 
 // ============================================================================
 // RAIL ICON COMPONENT
 // ============================================================================
 
-function RailIcon({ icon: Icon, label, isActive, onClick, side }: RailIconProps) {
+function RailIcon({ icon: Icon, label, isActive, onClick, side, badge }: RailIconProps) {
   return (
     <div className="relative group">
       <button
@@ -59,6 +61,11 @@ function RailIcon({ icon: Icon, label, isActive, onClick, side }: RailIconProps)
           />
         )}
         <Icon className={`w-5 h-5 ${isActive ? 'drop-shadow-[0_0_6px_rgba(36,99,235,0.6)]' : ''}`} />
+        {badge != null && badge > 0 && (
+          <span className="absolute -top-1 -right-1 min-w-[16px] h-4 flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1">
+            {badge > 99 ? '99+' : badge}
+          </span>
+        )}
       </button>
 
       {/* Tooltip */}
@@ -213,6 +220,7 @@ interface RightRailProps {
   activeTab: RightRailTab | null
   onTabClick: (tab: RightRailTab) => void
   onCollapse: () => void
+  intelligenceBadge?: number
 }
 
 export function RightStealthRail({
@@ -220,6 +228,7 @@ export function RightStealthRail({
   activeTab,
   onTabClick,
   onCollapse,
+  intelligenceBadge,
 }: RightRailProps) {
   return (
     <div className="h-full flex flex-col bg-[#0A192F] border-l border-white/10" role="navigation" aria-label="Tools navigation">
@@ -259,6 +268,16 @@ export function RightStealthRail({
           isActive={isExpanded && activeTab === 'export'}
           onClick={() => onTabClick('export')}
           side="right"
+        />
+
+        {/* Intelligence */}
+        <RailIcon
+          icon={Lightbulb}
+          label="Intelligence"
+          isActive={isExpanded && activeTab === 'intelligence'}
+          onClick={() => onTabClick('intelligence')}
+          side="right"
+          badge={intelligenceBadge}
         />
       </div>
 

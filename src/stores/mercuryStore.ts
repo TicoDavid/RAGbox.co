@@ -34,6 +34,11 @@ interface MercuryState {
   activePersona: PersonaId
   isRefocusing: boolean  // For lens animation
 
+  // Session tracking
+  activeSessionId: string | null
+  sessionQueryCount: number
+  sessionTopics: string[]
+
   // Context
   temperaturePreset: TemperaturePreset
 
@@ -65,6 +70,9 @@ export const useMercuryStore = create<MercuryState>()(
     attachments: [],
     activePersona: 'cpo',
     isRefocusing: false,
+    activeSessionId: null,
+    sessionQueryCount: 0,
+    sessionTopics: [],
     temperaturePreset: 'executive-cpo',
 
     setInputValue: (value) => set({ inputValue: value }),
@@ -210,12 +218,23 @@ export const useMercuryStore = create<MercuryState>()(
           citations,
         }
 
-        set((state) => ({
-          messages: [...state.messages, assistantMessage],
-          isStreaming: false,
-          streamingContent: '',
-          abortController: null,
-        }))
+        set((state) => {
+          // Extract topic keywords from user query (words 4+ chars, deduped)
+          const words = inputValue.toLowerCase().split(/\s+/)
+            .filter((w) => w.length >= 4)
+            .map((w) => w.replace(/[^a-z0-9]/g, ''))
+            .filter(Boolean)
+          const newTopics = [...new Set([...state.sessionTopics, ...words])].slice(0, 20)
+
+          return {
+            messages: [...state.messages, assistantMessage],
+            isStreaming: false,
+            streamingContent: '',
+            abortController: null,
+            sessionQueryCount: state.sessionQueryCount + 1,
+            sessionTopics: newTopics,
+          }
+        })
       } catch (error) {
         if ((error as Error).name === 'AbortError') {
           set({ isStreaming: false, streamingContent: '', abortController: null })
@@ -263,7 +282,7 @@ export const useMercuryStore = create<MercuryState>()(
       }
     },
 
-    clearConversation: () => set({ messages: [], streamingContent: '', attachments: [] }),
+    clearConversation: () => set({ messages: [], streamingContent: '', attachments: [], sessionQueryCount: 0, sessionTopics: [] }),
 
     setTemperaturePreset: (preset) => set({ temperaturePreset: preset }),
 

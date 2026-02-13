@@ -204,3 +204,42 @@ export const TEMPERATURE_PRESETS: Record<TemperaturePreset, { label: string; ico
 
 export const CONFIDENCE_THRESHOLD = 0.85
 export const SILENCE_PROTOCOL_THRESHOLD = 0.68
+
+// ===== Content Intelligence =====
+
+export interface ContentGap {
+  id: string
+  userId: string
+  queryText: string
+  confidenceScore: number
+  suggestedTopics: string[]
+  status: 'open' | 'addressed' | 'dismissed'
+  addressedAt?: Date
+  createdAt: Date
+}
+
+export interface ContentGapSummary {
+  openGaps: number
+}
+
+export interface KBHealthCheck {
+  id: string
+  vaultId: string
+  checkType: 'freshness' | 'coverage' | 'integrity'
+  status: 'passed' | 'warning' | 'failed'
+  details: Record<string, unknown>
+  runAt: Date
+}
+
+export interface LearningSession {
+  id: string
+  userId: string
+  vaultId?: string
+  status: 'active' | 'paused' | 'completed'
+  topicsCovered: string[]
+  documentsQueried: string[]
+  queryCount: number
+  totalDurationMs: number
+  createdAt: Date
+  updatedAt: Date
+}
