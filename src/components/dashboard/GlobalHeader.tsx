@@ -224,6 +224,8 @@ export function GlobalHeader() {
               <Search className="w-4 h-4 text-[var(--text-tertiary)] shrink-0" />
               <input
                 ref={searchInputRef}
+                id="global-search"
+                name="global-search"
                 type="text"
                 value={searchInput}
                 onChange={(e) => handleSearchChange(e.target.value)}
@@ -904,6 +906,8 @@ function VoiceSettings() {
             <span className="text-sm font-mono text-cyan-400">{voice.silenceThreshold}ms</span>
           </div>
           <input
+            id="silence-threshold"
+            name="silence-threshold"
             type="range"
             min="1000"
             max="5000"
@@ -1153,8 +1157,10 @@ function ReportIssueSettings() {
 
       {/* Description */}
       <div>
-        <label className="block text-xs font-medium text-slate-400 mb-2">Description</label>
+        <label htmlFor="bug-description" className="block text-xs font-medium text-slate-400 mb-2">Description</label>
         <textarea
+          id="bug-description"
+          name="bug-description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Describe the issue or feature request in detail..."
@@ -1442,6 +1448,8 @@ function APIKeysSettings() {
               /* Edit Mode */
               <div className="space-y-3">
                 <input
+                  id="edit-conn-name"
+                  name="edit-conn-name"
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -1449,6 +1457,8 @@ function APIKeysSettings() {
                   className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[var(--brand-blue)]"
                 />
                 <input
+                  id="edit-conn-endpoint"
+                  name="edit-conn-endpoint"
                   type="text"
                   value={formData.endpoint}
                   onChange={(e) => setFormData({ ...formData, endpoint: e.target.value })}
@@ -1457,6 +1467,8 @@ function APIKeysSettings() {
                   className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[var(--brand-blue)] disabled:opacity-50"
                 />
                 <input
+                  id="edit-conn-apikey"
+                  name="edit-conn-apikey"
                   type="password"
                   value={formData.apiKey}
                   onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
@@ -1555,6 +1567,8 @@ function APIKeysSettings() {
                   <div className="pt-3 border-t border-white/5">
                     <label className="block text-xs font-medium text-slate-400 mb-2">Active Model</label>
                     <select
+                      id={`conn-model-${conn.id}`}
+                      name={`conn-model-${conn.id}`}
                       value={conn.selectedModel || ''}
                       onChange={(e) => setConnectionModel(conn.id, e.target.value)}
                       className="w-full px-3 py-2.5 bg-slate-900/50 border border-slate-700/50 rounded-lg text-sm text-white focus:outline-none focus:border-cyan-500 appearance-none cursor-pointer"
@@ -1613,6 +1627,8 @@ function APIKeysSettings() {
           {/* Connection Name (for custom) */}
           {selectedProvider === 'custom' && (
             <input
+              id="add-conn-name"
+              name="add-conn-name"
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -1623,8 +1639,10 @@ function APIKeysSettings() {
 
           {/* Endpoint URL */}
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Endpoint URL</label>
+            <label htmlFor="add-conn-endpoint" className="block text-xs font-medium text-slate-400 mb-1.5">Endpoint URL</label>
             <input
+              id="add-conn-endpoint"
+              name="add-conn-endpoint"
               type="text"
               value={selectedProvider === 'custom' ? formData.endpoint : (currentPreset?.endpoint || '')}
               onChange={(e) => setFormData({ ...formData, endpoint: e.target.value })}
@@ -1642,8 +1660,10 @@ function APIKeysSettings() {
 
           {/* API Key */}
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">API Key</label>
+            <label htmlFor="add-conn-apikey" className="block text-xs font-medium text-slate-400 mb-1.5">API Key</label>
             <input
+              id="add-conn-apikey"
+              name="add-conn-apikey"
               type="password"
               value={formData.apiKey}
               onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}

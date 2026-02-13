@@ -210,7 +210,7 @@ export function InputBar() {
                   {showUrlInput ? (
                     <div className="px-3 py-2 border-t border-white/5">
                       <div className="flex gap-2">
-                        <input type="url" value={urlValue} onChange={(e) => setUrlValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleUrlAdd()} placeholder="https://..." autoFocus className="flex-1 px-2 py-1.5 text-xs bg-slate-900/50 border border-slate-700 rounded-md text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500" aria-label="URL to scrape" />
+                        <input id="inject-url" name="inject-url" type="url" value={urlValue} onChange={(e) => setUrlValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleUrlAdd()} placeholder="https://..." autoFocus className="flex-1 px-2 py-1.5 text-xs bg-slate-900/50 border border-slate-700 rounded-md text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500" aria-label="URL to scrape" />
                         <button onClick={handleUrlAdd} disabled={!urlValue.trim()} className="px-2 py-1.5 text-xs bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-black font-medium rounded-md transition-colors" aria-label="Add URL">Add</button>
                       </div>
                     </div>

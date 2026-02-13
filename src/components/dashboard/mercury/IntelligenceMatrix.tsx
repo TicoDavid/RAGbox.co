@@ -335,6 +335,8 @@ export function IntelligenceMatrix({ isOpen, onClose, anchorRef }: IntelligenceM
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
               <input
                 ref={searchInputRef}
+                id="model-search"
+                name="model-search"
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}

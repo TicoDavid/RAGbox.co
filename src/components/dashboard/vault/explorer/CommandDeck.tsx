@@ -90,6 +90,8 @@ export function CommandDeck({
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
             <input
+              id="vault-search"
+              name="vault-search"
               type="text"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
