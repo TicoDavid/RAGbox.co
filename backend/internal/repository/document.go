@@ -272,6 +272,17 @@ func (r *DocumentRepo) UpdateFolder(ctx context.Context, id string, folderID *st
 	return nil
 }
 
+func (r *DocumentRepo) UpdateChecksum(ctx context.Context, id string, checksum string) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE documents SET checksum = $1, updated_at = $2 WHERE id = $3`,
+		checksum, time.Now().UTC(), id,
+	)
+	if err != nil {
+		return fmt.Errorf("repository.UpdateChecksum: %w", err)
+	}
+	return nil
+}
+
 func marshalMeta(meta json.RawMessage) ([]byte, error) {
 	if meta == nil {
 		return nil, nil

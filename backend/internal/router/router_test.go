@@ -55,6 +55,7 @@ func (m *mockDocRepo) TogglePrivilege(ctx context.Context, id string, privileged
 func (m *mockDocRepo) ToggleStar(ctx context.Context, id string, starred bool) error               { return nil }
 func (m *mockDocRepo) Update(ctx context.Context, id string, name string) error                    { return nil }
 func (m *mockDocRepo) UpdateFolder(ctx context.Context, id string, folderID *string) error         { return nil }
+func (m *mockDocRepo) UpdateChecksum(ctx context.Context, id string, checksum string) error        { return nil }
 
 // mockFolderRepo implements service.FolderRepository for testing.
 type mockFolderRepo struct{}

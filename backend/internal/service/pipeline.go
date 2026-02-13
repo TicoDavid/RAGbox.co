@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -125,6 +127,16 @@ func (s *PipelineService) ProcessDocument(ctx context.Context, docID string) err
 		slog.Error("pipeline failed to store extracted text", "document_id", docID, "error", err)
 		s.failDocument(ctx, docID, "store_text_failed", err)
 		return fmt.Errorf("pipeline.ProcessDocument: store text: %w", err)
+	}
+
+	// Step 3b: Compute and store SHA-256 checksum of extracted text
+	hash := sha256.Sum256([]byte(parsed.Text))
+	checksum := hex.EncodeToString(hash[:])
+	if err := s.docRepo.UpdateChecksum(ctx, docID, checksum); err != nil {
+		slog.Warn("pipeline failed to store checksum", "document_id", docID, "error", err)
+		// Non-fatal — continue pipeline
+	} else {
+		slog.Info("pipeline checksum stored", "document_id", docID, "sha256", checksum[:16]+"...")
 	}
 
 	// Step 4: Chunk

@@ -39,13 +39,14 @@ func ListAudit(deps AuditDeps) http.HandlerFunc {
 		offset, _ := strconv.Atoi(q.Get("offset"))
 
 		filter := repository.ListFilter{
-			UserID:    userID, // Always scoped to the authenticated user
-			Action:    q.Get("action"),
-			Severity:  q.Get("severity"),
-			StartDate: q.Get("startDate"),
-			EndDate:   q.Get("endDate"),
-			Limit:     limit,
-			Offset:    offset,
+			UserID:     userID, // Always scoped to the authenticated user
+			Action:     q.Get("action"),
+			Severity:   q.Get("severity"),
+			DocumentID: q.Get("documentId"),
+			StartDate:  q.Get("startDate"),
+			EndDate:    q.Get("endDate"),
+			Limit:      limit,
+			Offset:     offset,
 		}
 
 		entries, total, err := deps.Lister.List(r.Context(), filter)
@@ -79,12 +80,13 @@ func ExportAudit(deps AuditDeps) http.HandlerFunc {
 		q := r.URL.Query()
 
 		filter := repository.ListFilter{
-			UserID:    userID,
-			Action:    q.Get("action"),
-			Severity:  q.Get("severity"),
-			StartDate: q.Get("startDate"),
-			EndDate:   q.Get("endDate"),
-			Limit:     10000, // Export all matching entries (capped)
+			UserID:     userID,
+			Action:     q.Get("action"),
+			Severity:   q.Get("severity"),
+			DocumentID: q.Get("documentId"),
+			StartDate:  q.Get("startDate"),
+			EndDate:    q.Get("endDate"),
+			Limit:      10000, // Export all matching entries (capped)
 		}
 
 		entries, _, err := deps.Lister.List(r.Context(), filter)

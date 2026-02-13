@@ -87,6 +87,9 @@ func (m *mockDocRepo) Update(ctx context.Context, id string, name string) error 
 func (m *mockDocRepo) UpdateFolder(ctx context.Context, id string, folderID *string) error {
 	return nil
 }
+func (m *mockDocRepo) UpdateChecksum(ctx context.Context, id string, checksum string) error {
+	return nil
+}
 
 func TestGenerateUploadURL_Success(t *testing.T) {
 	storage := &mockStorage{url: "https://storage.googleapis.com/signed-url"}

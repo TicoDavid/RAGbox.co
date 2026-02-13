@@ -39,6 +39,7 @@ type DocumentRepository interface {
 	Update(ctx context.Context, id string, name string) error
 	UpdateFolder(ctx context.Context, id string, folderID *string) error
 	ToggleStar(ctx context.Context, id string, starred bool) error
+	UpdateChecksum(ctx context.Context, id string, checksum string) error
 }
 
 // FolderRepository defines persistence operations for folders.

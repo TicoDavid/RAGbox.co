@@ -56,6 +56,9 @@ func (m *pipelineMockRepo) Update(ctx context.Context, id string, name string) e
 func (m *pipelineMockRepo) UpdateFolder(ctx context.Context, id string, folderID *string) error {
 	return nil
 }
+func (m *pipelineMockRepo) UpdateChecksum(ctx context.Context, id string, checksum string) error {
+	return nil
+}
 
 type pipelineMockParser struct {
 	result *ParseResult

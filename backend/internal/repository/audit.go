@@ -39,6 +39,7 @@ type ListFilter struct {
 	UserID     string
 	Action     string
 	Severity   string
+	DocumentID string // Filter by resource_id (document-specific audit trails)
 	StartDate  string // ISO 8601
 	EndDate    string // ISO 8601
 	Limit      int
@@ -75,6 +76,13 @@ func (r *AuditRepo) List(ctx context.Context, f ListFilter) ([]model.AuditLog, i
 		query += clause
 		countQuery += clause
 		args = append(args, f.Severity)
+		argIdx++
+	}
+	if f.DocumentID != "" {
+		clause := fmt.Sprintf(` AND resource_id = $%d`, argIdx)
+		query += clause
+		countQuery += clause
+		args = append(args, f.DocumentID)
 		argIdx++
 	}
 	if f.StartDate != "" {
