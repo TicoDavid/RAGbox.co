@@ -73,7 +73,13 @@ func (m *mockDocRepo) UpdateTier(ctx context.Context, id string, tier int) error
 func (m *mockDocRepo) TogglePrivilege(ctx context.Context, id string, privileged bool) error {
 	return nil
 }
+func (m *mockDocRepo) ToggleStar(ctx context.Context, id string, starred bool) error {
+	return nil
+}
 func (m *mockDocRepo) Update(ctx context.Context, id string, name string) error { return nil }
+func (m *mockDocRepo) UpdateFolder(ctx context.Context, id string, folderID *string) error {
+	return nil
+}
 
 func TestUploadDocument_Success(t *testing.T) {
 	storage := &mockStorage{url: "https://storage.googleapis.com/signed"}
@@ -226,8 +232,14 @@ func (m *crudDocRepo) UpdateTier(ctx context.Context, id string, tier int) error
 func (m *crudDocRepo) TogglePrivilege(ctx context.Context, id string, privileged bool) error {
 	return nil
 }
+func (m *crudDocRepo) ToggleStar(ctx context.Context, id string, starred bool) error {
+	return nil
+}
 func (m *crudDocRepo) Update(ctx context.Context, id string, name string) error {
 	return m.updateErr
+}
+func (m *crudDocRepo) UpdateFolder(ctx context.Context, id string, folderID *string) error {
+	return nil
 }
 
 func TestListDocuments_Success(t *testing.T) {

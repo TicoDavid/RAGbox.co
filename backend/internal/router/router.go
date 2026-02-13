@@ -27,6 +27,14 @@ type Dependencies struct {
 	DocService *service.DocumentService
 	DocRepo    service.DocumentRepository
 
+	// Chunk
+	ChunkDeleter handler.ChunkDeleter
+
+	// Storage (download, verify)
+	Storage          handler.StorageSigner
+	ObjectDownloader handler.ObjectDownloader
+	BucketName       string
+
 	// Folder
 	FolderRepo service.FolderRepository
 
@@ -79,7 +87,13 @@ func New(deps *Dependencies) *chi.Mux {
 	}
 
 	// Build shared dependency structs
-	docCRUD := handler.DocCRUDDeps{DocRepo: deps.DocRepo}
+	docCRUD := handler.DocCRUDDeps{
+		DocRepo:          deps.DocRepo,
+		ChunkDeleter:     deps.ChunkDeleter,
+		Storage:          deps.Storage,
+		ObjectDownloader: deps.ObjectDownloader,
+		BucketName:       deps.BucketName,
+	}
 	folderDeps := handler.FolderDeps{FolderRepo: deps.FolderRepo}
 
 	// Protected routes (require internal service auth or Firebase auth)
@@ -105,6 +119,10 @@ func New(deps *Dependencies) *chi.Mux {
 		r.With(timeout30s).Patch("/api/documents/{id}/tier", handler.UpdateDocumentTier(docCRUD))
 		// Note: GET /documents/{id}/privilege is not needed — privilege status is included in GET /documents/{id}
 		r.With(timeout30s).Patch("/api/documents/{id}/privilege", handler.ToggleDocPrivilege(docCRUD))
+		r.With(timeout30s).Delete("/api/documents/{id}/chunks", handler.DeleteChunks(docCRUD))
+		r.With(timeout30s).Get("/api/documents/{id}/download", handler.DownloadDocument(docCRUD))
+		r.With(timeout30s).Post("/api/documents/{id}/verify", handler.VerifyIntegrity(docCRUD))
+		r.With(timeout30s).Post("/api/documents/{id}/star", handler.ToggleStar(docCRUD))
 		// Ingest may take longer (pipeline processing)
 		r.With(middleware.Timeout(120 * time.Second)).Post("/api/documents/{id}/ingest", handler.IngestDocument(deps.IngestDeps))
 

@@ -138,37 +138,49 @@ export function useSovereignVoice(config: SovereignVoiceConfig = {}): SovereignV
       setError(null)
       setTranscript('')
 
-      // Step 1: Create secure server-side session (no secrets exposed)
-      const session = await createSecureSession()
-      sessionRef.current = session
-      setSessionId(session.sessionId)
+      // Step 1: Check Web Speech API support first (required)
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+      if (!SpeechRecognition) {
+        throw new Error('Voice input is not supported in this browser. Try Chrome or Edge.')
+      }
 
-      // Step 2: Request microphone access
+      // Step 2: Try server session (non-fatal — voice-to-text works without it)
+      let sampleRate = 16000
+      let channels = 1
+      try {
+        const session = await createSecureSession()
+        sessionRef.current = session
+        setSessionId(session.sessionId)
+        sampleRate = session.audio.sampleRateHz
+        channels = session.audio.channels
+      } catch {
+        // Server session unavailable — proceed with Web Speech API only
+      }
+
+      // Step 3: Request microphone access
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
-          sampleRate: session.audio.sampleRateHz,
-          channelCount: session.audio.channels,
+          sampleRate,
+          channelCount: channels,
         }
       })
       streamRef.current = stream
 
-      // Step 3: Set up audio context for visualization
-      audioContextRef.current = new AudioContext({ sampleRate: session.audio.sampleRateHz })
-      const source = audioContextRef.current.createMediaStreamSource(stream)
-      analyserRef.current = audioContextRef.current.createAnalyser()
-      analyserRef.current.fftSize = 256
-      source.connect(analyserRef.current)
-
-      // Step 4: Use Web Speech API as fallback (WebSocket full-duplex coming in Phase 2)
-      // Voice WebSocket: future enhancement for full duplex audio streaming
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-      if (!SpeechRecognition) {
-        throw new Error('Speech recognition not supported in this browser')
+      // Step 4: Set up audio context for visualization
+      try {
+        audioContextRef.current = new AudioContext({ sampleRate })
+        const source = audioContextRef.current.createMediaStreamSource(stream)
+        analyserRef.current = audioContextRef.current.createAnalyser()
+        analyserRef.current.fftSize = 256
+        source.connect(analyserRef.current)
+      } catch {
+        // Visualization setup failed — non-fatal
       }
 
+      // Step 5: Set up Web Speech API for transcription
       const recognition = new SpeechRecognition()
       recognition.continuous = true
       recognition.interimResults = true

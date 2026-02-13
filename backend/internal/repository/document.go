@@ -35,17 +35,17 @@ func (r *DocumentRepo) Create(ctx context.Context, doc *model.Document) error {
 		INSERT INTO documents (
 			id, vault_id, user_id, filename, original_name, mime_type, file_type,
 			size_bytes, storage_uri, storage_path, extracted_text, index_status,
-			deletion_status, is_privileged, security_tier, chunk_count, checksum,
+			deletion_status, is_privileged, security_tier, is_starred, chunk_count, checksum,
 			folder_id, metadata, deleted_at, hard_delete_at, created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7,
 			$8, $9, $10, $11, $12,
-			$13, $14, $15, $16, $17,
-			$18, $19, $20, $21, $22, $23
+			$13, $14, $15, $16, $17, $18,
+			$19, $20, $21, $22, $23, $24
 		)`,
 		doc.ID, doc.VaultID, doc.UserID, doc.Filename, doc.OriginalName, doc.MimeType, doc.FileType,
 		doc.SizeBytes, doc.StorageURI, doc.StoragePath, doc.ExtractedText, string(doc.IndexStatus),
-		string(doc.DeletionStatus), doc.IsPrivileged, doc.SecurityTier, doc.ChunkCount, doc.Checksum,
+		string(doc.DeletionStatus), doc.IsPrivileged, doc.SecurityTier, doc.IsStarred, doc.ChunkCount, doc.Checksum,
 		doc.FolderID, metaJSON, doc.DeletedAt, doc.HardDeleteAt, doc.CreatedAt, doc.UpdatedAt,
 	)
 	if err != nil {
@@ -62,13 +62,13 @@ func (r *DocumentRepo) GetByID(ctx context.Context, id string) (*model.Document,
 	err := r.pool.QueryRow(ctx, `
 		SELECT id, vault_id, user_id, filename, original_name, mime_type, file_type,
 			size_bytes, storage_uri, storage_path, extracted_text, index_status,
-			deletion_status, is_privileged, security_tier, chunk_count, checksum,
+			deletion_status, is_privileged, security_tier, is_starred, chunk_count, checksum,
 			folder_id, metadata, deleted_at, hard_delete_at, created_at, updated_at
 		FROM documents WHERE id = $1`, id,
 	).Scan(
 		&doc.ID, &doc.VaultID, &doc.UserID, &doc.Filename, &doc.OriginalName, &doc.MimeType, &doc.FileType,
 		&doc.SizeBytes, &doc.StorageURI, &doc.StoragePath, &doc.ExtractedText, &indexStatus,
-		&deletionStatus, &doc.IsPrivileged, &doc.SecurityTier, &doc.ChunkCount, &doc.Checksum,
+		&deletionStatus, &doc.IsPrivileged, &doc.SecurityTier, &doc.IsStarred, &doc.ChunkCount, &doc.Checksum,
 		&doc.FolderID, &metaJSON, &doc.DeletedAt, &doc.HardDeleteAt, &doc.CreatedAt, &doc.UpdatedAt,
 	)
 	if err != nil {
@@ -113,7 +113,7 @@ func (r *DocumentRepo) ListByUser(ctx context.Context, userID string, opts servi
 	listQuery := `
 		SELECT id, vault_id, user_id, filename, original_name, mime_type, file_type,
 			size_bytes, storage_uri, storage_path, index_status,
-			deletion_status, is_privileged, security_tier, chunk_count,
+			deletion_status, is_privileged, security_tier, is_starred, chunk_count,
 			folder_id, created_at, updated_at
 		FROM documents WHERE user_id = $1 AND deletion_status = 'Active'`
 
@@ -147,7 +147,7 @@ func (r *DocumentRepo) ListByUser(ctx context.Context, userID string, opts servi
 		err := rows.Scan(
 			&d.ID, &d.VaultID, &d.UserID, &d.Filename, &d.OriginalName, &d.MimeType, &d.FileType,
 			&d.SizeBytes, &d.StorageURI, &d.StoragePath, &indexStatus,
-			&deletionStatus, &d.IsPrivileged, &d.SecurityTier, &d.ChunkCount,
+			&deletionStatus, &d.IsPrivileged, &d.SecurityTier, &d.IsStarred, &d.ChunkCount,
 			&d.FolderID, &d.CreatedAt, &d.UpdatedAt,
 		)
 		if err != nil {
@@ -239,6 +239,17 @@ func (r *DocumentRepo) TogglePrivilege(ctx context.Context, id string, privilege
 	return nil
 }
 
+func (r *DocumentRepo) ToggleStar(ctx context.Context, id string, starred bool) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE documents SET is_starred = $1, updated_at = $2 WHERE id = $3`,
+		starred, time.Now().UTC(), id,
+	)
+	if err != nil {
+		return fmt.Errorf("repository.ToggleStar: %w", err)
+	}
+	return nil
+}
+
 func (r *DocumentRepo) Update(ctx context.Context, id string, name string) error {
 	_, err := r.pool.Exec(ctx,
 		`UPDATE documents SET original_name = $1, updated_at = $2 WHERE id = $3`,
@@ -246,6 +257,17 @@ func (r *DocumentRepo) Update(ctx context.Context, id string, name string) error
 	)
 	if err != nil {
 		return fmt.Errorf("repository.Update: %w", err)
+	}
+	return nil
+}
+
+func (r *DocumentRepo) UpdateFolder(ctx context.Context, id string, folderID *string) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE documents SET folder_id = $1, updated_at = $2 WHERE id = $3`,
+		folderID, time.Now().UTC(), id,
+	)
+	if err != nil {
+		return fmt.Errorf("repository.UpdateFolder: %w", err)
 	}
 	return nil
 }

@@ -21,9 +21,22 @@ export function ConversationThread() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-6" role="log" aria-label="Conversation messages" aria-live="polite">
+    <div className="flex-1 overflow-y-auto px-4 py-6 relative" role="log" aria-label="Conversation messages" aria-live="polite">
+      {/* RAGböx Watermark */}
+      <div
+        className="sticky top-0 left-0 w-full h-0 flex items-center justify-center pointer-events-none z-0"
+        aria-hidden="true"
+      >
+        <img
+          src="https://storage.googleapis.com/connexusai-assets/RAGb%C3%B6x_ICON.png"
+          alt=""
+          className="w-[300px] h-[300px] opacity-[0.08] select-none mt-[40vh]"
+          draggable={false}
+        />
+      </div>
+
       {/* Focus Column - Constrained width for readability */}
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-3xl mx-auto relative z-10">
         {messages.map((msg) => (
           <Message key={msg.id} message={msg} />
         ))}

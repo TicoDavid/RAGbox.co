@@ -16,7 +16,6 @@ jest.mock('@/stores/vaultStore', () => ({
       toggleCollapse: mockToggleCollapse,
       fetchDocuments: mockFetchDocuments,
       fetchFolders: mockFetchFolders,
-      selectedItemId: null,
       uploadDocument: jest.fn(),
       currentPath: [],
     }),
@@ -31,10 +30,6 @@ jest.mock('./VaultRail', () => ({
 
 jest.mock('./ColumnBrowser', () => ({
   ColumnBrowser: () => <div data-testid="column-browser" />,
-}))
-
-jest.mock('./PreviewPane', () => ({
-  PreviewPane: () => <div data-testid="preview-pane" />,
 }))
 
 jest.mock('./StorageFooter', () => ({

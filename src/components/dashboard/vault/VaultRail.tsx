@@ -6,6 +6,8 @@ import {
   Upload,
   Cloud,
 } from 'lucide-react'
+import { useVaultStore } from '@/stores/vaultStore'
+import { toast } from 'sonner'
 
 interface VaultRailProps {
   onExpand: () => void
@@ -13,10 +15,20 @@ interface VaultRailProps {
 }
 
 export function VaultRail({ onExpand, onUpload }: VaultRailProps) {
+  const storage = useVaultStore((s) => s.storage)
+  const documents = useVaultStore((s) => s.documents)
+
+  const handleStorage = () => {
+    const usedMB = (storage.used / (1024 * 1024)).toFixed(1)
+    const totalGB = (storage.total / (1024 * 1024 * 1024)).toFixed(1)
+    const docCount = Object.keys(documents).length
+    toast.info(`Storage: ${usedMB} MB / ${totalGB} GB used | ${docCount} documents`)
+  }
+
   const buttons = [
     { icon: FolderOpen, label: 'Open Vault', onClick: onExpand },
     { icon: Upload, label: 'Upload Files', onClick: onUpload },
-    { icon: Cloud, label: 'Cloud Storage', onClick: () => {} },
+    { icon: Cloud, label: 'Cloud Storage', onClick: handleStorage },
   ]
 
   return (

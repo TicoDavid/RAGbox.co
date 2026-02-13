@@ -76,7 +76,15 @@ func (m *mockDocRepo) TogglePrivilege(ctx context.Context, id string, privileged
 	return nil
 }
 
+func (m *mockDocRepo) ToggleStar(ctx context.Context, id string, starred bool) error {
+	return nil
+}
+
 func (m *mockDocRepo) Update(ctx context.Context, id string, name string) error {
+	return nil
+}
+
+func (m *mockDocRepo) UpdateFolder(ctx context.Context, id string, folderID *string) error {
 	return nil
 }
 

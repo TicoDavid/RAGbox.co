@@ -44,11 +44,9 @@ export function getFileExtension(name: string): string {
 
 export function vaultItemToExplorerItem(
   doc: VaultItem,
-  securityOverride?: SecurityTier,
-  indexOverride?: boolean,
 ): ExplorerItem {
-  const security = securityOverride ?? tierToSecurity(doc.securityTier ?? 1)
-  const isIndexed = indexOverride ?? (doc.status === 'ready')
+  const security = tierToSecurity(doc.securityTier ?? 1)
+  const isIndexed = doc.status === 'Indexed' || doc.status === 'ready'
   const daysSinceCreated = Math.floor(
     (Date.now() - new Date(doc.createdAt).getTime()) / (1000 * 60 * 60 * 24)
   )
@@ -63,6 +61,7 @@ export function vaultItemToExplorerItem(
     updatedAt: new Date(doc.updatedAt),
     security,
     isIndexed,
+    isStarred: doc.isStarred ?? false,
     citations,
     relevanceScore,
   }

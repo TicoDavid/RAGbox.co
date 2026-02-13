@@ -8,6 +8,7 @@ export interface ExplorerItem {
   size: number
   security: SecurityTier
   isIndexed: boolean
+  isStarred: boolean
   citations: number
   relevanceScore: number
 }

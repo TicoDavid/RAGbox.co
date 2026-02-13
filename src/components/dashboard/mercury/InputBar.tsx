@@ -242,7 +242,8 @@ export function InputBar() {
             placeholder={attachments.length > 0 ? 'Ask about attached context...' : 'Ask anything...'}
             rows={1}
             aria-label="Message input"
-            className="flex-1 bg-transparent text-sm text-white placeholder:text-slate-500 resize-none outline-none min-h-[24px] max-h-[120px] py-0.5 pr-2"
+            className="flex-1 bg-transparent text-sm text-white placeholder:text-slate-500 resize-none outline-none border-none ring-0 focus:ring-0 focus:outline-none min-h-[24px] max-h-[120px] py-1 pr-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
+            style={{ WebkitAppearance: 'none' }}
           />
 
           <div className="flex items-center gap-1 shrink-0">

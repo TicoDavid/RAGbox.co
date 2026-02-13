@@ -233,8 +233,12 @@ func run() error {
 		InternalAuthSecret: cfg.InternalAuthSecret,
 
 		DocService: docService,
-		DocRepo:    docRepo,
-		FolderRepo: folderRepo,
+		DocRepo:          docRepo,
+		ChunkDeleter:     chunkRepo,
+		FolderRepo:       folderRepo,
+		Storage:          storageAdapter,
+		ObjectDownloader: storageAdapter,
+		BucketName:       cfg.GCSBucketName,
 
 		PrivilegeState: privilegeState,
 

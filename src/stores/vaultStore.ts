@@ -38,6 +38,14 @@ interface VaultState {
   deleteDocument: (id: string) => Promise<void>
   updateDocument: (id: string, updates: Partial<VaultItem>) => Promise<void>
   togglePrivilege: (id: string) => Promise<void>
+  toggleStar: (id: string) => Promise<void>
+
+  // Multi-Select
+  selectedDocumentIds: string[]
+  setSelectedDocumentIds: (ids: string[]) => void
+  toggleDocumentSelection: (id: string) => void
+  clearSelection: () => void
+  selectAll: () => void
 
   // Folder Actions
   createFolder: (name: string, parentId?: string) => Promise<void>
@@ -58,6 +66,7 @@ export const useVaultStore = create<VaultState>()(
         error: null,
         searchQuery: '',
         storage: { used: 0, total: 1073741824 },
+        selectedDocumentIds: [],
 
         toggleCollapse: () => set((state) => ({ isCollapsed: !state.isCollapsed })),
 
@@ -81,6 +90,20 @@ export const useVaultStore = create<VaultState>()(
         selectItem: (id) => set({ selectedItemId: id }),
 
         setSearchQuery: (query) => set({ searchQuery: query }),
+
+        setSelectedDocumentIds: (ids) => set({ selectedDocumentIds: ids }),
+
+        toggleDocumentSelection: (id) => set((state) => ({
+          selectedDocumentIds: state.selectedDocumentIds.includes(id)
+            ? state.selectedDocumentIds.filter(i => i !== id)
+            : [...state.selectedDocumentIds, id],
+        })),
+
+        clearSelection: () => set({ selectedDocumentIds: [] }),
+
+        selectAll: () => set((state) => ({
+          selectedDocumentIds: Object.keys(state.documents),
+        })),
 
         fetchDocuments: async () => {
           set({ isLoading: true, error: null })
@@ -109,6 +132,7 @@ export const useVaultStore = create<VaultState>()(
                 folderId: doc.folderId,
                 status: doc.indexStatus ?? doc.status,
                 isPrivileged: doc.isPrivileged,
+                isStarred: doc.isStarred ?? false,
                 securityTier: doc.securityTier ?? 0,
                 deletionStatus: doc.deletionStatus,
                 checksum: doc.checksum,
@@ -280,6 +304,32 @@ export const useVaultStore = create<VaultState>()(
             toast.success('Privilege updated')
           } catch (error) {
             toast.error(error instanceof Error ? error.message : 'Failed to update privilege')
+            throw error
+          }
+        },
+
+        toggleStar: async (id) => {
+          const doc = get().documents[id]
+          if (!doc) return
+
+          const newStarred = !doc.isStarred
+
+          try {
+            const res = await apiFetch(`/api/documents/${id}/star`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ starred: newStarred }),
+            })
+            if (!res.ok) throw new Error('Star toggle failed')
+
+            set((state) => ({
+              documents: {
+                ...state.documents,
+                [id]: { ...state.documents[id], isStarred: newStarred },
+              },
+            }))
+          } catch (error) {
+            toast.error('Failed to update star')
             throw error
           }
         },

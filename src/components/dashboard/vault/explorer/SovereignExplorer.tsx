@@ -4,8 +4,10 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { useSession } from 'next-auth/react'
 import { useVaultStore } from '@/stores/vaultStore'
-import { tierToSecurity } from '../security'
+import { SECURITY_TIERS } from '../security'
 import type { SecurityTier } from '../security'
+import { apiFetch } from '@/lib/api'
+import { toast } from 'sonner'
 import { VaultAccessModal, type ClearanceLevel, type VaultMember, type LinkExpiration } from '../VaultAccessModal'
 import IngestionModal from '@/app/dashboard/components/IngestionModal'
 import type { ExplorerItem, ViewMode, SortField } from './explorer-types'
@@ -38,6 +40,7 @@ export function SovereignExplorer({ onClose }: SovereignExplorerProps) {
   const selectAndChat = useVaultStore((s) => s.selectAndChat)
   const uploadDocument = useVaultStore((s) => s.uploadDocument)
   const navigate = useVaultStore((s) => s.navigate)
+  const toggleStar = useVaultStore((s) => s.toggleStar)
 
   // Local UI state
   const [viewMode, setViewMode] = useState<ViewMode>('list')
@@ -47,13 +50,14 @@ export function SovereignExplorer({ onClose }: SovereignExplorerProps) {
   const [sortField, setSortField] = useState<SortField>('updatedAt')
   const [sortAsc, setSortAsc] = useState(false)
 
+  // Quick access filter (null = none, 'starred' = starred, 'recent' = recent)
+  const [quickAccessFilter, setQuickAccessFilter] = useState<string | null>(null)
+
   // Modal state
   const [isIngestionOpen, setIsIngestionOpen] = useState(false)
   const [isAccessModalOpen, setIsAccessModalOpen] = useState(false)
+  const [isVectorizing, setIsVectorizing] = useState(false)
 
-  // Security/index overrides (local until backend supports tier mutations)
-  const [securityOverrides, setSecurityOverrides] = useState<Record<string, SecurityTier>>({})
-  const [indexOverrides, setIndexOverrides] = useState<Record<string, boolean>>({})
 
   // Vault access modal state
   const [vaultMembers, setVaultMembers] = useState<VaultMember[]>([])
@@ -86,6 +90,7 @@ export function SovereignExplorer({ onClose }: SovereignExplorerProps) {
           size: 0,
           security: 'general',
           isIndexed: true,
+          isStarred: false,
           citations: 0,
           relevanceScore: 0,
         })
@@ -99,20 +104,42 @@ export function SovereignExplorer({ onClose }: SovereignExplorerProps) {
         : d.folderId === selectedFolderId
       if (inCurrentFolder) {
         items.push(
-          vaultItemToExplorerItem(d, securityOverrides[d.id], indexOverrides[d.id]),
+          vaultItemToExplorerItem(d),
         )
       }
     })
 
     return items
-  }, [documents, folders, selectedFolderId, securityOverrides, indexOverrides])
+  }, [documents, folders, selectedFolderId])
 
-  // Filter by search
+  // Compute starred and recent counts from all documents
+  const starredCount = useMemo(
+    () => Object.values(documents).filter((d) => d.isStarred).length,
+    [documents],
+  )
+  const recentCount = useMemo(() => {
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+    return Object.values(documents).filter(
+      (d) => new Date(d.createdAt).getTime() > sevenDaysAgo,
+    ).length
+  }, [documents])
+
+  // Filter by search + quick access
   const filteredItems = useMemo(() => {
-    if (!searchQuery) return currentFolderItems
+    let items = currentFolderItems
+
+    // Quick access filter (applies across all folders)
+    if (quickAccessFilter === 'starred') {
+      items = items.filter((i) => i.isStarred)
+    } else if (quickAccessFilter === 'recent') {
+      const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+      items = items.filter((i) => i.updatedAt.getTime() > sevenDaysAgo)
+    }
+
+    if (!searchQuery) return items
     const q = searchQuery.toLowerCase()
-    return currentFolderItems.filter((item) => item.name.toLowerCase().includes(q))
-  }, [currentFolderItems, searchQuery])
+    return items.filter((item) => item.name.toLowerCase().includes(q))
+  }, [currentFolderItems, searchQuery, quickAccessFilter])
 
   // Sort
   const sortedItems = useMemo(() => {
@@ -174,18 +201,95 @@ export function SovereignExplorer({ onClose }: SovereignExplorerProps) {
     await createFolder(name.trim(), selectedFolderId || undefined)
   }, [createFolder, selectedFolderId])
 
-  const handleSecurityChange = useCallback((docId: string, security: SecurityTier) => {
-    setSecurityOverrides((prev) => ({ ...prev, [docId]: security }))
-  }, [])
+  const handleSecurityChange = useCallback(async (docId: string, security: SecurityTier) => {
+    const tier = SECURITY_TIERS[security].level
+    try {
+      const res = await apiFetch(`/api/documents/${docId}/tier`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier }),
+      })
+      if (!res.ok) throw new Error('Failed to update security tier')
+      toast.success(`Security updated to ${SECURITY_TIERS[security].label}`)
+      await fetchDocuments()
+    } catch {
+      toast.error('Failed to update security tier')
+    }
+  }, [fetchDocuments])
 
-  const handleIndexToggle = useCallback((docId: string, enabled: boolean) => {
-    setIndexOverrides((prev) => ({ ...prev, [docId]: enabled }))
-  }, [])
+  const handleIndexToggle = useCallback(async (docId: string, enabled: boolean) => {
+    try {
+      if (enabled) {
+        const res = await apiFetch(`/api/documents/${docId}/ingest`, { method: 'POST' })
+        if (!res.ok) throw new Error('Failed to start indexing')
+        toast.success('Indexing started')
+      } else {
+        const res = await apiFetch(`/api/documents/${docId}/chunks`, { method: 'DELETE' })
+        if (!res.ok) throw new Error('Failed to remove embeddings')
+        toast.success('Embeddings removed')
+      }
+      await fetchDocuments()
+    } catch {
+      toast.error(enabled ? 'Failed to start indexing' : 'Failed to remove embeddings')
+    }
+  }, [fetchDocuments])
 
   const handleDelete = useCallback((id: string) => {
     deleteDocument(id)
     setSelectedId(null)
   }, [deleteDocument])
+
+  const handleDownload = useCallback(async (docId: string) => {
+    try {
+      const res = await apiFetch(`/api/documents/${docId}/download`)
+      if (!res.ok) throw new Error('Download failed')
+      const data = await res.json()
+      if (data.url) {
+        window.open(data.url, '_blank')
+      }
+    } catch {
+      toast.error('Failed to download document')
+    }
+  }, [])
+
+  const handleAuditLog = useCallback(async (docId: string) => {
+    try {
+      const res = await apiFetch(`/api/audit?documentId=${docId}`)
+      if (!res.ok) throw new Error('Failed to fetch audit log')
+      const data = await res.json()
+      const logs = data.logs ?? data.data ?? []
+      if (logs.length === 0) {
+        toast.info('No audit logs found for this document')
+      } else {
+        toast.success(`${logs.length} audit log entries found`)
+      }
+    } catch {
+      toast.error('Failed to fetch audit log')
+    }
+  }, [])
+
+  const handleVerifyIntegrity = useCallback(async (docId: string) => {
+    try {
+      const res = await apiFetch(`/api/documents/${docId}/verify`, { method: 'POST' })
+      if (!res.ok) throw new Error('Verification failed')
+      const data = await res.json()
+      if (data.valid) {
+        toast.success('Integrity verified: checksums match')
+      } else {
+        toast.error(`Integrity check failed: ${data.reason ?? 'checksum mismatch'}`)
+      }
+    } catch {
+      toast.error('Failed to verify integrity')
+    }
+  }, [])
+
+  const handleToggleStar = useCallback(async (docId: string) => {
+    try {
+      await toggleStar(docId)
+    } catch {
+      // toast already shown by store
+    }
+  }, [toggleStar])
 
   const handleIngestionUpload = useCallback(async (files: File[]) => {
     for (const file of files) {
@@ -197,6 +301,64 @@ export function SovereignExplorer({ onClose }: SovereignExplorerProps) {
   const handleChat = useCallback(() => {
     if (selectedId) selectAndChat(selectedId)
   }, [selectedId, selectAndChat])
+
+  const handleVectorize = useCallback(async () => {
+    const pendingDocs = Object.values(documents).filter(
+      (d) => d.status === 'Pending' || d.status === 'pending',
+    )
+    if (pendingDocs.length === 0) {
+      toast.info('No pending documents to vectorize')
+      return
+    }
+    setIsVectorizing(true)
+    try {
+      let success = 0
+      for (const doc of pendingDocs) {
+        const res = await apiFetch(`/api/documents/${doc.id}/ingest`, { method: 'POST' })
+        if (res.ok) success++
+      }
+      toast.success(`Vectorization started for ${success} document${success !== 1 ? 's' : ''}`)
+      await fetchDocuments()
+    } catch {
+      toast.error('Batch vectorization failed')
+    } finally {
+      setIsVectorizing(false)
+    }
+  }, [documents, fetchDocuments])
+
+  const handleMoveTo = useCallback(async () => {
+    const selectedIds = useVaultStore.getState().selectedDocumentIds
+    if (selectedIds.length === 0) {
+      toast.info('Select documents first to move them')
+      return
+    }
+    const folderName = window.prompt('Enter target folder name (or leave empty for root):')
+    if (folderName === null) return // cancelled
+
+    const targetFolderId = folderName.trim()
+      ? Object.values(folders).find((f) => f.name === folderName.trim())?.id ?? null
+      : null
+
+    if (folderName.trim() && !targetFolderId) {
+      toast.error('Folder not found')
+      return
+    }
+
+    try {
+      for (const docId of selectedIds) {
+        await apiFetch(`/api/documents/${docId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folderId: targetFolderId }),
+        })
+      }
+      useVaultStore.getState().clearSelection()
+      await fetchDocuments()
+      toast.success(`Moved ${selectedIds.length} document${selectedIds.length !== 1 ? 's' : ''}`)
+    } catch {
+      toast.error('Failed to move documents')
+    }
+  }, [folders, fetchDocuments])
 
   // Vault access modal handlers
   const currentVaultName = selectedFolderId
@@ -241,11 +403,14 @@ export function SovereignExplorer({ onClose }: SovereignExplorerProps) {
         folders={folders}
         searchQuery={searchQuery}
         viewMode={viewMode}
+        isVectorizing={isVectorizing}
         onNavigate={handleSelectFolder}
         onSearchChange={setSearchQuery}
         onViewModeChange={setViewMode}
         onNewFolder={handleNewFolder}
         onUpload={() => setIsIngestionOpen(true)}
+        onVectorize={handleVectorize}
+        onMoveTo={handleMoveTo}
         onSecurity={() => setIsAccessModalOpen(true)}
         onClose={onClose}
       />
@@ -254,7 +419,11 @@ export function SovereignExplorer({ onClose }: SovereignExplorerProps) {
         <NavigationTree
           folders={folders}
           selectedFolderId={selectedFolderId}
+          activeFilter={quickAccessFilter}
+          starredCount={starredCount}
+          recentCount={recentCount}
           onSelectFolder={handleSelectFolder}
+          onQuickAccessFilter={setQuickAccessFilter}
         />
 
         {/* Center Stage */}
@@ -274,6 +443,7 @@ export function SovereignExplorer({ onClose }: SovereignExplorerProps) {
             onSelect={setSelectedId}
             onDoubleClick={handleDoubleClick}
             onToggleSort={handleToggleSort}
+            onToggleStar={handleToggleStar}
           />
         </div>
 
@@ -291,6 +461,10 @@ export function SovereignExplorer({ onClose }: SovereignExplorerProps) {
               onSecurityChange={handleSecurityChange}
               onIndexToggle={handleIndexToggle}
               onSelectItem={setSelectedId}
+              onDownload={handleDownload}
+              onAuditLog={handleAuditLog}
+              onVerifyIntegrity={handleVerifyIntegrity}
+              onToggleStar={handleToggleStar}
             />
           )}
         </AnimatePresence>

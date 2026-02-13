@@ -10,6 +10,10 @@ import {
   Trash2,
   Eye,
   ShieldAlert,
+  Download,
+  ScrollText,
+  ShieldCheck,
+  Star,
 } from 'lucide-react'
 import { SovereignCertificate } from '../SovereignCertificate'
 import { SecurityBadge, SecurityDropdown, RagIndexToggle } from '../security'
@@ -29,6 +33,10 @@ interface DeepInspectorProps {
   onSecurityChange: (id: string, security: SecurityTier) => void
   onIndexToggle: (id: string, enabled: boolean) => void
   onSelectItem: (id: string) => void
+  onDownload: (id: string) => void
+  onAuditLog: (id: string) => void
+  onVerifyIntegrity: (id: string) => void
+  onToggleStar?: (id: string) => void
 }
 
 export function DeepInspector({
@@ -42,6 +50,10 @@ export function DeepInspector({
   onSecurityChange,
   onIndexToggle,
   onSelectItem,
+  onDownload,
+  onAuditLog,
+  onVerifyIntegrity,
+  onToggleStar,
 }: DeepInspectorProps) {
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>('certificate')
 
@@ -89,12 +101,23 @@ export function DeepInspector({
                 </div>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="p-1.5 text-slate-500 hover:text-white hover:bg-white/10 rounded-lg transition-all"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              {!isFolder && onToggleStar && (
+                <button
+                  onClick={() => onToggleStar(item.id)}
+                  className="p-1.5 hover:bg-white/10 rounded-lg transition-all"
+                  aria-label={item.isStarred ? 'Unstar' : 'Star'}
+                >
+                  <Star className={`w-4 h-4 ${item.isStarred ? 'text-amber-400 fill-amber-400' : 'text-slate-500 hover:text-amber-400'}`} />
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="p-1.5 text-slate-500 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {/* Chat with this file button */}
@@ -136,6 +159,9 @@ export function DeepInspector({
               onSecurityChange={onSecurityChange}
               onIndexToggle={onIndexToggle}
               onDelete={onDelete}
+              onDownload={onDownload}
+              onAuditLog={onAuditLog}
+              onVerifyIntegrity={onVerifyIntegrity}
             />
           )}
 
@@ -165,6 +191,9 @@ function CertificateTab({
   onSecurityChange,
   onIndexToggle,
   onDelete,
+  onDownload,
+  onAuditLog,
+  onVerifyIntegrity,
 }: {
   item: ExplorerItem
   vaultItem: VaultItem | null
@@ -172,6 +201,9 @@ function CertificateTab({
   onSecurityChange: (id: string, security: SecurityTier) => void
   onIndexToggle: (id: string, enabled: boolean) => void
   onDelete: (id: string) => void
+  onDownload: (id: string) => void
+  onAuditLog: (id: string) => void
+  onVerifyIntegrity: (id: string) => void
 }) {
   return (
     <div className="space-y-4">
@@ -251,15 +283,41 @@ function CertificateTab({
         </div>
       )}
 
-      {/* Delete */}
+      {/* Document Actions */}
       {item.type === 'document' && (
-        <button
-          onClick={() => onDelete(item.id)}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-900/20 hover:bg-red-900/40 text-red-400 rounded-lg text-sm transition-colors border border-red-500/20"
-        >
-          <Trash2 className="w-4 h-4" />
-          Delete Document
-        </button>
+        <div className="space-y-2">
+          <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2">
+            Actions
+          </p>
+          <button
+            onClick={() => onDownload(item.id)}
+            className="w-full flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg text-sm transition-colors border border-white/10"
+          >
+            <Download className="w-4 h-4" />
+            Download
+          </button>
+          <button
+            onClick={() => onAuditLog(item.id)}
+            className="w-full flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg text-sm transition-colors border border-white/10"
+          >
+            <ScrollText className="w-4 h-4" />
+            Audit Log
+          </button>
+          <button
+            onClick={() => onVerifyIntegrity(item.id)}
+            className="w-full flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg text-sm transition-colors border border-white/10"
+          >
+            <ShieldCheck className="w-4 h-4" />
+            Verify Integrity
+          </button>
+          <button
+            onClick={() => onDelete(item.id)}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-900/20 hover:bg-red-900/40 text-red-400 rounded-lg text-sm transition-colors border border-red-500/20"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete Document
+          </button>
+        </div>
       )}
     </div>
   )

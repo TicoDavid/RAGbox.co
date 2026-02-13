@@ -52,7 +52,9 @@ func (m *mockDocRepo) SoftDelete(ctx context.Context, id string) error          
 func (m *mockDocRepo) Recover(ctx context.Context, id string) error                                 { return nil }
 func (m *mockDocRepo) UpdateTier(ctx context.Context, id string, tier int) error                    { return nil }
 func (m *mockDocRepo) TogglePrivilege(ctx context.Context, id string, privileged bool) error        { return nil }
+func (m *mockDocRepo) ToggleStar(ctx context.Context, id string, starred bool) error               { return nil }
 func (m *mockDocRepo) Update(ctx context.Context, id string, name string) error                    { return nil }
+func (m *mockDocRepo) UpdateFolder(ctx context.Context, id string, folderID *string) error         { return nil }
 
 // mockFolderRepo implements service.FolderRepository for testing.
 type mockFolderRepo struct{}

@@ -113,11 +113,13 @@ function TreeSection({
 // QUICK ACCESS & DRIVES DATA
 // ============================================================================
 
-const QUICK_ACCESS = [
-  { id: 'starred', label: 'Starred', Icon: Star, count: 12, filled: true },
-  { id: 'recent', label: 'Recent', Icon: Clock, count: 24, filled: false },
-  { id: 'whistleblower', label: 'Whistleblower Evidence', Icon: AlertTriangle, count: 3, filled: false },
-]
+function getQuickAccess(starredCount: number, recentCount: number) {
+  return [
+    { id: 'starred', label: 'Starred', Icon: Star, count: starredCount },
+    { id: 'recent', label: 'Recent', Icon: Clock, count: recentCount },
+    { id: 'whistleblower', label: 'Whistleblower Evidence', Icon: AlertTriangle, count: 0 },
+  ]
+}
 
 const DRIVES = [
   { id: 'local', label: 'Local Vault', connected: true },
@@ -132,10 +134,14 @@ const DRIVES = [
 interface NavigationTreeProps {
   folders: Record<string, FolderNode>
   selectedFolderId: string | null
+  activeFilter: string | null
+  starredCount: number
+  recentCount: number
   onSelectFolder: (id: string | null) => void
+  onQuickAccessFilter: (filterId: string | null) => void
 }
 
-export function NavigationTree({ folders, selectedFolderId, onSelectFolder }: NavigationTreeProps) {
+export function NavigationTree({ folders, selectedFolderId, activeFilter, starredCount, recentCount, onSelectFolder, onQuickAccessFilter }: NavigationTreeProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set(['quick-access', 'folders'])
@@ -186,12 +192,17 @@ export function NavigationTree({ folders, selectedFolderId, onSelectFolder }: Na
         expanded={expandedSections.has('quick-access')}
         onToggle={() => toggleSection('quick-access')}
       >
-        {QUICK_ACCESS.map(({ id, label, Icon, count }) => (
+        {getQuickAccess(starredCount, recentCount).map(({ id, label, Icon, count }) => (
           <button
             key={id}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white rounded-lg transition-all"
+            onClick={() => onQuickAccessFilter(activeFilter === id ? null : id)}
+            className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all ${
+              activeFilter === id
+                ? 'bg-[var(--brand-blue)]/20 text-white font-medium'
+                : 'text-slate-300 hover:bg-white/5 hover:text-white'
+            }`}
           >
-            <Icon className="w-4 h-4" />
+            <Icon className={`w-4 h-4 ${id === 'starred' && activeFilter === 'starred' ? 'text-amber-400 fill-amber-400' : ''}`} />
             <span className="flex-1 text-left">{label}</span>
             <span className="text-xs text-slate-500">{count}</span>
           </button>

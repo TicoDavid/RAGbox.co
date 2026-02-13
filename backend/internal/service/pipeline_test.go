@@ -47,7 +47,13 @@ func (m *pipelineMockRepo) UpdateTier(ctx context.Context, id string, tier int) 
 func (m *pipelineMockRepo) TogglePrivilege(ctx context.Context, id string, p bool) error {
 	return nil
 }
+func (m *pipelineMockRepo) ToggleStar(ctx context.Context, id string, starred bool) error {
+	return nil
+}
 func (m *pipelineMockRepo) Update(ctx context.Context, id string, name string) error {
+	return nil
+}
+func (m *pipelineMockRepo) UpdateFolder(ctx context.Context, id string, folderID *string) error {
 	return nil
 }
 

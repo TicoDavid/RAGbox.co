@@ -39,6 +39,7 @@ type Document struct {
 	DeletionStatus DeletionStatus  `json:"deletionStatus"`
 	IsPrivileged   bool            `json:"isPrivileged"`
 	SecurityTier   int             `json:"securityTier"`
+	IsStarred      bool            `json:"isStarred"`
 	ChunkCount     int             `json:"chunkCount"`
 	Checksum       *string         `json:"checksum,omitempty"`
 	FolderID       *string         `json:"folderId,omitempty"`

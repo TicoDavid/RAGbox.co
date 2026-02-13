@@ -94,8 +94,9 @@ export interface VaultItem {
   updatedAt: Date
   parentId?: string
   folderId?: string
-  status: 'pending' | 'processing' | 'ready' | 'error'
+  status: 'pending' | 'processing' | 'ready' | 'error' | 'Pending' | 'Processing' | 'Indexed' | 'Failed'
   isPrivileged: boolean
+  isStarred: boolean
   securityTier: number
   deletionStatus: DeletionStatus
   checksum?: string // SHA-256 hash for integrity verification

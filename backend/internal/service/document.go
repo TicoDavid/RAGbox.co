@@ -37,6 +37,8 @@ type DocumentRepository interface {
 	UpdateTier(ctx context.Context, id string, tier int) error
 	TogglePrivilege(ctx context.Context, id string, privileged bool) error
 	Update(ctx context.Context, id string, name string) error
+	UpdateFolder(ctx context.Context, id string, folderID *string) error
+	ToggleStar(ctx context.Context, id string, starred bool) error
 }
 
 // FolderRepository defines persistence operations for folders.

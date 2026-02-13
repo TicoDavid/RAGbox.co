@@ -23,11 +23,14 @@ interface CommandDeckProps {
   folders: Record<string, FolderNode>
   searchQuery: string
   viewMode: ViewMode
+  isVectorizing?: boolean
   onNavigate: (folderId: string | null) => void
   onSearchChange: (query: string) => void
   onViewModeChange: (mode: ViewMode) => void
   onNewFolder: () => void
   onUpload: () => void
+  onVectorize: () => void
+  onMoveTo: () => void
   onSecurity: () => void
   onClose?: () => void
 }
@@ -37,11 +40,14 @@ export function CommandDeck({
   folders,
   searchQuery,
   viewMode,
+  isVectorizing,
   onNavigate,
   onSearchChange,
   onViewModeChange,
   onNewFolder,
   onUpload,
+  onVectorize,
+  onMoveTo,
   onSecurity,
   onClose,
 }: CommandDeckProps) {
@@ -145,8 +151,8 @@ export function CommandDeck({
 
         {/* Action Buttons */}
         <ToolbarButton icon={<Upload className="w-4 h-4" />} label="Upload" onClick={onUpload} />
-        <ToolbarButton icon={<Brain className="w-4 h-4" />} label="Vectorize" />
-        <ToolbarButton icon={<ArrowRight className="w-4 h-4" />} label="Move To" />
+        <ToolbarButton icon={<Brain className="w-4 h-4" />} label={isVectorizing ? 'Vectorizing...' : 'Vectorize'} onClick={onVectorize} disabled={isVectorizing} />
+        <ToolbarButton icon={<ArrowRight className="w-4 h-4" />} label="Move To" onClick={onMoveTo} />
         <ToolbarButton icon={<Shield className="w-4 h-4" />} label="Security" onClick={onSecurity} />
 
         <div className="flex-1" />
@@ -171,11 +177,16 @@ export function CommandDeck({
   )
 }
 
-function ToolbarButton({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick?: () => void }) {
+function ToolbarButton({ icon, label, onClick, disabled }: { icon: React.ReactNode; label: string; onClick?: () => void; disabled?: boolean }) {
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-1.5 px-3 py-1.5 text-slate-400 hover:text-white hover:bg-white/10 text-sm rounded-lg transition-all"
+      disabled={disabled}
+      className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-all ${
+        disabled
+          ? 'text-slate-600 cursor-not-allowed'
+          : 'text-slate-400 hover:text-white hover:bg-white/10'
+      }`}
     >
       {icon}
       <span className="hidden md:inline">{label}</span>

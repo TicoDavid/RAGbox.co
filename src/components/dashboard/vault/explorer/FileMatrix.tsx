@@ -8,6 +8,7 @@ import {
   Cloud,
   ArrowUpDown,
   MoreHorizontal,
+  Star,
 } from 'lucide-react'
 import { SecurityBadge } from '../security'
 import type { ExplorerItem, ViewMode, SortField } from './explorer-types'
@@ -22,6 +23,7 @@ interface FileMatrixProps {
   onSelect: (id: string) => void
   onDoubleClick: (item: ExplorerItem) => void
   onToggleSort: (field: SortField) => void
+  onToggleStar?: (id: string) => void
 }
 
 export function FileMatrix({
@@ -33,9 +35,10 @@ export function FileMatrix({
   onSelect,
   onDoubleClick,
   onToggleSort,
+  onToggleStar,
 }: FileMatrixProps) {
   if (viewMode === 'grid') {
-    return <GridView items={items} selectedId={selectedId} onSelect={onSelect} onDoubleClick={onDoubleClick} />
+    return <GridView items={items} selectedId={selectedId} onSelect={onSelect} onDoubleClick={onDoubleClick} onToggleStar={onToggleStar} />
   }
 
   return (
@@ -73,8 +76,17 @@ export function FileMatrix({
             >
               {/* Name */}
               <td className="px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <div className={file.type === 'folder' ? 'text-amber-400' : 'text-slate-400'}>
+                <div className="flex items-center gap-2">
+                  {file.type === 'document' && onToggleStar && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onToggleStar(file.id) }}
+                      className="p-0.5 hover:scale-110 transition-transform shrink-0"
+                      aria-label={file.isStarred ? 'Unstar' : 'Star'}
+                    >
+                      <Star className={`w-3.5 h-3.5 ${file.isStarred ? 'text-amber-400 fill-amber-400' : 'text-slate-600 hover:text-slate-400'}`} />
+                    </button>
+                  )}
+                  <div className={`shrink-0 ${file.type === 'folder' ? 'text-amber-400' : 'text-slate-400'}`}>
                     {file.type === 'folder' ? (
                       <FolderIcon className="w-5 h-5" />
                     ) : (
@@ -166,11 +178,13 @@ function GridView({
   selectedId,
   onSelect,
   onDoubleClick,
+  onToggleStar,
 }: {
   items: ExplorerItem[]
   selectedId: string | null
   onSelect: (id: string) => void
   onDoubleClick: (item: ExplorerItem) => void
+  onToggleStar?: (id: string) => void
 }) {
   return (
     <div className="flex-1 overflow-auto">
@@ -190,11 +204,22 @@ function GridView({
               }
             `}
           >
-            <div className={`mb-3 ${file.type === 'folder' ? 'text-amber-400' : 'text-slate-400'}`}>
-              {file.type === 'folder' ? (
-                <FolderIcon className="w-5 h-5" />
-              ) : (
-                <FileText className="w-5 h-5" />
+            <div className="flex items-center justify-between mb-3">
+              <div className={file.type === 'folder' ? 'text-amber-400' : 'text-slate-400'}>
+                {file.type === 'folder' ? (
+                  <FolderIcon className="w-5 h-5" />
+                ) : (
+                  <FileText className="w-5 h-5" />
+                )}
+              </div>
+              {file.type === 'document' && onToggleStar && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onToggleStar(file.id) }}
+                  className="p-0.5 hover:scale-110 transition-transform"
+                  aria-label={file.isStarred ? 'Unstar' : 'Star'}
+                >
+                  <Star className={`w-3.5 h-3.5 ${file.isStarred ? 'text-amber-400 fill-amber-400' : 'text-slate-600 hover:text-slate-400'}`} />
+                </button>
               )}
             </div>
             <p className="text-sm font-medium text-white truncate mb-1">{file.name}</p>

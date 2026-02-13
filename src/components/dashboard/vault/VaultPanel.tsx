@@ -4,7 +4,6 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useVaultStore } from '@/stores/vaultStore'
 import { VaultRail } from './VaultRail'
 import { ColumnBrowser } from './ColumnBrowser'
-import { PreviewPane } from './PreviewPane'
 import { StorageFooter } from './StorageFooter'
 import { X, Plus, Maximize2 } from 'lucide-react'
 import IngestionModal from '@/app/dashboard/components/IngestionModal'
@@ -18,7 +17,6 @@ export function VaultPanel() {
   const fetchFolders = useVaultStore((s) => s.fetchFolders)
   const isLoading = useVaultStore((s) => s.isLoading)
   const documents = useVaultStore((s) => s.documents)
-  const selectedItemId = useVaultStore((s) => s.selectedItemId)
   const uploadDocument = useVaultStore((s) => s.uploadDocument)
   const currentPath = useVaultStore((s) => s.currentPath)
   const hasFetched = useRef(false)
@@ -122,16 +120,9 @@ export function VaultPanel() {
             ))}
           </div>
         ) : (
-          <>
-            <div className={`flex-1 overflow-hidden ${selectedItemId ? 'border-r border-[var(--border-default)]' : ''}`}>
-              <ColumnBrowser />
-            </div>
-            {selectedItemId && (
-              <div className="w-[180px] shrink-0 overflow-hidden">
-                <PreviewPane />
-              </div>
-            )}
-          </>
+          <div className="flex-1 overflow-hidden">
+            <ColumnBrowser />
+          </div>
         )}
       </div>
 
