@@ -54,14 +54,14 @@ export default function ListView({
   return (
     <div className="w-full">
       <div className="flex items-center gap-2 px-3 py-1.5 border-b border-[#222] text-[10px] text-[#666] uppercase tracking-wider">
-        <button onClick={() => onSort('name')} className="flex-1 text-left hover:text-[#888]">
+        <button onClick={() => onSort('name')} aria-label="Sort by name" className="flex-1 text-left hover:text-[#888]">
           Name <SortIndicator field="name" />
         </button>
         <span className="w-12 text-center">Tier</span>
-        <button onClick={() => onSort('size')} className="w-16 text-right hover:text-[#888]">
+        <button onClick={() => onSort('size')} aria-label="Sort by size" className="w-16 text-right hover:text-[#888]">
           Size <SortIndicator field="size" />
         </button>
-        <button onClick={() => onSort('date')} className="w-24 text-right hover:text-[#888]">
+        <button onClick={() => onSort('date')} aria-label="Sort by date" className="w-24 text-right hover:text-[#888]">
           Date <SortIndicator field="date" />
         </button>
         <span className="w-8" />
@@ -94,6 +94,7 @@ export default function ListView({
             </span>
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(doc.id) }}
+              aria-label={`Delete ${doc.name}`}
               className="w-8 flex justify-center opacity-0 group-hover:opacity-100 text-[#666] hover:text-red-500 transition-all"
             >
               <Trash2 size={12} />

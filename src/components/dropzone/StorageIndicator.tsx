@@ -28,7 +28,7 @@ export default function StorageIndicator({ usedBytes, maxBytes }: StorageIndicat
           {formatBytes(usedBytes)} / {formatBytes(maxBytes)}
         </span>
       </div>
-      <div className="w-full h-1.5 bg-[#222] rounded-full overflow-hidden">
+      <div className="w-full h-1.5 bg-[#222] rounded-full overflow-hidden" role="progressbar" aria-valuenow={Math.round(percentage)} aria-valuemin={0} aria-valuemax={100} aria-label="Storage usage">
         <div
           className="h-full rounded-full transition-all duration-300"
           style={{

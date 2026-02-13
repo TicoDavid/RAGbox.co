@@ -29,6 +29,7 @@ function formatBytes(bytes: number): string {
 export default function FileHoverModal({ document, position }: FileHoverModalProps) {
   return (
     <div
+      role="tooltip"
       className="fixed z-50 w-64 p-3 rounded-lg bg-[#111] border border-[#333] shadow-2xl pointer-events-none"
       style={{
         left: `${position.x + 16}px`,

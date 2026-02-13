@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateOTP, debugOTPStore } from "@/lib/auth";
+import { generateOTP } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,10 +18,6 @@ export async function POST(request: NextRequest) {
 
     // In production, send email via SendGrid/Resend/etc
     // In development, return OTP in response for testing
-    if (process.env.NODE_ENV === "development") {
-      debugOTPStore();
-    }
-
     return NextResponse.json({
       success: true,
       message: "OTP sent to email",

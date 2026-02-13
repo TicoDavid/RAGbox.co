@@ -130,11 +130,7 @@ export async function fetchOpenRouterModels(): Promise<OpenRouterModel[]> {
   }
 
   try {
-    const response = await fetch('https://openrouter.ai/api/v1/models', {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
+    const response = await fetch('/api/models')
 
     if (!response.ok) {
       throw new Error(`OpenRouter API error: ${response.status}`)

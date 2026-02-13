@@ -7,8 +7,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"sync"
 
 	"github.com/connexus-ai/ragbox-backend/internal/model"
+)
+
+var (
+	processingMu sync.Mutex
+	processing   = make(map[string]bool)
 )
 
 // Parser abstracts document text extraction.
@@ -83,6 +89,21 @@ func NewPipelineService(
 // ProcessDocument runs the full ingestion pipeline for a document.
 // It is designed to be called asynchronously (via goroutine).
 func (s *PipelineService) ProcessDocument(ctx context.Context, docID string) error {
+	// Concurrency guard: prevent duplicate processing of the same document
+	processingMu.Lock()
+	if processing[docID] {
+		processingMu.Unlock()
+		return fmt.Errorf("document %s is already being processed", docID)
+	}
+	processing[docID] = true
+	processingMu.Unlock()
+
+	defer func() {
+		processingMu.Lock()
+		delete(processing, docID)
+		processingMu.Unlock()
+	}()
+
 	slog.Info("pipeline starting", "document_id", docID)
 
 	doc, err := s.docRepo.GetByID(ctx, docID)

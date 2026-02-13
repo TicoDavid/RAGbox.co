@@ -47,6 +47,7 @@ export default function FolderTree({
         <span className="text-[10px] font-semibold text-[#888] uppercase tracking-wider">Folders</span>
         <button
           onClick={() => setShowNewFolder(!showNewFolder)}
+          aria-label="Create new folder"
           className="text-[10px] text-[#00F0FF] hover:text-[#00D4E0]"
         >
           + New
@@ -61,6 +62,7 @@ export default function FolderTree({
             onChange={e => setNewFolderName(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleCreate()}
             placeholder="Folder name"
+            aria-label="New folder name"
             className="flex-1 text-xs px-2 py-1 rounded bg-[#111] border border-[#333] text-white placeholder:text-[#555] focus:border-[#00F0FF] focus:outline-none"
             autoFocus
           />

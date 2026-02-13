@@ -49,12 +49,16 @@ export default function ContentArea({
         <div className="flex items-center gap-1">
           <button
             onClick={() => setViewMode('list')}
+            aria-label="List view"
+            aria-pressed={viewMode === 'list'}
             className={`p-1 rounded ${viewMode === 'list' ? 'bg-[#00F0FF]/10 text-[#00F0FF]' : 'text-[#666] hover:text-white'}`}
           >
             <List size={14} />
           </button>
           <button
             onClick={() => setViewMode('grid')}
+            aria-label="Grid view"
+            aria-pressed={viewMode === 'grid'}
             className={`p-1 rounded ${viewMode === 'grid' ? 'bg-[#00F0FF]/10 text-[#00F0FF]' : 'text-[#666] hover:text-white'}`}
           >
             <Grid size={14} />

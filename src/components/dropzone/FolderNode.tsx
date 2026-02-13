@@ -47,6 +47,7 @@ export default function FolderNode({
         {hasChildren ? (
           <button
             onClick={(e) => { e.stopPropagation(); setExpanded(!expanded) }}
+            aria-label={expanded ? 'Collapse folder' : 'Expand folder'}
             className="p-0.5"
           >
             {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
@@ -67,6 +68,7 @@ export default function FolderNode({
             onChange={e => setEditName(e.target.value)}
             onBlur={handleRename}
             onKeyDown={e => e.key === 'Enter' && handleRename()}
+            aria-label="Rename folder"
             className="flex-1 text-xs bg-transparent border-b border-[#00F0FF] text-white focus:outline-none"
             autoFocus
             onClick={e => e.stopPropagation()}
@@ -84,6 +86,7 @@ export default function FolderNode({
 
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(folder.id) }}
+          aria-label={`Delete folder ${folder.name}`}
           className="opacity-0 group-hover:opacity-100 p-0.5 text-[#666] hover:text-red-500 transition-all"
         >
           <Trash2 size={12} />

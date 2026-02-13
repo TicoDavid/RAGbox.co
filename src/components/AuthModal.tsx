@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
+import { apiFetch } from '@/lib/api';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -51,7 +52,7 @@ export function AuthModal({ isOpen, onClose, context = 'signin' }: AuthModalProp
     setError('');
 
     try {
-      const res = await fetch('/api/auth/send-otp', {
+      const res = await apiFetch('/api/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
