@@ -64,16 +64,17 @@ export function ConversationThread() {
       aria-label="Conversation messages"
       aria-live="polite"
     >
-      {/* RAGböx Watermark */}
+      {/* RAGböx Watermark — fixed background presence */}
       <div
-        className="sticky top-0 left-0 w-full h-0 flex items-center justify-center pointer-events-none z-0"
+        className="fixed inset-0 flex items-center justify-center pointer-events-none z-0"
         aria-hidden="true"
       >
         <img
           src="https://storage.googleapis.com/connexusai-assets/RAGb%C3%B6x_ICON.png"
           alt=""
-          className="w-[500px] h-auto opacity-[0.15] select-none mt-[40vh]"
+          className="w-[600px] h-auto opacity-[0.12] select-none sepia brightness-75"
           draggable={false}
+          style={{ filter: 'sepia(0.6) brightness(0.7) saturate(1.2)' }}
         />
       </div>
 

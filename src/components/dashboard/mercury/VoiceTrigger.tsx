@@ -93,7 +93,7 @@ export function VoiceTrigger({
   size = 'default',
   variant = 'default',
 }: VoiceTriggerProps) {
-  const sizeClasses = size === 'large' ? 'w-12 h-12' : 'w-9 h-9'
+  const sizeClasses = size === 'large' ? 'w-12 h-12' : 'w-10 h-10'
   const isInline = variant === 'inline'
   const {
     state,
@@ -162,8 +162,8 @@ export function VoiceTrigger({
       default: // idle
         return {
           icon: <Mic className="w-5 h-5" />,
-          bg: '',
-          text: 'text-amber-700 hover:text-amber-400',
+          bg: 'hover:bg-amber-500/10',
+          text: 'text-gray-400 hover:text-amber-400',
           ring: '',
           glow: '',
           pulse: false,
