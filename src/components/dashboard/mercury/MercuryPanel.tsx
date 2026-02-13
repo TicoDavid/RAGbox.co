@@ -36,23 +36,40 @@ export function MercuryPanel() {
   return (
     <div
       className={`
-        flex flex-col h-full bg-[var(--bg-primary)] transition-all duration-300
+        relative flex flex-col h-full bg-[var(--bg-primary)] overflow-hidden transition-all duration-300
         ${isWhistleblowerMode ? 'ring-2 ring-amber-500/30 ring-inset' : ''}
       `}
     >
-      <ContextBar />
-
-      {/* Conversation with Lens Refocus Animation */}
+      {/* Layer 2: The Watermark — sits ABOVE bg, BELOW content */}
       <div
-        className={`
-          flex-1 min-h-0
-          ${isRefocusing ? 'animate-refocus' : ''}
-        `}
+        className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
+        aria-hidden="true"
       >
-        <ConversationThread />
+        <img
+          src="https://storage.googleapis.com/connexusai-assets/RAGb%C3%B6x_ICON.png"
+          alt=""
+          className="w-[600px] h-auto opacity-20 select-none"
+          draggable={false}
+          style={{ filter: 'sepia(1) hue-rotate(-15deg) saturate(1.5)' }}
+        />
       </div>
 
-      <InputBar />
+      {/* Layer 3: All content — transparent bg so watermark shows through */}
+      <div className="relative z-10 flex flex-col h-full">
+        <ContextBar />
+
+        {/* Conversation with Lens Refocus Animation */}
+        <div
+          className={`
+            flex-1 min-h-0
+            ${isRefocusing ? 'animate-refocus' : ''}
+          `}
+        >
+          <ConversationThread />
+        </div>
+
+        <InputBar />
+      </div>
 
       {/* Refocus Animation Keyframes */}
       <style jsx global>{`
