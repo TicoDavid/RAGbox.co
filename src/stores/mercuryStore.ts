@@ -119,57 +119,79 @@ export const useMercuryStore = create<MercuryState>()(
           confidence = json.data?.confidence ?? json.confidence
           citations = json.data?.citations ?? json.citations
         } else {
-          // Handle SSE streaming
+          // Handle SSE streaming from Go backend
+          // Backend sends standard SSE: "event: <type>\ndata: <json>\n\n"
+          // Event types: status, token, citations, confidence, silence, done
           const reader = res.body?.getReader()
           if (!reader) throw new Error('No response body')
 
           const decoder = new TextDecoder()
+          let buffer = ''
 
           try {
             while (true) {
               const { done, value } = await reader.read()
               if (done) break
 
-              const chunk = decoder.decode(value)
-              const lines = chunk.split('\n').filter(line => line.startsWith('data: '))
+              buffer += decoder.decode(value, { stream: true })
 
-              for (const line of lines) {
-                const jsonStr = line.slice(6)
-                if (jsonStr === '[DONE]') continue
+              // Split on double-newline (SSE message boundary)
+              const messages = buffer.split('\n\n')
+              // Keep the last partial chunk in the buffer
+              buffer = messages.pop() ?? ''
+
+              for (const message of messages) {
+                if (!message.trim()) continue
+
+                // Parse event type and data from SSE message
+                let eventType = ''
+                let eventData = ''
+                for (const line of message.split('\n')) {
+                  if (line.startsWith('event: ')) {
+                    eventType = line.slice(7).trim()
+                  } else if (line.startsWith('data: ')) {
+                    eventData = line.slice(6)
+                  }
+                }
+
+                if (!eventData) continue
 
                 try {
-                  const data = JSON.parse(jsonStr)
+                  const data = JSON.parse(eventData)
 
-                  switch (data.type) {
+                  switch (eventType) {
                     case 'token':
-                      fullContent += data.content
+                      fullContent += data.text ?? ''
                       set({ streamingContent: fullContent })
                       break
+                    case 'citations':
+                      // Citations come as a raw array
+                      citations = Array.isArray(data) ? data : data.citations
+                      break
+                    case 'confidence':
+                      confidence = data.score ?? data.confidence
+                      break
+                    case 'silence':
+                      // Silence Protocol: use the message as content
+                      fullContent = data.message ?? 'Unable to provide a grounded answer.'
+                      confidence = data.confidence ?? 0
+                      break
+                    case 'status':
+                      // Ignore status events (retrieving, generating)
+                      break
                     case 'done':
-                      fullContent = data.fullText ?? fullContent
+                      // Stream complete
                       break
-                    case 'complete':
-                      fullContent = data.answer ?? fullContent
-                      confidence = data.confidence
-                      citations = data.citations
-                      break
-                    case 'error':
-                      throw new Error(data.message ?? 'Streaming error')
                     default:
-                      // Legacy format fallback
-                      if (data.content) {
-                        fullContent += data.content
+                      // Fallback: try known field names
+                      if (data.text) {
+                        fullContent += data.text
                         set({ streamingContent: fullContent })
                       }
-                      if (data.confidence !== undefined) confidence = data.confidence
-                      if (data.citations) citations = data.citations
                       break
                   }
                 } catch (parseError) {
-                  if (parseError instanceof SyntaxError) {
-                    // Skip malformed JSON
-                    continue
-                  }
+                  if (parseError instanceof SyntaxError) continue
                   throw parseError
                 }
               }

@@ -166,8 +166,8 @@ func TestRetrieve_SearchParameters(t *testing.T) {
 	if searcher.capturedTopK != 20 {
 		t.Errorf("topK = %d, want 20", searcher.capturedTopK)
 	}
-	if searcher.capturedThreshold != 0.7 {
-		t.Errorf("threshold = %f, want 0.7", searcher.capturedThreshold)
+	if searcher.capturedThreshold != 0.35 {
+		t.Errorf("threshold = %f, want 0.35", searcher.capturedThreshold)
 	}
 }
 

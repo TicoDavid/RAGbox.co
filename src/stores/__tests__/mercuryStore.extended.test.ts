@@ -9,9 +9,10 @@ import { useMercuryStore } from '../mercuryStore'
 
 // ── Helpers ──────────────────────────────────────────────────
 
-function sseStream(frames: string[]): ReadableStream<Uint8Array> {
+/** Encode SSE messages with proper event: + data: format. */
+function sseStream(frames: Array<{ event: string; data: string }>): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder()
-  const payload = frames.map(f => `data: ${f}\n\n`).join('')
+  const payload = frames.map(f => `event: ${f.event}\ndata: ${f.data}\n\n`).join('')
   return new ReadableStream({
     start(controller) {
       controller.enqueue(encoder.encode(payload))
@@ -65,14 +66,16 @@ afterAll(() => {
 // ── Tests ────────────────────────────────────────────────────
 
 describe('mercuryStore – silence protocol', () => {
-  test('complete event with low confidence is stored on the message', async () => {
+  test('silence event stores message and confidence on the message', async () => {
     const stream = sseStream([
-      JSON.stringify({
-        type: 'complete',
-        answer: 'Insufficient evidence to provide a reliable answer.',
+      { event: 'status', data: JSON.stringify({ stage: 'retrieving' }) },
+      { event: 'silence', data: JSON.stringify({
+        message: 'Insufficient evidence to provide a reliable answer.',
         confidence: 0.45,
-        citations: [],
-      }),
+        suggestions: ['Upload more docs'],
+        protocol: 'SILENCE_PROTOCOL',
+      }) },
+      { event: 'done', data: '{}' },
     ])
     ;(global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(stream))
 
@@ -82,17 +85,17 @@ describe('mercuryStore – silence protocol', () => {
     const last = useMercuryStore.getState().messages.at(-1)
     expect(last?.confidence).toBe(0.45)
     expect(last?.content).toBe('Insufficient evidence to provide a reliable answer.')
-    expect(last?.citations).toEqual([])
   })
 
-  test('complete event with zero confidence is preserved', async () => {
+  test('silence event with zero confidence is preserved', async () => {
     const stream = sseStream([
-      JSON.stringify({
-        type: 'complete',
-        answer: 'No relevant documents found.',
+      { event: 'silence', data: JSON.stringify({
+        message: 'No relevant documents found.',
         confidence: 0,
-        citations: [],
-      }),
+        suggestions: [],
+        protocol: 'SILENCE_PROTOCOL',
+      }) },
+      { event: 'done', data: '{}' },
     ])
     ;(global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(stream))
 
@@ -252,8 +255,8 @@ describe('mercuryStore – persona / neural shift', () => {
 describe('mercuryStore – sendMessage with apiFetch', () => {
   test('calls /api/chat endpoint via apiFetch (routed through fetch)', async () => {
     const stream = sseStream([
-      JSON.stringify({ type: 'token', content: 'response' }),
-      '[DONE]',
+      { event: 'token', data: JSON.stringify({ text: 'response' }) },
+      { event: 'done', data: '{}' },
     ])
     ;(global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(stream))
 
@@ -271,7 +274,10 @@ describe('mercuryStore – sendMessage with apiFetch', () => {
 
     ;(global.fetch as jest.Mock).mockImplementationOnce(async () => {
       capturedMessages = [...useMercuryStore.getState().messages]
-      return mockResponse(sseStream([JSON.stringify({ type: 'done', fullText: 'done' })]))
+      return mockResponse(sseStream([
+        { event: 'token', data: JSON.stringify({ text: 'done' }) },
+        { event: 'done', data: '{}' },
+      ]))
     })
 
     useMercuryStore.setState({ inputValue: 'my question' })
@@ -283,7 +289,10 @@ describe('mercuryStore – sendMessage with apiFetch', () => {
   })
 
   test('clears input value after sending', async () => {
-    const stream = sseStream([JSON.stringify({ type: 'done', fullText: 'done' })])
+    const stream = sseStream([
+      { event: 'token', data: JSON.stringify({ text: 'done' }) },
+      { event: 'done', data: '{}' },
+    ])
     ;(global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(stream))
 
     useMercuryStore.setState({ inputValue: 'my query' })

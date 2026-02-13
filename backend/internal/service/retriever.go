@@ -15,7 +15,10 @@ const (
 	// defaultTopK is the number of candidates to fetch from pgvector.
 	defaultTopK = 20
 	// defaultThreshold is the minimum cosine similarity for candidates.
-	defaultThreshold = 0.7
+	// text-embedding-004 with asymmetric task types (RETRIEVAL_DOCUMENT + RETRIEVAL_QUERY)
+	// produces lower absolute similarity than symmetric embeddings. Related content
+	// typically scores 0.50-0.70; threshold 0.35 captures relevant results while filtering noise.
+	defaultThreshold = 0.35
 	// defaultReturnLimit is the number of ranked results to return.
 	defaultReturnLimit = 5
 	// maxChunksPerDocument limits deduplication to this many chunks per source document.

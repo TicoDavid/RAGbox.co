@@ -9,10 +9,13 @@ import { useMercuryStore } from './mercuryStore'
 
 // ── Helpers ──────────────────────────────────────────────────
 
-/** Encode a series of SSE `data:` frames into a single ReadableStream. */
-function sseStream(frames: string[]): ReadableStream<Uint8Array> {
+/** Encode a series of SSE messages into a single ReadableStream.
+ *  Each frame is an object { event, data } matching standard SSE format:
+ *  "event: <type>\ndata: <json>\n\n"
+ */
+function sseStream(frames: Array<{ event: string; data: string }>): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder()
-  const payload = frames.map(f => `data: ${f}\n\n`).join('')
+  const payload = frames.map(f => `event: ${f.event}\ndata: ${f.data}\n\n`).join('')
   return new ReadableStream({
     start(controller) {
       controller.enqueue(encoder.encode(payload))
@@ -80,8 +83,8 @@ describe('mercuryStore', () => {
   describe('sendMessage – request payload', () => {
     test('sends correct API contract fields', async () => {
       const stream = sseStream([
-        JSON.stringify({ type: 'token', content: 'ok' }),
-        '[DONE]',
+        { event: 'token', data: JSON.stringify({ text: 'ok' }) },
+        { event: 'done', data: '{}' },
       ])
       ;(global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(stream))
 
@@ -103,7 +106,10 @@ describe('mercuryStore', () => {
     })
 
     test('includes message history in request', async () => {
-      const stream = sseStream([JSON.stringify({ type: 'done', fullText: 'x' })])
+      const stream = sseStream([
+        { event: 'token', data: JSON.stringify({ text: 'x' }) },
+        { event: 'done', data: '{}' },
+      ])
       ;(global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(stream))
 
       useMercuryStore.setState({
@@ -135,12 +141,12 @@ describe('mercuryStore', () => {
     })
   })
 
-  describe('sendMessage – SSE type-based parsing', () => {
+  describe('sendMessage – SSE event-based parsing', () => {
     test('accumulates token events into streaming content', async () => {
       const stream = sseStream([
-        JSON.stringify({ type: 'token', content: 'Hello' }),
-        JSON.stringify({ type: 'token', content: ' world' }),
-        '[DONE]',
+        { event: 'token', data: JSON.stringify({ text: 'Hello' }) },
+        { event: 'token', data: JSON.stringify({ text: ' world' }) },
+        { event: 'done', data: '{}' },
       ])
       ;(global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(stream))
 
@@ -154,26 +160,15 @@ describe('mercuryStore', () => {
       expect(state.isStreaming).toBe(false)
     })
 
-    test('done event overwrites accumulated content with fullText', async () => {
-      const stream = sseStream([
-        JSON.stringify({ type: 'token', content: 'partial' }),
-        JSON.stringify({ type: 'done', fullText: 'Final complete answer.' }),
-      ])
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(stream))
-
-      useMercuryStore.setState({ inputValue: 'q' })
-      await useMercuryStore.getState().sendMessage(false)
-
-      const last = useMercuryStore.getState().messages.at(-1)
-      expect(last?.content).toBe('Final complete answer.')
-    })
-
-    test('complete event extracts answer, confidence, and citations', async () => {
+    test('citations event extracts citation array', async () => {
       const citations = [
-        { citationIndex: 1, documentId: 'd1', documentName: 'doc.pdf', excerpt: 'ex', relevanceScore: 0.9 },
+        { chunkId: 'c1', documentId: 'd1', excerpt: 'ex', relevance: 0.9, index: 1 },
       ]
       const stream = sseStream([
-        JSON.stringify({ type: 'complete', answer: 'RAG answer', confidence: 0.92, citations }),
+        { event: 'token', data: JSON.stringify({ text: 'RAG answer' }) },
+        { event: 'citations', data: JSON.stringify(citations) },
+        { event: 'confidence', data: JSON.stringify({ score: 0.92, iterations: 1 }) },
+        { event: 'done', data: '{}' },
       ])
       ;(global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(stream))
 
@@ -186,26 +181,37 @@ describe('mercuryStore', () => {
       expect(last?.citations).toEqual(citations)
     })
 
-    test('error event surfaces as error message', async () => {
+    test('silence event uses message as content', async () => {
       const stream = sseStream([
-        JSON.stringify({ type: 'error', message: 'Rate limited' }),
+        { event: 'status', data: JSON.stringify({ stage: 'retrieving' }) },
+        { event: 'silence', data: JSON.stringify({
+          message: 'Cannot provide a grounded answer.',
+          confidence: 0,
+          suggestions: ['Upload more docs'],
+          protocol: 'SILENCE_PROTOCOL',
+        }) },
+        { event: 'done', data: '{}' },
       ])
       ;(global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(stream))
 
       useMercuryStore.setState({ inputValue: 'q' })
       await useMercuryStore.getState().sendMessage(false)
 
-      const state = useMercuryStore.getState()
-      const last = state.messages.at(-1)
-      expect(last?.isError).toBe(true)
-      expect(state.isStreaming).toBe(false)
+      const last = useMercuryStore.getState().messages.at(-1)
+      expect(last?.content).toBe('Cannot provide a grounded answer.')
+      expect(last?.confidence).toBe(0)
     })
 
     test('skips malformed JSON lines without crashing', async () => {
-      const stream = sseStream([
-        '{bad json',
-        JSON.stringify({ type: 'token', content: 'ok' }),
-      ])
+      const encoder = new TextEncoder()
+      // Manually craft a stream with one bad and one good message
+      const payload = 'event: token\ndata: {bad json\n\nevent: token\ndata: {"text":"ok"}\n\n'
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode(payload))
+          controller.close()
+        },
+      })
       ;(global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(stream))
 
       useMercuryStore.setState({ inputValue: 'q' })

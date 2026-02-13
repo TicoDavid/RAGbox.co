@@ -84,32 +84,74 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
       if (stream && response.body) {
         const reader = response.body.getReader()
         const decoder = new TextDecoder()
+        let buffer = ''
 
         try {
           while (true) {
             const { done, value } = await reader.read()
             if (done) break
 
-            const chunk = decoder.decode(value)
-            const lines = chunk.split('\n').filter(line => line.startsWith('data: '))
+            buffer += decoder.decode(value, { stream: true })
 
-            for (const line of lines) {
-              const data = line.slice(6)
-              if (data === '[DONE]') continue
+            // Split on double-newline (SSE message boundary)
+            const sseMessages = buffer.split('\n\n')
+            buffer = sseMessages.pop() ?? ''
+
+            for (const message of sseMessages) {
+              if (!message.trim()) continue
+
+              let eventType = ''
+              let eventData = ''
+              for (const line of message.split('\n')) {
+                if (line.startsWith('event: ')) {
+                  eventType = line.slice(7).trim()
+                } else if (line.startsWith('data: ')) {
+                  eventData = line.slice(6)
+                }
+              }
+
+              if (!eventData) continue
 
               try {
-                const parsed = JSON.parse(data) as ChatStreamEvent
-                if (parsed.type === 'content') {
-                  fullContent += parsed.content
-                  setMessages(prev => prev.map(msg =>
-                    msg.id === assistantId
-                      ? { ...msg, text: fullContent }
-                      : msg
-                  ))
-                } else if (parsed.type === 'confidence') {
-                  confidence = parsed.confidence
-                } else if (parsed.type === 'citations') {
-                  citations = parsed.citations
+                const parsed = JSON.parse(eventData)
+
+                switch (eventType) {
+                  case 'token':
+                    fullContent += parsed.text ?? ''
+                    setMessages(prev => prev.map(msg =>
+                      msg.id === assistantId
+                        ? { ...msg, text: fullContent }
+                        : msg
+                    ))
+                    break
+                  case 'citations':
+                    citations = Array.isArray(parsed) ? parsed : parsed.citations
+                    break
+                  case 'confidence':
+                    confidence = parsed.score ?? parsed.confidence
+                    break
+                  case 'silence':
+                    fullContent = parsed.message ?? 'Unable to provide a grounded answer.'
+                    confidence = parsed.confidence ?? 0
+                    setMessages(prev => prev.map(msg =>
+                      msg.id === assistantId
+                        ? { ...msg, text: fullContent }
+                        : msg
+                    ))
+                    break
+                  case 'status':
+                  case 'done':
+                    break
+                  default:
+                    if (parsed.text) {
+                      fullContent += parsed.text
+                      setMessages(prev => prev.map(msg =>
+                        msg.id === assistantId
+                          ? { ...msg, text: fullContent }
+                          : msg
+                      ))
+                    }
+                    break
                 }
               } catch {
                 // Ignore parse errors for incomplete chunks
