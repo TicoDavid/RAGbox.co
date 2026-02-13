@@ -48,10 +48,10 @@ function WaveformVisualizer({ isActive }: { isActive: boolean }) {
         const x = i * (barWidth + gap) + (canvas.width - bars * (barWidth + gap)) / 2
         const y = (canvas.height - height) / 2
 
-        // Gradient from cyan to blue
+        // Gradient from gold to amber
         const gradient = ctx.createLinearGradient(x, y, x, y + height)
-        gradient.addColorStop(0, '#00F0FF')
-        gradient.addColorStop(1, '#2463EB')
+        gradient.addColorStop(0, '#F59E0B')
+        gradient.addColorStop(1, '#D97706')
 
         ctx.fillStyle = gradient
         ctx.beginPath()
@@ -126,10 +126,10 @@ export function VoiceTrigger({
       case 'listening':
         return {
           icon: null, // Use waveform instead
-          bg: 'bg-cyan-500/20',
-          text: 'text-cyan-400',
-          ring: 'ring-cyan-500/50',
-          glow: 'shadow-[0_0_20px_rgba(0,240,255,0.5)]',
+          bg: 'bg-amber-500/20',
+          text: 'text-amber-400',
+          ring: 'ring-amber-500/50',
+          glow: 'shadow-[0_0_20px_rgba(245,158,11,0.5)]',
           pulse: true,
         }
       case 'speaking':
@@ -163,7 +163,7 @@ export function VoiceTrigger({
         return {
           icon: <Mic className="w-5 h-5" />,
           bg: '',
-          text: 'text-slate-500 hover:text-white',
+          text: 'text-amber-700 hover:text-amber-400',
           ring: '',
           glow: '',
           pulse: false,
@@ -221,7 +221,7 @@ export function VoiceTrigger({
             initial={{ opacity: 0 }}
             animate={{ opacity: [0.3, 0.6, 0.3] }}
             transition={{ duration: 2, repeat: Infinity }}
-            className="absolute inset-1 rounded-full bg-gradient-radial from-cyan-400/30 to-transparent"
+            className="absolute inset-1 rounded-full bg-gradient-radial from-amber-400/30 to-transparent"
           />
         )}
       </motion.button>
@@ -235,12 +235,12 @@ export function VoiceTrigger({
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2
                        px-3 py-2 bg-[#0A192F]/95 backdrop-blur-xl
-                       border border-cyan-500/30 rounded-lg shadow-xl
+                       border border-amber-500/30 rounded-lg shadow-xl
                        max-w-xs whitespace-nowrap overflow-hidden text-ellipsis"
           >
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-              <span className="text-xs text-cyan-400 font-medium truncate">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+              <span className="text-xs text-amber-400 font-medium truncate">
                 {transcript}
               </span>
             </div>
@@ -271,7 +271,7 @@ export function VoiceTrigger({
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full
-                     bg-cyan-400 border-2 border-[var(--bg-secondary)]"
+                     bg-amber-400 border-2 border-[var(--bg-secondary)]"
         />
       )}
     </div>

@@ -1,6 +1,11 @@
 /* dashboard.css - RAGbox Dashboard Theme */
 
 /* Sanctuary — the breathing monolith */
+@keyframes aegisBreathe {
+  0%, 100% { box-shadow: 0 0 20px -5px rgba(245,158,11,0.10), 0 8px 32px -8px rgba(0,0,0,0.80); }
+  50% { box-shadow: 0 0 35px -5px rgba(245,158,11,0.25), 0 8px 32px -8px rgba(0,0,0,0.80); }
+}
+
 @keyframes sanctuaryBreathe {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.02); }

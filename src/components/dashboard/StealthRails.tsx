@@ -7,7 +7,6 @@ import {
   PlusCircle,
   Clock,
   Star,
-  Info,
   Sparkles,
   Shield,
   Download,
@@ -22,7 +21,7 @@ import {
 // ============================================================================
 
 export type LeftRailTab = 'vault' | 'recent' | 'starred'
-export type RightRailTab = 'mercury' | 'inspector' | 'studio' | 'audit' | 'export'
+export type RightRailTab = 'mercury' | 'studio' | 'audit' | 'export'
 
 interface RailIconProps {
   icon: React.ElementType
@@ -232,15 +231,6 @@ export function RightStealthRail({
           label="Mercury"
           isActive={isExpanded && activeTab === 'mercury'}
           onClick={() => onTabClick('mercury')}
-          side="right"
-        />
-
-        {/* Inspector */}
-        <RailIcon
-          icon={Info}
-          label="Inspector"
-          isActive={isExpanded && activeTab === 'inspector'}
-          onClick={() => onTabClick('inspector')}
           side="right"
         />
 

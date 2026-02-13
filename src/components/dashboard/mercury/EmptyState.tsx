@@ -13,7 +13,7 @@ export function EmptyState() {
           alt="RAGbox watermark"
           width={800}
           height={800}
-          className="h-[55vh] w-auto opacity-25 select-none animate-[sanctuaryBreathe_10s_ease-in-out_infinite]"
+          className="w-[500px] h-auto opacity-[0.15] select-none animate-[sanctuaryBreathe_10s_ease-in-out_infinite]"
           priority
           draggable={false}
         />

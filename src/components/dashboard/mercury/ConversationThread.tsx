@@ -72,7 +72,7 @@ export function ConversationThread() {
         <img
           src="https://storage.googleapis.com/connexusai-assets/RAGb%C3%B6x_ICON.png"
           alt=""
-          className="w-[300px] h-[300px] opacity-[0.08] select-none mt-[40vh]"
+          className="w-[500px] h-auto opacity-[0.15] select-none mt-[40vh]"
           draggable={false}
         />
       </div>

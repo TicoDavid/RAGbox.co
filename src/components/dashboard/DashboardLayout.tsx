@@ -25,11 +25,7 @@ import {
   Menu,
   X,
   Wrench,
-  Trash2,
-  Clock,
-  MessageSquare,
 } from 'lucide-react'
-import { SovereignCertificate } from './vault/SovereignCertificate'
 import IngestionModal from '@/app/dashboard/components/IngestionModal'
 
 // ============================================================================
@@ -88,152 +84,6 @@ function StarredPanel() {
   )
 }
 
-function InspectorPanel() {
-  const selectedItemId = useVaultStore((s) => s.selectedItemId)
-  const documents = useVaultStore((s) => s.documents)
-  const deleteDocument = useVaultStore((s) => s.deleteDocument)
-  const togglePrivilege = useVaultStore((s) => s.togglePrivilege)
-  const toggleStar = useVaultStore((s) => s.toggleStar)
-  const selectAndChat = useVaultStore((s) => s.selectAndChat)
-  const selectedDoc = selectedItemId ? documents[selectedItemId] : null
-
-  // Calculate vault stats
-  const docList = Object.values(documents)
-  const totalDocs = docList.length
-  const totalSize = docList.reduce((acc, d) => acc + (d.size || 0), 0)
-  const formattedSize = totalSize > 1024 * 1024
-    ? `${(totalSize / (1024 * 1024)).toFixed(1)} MB`
-    : `${(totalSize / 1024).toFixed(1)} KB`
-
-  if (!selectedDoc) {
-    return (
-      <div className="h-full flex flex-col">
-        <div className="shrink-0 px-4 py-3 border-b border-white/5">
-          <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Inspector</h3>
-        </div>
-        <div className="flex-1 p-4">
-          {/* Vault Vitals Card */}
-          <div className="p-4 rounded-xl bg-gradient-to-br from-emerald-500/10 to-cyan-500/5 border border-emerald-500/20">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                <Shield className="w-5 h-5 text-emerald-400" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-white">Vault Vitals</p>
-                <p className="text-xs text-emerald-400">System Secure</p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex justify-between items-center py-2 border-b border-white/5">
-                <span className="text-xs text-slate-400">Total Files</span>
-                <span className="text-sm font-medium text-white">{totalDocs}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-white/5">
-                <span className="text-xs text-slate-400">Storage Used</span>
-                <span className="text-sm font-medium text-white">{formattedSize}</span>
-              </div>
-              <div className="flex justify-between items-center py-2">
-                <span className="text-xs text-slate-400">Security</span>
-                <span className="text-[10px] font-medium text-amber-500/70 uppercase tracking-wider">Secured</span>
-              </div>
-            </div>
-          </div>
-
-          <p className="text-xs text-slate-600 text-center mt-4">
-            Select a document to inspect
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  const formatSize = (bytes?: number): string => {
-    if (!bytes) return '\u2014'
-    if (bytes < 1024) return `${bytes} B`
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-  }
-
-  const formatDate = (date: Date): string =>
-    new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(date))
-
-  return (
-    <div className="h-full flex flex-col">
-      <div className="shrink-0 px-4 py-3 border-b border-white/5 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Inspector</h3>
-        <button
-          onClick={() => toggleStar(selectedDoc.id)}
-          className="p-1.5 rounded-lg hover:bg-white/5 transition-colors"
-          aria-label={selectedDoc.isStarred ? 'Unstar document' : 'Star document'}
-        >
-          <Star className={`w-4 h-4 ${selectedDoc.isStarred ? 'fill-amber-400 text-amber-400' : 'text-slate-500'}`} />
-        </button>
-      </div>
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {/* File Header */}
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-[80px] h-[96px] rounded-lg bg-[#0a0f18] border border-white/10 flex items-center justify-center shadow-[0_0_30px_-10px_rgba(0,0,0,0.5)]">
-            <FileText className="w-8 h-8 text-slate-500" />
-          </div>
-          <div className="text-center">
-            <p className="text-sm font-semibold text-white break-all leading-tight">{selectedDoc.name}</p>
-            <p className="text-[11px] text-slate-500 mt-1 font-mono">
-              {formatSize(selectedDoc.size)} · {selectedDoc.mimeType?.split('/')[1]?.toUpperCase() || 'FILE'}
-            </p>
-          </div>
-        </div>
-
-        {/* Sovereign Certificate */}
-        <SovereignCertificate document={selectedDoc} />
-
-        {/* Privilege Badge */}
-        {selectedDoc.isPrivileged && (
-          <div className="flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-red-950/30 border border-red-500/20">
-            <Shield className="w-3.5 h-3.5 text-red-400" />
-            <span className="text-xs font-semibold text-red-400 uppercase tracking-wider">
-              Attorney-Client Privilege
-            </span>
-          </div>
-        )}
-
-        {/* Timestamp */}
-        <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-600">
-          <Clock className="w-3 h-3" />
-          <span>Deposited {formatDate(selectedDoc.createdAt)}</span>
-        </div>
-
-        {/* Actions */}
-        <div className="flex flex-col gap-2 mt-auto pt-2">
-          <button
-            onClick={() => selectAndChat(selectedDoc.id)}
-            className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-[var(--brand-blue)] text-white text-sm font-semibold hover:bg-[var(--brand-blue-hover)] transition-colors"
-            aria-label={`Chat with ${selectedDoc.name}`}
-          >
-            <MessageSquare className="w-4 h-4" />
-            Chat with this File
-          </button>
-          <button
-            onClick={() => togglePrivilege(selectedDoc.id)}
-            className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-white/10 text-sm text-slate-400 hover:text-white hover:bg-white/5 hover:border-white/20 transition-all"
-            aria-label={selectedDoc.isPrivileged ? `Remove privilege from ${selectedDoc.name}` : `Mark ${selectedDoc.name} as privileged`}
-          >
-            <Shield className="w-4 h-4" />
-            {selectedDoc.isPrivileged ? 'Remove Privilege' : 'Mark Privileged'}
-          </button>
-          <button
-            onClick={() => deleteDocument(selectedDoc.id)}
-            className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-red-500/20 text-sm text-red-400/70 hover:text-red-400 hover:bg-red-950/30 hover:border-red-500/30 transition-all"
-            aria-label={`Delete ${selectedDoc.name}`}
-          >
-            <Trash2 className="w-4 h-4" />
-            Delete
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
 function AuditPanel() {
   return (
     <div className="h-full flex flex-col">
@@ -413,13 +263,12 @@ export function DashboardLayout() {
   const toggleExplorerMode = useVaultStore((s) => s.toggleExplorerMode)
   const fetchPrivilege = usePrivilegeStore((s) => s.fetch)
   const uploadDocument = useVaultStore((s) => s.uploadDocument)
-  const selectedItemId = useVaultStore((s) => s.selectedItemId)
 
   // Rail state
   const [leftExpanded, setLeftExpanded] = useState(!isVaultCollapsed)
   const [leftTab, setLeftTab] = useState<LeftRailTab>('vault')
   const [rightExpanded, setRightExpanded] = useState(false)
-  const [rightTab, setRightTab] = useState<RightRailTab>('inspector')
+  const [rightTab, setRightTab] = useState<RightRailTab>('studio')
   const [isIngestionOpen, setIsIngestionOpen] = useState(false)
 
   // Mobile overlay state
@@ -446,16 +295,6 @@ export function DashboardLayout() {
   useEffect(() => {
     setLeftExpanded(!isVaultCollapsed)
   }, [isVaultCollapsed])
-
-  // Auto-open inspector panel when a file is selected
-  useEffect(() => {
-    if (selectedItemId && isDesktop) {
-      setRightTab('inspector')
-      setRightExpanded(true)
-    } else if (!selectedItemId && rightTab === 'inspector') {
-      setRightExpanded(false)
-    }
-  }, [selectedItemId, isDesktop, rightTab])
 
   useEffect(() => {
     fetchPrivilege()
@@ -527,8 +366,6 @@ export function DashboardLayout() {
     switch (rightTab) {
       case 'mercury':
         return <MercuryVoicePanel />
-      case 'inspector':
-        return <InspectorPanel />
       case 'studio':
         return <SovereignStudio />
       case 'audit':

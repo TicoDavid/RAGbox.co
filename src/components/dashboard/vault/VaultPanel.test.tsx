@@ -14,10 +14,14 @@ jest.mock('@/stores/vaultStore', () => ({
     selector({
       isCollapsed: mockIsCollapsed,
       toggleCollapse: mockToggleCollapse,
+      toggleExplorerMode: jest.fn(),
       fetchDocuments: mockFetchDocuments,
       fetchFolders: mockFetchFolders,
       uploadDocument: jest.fn(),
       currentPath: [],
+      selectedItemId: null,
+      isLoading: false,
+      documents: {},
     }),
   ),
 }))
@@ -34,6 +38,10 @@ jest.mock('./ColumnBrowser', () => ({
 
 jest.mock('./StorageFooter', () => ({
   StorageFooter: () => <div data-testid="storage-footer" />,
+}))
+
+jest.mock('./SovereignCertificate', () => ({
+  SovereignCertificate: () => <div data-testid="sovereign-certificate" />,
 }))
 
 import { VaultPanel } from './VaultPanel'

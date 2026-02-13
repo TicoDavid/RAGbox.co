@@ -476,9 +476,11 @@ export function IntelligenceBadge({ onClick }: IntelligenceBadgeProps) {
       className={`
         flex items-center gap-2 px-3 py-1.5 rounded-lg
         transition-all duration-500 ease-out group
-        bg-white/[0.02] border border-white/[0.08]
+        ${isAegisActive
+          ? 'bg-amber-500/[0.06] border border-amber-500/25 shadow-[0_0_20px_-5px_rgba(245,158,11,0.2)]'
+          : 'bg-white/[0.02] border border-white/[0.08] shadow-lg shadow-black/20'
+        }
         hover:bg-white/[0.04] hover:border-amber-500/20
-        shadow-lg shadow-black/20
       `}
     >
       {/* Icon */}

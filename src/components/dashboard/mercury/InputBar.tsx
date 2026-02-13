@@ -18,6 +18,7 @@ import {
 import { VoiceTrigger } from './VoiceTrigger'
 import { PERSONAS } from './personaData'
 import { IntelligenceMatrix, IntelligenceBadge } from './IntelligenceMatrix'
+import { useSettings } from '@/contexts/SettingsContext'
 
 export { PERSONAS, type Persona, type PersonaCategory } from './personaData'
 
@@ -33,6 +34,7 @@ export function InputBar() {
   const updateAttachment = useMercuryStore((s) => s.updateAttachment)
   const activePersona = useMercuryStore((s) => s.activePersona)
   const privilegeMode = usePrivilegeStore((s) => s.isEnabled)
+  const { isAegisActive } = useSettings()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
@@ -179,7 +181,7 @@ export function InputBar() {
           <IntelligenceMatrix isOpen={isMatrixOpen} onClose={() => setIsMatrixOpen(false)} />
         </div>
 
-        <div className="flex items-center gap-2 px-5 py-3.5 rounded-full bg-[#050505] border border-amber-900/30 border-t-amber-800/40 shadow-2xl shadow-black/80 focus-within:border-amber-500/50 focus-within:shadow-[0_8px_32px_-8px_rgba(217,119,6,0.15)] transition-all duration-500 ease-out">
+        <div className={`flex items-center gap-2 px-5 py-3.5 rounded-full bg-[#050505] border border-amber-900/30 border-t-amber-800/40 focus-within:border-amber-500/50 transition-all duration-500 ease-out ${isAegisActive ? 'animate-[aegisBreathe_4s_ease-in-out_infinite] border-amber-500/40' : 'shadow-2xl shadow-black/80 focus-within:shadow-[0_8px_32px_-8px_rgba(217,119,6,0.15)]'}`}>
           <div className="relative shrink-0">
             <button
               onClick={() => setIsInjectMenuOpen(!isInjectMenuOpen)}
