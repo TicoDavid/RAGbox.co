@@ -35,6 +35,8 @@ model User {
   auditLogs AuditLog[]
   folders   Folder[]
   templates Template[]
+  learningSessions LearningSession[]
+  contentGaps      ContentGap[]
 
   @@map("users")
 }
@@ -65,8 +67,10 @@ model Vault {
   updatedAt        DateTime @updatedAt @map("updated_at")
 
   // Relations
-  user      User       @relation(fields: [userId], references: [id])
-  documents Document[]
+  user         User              @relation(fields: [userId], references: [id])
+  documents    Document[]
+  learningSessions LearningSession[]
+  healthChecks     KBHealthCheck[]
 
   @@map("vaults")
 }
@@ -293,6 +297,89 @@ model Template {
 
   @@index([userId])
   @@map("templates")
+}
+
+// ============================================
+// Learning Session (Content Intelligence)
+// ============================================
+
+model LearningSession {
+  id               String          @id @default(cuid())
+  userId           String          @map("user_id")
+  vaultId          String          @map("vault_id")
+  status           session_status  @default(active)
+  topicsCovered    Json            @default("[]") @map("topics_covered")
+  documentsQueried Json            @default("[]") @map("documents_queried")
+  queryCount       Int             @default(0) @map("query_count")
+  totalDurationMs  BigInt          @default(0) @map("total_duration_ms")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id])
+  vault Vault @relation(fields: [vaultId], references: [id])
+
+  @@index([userId, status])
+  @@index([vaultId])
+  @@map("learning_sessions")
+}
+
+enum session_status {
+  active
+  paused
+  completed
+}
+
+// ============================================
+// Content Gap (Content Intelligence)
+// ============================================
+
+model ContentGap {
+  id              String          @id @default(cuid())
+  userId          String          @map("user_id")
+  queryText       String          @map("query_text")
+  confidenceScore Float           @map("confidence_score")
+  suggestedTopics String[]        @map("suggested_topics")
+  status          gap_status      @default(open)
+  addressedAt     DateTime?       @map("addressed_at")
+  createdAt       DateTime        @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, status])
+  @@map("content_gaps")
+}
+
+enum gap_status {
+  open
+  addressed
+  dismissed
+}
+
+// ============================================
+// KB Health Check (Content Intelligence)
+// ============================================
+
+model KBHealthCheck {
+  id        String          @id @default(cuid())
+  vaultId   String          @map("vault_id")
+  checkType String          @map("check_type")
+  status    health_status
+  details   Json?
+  runAt     DateTime        @default(now()) @map("run_at")
+
+  // Relations
+  vault Vault @relation(fields: [vaultId], references: [id])
+
+  @@index([vaultId, checkType])
+  @@map("kb_health_checks")
+}
+
+enum health_status {
+  passed
+  warning
+  failed
 }
 
 // ============================================

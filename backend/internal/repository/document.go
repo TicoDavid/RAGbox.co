@@ -283,6 +283,39 @@ func (r *DocumentRepo) UpdateChecksum(ctx context.Context, id string, checksum s
 	return nil
 }
 
+func (r *DocumentRepo) ListByVault(ctx context.Context, vaultID string) ([]model.Document, error) {
+	rows, err := r.pool.Query(ctx, `
+		SELECT id, vault_id, user_id, filename, original_name, mime_type, file_type,
+			size_bytes, storage_uri, storage_path, index_status,
+			deletion_status, is_privileged, security_tier, is_starred, chunk_count,
+			folder_id, created_at, updated_at
+		FROM documents WHERE vault_id = $1 AND deletion_status = 'Active'
+		ORDER BY created_at DESC`, vaultID)
+	if err != nil {
+		return nil, fmt.Errorf("repository.ListByVault: %w", err)
+	}
+	defer rows.Close()
+
+	var docs []model.Document
+	for rows.Next() {
+		var d model.Document
+		var indexStatus, deletionStatus string
+		err := rows.Scan(
+			&d.ID, &d.VaultID, &d.UserID, &d.Filename, &d.OriginalName, &d.MimeType, &d.FileType,
+			&d.SizeBytes, &d.StorageURI, &d.StoragePath, &indexStatus,
+			&deletionStatus, &d.IsPrivileged, &d.SecurityTier, &d.IsStarred, &d.ChunkCount,
+			&d.FolderID, &d.CreatedAt, &d.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("repository.ListByVault: scan: %w", err)
+		}
+		d.IndexStatus = model.IndexStatus(indexStatus)
+		d.DeletionStatus = model.DeletionStatus(deletionStatus)
+		docs = append(docs, d)
+	}
+	return docs, nil
+}
+
 func marshalMeta(meta json.RawMessage) ([]byte, error) {
 	if meta == nil {
 		return nil, nil

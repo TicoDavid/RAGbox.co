@@ -50,6 +50,12 @@ type Dependencies struct {
 	// Export
 	ExportDeps handler.ExportDeps
 
+	// Content Gaps
+	ContentGapDeps handler.ContentGapDeps
+
+	// KB Health
+	KBHealthDeps handler.KBHealthDeps
+
 	// Forge
 	ForgeSvc *service.ForgeService
 
@@ -145,6 +151,15 @@ func New(deps *Dependencies) *chi.Mux {
 		// Audit
 		r.With(timeout30s).Get("/api/audit", handler.ListAudit(deps.AuditDeps))
 		r.With(timeout30s).Get("/api/audit/export", handler.ExportAudit(deps.AuditDeps))
+
+		// Content Gaps
+		r.With(timeout30s).Get("/api/content-gaps", handler.ListContentGaps(deps.ContentGapDeps))
+		r.With(timeout30s).Get("/api/content-gaps/summary", handler.ContentGapSummary(deps.ContentGapDeps))
+		r.With(timeout30s).Patch("/api/content-gaps/{id}", handler.UpdateContentGapStatus(deps.ContentGapDeps))
+
+		// KB Health
+		r.With(timeout30s).Post("/api/vaults/{id}/health-check", handler.RunHealthCheck(deps.KBHealthDeps))
+		r.With(timeout30s).Get("/api/vaults/{id}/health-checks", handler.GetHealthHistory(deps.KBHealthDeps))
 
 		// Export (ZIP generation can take a while)
 		r.With(middleware.Timeout(60 * time.Second)).Get("/api/export", handler.ExportData(deps.ExportDeps))

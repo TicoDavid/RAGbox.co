@@ -24,10 +24,12 @@ type ChatRequest struct {
 
 // ChatDeps bundles the services needed by the chat handler.
 type ChatDeps struct {
-	Retriever *service.RetrieverService
-	Generator service.Generator
-	SelfRAG   *service.SelfRAGService
-	Metrics   *middleware.Metrics // optional, for silence trigger tracking
+	Retriever     *service.RetrieverService
+	Generator     service.Generator
+	SelfRAG       *service.SelfRAGService
+	Metrics       *middleware.Metrics // optional, for silence trigger tracking
+	ContentGapSvc *service.ContentGapService
+	SessionSvc    *service.SessionService
 }
 
 // Chat returns an SSE streaming handler for Mercury chat.
@@ -39,6 +41,8 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			respondJSON(w, http.StatusUnauthorized, envelope{Success: false, Error: "unauthorized"})
 			return
 		}
+
+		startTime := time.Now()
 
 		slog.Info("[DEBUG-CHAT] request received",
 			"user_id", userID,
@@ -149,6 +153,9 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			silence := service.BuildSilenceResponse(0.0, req.Query)
 			silenceJSON, _ := json.Marshal(silence)
 			sendEvent(w, flusher, "silence", string(silenceJSON))
+			if deps.ContentGapSvc != nil {
+				go deps.ContentGapSvc.LogGap(context.Background(), userID, req.Query, 0.0)
+			}
 			sendEvent(w, flusher, "done", `{}`)
 			return
 		}
@@ -187,6 +194,9 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			silence := service.BuildSilenceResponse(result.FinalConfidence, req.Query)
 			silenceJSON, _ := json.Marshal(silence)
 			sendEvent(w, flusher, "silence", string(silenceJSON))
+			if deps.ContentGapSvc != nil {
+				go deps.ContentGapSvc.LogGap(context.Background(), userID, req.Query, result.FinalConfidence)
+			}
 		} else {
 			// Stream answer token by token
 			tokens := splitIntoTokens(result.FinalAnswer)
@@ -207,6 +217,15 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 				"iterations": result.Iterations,
 			})
 			sendEvent(w, flusher, "confidence", string(confidenceJSON))
+
+			// Record query in learning session
+			if deps.SessionSvc != nil {
+				docIDs := make([]string, 0, len(retrieval.Chunks))
+				for _, c := range retrieval.Chunks {
+					docIDs = append(docIDs, c.Document.ID)
+				}
+				go deps.SessionSvc.RecordQuery(context.Background(), userID, req.Query, docIDs, time.Since(startTime).Milliseconds())
+			}
 		}
 
 		sendEvent(w, flusher, "done", `{}`)

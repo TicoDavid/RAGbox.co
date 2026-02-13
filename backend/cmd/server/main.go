@@ -191,6 +191,21 @@ func run() error {
 		slog.Info("pipeline service initialized", "parser", "text_fallback")
 	}
 
+	// Content Gap service
+	contentGapRepo := repository.NewContentGapRepo(pool)
+	contentGapSvc := service.NewContentGapService(contentGapRepo)
+	slog.Info("content gap service initialized")
+
+	// KB Health service
+	kbHealthRepo := repository.NewKBHealthRepo(pool)
+	kbHealthSvc := service.NewKBHealthService(kbHealthRepo, docRepo)
+	slog.Info("kb health service initialized")
+
+	// Session service
+	sessionRepo := repository.NewSessionRepo(pool)
+	sessionSvc := service.NewSessionService(sessionRepo)
+	slog.Info("session service initialized")
+
 	// Privilege state (in-memory per-user toggle)
 	privilegeState := handler.NewPrivilegeState()
 
@@ -243,10 +258,20 @@ func run() error {
 		PrivilegeState: privilegeState,
 
 		ChatDeps: handler.ChatDeps{
-			Retriever: retrieverService,
-			Generator: generatorService,
-			SelfRAG:   selfRAGService,
-			Metrics:   metrics,
+			Retriever:     retrieverService,
+			Generator:     generatorService,
+			SelfRAG:       selfRAGService,
+			Metrics:       metrics,
+			ContentGapSvc: contentGapSvc,
+			SessionSvc:    sessionSvc,
+		},
+
+		ContentGapDeps: handler.ContentGapDeps{
+			Svc: contentGapSvc,
+		},
+
+		KBHealthDeps: handler.KBHealthDeps{
+			Svc: kbHealthSvc,
 		},
 
 		AuditDeps: handler.AuditDeps{
