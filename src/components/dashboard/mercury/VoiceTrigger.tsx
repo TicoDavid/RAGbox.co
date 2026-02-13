@@ -102,8 +102,7 @@ export function VoiceTrigger({
     error,
     toggleVoice,
   } = useSovereignVoice({
-    autoSendOnSilence: true,
-    silenceThreshold: 2000,
+    autoSendOnSilence: false,
     onTranscript: (text, isFinal) => {
       onTranscript?.(text)
       if (isFinal && text.trim()) {

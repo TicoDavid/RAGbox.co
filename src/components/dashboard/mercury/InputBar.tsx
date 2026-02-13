@@ -136,15 +136,8 @@ export function InputBar() {
 
   const handleSubmit = () => sendMessage(privilegeMode)
 
+  // Voice-to-text: populate input only, user sends manually
   const handleVoiceTranscript = useCallback((text: string) => setInputValue(text), [setInputValue])
-
-  const handleVoiceSubmit = useCallback(
-    (text: string) => {
-      setInputValue(text)
-      setTimeout(() => sendMessage(privilegeMode), 50)
-    },
-    [setInputValue, sendMessage, privilegeMode]
-  )
 
   const canSend = (inputValue.trim().length > 0 || attachments.length > 0) && !isStreaming
 
@@ -236,6 +229,8 @@ export function InputBar() {
 
           <textarea
             ref={textareaRef}
+            id="mercury-input"
+            name="mercury-input"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -247,7 +242,7 @@ export function InputBar() {
           />
 
           <div className="flex items-center gap-1 shrink-0">
-            <VoiceTrigger onTranscript={handleVoiceTranscript} onSubmit={handleVoiceSubmit} disabled={isStreaming} size="default" variant="inline" />
+            <VoiceTrigger onTranscript={handleVoiceTranscript} disabled={isStreaming} size="default" variant="inline" />
             {isStreaming ? (
               <button onClick={stopStreaming} className="p-2 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors" title="Stop" aria-label="Stop streaming">
                 <Square className="w-4 h-4" />
