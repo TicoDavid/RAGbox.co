@@ -544,29 +544,17 @@ func VerifyIntegrity(deps DocCRUDDeps) http.HandlerFunc {
 			return
 		}
 
-		if doc.StoragePath == nil || *doc.StoragePath == "" {
+		// Verify by recomputing SHA-256 of the extracted text
+		// (checksum was computed from extracted text during pipeline ingest)
+		if doc.ExtractedText == nil || *doc.ExtractedText == "" {
 			respondJSON(w, http.StatusOK, map[string]interface{}{
 				"valid":  false,
-				"reason": "file not available",
+				"reason": "no extracted text to verify",
 			})
 			return
 		}
 
-		if deps.ObjectDownloader == nil {
-			respondJSON(w, http.StatusInternalServerError, envelope{Success: false, Error: "storage reader not configured"})
-			return
-		}
-
-		data, err := deps.ObjectDownloader.Download(r.Context(), deps.BucketName, *doc.StoragePath)
-		if err != nil {
-			respondJSON(w, http.StatusOK, map[string]interface{}{
-				"valid":  false,
-				"reason": "could not read file from storage",
-			})
-			return
-		}
-
-		hash := sha256.Sum256(data)
+		hash := sha256.Sum256([]byte(*doc.ExtractedText))
 		computedHash := hex.EncodeToString(hash[:])
 
 		respondJSON(w, http.StatusOK, map[string]interface{}{
