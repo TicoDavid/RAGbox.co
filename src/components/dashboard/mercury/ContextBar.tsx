@@ -1,8 +1,38 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { useMercuryStore } from '@/stores/mercuryStore'
+
+function VoiceStatusDot() {
+  const [status, setStatus] = useState<'unknown' | 'healthy' | 'down'>('unknown')
+
+  useEffect(() => {
+    let cancelled = false
+    const check = async () => {
+      try {
+        const voiceUrl = process.env.NEXT_PUBLIC_VOICE_WS_URL?.replace('ws://', 'http://').replace('wss://', 'https://').replace('/agent/ws', '/health')
+        if (!voiceUrl) { setStatus('down'); return }
+        const res = await fetch(voiceUrl, { signal: AbortSignal.timeout(3000) })
+        if (!cancelled) setStatus(res.ok ? 'healthy' : 'down')
+      } catch {
+        if (!cancelled) setStatus('down')
+      }
+    }
+    check()
+    const interval = setInterval(check, 30000)
+    return () => { cancelled = true; clearInterval(interval) }
+  }, [])
+
+  if (status === 'unknown') return null
+
+  return (
+    <span
+      className={`w-2 h-2 rounded-full shrink-0 ${status === 'healthy' ? 'bg-emerald-500' : 'bg-slate-500'}`}
+      title={status === 'healthy' ? 'Voice server online' : 'Voice server offline'}
+    />
+  )
+}
 
 export function ContextBar() {
   const clearConversation = useMercuryStore((s) => s.clearConversation)
@@ -11,8 +41,9 @@ export function ContextBar() {
 
   return (
     <div className="shrink-0 flex items-center gap-3 px-4 py-2 border-b border-[var(--border-default)] border-t border-t-white/10 bg-[var(--bg-secondary)]">
-      {/* Vault tags */}
+      {/* Vault tags + voice status */}
       <div className="flex items-center gap-1.5 flex-1 min-w-0">
+        <VoiceStatusDot />
         <span className="text-xs text-[var(--text-tertiary)]">All documents</span>
       </div>
 

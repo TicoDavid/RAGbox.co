@@ -1,9 +1,5 @@
 /**
- * @deprecated useSovereignAgentVoice - Agent-Driven Voice Control
- *
- * This hook is deprecated. Use `useVoiceChat` from
- * `src/app/dashboard/hooks/useVoiceChat.ts` instead, which is the canonical
- * Deepgram-based voice implementation used in the dashboard.
+ * useSovereignAgentVoice - Agent-Driven Voice Control
  *
  * This hook connects to the Mercury voice agent and lets it DRIVE the UI.
  * Unlike traditional voice input that populates a text field,
@@ -416,9 +412,10 @@ export function useSovereignAgentVoice(
   options: UseSovereignAgentVoiceOptions = {}
 ): UseSovereignAgentVoiceReturn {
   const {
-    wsUrl = typeof window !== 'undefined'
-      ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/agent/ws`
-      : 'ws://localhost:3000/agent/ws',
+    wsUrl = process.env.NEXT_PUBLIC_VOICE_WS_URL
+      || (typeof window !== 'undefined'
+        ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.hostname}:3003/agent/ws`
+        : 'ws://localhost:3003/agent/ws'),
     userId = 'anonymous',
     role = 'User',
     privilegeMode = false,

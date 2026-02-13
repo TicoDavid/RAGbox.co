@@ -54,7 +54,7 @@ export interface VoiceChatOptions {
 // Silence detection timeout (2 seconds after last speech)
 const SILENCE_TIMEOUT_MS = 2000;
 
-const WELCOME_MESSAGE = "Hi! I'm Mercury, your document assistant. I can help you search your files, answer questions, or walk you through anything on screen. Just ask!";
+const WELCOME_MESSAGE = "Hi! I'm Mercury, your document intelligence assistant. I can search your vault, analyze documents, check knowledge base health, and walk you through anything on screen. Just ask!";
 
 /**
  * Voice chat hook — Three-state continuous-listening model
@@ -231,47 +231,70 @@ export function useVoiceChat(
           } else {
             setState(prev => ({ ...prev, isSpeaking: false }));
           }
-        } catch (ttsError) {
+        } catch {
+          // Fallback 1: Deepgram Aura TTS (fast, low cost)
+          let played = false;
           try {
-            const fallbackResponse = await apiFetch('/api/tts', {
+            const auraRes = await apiFetch('/api/voice/synthesize', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ text: spokenText, voice: state.voice, speakingRate: 1.1 }),
+              body: JSON.stringify({ text: spokenText }),
             });
-
-            if (fallbackResponse.ok) {
-              const fallbackData = await fallbackResponse.json();
-              const fallbackMode = modeRef.current as VoiceMode;
-              if (fallbackData.audio && fallbackMode !== 'off') {
-                const audio = new Audio(`data:audio/mp3;base64,${fallbackData.audio}`);
+            if (auraRes.ok) {
+              const blob = await auraRes.blob();
+              const url = URL.createObjectURL(blob);
+              const audio = new Audio(url);
+              const auraMode = modeRef.current as VoiceMode;
+              if (auraMode !== 'off') {
                 audio.onended = () => {
+                  URL.revokeObjectURL(url);
                   setState(prev => ({ ...prev, isSpeaking: false }));
-                  if (modeRef.current === 'on') {
-                    startCapture().catch(() => {
-                    });
-                  }
+                  if (modeRef.current === 'on') startCapture().catch(() => {});
                 };
                 audio.onerror = () => {
+                  URL.revokeObjectURL(url);
                   setState(prev => ({ ...prev, isSpeaking: false }));
-                  if (modeRef.current === 'on') {
-                    startCapture().catch(() => {
-                    });
-                  }
+                  if (modeRef.current === 'on') startCapture().catch(() => {});
                 };
                 await audio.play();
-              } else {
-                setState(prev => ({ ...prev, isSpeaking: false }));
-                if (modeRef.current === 'on') {
-                  await startCapture();
-                }
-              }
-            } else {
-              setState(prev => ({ ...prev, isSpeaking: false }));
-              if (modeRef.current === 'on') {
-                await startCapture();
+                played = true;
               }
             }
           } catch {
+            // Deepgram Aura unavailable, try Google Cloud TTS
+          }
+
+          // Fallback 2: Google Cloud TTS
+          if (!played) {
+            try {
+              const gcpRes = await apiFetch('/api/tts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: spokenText, voice: state.voice, speakingRate: 1.1 }),
+              });
+              if (gcpRes.ok) {
+                const gcpData = await gcpRes.json();
+                const gcpMode = modeRef.current as VoiceMode;
+                if (gcpData.audio && gcpMode !== 'off') {
+                  const audio = new Audio(`data:audio/mp3;base64,${gcpData.audio}`);
+                  audio.onended = () => {
+                    setState(prev => ({ ...prev, isSpeaking: false }));
+                    if (modeRef.current === 'on') startCapture().catch(() => {});
+                  };
+                  audio.onerror = () => {
+                    setState(prev => ({ ...prev, isSpeaking: false }));
+                    if (modeRef.current === 'on') startCapture().catch(() => {});
+                  };
+                  await audio.play();
+                  played = true;
+                }
+              }
+            } catch {
+              // Both fallbacks failed
+            }
+          }
+
+          if (!played) {
             setState(prev => ({ ...prev, isSpeaking: false }));
             if (modeRef.current === 'on') {
               await startCapture();

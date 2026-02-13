@@ -274,9 +274,10 @@ export function useAgentWebSocket(
   options: UseAgentWebSocketOptions = {}
 ): UseAgentWebSocketReturn {
   const {
-    wsUrl = typeof window !== 'undefined'
-      ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/agent/ws`
-      : 'ws://localhost:3000/agent/ws',
+    wsUrl = process.env.NEXT_PUBLIC_VOICE_WS_URL
+      || (typeof window !== 'undefined'
+        ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.hostname}:3003/agent/ws`
+        : 'ws://localhost:3003/agent/ws'),
     sessionId,
     sampleRate = 16000,
     autoReconnect = true,

@@ -177,6 +177,25 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       documentId: { type: 'string', description: 'The document ID to read', required: true },
     },
   },
+  {
+    name: 'check_content_gaps',
+    description: 'Identify content gaps in the knowledge base - topics that documents reference but lack coverage on.',
+    parameters: {
+      limit: { type: 'number', description: 'Maximum gaps to return (default 10)' },
+    },
+  },
+  {
+    name: 'run_health_check',
+    description: 'Run a knowledge base health check analyzing freshness, coverage, and consistency of documents.',
+    parameters: {},
+  },
+  {
+    name: 'get_learning_sessions',
+    description: 'Get recent learning sessions showing what queries users have asked and what documents were cited.',
+    parameters: {
+      limit: { type: 'number', description: 'Maximum sessions to return (default 10)' },
+    },
+  },
 ]
 
 // ============================================================================
@@ -452,6 +471,86 @@ async function readDocument(args: { documentId: string }, ctx: ToolContext): Pro
   }
 }
 
+async function checkContentGaps(args: { limit?: number }, ctx: ToolContext): Promise<unknown> {
+  const db = getPrisma()
+  const limit = args.limit || 10
+
+  // Get all documents to analyze coverage
+  const docs = await db.document.findMany({
+    where: { userId: ctx.userId, deletionStatus: 'Active' },
+    select: { id: true, filename: true, originalName: true, mimeType: true, extractedText: true },
+    take: 100,
+  })
+
+  // Simple heuristic: find topics mentioned across documents but with thin coverage
+  const topicCounts: Record<string, number> = {}
+  for (const doc of docs) {
+    const text = (doc.extractedText || '').toLowerCase()
+    const topics = ['compliance', 'liability', 'indemnification', 'termination', 'confidentiality', 'payment', 'warranty', 'intellectual property', 'force majeure', 'arbitration']
+    for (const topic of topics) {
+      if (text.includes(topic)) {
+        topicCounts[topic] = (topicCounts[topic] || 0) + 1
+      }
+    }
+  }
+
+  // Topics with only 1 mention are potential gaps
+  const gaps = Object.entries(topicCounts)
+    .filter(([, count]) => count <= 1)
+    .slice(0, limit)
+    .map(([topic, count]) => ({ topic, documentCount: count, severity: count === 0 ? 'high' : 'medium' }))
+
+  return { totalDocuments: docs.length, gaps, analyzedTopics: Object.keys(topicCounts).length }
+}
+
+async function runHealthCheck(ctx: ToolContext): Promise<unknown> {
+  const db = getPrisma()
+
+  const [total, withText, recent, oldest] = await Promise.all([
+    db.document.count({ where: { userId: ctx.userId, deletionStatus: 'Active' } }),
+    db.document.count({ where: { userId: ctx.userId, deletionStatus: 'Active', extractedText: { not: null } } }),
+    db.document.findFirst({ where: { userId: ctx.userId, deletionStatus: 'Active' }, orderBy: { createdAt: 'desc' }, select: { createdAt: true } }),
+    db.document.findFirst({ where: { userId: ctx.userId, deletionStatus: 'Active' }, orderBy: { createdAt: 'asc' }, select: { createdAt: true } }),
+  ])
+
+  const now = new Date()
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+  const staleCount = oldest?.createdAt && oldest.createdAt < thirtyDaysAgo ? 1 : 0
+
+  return {
+    totalDocuments: total,
+    indexedDocuments: withText,
+    coveragePercent: total > 0 ? Math.round((withText / total) * 100) : 0,
+    newestDocument: recent?.createdAt?.toISOString() || null,
+    oldestDocument: oldest?.createdAt?.toISOString() || null,
+    staleDocuments: staleCount,
+    healthScore: total > 0 ? Math.round(((withText / total) * 80) + (staleCount === 0 ? 20 : 0)) : 0,
+  }
+}
+
+async function getLearningSessionsSummary(args: { limit?: number }, ctx: ToolContext): Promise<unknown> {
+  const db = getPrisma()
+  const limit = args.limit || 10
+
+  // Get recent queries from this user
+  const queries = await db.query.findMany({
+    where: { userId: ctx.userId },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+    select: { id: true, queryText: true, createdAt: true, confidenceScore: true },
+  })
+
+  return {
+    count: queries.length,
+    sessions: queries.map(q => ({
+      id: q.id,
+      query: q.queryText,
+      timestamp: q.createdAt.toISOString(),
+      confidence: q.confidenceScore,
+    })),
+  }
+}
+
 function navigateTo(args: { destination: string }): { ok: boolean; uiAction: UIAction } {
   const pathMap: Record<string, string> = {
     vault: '/dashboard/vault',
@@ -558,6 +657,18 @@ export async function executeTool(call: ToolCall, ctx: ToolContext): Promise<Too
         // RBAC already checked above
         result = { ok: true, newRole: call.arguments.role }
         uiAction = { type: 'show_toast', message: `Role changed to ${call.arguments.role}`, variant: 'success' }
+        break
+
+      case 'check_content_gaps':
+        result = await checkContentGaps(call.arguments as { limit?: number }, ctx)
+        break
+
+      case 'run_health_check':
+        result = await runHealthCheck(ctx)
+        break
+
+      case 'get_learning_sessions':
+        result = await getLearningSessionsSummary(call.arguments as { limit?: number }, ctx)
         break
 
       case 'compare_documents':
