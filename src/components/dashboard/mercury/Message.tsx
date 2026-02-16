@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import type { ChatMessage } from '@/types/ragbox'
+import type { ChatMessage, MercuryChannel } from '@/types/ragbox'
 import { CitationTag } from './CitationTag'
 import { ConfidenceBadge } from './ConfidenceBadge'
 
@@ -14,6 +14,22 @@ function formatTime(date: Date): string {
     hour: 'numeric',
     minute: '2-digit',
   }).format(date)
+}
+
+const CHANNEL_BADGE: Record<MercuryChannel, { label: string; color: string }> = {
+  dashboard: { label: 'Dashboard', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+  whatsapp: { label: 'WhatsApp', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
+  voice: { label: 'Voice', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' },
+}
+
+function ChannelBadge({ channel }: { channel?: MercuryChannel }) {
+  if (!channel) return null
+  const badge = CHANNEL_BADGE[channel]
+  return (
+    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider border ${badge.color}`}>
+      {badge.label}
+    </span>
+  )
 }
 
 export function Message({ message }: MessageProps) {
@@ -44,11 +60,12 @@ export function Message({ message }: MessageProps) {
           </div>
         )}
 
-        {/* Footer: time + confidence */}
+        {/* Footer: time + channel badge + confidence */}
         <div className="flex items-center gap-2 mt-2">
           <span className={`text-[10px] ${isUser ? 'text-white/60' : 'text-[var(--text-tertiary)]'}`}>
             {formatTime(message.timestamp)}
           </span>
+          <ChannelBadge channel={message.channel} />
           {message.confidence !== undefined && !isUser && (
             <ConfidenceBadge confidence={message.confidence} />
           )}

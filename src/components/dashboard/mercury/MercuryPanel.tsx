@@ -4,6 +4,7 @@ import React, { useEffect, useCallback } from 'react'
 import { ContextBar } from './ContextBar'
 import { ConversationThread } from './ConversationThread'
 import { InputBar } from './InputBar'
+import { ActionConfirmationOverlay } from './ToolConfirmationDialog'
 import { useMercuryStore } from '@/stores/mercuryStore'
 import { usePrivilegeStore } from '@/stores/privilegeStore'
 import type { ChatMessage } from '@/types/ragbox'
@@ -13,9 +14,16 @@ export function MercuryPanel() {
   const isRefocusing = useMercuryStore((s) => s.isRefocusing)
   const pendingAction = useMercuryStore((s) => s.pendingAction)
   const clearPendingAction = useMercuryStore((s) => s.clearPendingAction)
+  const loadThread = useMercuryStore((s) => s.loadThread)
+  const threadId = useMercuryStore((s) => s.threadId)
   const togglePrivilege = usePrivilegeStore((s) => s.toggle)
 
   const isWhistleblowerMode = activePersona === 'whistleblower'
+
+  // Load unified thread on mount
+  useEffect(() => {
+    loadThread()
+  }, [loadThread])
 
   // Handle pending tool actions (navigate, toggle_privilege, export_audit, open_document)
   useEffect(() => {
@@ -56,6 +64,7 @@ export function MercuryPanel() {
       role: 'assistant',
       content: `**Document uploaded:** ${detail.filename} (${formatFileSize(detail.size)}) is now being indexed. You can query it once processing completes.`,
       timestamp: new Date(),
+      channel: 'dashboard',
     }
     useMercuryStore.setState((state) => ({
       messages: [...state.messages, notification],
@@ -75,11 +84,23 @@ export function MercuryPanel() {
       role: 'user',
       content: detail.text,
       timestamp: new Date(),
+      channel: 'voice',
     }
     useMercuryStore.setState((state) => ({
       messages: [...state.messages, msg],
     }))
-  }, [])
+    // Persist voice message to thread
+    fetch('/api/mercury/thread/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        threadId,
+        role: 'user',
+        channel: 'voice',
+        content: detail.text,
+      }),
+    }).catch(() => {})
+  }, [threadId])
 
   const handleVoiceResponse = useCallback((e: Event) => {
     const detail = (e as CustomEvent).detail as { text: string }
@@ -88,11 +109,23 @@ export function MercuryPanel() {
       role: 'assistant',
       content: detail.text,
       timestamp: new Date(),
+      channel: 'voice',
     }
     useMercuryStore.setState((state) => ({
       messages: [...state.messages, msg],
     }))
-  }, [])
+    // Persist voice response to thread
+    fetch('/api/mercury/thread/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        threadId,
+        role: 'assistant',
+        channel: 'voice',
+        content: detail.text,
+      }),
+    }).catch(() => {})
+  }, [threadId])
 
   useEffect(() => {
     window.addEventListener('mercury:voice-query', handleVoiceQuery)
@@ -102,6 +135,53 @@ export function MercuryPanel() {
       window.removeEventListener('mercury:voice-response', handleVoiceResponse)
     }
   }, [handleVoiceQuery, handleVoiceResponse])
+
+  // Poll for new messages from other channels (WhatsApp, voice from other devices)
+  useEffect(() => {
+    if (!threadId) return
+
+    const poll = async () => {
+      try {
+        const lastMsg = useMercuryStore.getState().messages
+        const lastTimestamp = lastMsg.length > 0
+          ? lastMsg[lastMsg.length - 1].timestamp.toISOString()
+          : new Date(Date.now() - 86400000).toISOString() // 24h ago
+
+        const res = await fetch(`/api/mercury/thread/messages?threadId=${threadId}&after=${encodeURIComponent(lastTimestamp)}&limit=20`)
+        if (!res.ok) return
+
+        const data = await res.json()
+        const newMessages = data.data?.messages || []
+        if (newMessages.length === 0) return
+
+        // Only inject messages we don't already have (by id)
+        const existingIds = new Set(useMercuryStore.getState().messages.map((m: ChatMessage) => m.id))
+        const toAdd = newMessages
+          .filter((m: { id: string }) => !existingIds.has(m.id))
+          .map((m: { id: string; role: string; channel: string; content: string; confidence?: number; citations?: unknown; metadata?: Record<string, unknown>; createdAt: string }) => ({
+            id: m.id,
+            role: m.role as 'user' | 'assistant',
+            content: m.content,
+            timestamp: new Date(m.createdAt),
+            confidence: m.confidence ?? undefined,
+            citations: m.citations as ChatMessage['citations'],
+            channel: m.channel as ChatMessage['channel'],
+            metadata: m.metadata ?? undefined,
+          }))
+
+        if (toAdd.length > 0) {
+          useMercuryStore.setState((state) => ({
+            messages: [...state.messages, ...toAdd],
+          }))
+        }
+      } catch {
+        // Silent fail — polling is best-effort
+      }
+    }
+
+    const interval = setInterval(poll, 5000)
+    return () => clearInterval(interval)
+  }, [threadId])
 
   // Apply theme shift for Whistleblower mode
   useEffect(() => {
@@ -161,6 +241,9 @@ export function MercuryPanel() {
 
         <InputBar />
       </div>
+
+      {/* Email / SMS Confirmation Overlay */}
+      <ActionConfirmationOverlay />
 
       {/* Refocus Animation Keyframes */}
       <style jsx global>{`

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import type { ChatMessage, Citation, TemperaturePreset } from '@/types/ragbox'
+import type { ChatMessage, Citation, TemperaturePreset, MercuryChannel } from '@/types/ragbox'
 import { apiFetch } from '@/lib/api'
 import { detectToolIntent } from '@/lib/mercury/toolRouter'
 import { executeTool, type ToolResult } from '@/lib/mercury/toolExecutor'
@@ -47,6 +47,14 @@ interface MercuryState {
   // Tool Actions (pending UI-side effects from tool execution)
   pendingAction: { type: string; payload: Record<string, unknown> } | null
 
+  // Pending confirmation for send_email / send_sms
+  pendingConfirmation: { type: string; payload: Record<string, unknown> } | null
+
+  // Unified Thread
+  threadId: string | null
+  threadLoaded: boolean
+  channelFilter: MercuryChannel | 'all'
+
   // Actions
   setInputValue: (value: string) => void
   sendMessage: (privilegeMode: boolean) => Promise<void>
@@ -64,6 +72,40 @@ interface MercuryState {
   // Neural Shift Actions
   setPersona: (persona: PersonaId) => void
   triggerRefocus: () => void
+
+  // Confirmation Actions (Email / SMS)
+  clearPendingConfirmation: () => void
+  confirmAction: () => Promise<void>
+  denyAction: () => void
+
+  // Unified Thread Actions
+  loadThread: () => Promise<void>
+  setChannelFilter: (channel: MercuryChannel | 'all') => void
+  filteredMessages: () => ChatMessage[]
+}
+
+// Fire-and-forget persist to Mercury Thread API
+function persistToThread(
+  threadId: string | null,
+  role: 'user' | 'assistant',
+  channel: MercuryChannel,
+  content: string,
+  confidence?: number,
+  citations?: Citation[],
+): void {
+  if (!content.trim()) return
+  const body: Record<string, unknown> = { role, channel, content }
+  if (threadId) body.threadId = threadId
+  if (confidence !== undefined) body.confidence = confidence
+  if (citations) body.citations = citations
+
+  fetch('/api/mercury/thread/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  }).catch((err) => {
+    console.warn('[MercuryStore] Thread persist failed:', err)
+  })
 }
 
 export const useMercuryStore = create<MercuryState>()(
@@ -81,6 +123,10 @@ export const useMercuryStore = create<MercuryState>()(
     sessionTopics: [],
     temperaturePreset: 'executive-cpo',
     pendingAction: null,
+    pendingConfirmation: null,
+    threadId: null,
+    threadLoaded: false,
+    channelFilter: 'all',
 
     setInputValue: (value) => set({ inputValue: value }),
 
@@ -93,6 +139,7 @@ export const useMercuryStore = create<MercuryState>()(
         role: 'user',
         content: inputValue,
         timestamp: new Date(),
+        channel: 'dashboard',
       }
 
       const abortController = new AbortController()
@@ -105,6 +152,9 @@ export const useMercuryStore = create<MercuryState>()(
         abortController,
         pendingAction: null,
       })
+
+      // Persist user message to thread (fire-and-forget)
+      persistToThread(get().threadId, 'user', 'dashboard', inputValue)
 
       try {
         // Tool routing: check if message matches a tool pattern before hitting the backend
@@ -129,6 +179,7 @@ export const useMercuryStore = create<MercuryState>()(
             role: 'assistant',
             content: toolResult.display,
             timestamp: new Date(),
+            channel: 'dashboard',
           }
 
           set((state) => ({
@@ -137,8 +188,14 @@ export const useMercuryStore = create<MercuryState>()(
             streamingContent: '',
             abortController: null,
             pendingAction: toolResult.action || null,
+            pendingConfirmation: toolResult.requiresConfirmation && toolResult.confirmationPayload
+              ? { type: toolResult.confirmationPayload.type as string, payload: toolResult.confirmationPayload }
+              : null,
             sessionQueryCount: state.sessionQueryCount + 1,
           }))
+
+          // Persist tool result to thread
+          persistToThread(get().threadId, 'assistant', 'dashboard', toolResult.display)
           return
         }
 
@@ -259,6 +316,7 @@ export const useMercuryStore = create<MercuryState>()(
           timestamp: new Date(),
           confidence,
           citations,
+          channel: 'dashboard',
         }
 
         set((state) => {
@@ -278,6 +336,9 @@ export const useMercuryStore = create<MercuryState>()(
             sessionTopics: newTopics,
           }
         })
+
+        // Persist assistant response to thread
+        persistToThread(get().threadId, 'assistant', 'dashboard', fullContent || 'No response generated.', confidence, citations)
       } catch (error) {
         if ((error as Error).name === 'AbortError') {
           set({ isStreaming: false, streamingContent: '', abortController: null })
@@ -369,6 +430,134 @@ export const useMercuryStore = create<MercuryState>()(
       setTimeout(() => {
         set({ isRefocusing: false })
       }, 600)
+    },
+
+    // Confirmation Actions (Email / SMS)
+    clearPendingConfirmation: () => set({ pendingConfirmation: null }),
+
+    confirmAction: async () => {
+      const { pendingConfirmation } = get()
+      if (!pendingConfirmation) return
+
+      const payload = pendingConfirmation.payload
+      const actionType = pendingConfirmation.type
+
+      set({ pendingConfirmation: null })
+
+      try {
+        let endpoint = ''
+        let body: Record<string, unknown> = {}
+
+        if (actionType === 'send_email') {
+          endpoint = '/api/mercury/actions/send-email'
+          body = { to: payload.to, subject: payload.subject, body: payload.body }
+        } else if (actionType === 'send_sms') {
+          endpoint = '/api/mercury/actions/send-sms'
+          body = { to: payload.to, body: payload.body }
+        } else {
+          return
+        }
+
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
+
+        const data = await res.json()
+        const label = actionType === 'send_email' ? 'Email' : 'SMS'
+        const recipient = payload.to as string
+
+        const resultMsg: ChatMessage = {
+          id: `msg-${Date.now()}`,
+          role: 'assistant',
+          content: data.success
+            ? `${label} sent to ${recipient}`
+            : `Could not send ${label.toLowerCase()}: ${data.error || 'Unknown error'}`,
+          timestamp: new Date(),
+          channel: 'dashboard',
+        }
+
+        set((state) => ({
+          messages: [...state.messages, resultMsg],
+        }))
+
+        persistToThread(get().threadId, 'assistant', 'dashboard', resultMsg.content)
+      } catch (error) {
+        const errMsg: ChatMessage = {
+          id: `msg-${Date.now()}`,
+          role: 'assistant',
+          content: `Failed to send: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          timestamp: new Date(),
+          channel: 'dashboard',
+          isError: true,
+        }
+        set((state) => ({
+          messages: [...state.messages, errMsg],
+        }))
+      }
+    },
+
+    denyAction: () => {
+      const msg: ChatMessage = {
+        id: `msg-${Date.now()}`,
+        role: 'assistant',
+        content: 'Action cancelled.',
+        timestamp: new Date(),
+        channel: 'dashboard',
+      }
+      set((state) => ({
+        messages: [...state.messages, msg],
+        pendingConfirmation: null,
+      }))
+    },
+
+    // Unified Thread Actions
+    loadThread: async () => {
+      if (get().threadLoaded) return
+      try {
+        // 1. Get or create thread
+        const threadRes = await fetch('/api/mercury/thread')
+        if (!threadRes.ok) return
+        const threadData = await threadRes.json()
+        const threadId = threadData.data?.id
+        if (!threadId) return
+
+        set({ threadId })
+
+        // 2. Load recent messages
+        const msgRes = await fetch(`/api/mercury/thread/messages?threadId=${threadId}&limit=100`)
+        if (!msgRes.ok) {
+          set({ threadLoaded: true })
+          return
+        }
+        const msgData = await msgRes.json()
+        const serverMessages: ChatMessage[] = (msgData.data?.messages || []).map(
+          (m: { id: string; role: string; channel: string; content: string; confidence?: number; citations?: unknown; metadata?: Record<string, unknown>; createdAt: string }) => ({
+            id: m.id,
+            role: m.role as 'user' | 'assistant',
+            content: m.content,
+            timestamp: new Date(m.createdAt),
+            confidence: m.confidence ?? undefined,
+            citations: m.citations as Citation[] | undefined,
+            channel: m.channel as MercuryChannel,
+            metadata: m.metadata ?? undefined,
+          })
+        )
+
+        set({ messages: serverMessages, threadLoaded: true })
+      } catch (error) {
+        console.warn('[MercuryStore] Failed to load thread:', error)
+        set({ threadLoaded: true })
+      }
+    },
+
+    setChannelFilter: (channel) => set({ channelFilter: channel }),
+
+    filteredMessages: () => {
+      const { messages, channelFilter } = get()
+      if (channelFilter === 'all') return messages
+      return messages.filter((m) => m.channel === channelFilter)
     },
   }))
 )

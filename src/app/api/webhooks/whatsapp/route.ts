@@ -10,6 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import type { Prisma } from '@prisma/client'
 import prisma from '@/lib/prisma'
 import { parseSSEText } from '@/lib/mercury/sseParser'
 
@@ -172,7 +173,12 @@ async function processWebhookPayload(body: Record<string, unknown>): Promise<voi
 
     console.log(`[Webhook] Processed inbound from ${fromPhone}: ${preview}`)
 
-    // 5. Auto-reply via RAG if enabled
+    // 5. Write to Mercury Unified Thread (additive — WhatsApp data stays intact)
+    if (content) {
+      await writeMercuryThreadMessage(userId, 'user', 'whatsapp', content, undefined, { phone: fromPhone, displayName })
+    }
+
+    // 6. Auto-reply via RAG if enabled
     if (conversation.autoReply && messageType === 'text' && content) {
       await handleAutoReply(conversation.id, userId, fromPhone, content)
     }
@@ -290,6 +296,9 @@ async function handleAutoReply(
       },
     })
 
+    // Write auto-reply to Mercury Unified Thread
+    await writeMercuryThreadMessage(userId, 'assistant', 'whatsapp', replyText, confidence, { phone: toPhone })
+
     console.log(`[Webhook] Auto-reply sent to ${toPhone} (confidence: ${confidence ?? 'N/A'})`)
   } catch (error) {
     console.error('[Webhook] Auto-reply failed:', error)
@@ -341,6 +350,53 @@ async function sendVonageText(
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
     }
+  }
+}
+
+// =============================================================================
+// MERCURY UNIFIED THREAD WRITER
+// =============================================================================
+
+async function writeMercuryThreadMessage(
+  userId: string,
+  role: 'user' | 'assistant',
+  channel: 'whatsapp',
+  content: string,
+  confidence?: number,
+  metadata?: Record<string, unknown>,
+): Promise<void> {
+  try {
+    // Get or create the user's active thread
+    let thread = await prisma.mercuryThread.findFirst({
+      where: { userId },
+      orderBy: { updatedAt: 'desc' },
+      select: { id: true },
+    })
+    if (!thread) {
+      thread = await prisma.mercuryThread.create({
+        data: { userId, title: 'Mercury Thread' },
+        select: { id: true },
+      })
+    }
+
+    await prisma.mercuryThreadMessage.create({
+      data: {
+        threadId: thread.id,
+        role,
+        channel,
+        content,
+        confidence: confidence ?? null,
+        metadata: metadata ? (metadata as Prisma.InputJsonValue) : undefined,
+      },
+    })
+
+    await prisma.mercuryThread.update({
+      where: { id: thread.id },
+      data: { updatedAt: new Date() },
+    })
+  } catch (error) {
+    // Non-fatal: WhatsApp processing continues even if thread write fails
+    console.error('[Webhook] Mercury thread write failed:', error)
   }
 }
 

@@ -12,6 +12,8 @@ export interface ToolResult {
   data: unknown
   display: string
   action?: { type: string; payload: Record<string, unknown> }
+  requiresConfirmation?: boolean
+  confirmationPayload?: Record<string, unknown>
 }
 
 /**
@@ -63,6 +65,10 @@ export async function executeTool(
         }
       case 'open_document':
         return await openDocument(args.query as string, authHeaders)
+      case 'send_email':
+        return await prepareSendEmail(args, authHeaders)
+      case 'send_sms':
+        return await prepareSendSms(args)
       default:
         return { success: false, data: null, display: `Unknown tool: ${tool}` }
     }
@@ -219,6 +225,72 @@ async function openDocument(query: string, authHeaders: HeadersInit): Promise<To
     data: { documentId: docId },
     display: `Opening document...`,
     action: { type: 'open_document', payload: { documentId: docId } },
+  }
+}
+
+async function prepareSendEmail(
+  args: Record<string, unknown>,
+  authHeaders: HeadersInit,
+): Promise<ToolResult> {
+  if (!args.to) {
+    return {
+      success: true,
+      data: null,
+      display: "I can send that email. Who should I send it to? (Provide an email address)",
+    }
+  }
+
+  const to = args.to as string
+  const contentHint = (args.content as string) || ''
+
+  // Generate subject from content
+  const subject = `Mercury: ${contentHint.slice(0, 60)}${contentHint.length > 60 ? '...' : ''}`
+
+  // If content references a document summary/extract, resolve via RAG
+  let emailBody = contentHint
+  if (/summary|summarize|extract|compare|report/i.test(contentHint)) {
+    const ragResult = await chatQuery(contentHint, 'detailed', authHeaders)
+    if (ragResult.success && ragResult.display) {
+      emailBody = ragResult.display
+    }
+  }
+
+  return {
+    success: true,
+    data: { to, subject, body: emailBody },
+    display: `Ready to send email to **${to}**\n\n**Subject:** ${subject}\n\n${emailBody.slice(0, 200)}${emailBody.length > 200 ? '...' : ''}`,
+    requiresConfirmation: true,
+    confirmationPayload: {
+      type: 'send_email',
+      to,
+      subject,
+      body: emailBody,
+    },
+  }
+}
+
+async function prepareSendSms(args: Record<string, unknown>): Promise<ToolResult> {
+  if (!args.to) {
+    return {
+      success: true,
+      data: null,
+      display: "I can send that text. What phone number should I send it to?",
+    }
+  }
+
+  const to = args.to as string
+  const smsBody = (args.content as string) || ''
+
+  return {
+    success: true,
+    data: { to, body: smsBody },
+    display: `Ready to send SMS to **${to}**\n\n"${smsBody}"`,
+    requiresConfirmation: true,
+    confirmationPayload: {
+      type: 'send_sms',
+      to,
+      body: smsBody,
+    },
   }
 }
 

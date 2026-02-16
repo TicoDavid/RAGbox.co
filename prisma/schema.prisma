@@ -41,6 +41,8 @@ model User {
   whatsappContacts      WhatsAppContact[]
   whatsappConversations WhatsAppConversation[]
   integrationSettings   IntegrationSettings?
+  mercuryThreads        MercuryThread[]
+  mercuryActions        MercuryAction[]
 
   @@map("users")
 }
@@ -529,4 +531,76 @@ model IntegrationSettings {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("integration_settings")
+}
+
+// ============================================
+// Mercury Unified Thread
+// ============================================
+
+model MercuryThread {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  title     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user     User                  @relation(fields: [userId], references: [id])
+  messages MercuryThreadMessage[]
+
+  @@index([userId, updatedAt(sort: Desc)])
+  @@map("mercury_threads")
+}
+
+model MercuryThreadMessage {
+  id        String              @id @default(cuid())
+  threadId  String              @map("thread_id")
+  role      mercury_role
+  channel   mercury_channel
+  content   String
+  confidence Float?
+  citations  Json?              // Citation[] serialized
+  metadata   Json?              // Channel-specific metadata (whatsapp phone, voice session, etc.)
+  createdAt  DateTime           @default(now()) @map("created_at")
+
+  // Relations
+  thread MercuryThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+  @@index([threadId, channel])
+  @@map("mercury_thread_messages")
+}
+
+enum mercury_role {
+  user
+  assistant
+}
+
+enum mercury_channel {
+  dashboard
+  whatsapp
+  voice
+}
+
+// ============================================
+// Mercury Actions (Email, SMS, WhatsApp audit)
+// ============================================
+
+model MercuryAction {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  actionType  String   @map("action_type")
+  recipient   String?
+  subject     String?
+  body        String?
+  status      String   @default("completed")
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([actionType])
+  @@index([createdAt])
+  @@map("mercury_actions")
 }

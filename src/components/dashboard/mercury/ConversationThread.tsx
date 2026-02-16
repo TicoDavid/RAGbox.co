@@ -2,13 +2,24 @@
 
 import React, { useRef, useEffect, useCallback } from 'react'
 import { useMercuryStore } from '@/stores/mercuryStore'
+import type { MercuryChannel } from '@/types/ragbox'
 import { Message } from './Message'
 import { EmptyState } from './EmptyState'
+
+const CHANNEL_FILTERS: { value: MercuryChannel | 'all'; label: string; color: string }[] = [
+  { value: 'all', label: 'All', color: 'text-white bg-white/10' },
+  { value: 'dashboard', label: 'Dashboard', color: 'text-blue-400 bg-blue-500/10' },
+  { value: 'whatsapp', label: 'WhatsApp', color: 'text-emerald-400 bg-emerald-500/10' },
+  { value: 'voice', label: 'Voice', color: 'text-purple-400 bg-purple-500/10' },
+]
 
 export function ConversationThread() {
   const messages = useMercuryStore((s) => s.messages)
   const isStreaming = useMercuryStore((s) => s.isStreaming)
   const streamingContent = useMercuryStore((s) => s.streamingContent)
+  const channelFilter = useMercuryStore((s) => s.channelFilter)
+  const setChannelFilter = useMercuryStore((s) => s.setChannelFilter)
+  const filteredMessages = useMercuryStore((s) => s.filteredMessages)
   const scrollRef = useRef<HTMLDivElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const userScrolledUp = useRef(false)
@@ -52,6 +63,8 @@ export function ConversationThread() {
     }
   }, [isStreaming, streamingContent])
 
+  const visibleMessages = filteredMessages()
+
   if (messages.length === 0 && !isStreaming) {
     return <EmptyState />
   }
@@ -64,9 +77,29 @@ export function ConversationThread() {
       aria-label="Conversation messages"
       aria-live="polite"
     >
+      {/* Channel Filter Bar */}
+      {messages.length > 0 && (
+        <div className="max-w-3xl mx-auto mb-4 flex items-center gap-1.5 relative z-10">
+          {CHANNEL_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              onClick={() => setChannelFilter(f.value)}
+              className={`px-3 py-1 rounded-full text-[11px] font-medium transition-all duration-200 border ${
+                channelFilter === f.value
+                  ? `${f.color} border-current`
+                  : 'text-[var(--text-tertiary)] bg-transparent border-transparent hover:bg-white/5'
+              }`}
+              aria-pressed={channelFilter === f.value}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Focus Column - Constrained width for readability */}
       <div className="max-w-3xl mx-auto relative z-10">
-        {messages.map((msg) => (
+        {visibleMessages.map((msg) => (
           <Message key={msg.id} message={msg} />
         ))}
 

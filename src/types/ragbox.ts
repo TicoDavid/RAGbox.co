@@ -112,6 +112,8 @@ export interface FolderNode {
 
 // ===== Chat Types =====
 
+export type MercuryChannel = 'dashboard' | 'whatsapp' | 'voice'
+
 export interface ChatMessage {
   id: string
   role: 'user' | 'assistant'
@@ -121,6 +123,8 @@ export interface ChatMessage {
   citations?: Citation[]
   reasoningTrace?: ReasoningStep[]
   isError?: boolean
+  channel?: MercuryChannel
+  metadata?: Record<string, unknown>
 }
 
 export interface Citation {

@@ -2,7 +2,8 @@
 
 import React, { useCallback, useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { AlertTriangle, Shield, FileText, Check, X, Mic, Loader2 } from 'lucide-react'
+import { AlertTriangle, Shield, FileText, Check, X, Mic, Mail, MessageSquare, Send } from 'lucide-react'
+import { useMercuryStore } from '@/stores/mercuryStore'
 
 // ============================================================================
 // TYPES
@@ -52,6 +53,8 @@ const SEVERITY_CONFIG = {
   },
 }
 
+const AUTO_CANCEL_SECONDS = 30
+
 // ============================================================================
 // COUNTDOWN TIMER
 // ============================================================================
@@ -79,7 +82,238 @@ function CountdownTimer({ expiresAt, onExpire }: { expiresAt: number; onExpire: 
 }
 
 // ============================================================================
-// MAIN COMPONENT
+// EMAIL CONFIRMATION CARD
+// ============================================================================
+
+function EmailConfirmationCard({
+  payload,
+  onConfirm,
+  onDeny,
+}: {
+  payload: Record<string, unknown>
+  onConfirm: () => void
+  onDeny: () => void
+}) {
+  const [expiresAt] = useState(() => Date.now() + AUTO_CANCEL_SECONDS * 1000)
+  const to = payload.to as string
+  const subject = payload.subject as string
+  const body = payload.body as string
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="w-full max-w-md mx-4 p-6 rounded-2xl border
+                   border-yellow-500/30 bg-[#0A0A0F]/95 backdrop-blur-xl
+                   shadow-[0_0_30px_rgba(234,179,8,0.15)]"
+      >
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-4">
+          <div className="p-3 rounded-xl bg-yellow-500/10">
+            <Mail className="w-6 h-6 text-yellow-400" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-100">
+              Send Email
+            </h3>
+            <p className="text-sm text-gray-400">
+              Review before sending
+            </p>
+          </div>
+        </div>
+
+        {/* Email Preview */}
+        <div className="mb-5 space-y-3 p-4 rounded-lg bg-gray-900/60 border border-gray-700/50">
+          <div className="flex items-start gap-2">
+            <span className="text-xs font-medium text-gray-500 w-14 shrink-0 pt-0.5">To</span>
+            <span className="text-sm text-gray-200 break-all">{to}</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="text-xs font-medium text-gray-500 w-14 shrink-0 pt-0.5">Subject</span>
+            <span className="text-sm text-gray-200">{subject}</span>
+          </div>
+          <div className="border-t border-gray-700/50 pt-3">
+            <span className="text-xs font-medium text-gray-500 block mb-1">Body</span>
+            <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap max-h-40 overflow-y-auto">
+              {body.length > 300 ? `${body.slice(0, 300)}...` : body}
+            </p>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-between">
+          <CountdownTimer expiresAt={expiresAt} onExpire={onDeny} />
+
+          <div className="flex gap-3">
+            <button
+              onClick={onDeny}
+              className="px-4 py-2 rounded-lg text-sm font-medium
+                       text-gray-400 hover:text-gray-200
+                       bg-gray-800 hover:bg-gray-700
+                       transition-colors flex items-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              className="px-4 py-2 rounded-lg text-sm font-medium
+                        text-white transition-all flex items-center gap-2
+                        bg-yellow-600 hover:bg-yellow-500"
+            >
+              <Send className="w-4 h-4" />
+              Send Email
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+// ============================================================================
+// SMS CONFIRMATION CARD
+// ============================================================================
+
+function SmsConfirmationCard({
+  payload,
+  onConfirm,
+  onDeny,
+}: {
+  payload: Record<string, unknown>
+  onConfirm: () => void
+  onDeny: () => void
+}) {
+  const [expiresAt] = useState(() => Date.now() + AUTO_CANCEL_SECONDS * 1000)
+  const to = payload.to as string
+  const body = payload.body as string
+  const charCount = body.length
+  const isOverLimit = charCount > 160
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="w-full max-w-md mx-4 p-6 rounded-2xl border
+                   border-cyan-500/30 bg-[#0A0A0F]/95 backdrop-blur-xl
+                   shadow-[0_0_30px_rgba(6,182,212,0.15)]"
+      >
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-4">
+          <div className="p-3 rounded-xl bg-cyan-500/10">
+            <MessageSquare className="w-6 h-6 text-cyan-400" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-100">
+              Send SMS
+            </h3>
+            <p className="text-sm text-gray-400">
+              Review before sending
+            </p>
+          </div>
+        </div>
+
+        {/* SMS Preview */}
+        <div className="mb-5 space-y-3 p-4 rounded-lg bg-gray-900/60 border border-gray-700/50">
+          <div className="flex items-start gap-2">
+            <span className="text-xs font-medium text-gray-500 w-10 shrink-0 pt-0.5">To</span>
+            <span className="text-sm text-gray-200 font-mono">{to}</span>
+          </div>
+          <div className="border-t border-gray-700/50 pt-3">
+            <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
+              {body}
+            </p>
+          </div>
+          <div className="flex items-center justify-between pt-1">
+            <span className={`text-xs ${isOverLimit ? 'text-amber-400' : 'text-gray-500'}`}>
+              {charCount} character{charCount !== 1 ? 's' : ''}
+            </span>
+            {isOverLimit && (
+              <span className="text-xs text-amber-400">
+                May be split into multiple messages
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-between">
+          <CountdownTimer expiresAt={expiresAt} onExpire={onDeny} />
+
+          <div className="flex gap-3">
+            <button
+              onClick={onDeny}
+              className="px-4 py-2 rounded-lg text-sm font-medium
+                       text-gray-400 hover:text-gray-200
+                       bg-gray-800 hover:bg-gray-700
+                       transition-colors flex items-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              className="px-4 py-2 rounded-lg text-sm font-medium
+                        text-white transition-all flex items-center gap-2
+                        bg-cyan-600 hover:bg-cyan-500"
+            >
+              <Send className="w-4 h-4" />
+              Send SMS
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+// ============================================================================
+// ACTION CONFIRMATION OVERLAY
+// ============================================================================
+
+export function ActionConfirmationOverlay() {
+  const pendingConfirmation = useMercuryStore((s) => s.pendingConfirmation)
+  const confirmAction = useMercuryStore((s) => s.confirmAction)
+  const denyAction = useMercuryStore((s) => s.denyAction)
+
+  if (!pendingConfirmation) return null
+
+  return (
+    <AnimatePresence>
+      {pendingConfirmation.type === 'send_email' && (
+        <EmailConfirmationCard
+          payload={pendingConfirmation.payload}
+          onConfirm={confirmAction}
+          onDeny={denyAction}
+        />
+      )}
+      {pendingConfirmation.type === 'send_sms' && (
+        <SmsConfirmationCard
+          payload={pendingConfirmation.payload}
+          onConfirm={confirmAction}
+          onDeny={denyAction}
+        />
+      )}
+    </AnimatePresence>
+  )
+}
+
+// ============================================================================
+// GENERIC TOOL CONFIRMATION (Original)
 // ============================================================================
 
 export function ToolConfirmationDialog({

@@ -46,9 +46,15 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
       authorization: {
         params: {
-          prompt: "consent",
+          scope: [
+            'openid',
+            'email',
+            'profile',
+            'https://www.googleapis.com/auth/gmail.send',
+          ].join(' '),
           access_type: "offline",
-          response_type: "code"
+          prompt: "consent",
+          response_type: "code",
         }
       }
     }),
@@ -124,9 +130,12 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
       }
-      // Capture the OAuth access token on initial sign-in
-      if (account?.access_token) {
+      // Capture OAuth tokens on initial sign-in
+      if (account) {
         token.accessToken = account.access_token;
+        token.refreshToken = account.refresh_token;
+        token.accessTokenExpires = account.expires_at ? account.expires_at * 1000 : 0;
+        token.provider = account.provider;
       }
       return token;
     },
@@ -134,8 +143,11 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id as string;
       }
-      // Expose accessToken to the client session for API calls
-      (session as unknown as Record<string, unknown>).accessToken = token.accessToken;
+      // Expose tokens to the client session for API calls
+      const ext = session as unknown as Record<string, unknown>;
+      ext.accessToken = token.accessToken;
+      ext.refreshToken = token.refreshToken;
+      ext.provider = token.provider;
       return session;
     },
   },

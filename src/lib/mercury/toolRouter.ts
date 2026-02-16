@@ -18,6 +18,19 @@ interface PatternDef {
 }
 
 const TOOL_PATTERNS: PatternDef[] = [
+  // Email patterns (must come before summarize to catch "email the summary of X to Y")
+  { pattern: /^(?:email|send\s+(?:an?\s+)?email|mail)\s+(.+?)\s+to\s+([^\s]+@[^\s]+)/i,
+    tool: 'send_email', argMap: (m) => ({ content: m[1], to: m[2] }) },
+  { pattern: /^(?:email|send\s+(?:an?\s+)?email|mail)\s+(.+)/i,
+    tool: 'send_email', argMap: (m) => ({ content: m[1] }) },
+
+  // SMS patterns
+  { pattern: /^(?:text|sms|send\s+(?:a\s+)?(?:text|sms))\s+(.+?)\s+to\s+(\+?[\d\-().\s]{7,})/i,
+    tool: 'send_sms', argMap: (m) => ({ content: m[1], to: m[2].replace(/[\s\-().]/g, '') }) },
+  { pattern: /^(?:text|sms|send\s+(?:a\s+)?(?:text|sms))\s+(.+)/i,
+    tool: 'send_sms', argMap: (m) => ({ content: m[1] }) },
+
+  // Document tools
   { pattern: /^(summarize|summarise|summary of)\s+(.+)/i, tool: 'summarize_document', argMap: (m) => ({ query: m[2] }) },
   { pattern: /^(compare|diff)\s+(.+?)\s+(?:with|to|and|vs)\s+(.+)/i, tool: 'compare_documents', argMap: (m) => ({ doc1: m[2], doc2: m[3] }) },
   { pattern: /^(?:find|extract|show|get)\s+(?:dates?|deadlines?|key dates?)\s+(?:in|from|of)\s+(.+)/i, tool: 'extract_key_dates', argMap: (m) => ({ query: m[1] }) },
