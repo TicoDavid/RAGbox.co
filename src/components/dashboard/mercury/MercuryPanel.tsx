@@ -67,6 +67,42 @@ export function MercuryPanel() {
     return () => window.removeEventListener('vault:document-uploaded', handleUploadNotification)
   }, [handleUploadNotification])
 
+  // Sync voice transcript to Mercury chat history
+  const handleVoiceQuery = useCallback((e: Event) => {
+    const detail = (e as CustomEvent).detail as { text: string }
+    const msg: ChatMessage = {
+      id: `voice-q-${Date.now()}`,
+      role: 'user',
+      content: detail.text,
+      timestamp: new Date(),
+    }
+    useMercuryStore.setState((state) => ({
+      messages: [...state.messages, msg],
+    }))
+  }, [])
+
+  const handleVoiceResponse = useCallback((e: Event) => {
+    const detail = (e as CustomEvent).detail as { text: string }
+    const msg: ChatMessage = {
+      id: `voice-a-${Date.now()}`,
+      role: 'assistant',
+      content: detail.text,
+      timestamp: new Date(),
+    }
+    useMercuryStore.setState((state) => ({
+      messages: [...state.messages, msg],
+    }))
+  }, [])
+
+  useEffect(() => {
+    window.addEventListener('mercury:voice-query', handleVoiceQuery)
+    window.addEventListener('mercury:voice-response', handleVoiceResponse)
+    return () => {
+      window.removeEventListener('mercury:voice-query', handleVoiceQuery)
+      window.removeEventListener('mercury:voice-response', handleVoiceResponse)
+    }
+  }, [handleVoiceQuery, handleVoiceResponse])
+
   // Apply theme shift for Whistleblower mode
   useEffect(() => {
     const root = document.documentElement

@@ -448,6 +448,7 @@ export function useSovereignAgentVoice(
   const transcriptIdRef = useRef(0)
   const audioLevelIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const vadSpeakingRef = useRef(false)
+  const ttsSampleRateRef = useRef(sampleRate) // Server may override via config message
 
   // Derived state
   const isConnected = !['disconnected', 'error'].includes(state)
@@ -533,7 +534,7 @@ export function useSovereignAgentVoice(
     const ws = new WebSocket(`${wsUrl}?${params}`)
     wsRef.current = ws
 
-    playerRef.current = createTTSPlayer(sampleRate)
+    playerRef.current = createTTSPlayer(ttsSampleRateRef.current)
 
     ws.binaryType = 'arraybuffer'
 
@@ -598,6 +599,12 @@ export function useSovereignAgentVoice(
               }
               return [...prev, { id: genId(), type: 'user', text: msg.text, isFinal: true, timestamp: Date.now() }]
             })
+            // Sync to Mercury chat history
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('mercury:voice-query', {
+                detail: { text: msg.text, source: 'voice' },
+              }))
+            }
             break
 
           case 'agent_text_partial':
@@ -619,6 +626,12 @@ export function useSovereignAgentVoice(
               }
               return [...prev, { id: genId(), type: 'agent', text: msg.text, isFinal: true, timestamp: Date.now() }]
             })
+            // Sync to Mercury chat history so voice responses appear in text chat
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('mercury:voice-response', {
+                detail: { text: msg.text, source: 'voice' },
+              }))
+            }
             // After agent responds, go back to idle in VAD mode
             if (isVADActive) {
               setTimeout(() => setState('idle'), 500)
@@ -670,6 +683,15 @@ export function useSovereignAgentVoice(
 
           case 'ui_action':
             handleUIAction(msg.action)
+            break
+
+          case 'config':
+            // Server sends TTS sample rate — recreate player if different
+            if (msg.ttsSampleRate && msg.ttsSampleRate !== ttsSampleRateRef.current) {
+              ttsSampleRateRef.current = msg.ttsSampleRate
+              playerRef.current?.stop()
+              playerRef.current = createTTSPlayer(msg.ttsSampleRate)
+            }
             break
 
           case 'error':
