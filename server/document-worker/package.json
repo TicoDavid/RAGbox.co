@@ -1,0 +1,16 @@
+{
+  "name": "ragbox-document-worker",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@google-cloud/pubsub": "^4.9.0",
+    "@google-cloud/storage": "^7.14.0",
+    "@google-cloud/documentai": "^8.12.0",
+    "@google-cloud/aiplatform": "^3.35.0",
+    "pg": "^8.13.0",
+    "pgvector": "^0.2.0"
+  }
+}

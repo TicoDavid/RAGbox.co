@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
+import { PubSub } from '@google-cloud/pubsub'
+import { invalidateUserCache } from '@/lib/cache/queryCache'
 
 const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
+const GCP_PROJECT = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCP_PROJECT || 'ragbox-sovereign-prod'
+
+let pubsubClient: PubSub | null = null
+function getPubSub(): PubSub {
+  if (!pubsubClient) {
+    pubsubClient = new PubSub({ projectId: GCP_PROJECT })
+  }
+  return pubsubClient
+}
 
 // Extension → canonical MIME type mapping
 const EXT_MIME_MAP: Record<string, string> = {
@@ -205,10 +216,34 @@ export async function POST(request: NextRequest) {
       if (attempt < 2) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)))
     }
   }
-  const ingestWarning = ingestOk ? undefined : 'Document uploaded but indexing failed to start. Re-upload or contact support.'
-
-  // Step 5: Return metadata to frontend (include warning if ingest failed)
+  // Step 4b: Publish to Pub/Sub for async worker (safety net + retry support)
+  // If Go backend ingest succeeds, the worker will see 'Indexed' and skip.
+  // If Go backend ingest fails, the worker will process the document.
   const bucketName = process.env.GCS_BUCKET_NAME || ''
+  try {
+    const topic = getPubSub().topic('ragbox-document-processing')
+    await topic.publishMessage({
+      json: {
+        documentId,
+        userId,
+        bucketName,
+        objectPath: objectName,
+        originalName: file.name,
+        mimeType: contentType,
+        uploadedAt: new Date().toISOString(),
+      },
+    })
+  } catch (pubsubErr) {
+    // Non-fatal — Go backend ingest is the primary path
+    console.error('[Upload] Pub/Sub publish failed:', pubsubErr)
+  }
+
+  // Invalidate query cache — new document may change RAG results
+  invalidateUserCache(userId).catch(() => {})
+
+  const ingestWarning = ingestOk ? undefined : 'Document uploaded — processing queued. It will be indexed shortly.'
+
+  // Step 5: Return metadata to frontend
   return NextResponse.json({
     success: true,
     data: {
@@ -216,6 +251,7 @@ export async function POST(request: NextRequest) {
       storagePath: objectName,
       gcsUri: bucketName ? `gs://${bucketName}/${objectName}` : objectName,
       mimeType: contentType,
+      status: 'processing',
     },
     ...(ingestWarning ? { warning: ingestWarning } : {}),
   })
