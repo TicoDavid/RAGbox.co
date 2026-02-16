@@ -227,7 +227,7 @@ async function handleAutoReply(
       },
       body: JSON.stringify({
         query: queryText,
-        stream: true,
+        mode: 'concise',
         privilegeMode: false,
         maxTier: 3,
         history: [],
@@ -238,47 +238,20 @@ async function handleAutoReply(
     let confidence: number | undefined
     let queryId: string | undefined
 
-    if (ragResponse.ok && ragResponse.body) {
-      // Parse SSE stream from Go backend
-      const text = await ragResponse.text()
-      const lines = text.split('\n')
-      let currentEvent = ''
+    if (ragResponse.ok) {
+      const responseText = await ragResponse.text()
 
-      for (const line of lines) {
-        if (line.startsWith('event: ')) {
-          currentEvent = line.slice(7).trim()
-        } else if (line.startsWith('data: ')) {
-          const dataStr = line.slice(6)
-          try {
-            const data = JSON.parse(dataStr)
-            switch (currentEvent) {
-              case 'token':
-                replyText += data.token || ''
-                break
-              case 'confidence':
-                confidence = data.confidence
-                break
-              case 'silence':
-                replyText = data.message || "I don't have enough information to answer that question confidently."
-                break
-              case 'done':
-                queryId = data.queryId
-                break
-            }
-          } catch {
-            // Skip unparseable data lines
-          }
+      for (const line of responseText.split('\n')) {
+        if (!line.startsWith('data: ')) continue
+        const data = line.slice(6)
+        try {
+          const parsed = JSON.parse(data)
+          if (parsed.text) replyText += parsed.text
+          if (parsed.score) confidence = parsed.score
+          if (parsed.message) replyText = parsed.message // silence protocol
+        } catch {
+          // Skip unparseable data lines
         }
-      }
-    } else if (ragResponse.ok) {
-      // Fallback: try plain JSON response
-      try {
-        const data = await ragResponse.json()
-        replyText = data.data?.answer || data.answer || ''
-        confidence = data.data?.confidence || data.confidence
-        queryId = data.data?.queryId || data.queryId
-      } catch {
-        // Response body empty or unparseable
       }
     }
 
