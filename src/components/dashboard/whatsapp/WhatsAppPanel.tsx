@@ -23,14 +23,28 @@ import { useWhatsAppStore, type WhatsAppConversation, type WhatsAppMessage } fro
 // MAIN PANEL
 // ============================================================================
 
+const POLL_CONVERSATIONS_MS = 15_000
+const POLL_MESSAGES_MS = 8_000
+
 export function WhatsAppPanel() {
   const activeConversationId = useWhatsAppStore((s) => s.activeConversationId)
   const setActiveConversation = useWhatsAppStore((s) => s.setActiveConversation)
   const fetchConversations = useWhatsAppStore((s) => s.fetchConversations)
+  const fetchMessages = useWhatsAppStore((s) => s.fetchMessages)
 
+  // Initial fetch + poll conversations list
   useEffect(() => {
     fetchConversations()
+    const id = setInterval(fetchConversations, POLL_CONVERSATIONS_MS)
+    return () => clearInterval(id)
   }, [fetchConversations])
+
+  // Poll active conversation messages
+  useEffect(() => {
+    if (!activeConversationId) return
+    const id = setInterval(() => fetchMessages(activeConversationId), POLL_MESSAGES_MS)
+    return () => clearInterval(id)
+  }, [activeConversationId, fetchMessages])
 
   return (
     <div className="h-full flex flex-col bg-[var(--bg-secondary)]">

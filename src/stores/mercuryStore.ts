@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import type { ChatMessage, Citation, TemperaturePreset } from '@/types/ragbox'
 import { apiFetch } from '@/lib/api'
+import { detectToolIntent } from '@/lib/mercury/toolRouter'
+import { executeTool, type ToolResult } from '@/lib/mercury/toolExecutor'
 
 // Ad-Hoc Attachment (Session-only, not persisted to Vault)
 export interface SessionAttachment {
@@ -42,9 +44,13 @@ interface MercuryState {
   // Context
   temperaturePreset: TemperaturePreset
 
+  // Tool Actions (pending UI-side effects from tool execution)
+  pendingAction: { type: string; payload: Record<string, unknown> } | null
+
   // Actions
   setInputValue: (value: string) => void
   sendMessage: (privilegeMode: boolean) => Promise<void>
+  clearPendingAction: () => void
   stopStreaming: () => void
   clearConversation: () => void
   setTemperaturePreset: (preset: TemperaturePreset) => void
@@ -74,6 +80,7 @@ export const useMercuryStore = create<MercuryState>()(
     sessionQueryCount: 0,
     sessionTopics: [],
     temperaturePreset: 'executive-cpo',
+    pendingAction: null,
 
     setInputValue: (value) => set({ inputValue: value }),
 
@@ -96,9 +103,45 @@ export const useMercuryStore = create<MercuryState>()(
         isStreaming: true,
         streamingContent: '',
         abortController,
+        pendingAction: null,
       })
 
       try {
+        // Tool routing: check if message matches a tool pattern before hitting the backend
+        const toolIntent = detectToolIntent(inputValue)
+        if (toolIntent) {
+          const authHeaders: HeadersInit = {}
+          try {
+            const { getSession } = await import('next-auth/react')
+            const session = await getSession()
+            const accessToken = (session as Record<string, unknown> | null)?.accessToken as string | undefined
+            if (accessToken) {
+              (authHeaders as Record<string, string>)['Authorization'] = `Bearer ${accessToken}`
+            }
+          } catch {
+            // cookies sent automatically for same-origin
+          }
+
+          const toolResult: ToolResult = await executeTool(toolIntent.tool, toolIntent.args, authHeaders)
+
+          const assistantMessage: ChatMessage = {
+            id: `msg-${Date.now()}`,
+            role: 'assistant',
+            content: toolResult.display,
+            timestamp: new Date(),
+          }
+
+          set((state) => ({
+            messages: [...state.messages, assistantMessage],
+            isStreaming: false,
+            streamingContent: '',
+            abortController: null,
+            pendingAction: toolResult.action || null,
+            sessionQueryCount: state.sessionQueryCount + 1,
+          }))
+          return
+        }
+
         const res = await apiFetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -285,6 +328,8 @@ export const useMercuryStore = create<MercuryState>()(
     clearConversation: () => set({ messages: [], streamingContent: '', attachments: [], sessionQueryCount: 0, sessionTopics: [] }),
 
     setTemperaturePreset: (preset) => set({ temperaturePreset: preset }),
+
+    clearPendingAction: () => set({ pendingAction: null }),
 
     // Ad-Hoc Attachment Actions
     addAttachment: (attachment) => {

@@ -1,16 +1,71 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useCallback } from 'react'
 import { ContextBar } from './ContextBar'
 import { ConversationThread } from './ConversationThread'
 import { InputBar } from './InputBar'
 import { useMercuryStore } from '@/stores/mercuryStore'
+import { usePrivilegeStore } from '@/stores/privilegeStore'
+import type { ChatMessage } from '@/types/ragbox'
 
 export function MercuryPanel() {
   const activePersona = useMercuryStore((s) => s.activePersona)
   const isRefocusing = useMercuryStore((s) => s.isRefocusing)
+  const pendingAction = useMercuryStore((s) => s.pendingAction)
+  const clearPendingAction = useMercuryStore((s) => s.clearPendingAction)
+  const togglePrivilege = usePrivilegeStore((s) => s.toggle)
 
   const isWhistleblowerMode = activePersona === 'whistleblower'
+
+  // Handle pending tool actions (navigate, toggle_privilege, export_audit, open_document)
+  useEffect(() => {
+    if (!pendingAction) return
+
+    switch (pendingAction.type) {
+      case 'navigate': {
+        const panel = pendingAction.payload.panel as string
+        // Dispatch custom event for dashboard layout to pick up
+        window.dispatchEvent(new CustomEvent('mercury:navigate', { detail: { panel } }))
+        break
+      }
+      case 'toggle_privilege': {
+        const enabled = pendingAction.payload.enabled as boolean
+        const current = usePrivilegeStore.getState().isEnabled
+        if (current !== enabled) togglePrivilege()
+        break
+      }
+      case 'export_audit': {
+        window.dispatchEvent(new CustomEvent('mercury:export-audit'))
+        break
+      }
+      case 'open_document': {
+        const documentId = pendingAction.payload.documentId as string
+        window.dispatchEvent(new CustomEvent('mercury:open-document', { detail: { documentId } }))
+        break
+      }
+    }
+
+    clearPendingAction()
+  }, [pendingAction, clearPendingAction, togglePrivilege])
+
+  // Listen for vault upload events and inject a notification into the chat
+  const handleUploadNotification = useCallback((e: Event) => {
+    const detail = (e as CustomEvent).detail as { filename: string; size: number }
+    const notification: ChatMessage = {
+      id: `notify-${Date.now()}`,
+      role: 'assistant',
+      content: `**Document uploaded:** ${detail.filename} (${formatFileSize(detail.size)}) is now being indexed. You can query it once processing completes.`,
+      timestamp: new Date(),
+    }
+    useMercuryStore.setState((state) => ({
+      messages: [...state.messages, notification],
+    }))
+  }, [])
+
+  useEffect(() => {
+    window.addEventListener('vault:document-uploaded', handleUploadNotification)
+    return () => window.removeEventListener('vault:document-uploaded', handleUploadNotification)
+  }, [handleUploadNotification])
 
   // Apply theme shift for Whistleblower mode
   useEffect(() => {
@@ -84,4 +139,10 @@ export function MercuryPanel() {
       `}</style>
     </div>
   )
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }

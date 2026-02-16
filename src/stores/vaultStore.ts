@@ -209,6 +209,13 @@ export const useVaultStore = create<VaultState>()(
 
           // Document record was created by the extract endpoint — refresh list
           await get().fetchDocuments()
+
+          // Notify Mercury about the new document
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('vault:document-uploaded', {
+              detail: { filename: file.name, size: file.size },
+            }))
+          }
         },
 
         deleteDocument: async (id) => {

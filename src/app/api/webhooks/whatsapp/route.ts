@@ -11,6 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { parseSSEText } from '@/lib/mercury/sseParser'
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'mercury-ragbox-verify'
 const VONAGE_API_KEY = process.env.VONAGE_API_KEY || ''
@@ -240,23 +241,22 @@ async function handleAutoReply(
 
     if (ragResponse.ok) {
       const responseText = await ragResponse.text()
+      const parsed = parseSSEText(responseText)
+      replyText = parsed.text
+      confidence = parsed.confidence
 
-      for (const line of responseText.split('\n')) {
-        if (!line.startsWith('data: ')) continue
-        const data = line.slice(6)
-        try {
-          const parsed = JSON.parse(data)
-          if (parsed.text) replyText += parsed.text
-          if (parsed.score) confidence = parsed.score
-          if (parsed.message) replyText = parsed.message // silence protocol
-        } catch {
-          // Skip unparseable data lines
-        }
+      // Silence Protocol: append suggestions if available
+      if (parsed.isSilence && parsed.suggestions && parsed.suggestions.length > 0) {
+        replyText += '\n\nYou could try asking about:\n' + parsed.suggestions.map((s) => `- ${s}`).join('\n')
       }
     }
 
     if (!replyText) {
-      replyText = "I couldn't find a relevant answer in the knowledge base. Please try rephrasing your question."
+      if (!ragResponse.ok) {
+        replyText = 'Mercury is temporarily unavailable. Please try again in a few minutes.'
+      } else {
+        replyText = "I wasn't able to find a relevant answer in the knowledge base for that question. Try rephrasing or asking about a specific document."
+      }
     }
 
     // Truncate for WhatsApp (max 4096 chars)
