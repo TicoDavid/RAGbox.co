@@ -1,6 +1,6 @@
 'use client'
 
-import { User, Shield, HardDrive, Download } from 'lucide-react'
+import { User, Shield, HardDrive, Download, MessageCircle } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { href: '/dashboard/settings', label: 'Profile', icon: User },
   { href: '/dashboard/settings/security', label: 'Security', icon: Shield },
   { href: '/dashboard/settings/vault', label: 'Vault', icon: HardDrive },
+  { href: '/dashboard/settings/integrations', label: 'Integrations', icon: MessageCircle },
   { href: '/dashboard/settings/export', label: 'Export', icon: Download },
 ]
 

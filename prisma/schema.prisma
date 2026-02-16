@@ -39,6 +39,7 @@ model User {
   contentGaps      ContentGap[]
   whatsappContacts      WhatsAppContact[]
   whatsappConversations WhatsAppConversation[]
+  integrationSettings   IntegrationSettings?
 
   @@map("users")
 }
@@ -488,4 +489,43 @@ model WaitlistEntry {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("waitlist_entries")
+}
+
+// ============================================
+// Integration Settings
+// ============================================
+
+model IntegrationSettings {
+  id        String   @id @default(cuid())
+  userId    String   @unique @map("user_id")
+
+  // WhatsApp
+  whatsappEnabled       Boolean  @default(false) @map("whatsapp_enabled")
+  whatsappProvider      String   @default("vonage") @map("whatsapp_provider")
+  vonageApiKey          String?  @map("vonage_api_key")
+  vonageApiSecret       String?  @map("vonage_api_secret")
+  vonageApplicationId   String?  @map("vonage_application_id")
+  vonageWhatsAppNumber  String?  @map("vonage_whatsapp_number")
+  metaAccessToken       String?  @map("meta_access_token")
+  metaPhoneNumberId     String?  @map("meta_phone_number_id")
+  metaAppSecret         String?  @map("meta_app_secret")
+
+  // Mercury
+  mercuryVoiceEnabled   Boolean  @default(true) @map("mercury_voice_enabled")
+  mercuryVoiceModel     String   @default("aura-asteria-en") @map("mercury_voice_model")
+  mercuryAutoReply      Boolean  @default(true) @map("mercury_auto_reply")
+
+  // Permissions
+  whatsappAllowInbound  Boolean  @default(true) @map("whatsapp_allow_inbound")
+  whatsappAllowOutbound Boolean  @default(true) @map("whatsapp_allow_outbound")
+  whatsappAllowVoiceNotes Boolean @default(true) @map("whatsapp_allow_voice_notes")
+  whatsappAllowedNumbers String[] @map("whatsapp_allowed_numbers")
+  defaultVaultId        String?  @map("default_vault_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("integration_settings")
 }

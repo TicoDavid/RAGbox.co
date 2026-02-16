@@ -29,7 +29,8 @@
     "cli:install": "cd cli && npm install",
     "cli": "node cli/dist/bin/ragbox.js",
     "dev:all": "concurrently -n next,voice -c blue,green \"npm run dev\" \"npm run dev:voice\"",
-    "ragbox": "node cli/dist/bin/ragbox.js"
+    "ragbox": "node cli/dist/bin/ragbox.js",
+    "seed:demo": "npx tsx scripts/seed-demo.ts"
   },
   "repository": {
     "type": "git",
