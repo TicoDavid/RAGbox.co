@@ -7,10 +7,17 @@
  *   - Secret: base64-encoded key with "whsec_" prefix
  *   - Timestamp tolerance: ±5 minutes (default)
  *
+ * Steps:
+ *   1. Strip "whsec_" prefix from secret
+ *   2. Base64-decode to get 32-byte key
+ *   3. HMAC-SHA256( key, "{webhook-id}.{webhook-timestamp}.{raw_body}" )
+ *   4. Base64-encode the digest
+ *   5. Compare with signature after stripping "v1," prefix
+ *
  * This is NON-NEGOTIABLE — every inbound webhook MUST be verified.
  */
 
-import crypto from 'crypto'
+import { createHmac, timingSafeEqual } from 'crypto'
 
 const TIMESTAMP_TOLERANCE_SECONDS = 300 // 5 minutes
 
@@ -58,44 +65,49 @@ export function verifyWebhookSignature(
     return { valid: false, error: `Webhook timestamp too old (${diff}s drift)` }
   }
 
-  // Decode the secret key (strip "whsec_" prefix, base64 decode)
+  // Decode the secret key (strip "whsec_" prefix, base64-decode to 32-byte key)
+  // .trim() handles any trailing whitespace/newline from env var injection
   let keyBytes: Buffer
   try {
-    const rawKey = secret.startsWith('whsec_') ? secret.slice(6) : secret
+    const trimmed = secret.trim()
+    const rawKey = trimmed.startsWith('whsec_') ? trimmed.slice(6) : trimmed
     keyBytes = Buffer.from(rawKey, 'base64')
+    if (keyBytes.length === 0) {
+      return { valid: false, error: 'Webhook secret decoded to empty key' }
+    }
   } catch {
     return { valid: false, error: 'Invalid webhook secret format' }
   }
 
-  // Compute expected signature
+  // Compute expected signature: HMAC-SHA256("{msgId}.{timestamp}.{rawBody}")
   const signedContent = `${msgId}.${timestamp}.${rawBody}`
-  const expectedSig = crypto
-    .createHmac('sha256', keyBytes)
-    .update(signedContent)
+  const expectedSig = createHmac('sha256', keyBytes)
+    .update(signedContent, 'utf8')
     .digest('base64')
 
-  // The header may contain multiple signatures separated by spaces
+  // The header may contain multiple signatures separated by spaces.
   // Each signature has a version prefix: "v1,<base64>"
   const signatures = signatureHeader.split(' ')
   for (const sig of signatures) {
-    const parts = sig.split(',')
-    if (parts.length < 2) continue
-    // Currently only v1 is supported
-    const version = parts[0]
-    const sigValue = parts.slice(1).join(',') // handle base64 = padding
+    const commaIdx = sig.indexOf(',')
+    if (commaIdx < 0) continue
 
-    if (version === 'v1') {
-      // Constant-time comparison
-      try {
-        const expected = Buffer.from(expectedSig, 'base64')
-        const actual = Buffer.from(sigValue, 'base64')
-        if (expected.length === actual.length && crypto.timingSafeEqual(expected, actual)) {
-          return { valid: true }
-        }
-      } catch {
-        // Bad base64 — try next signature
-        continue
+    const version = sig.slice(0, commaIdx)
+    const sigValue = sig.slice(commaIdx + 1)
+
+    if (version !== 'v1') continue
+
+    // Constant-time comparison of base64 strings directly.
+    // Both expectedSig and sigValue are base64-encoded 32-byte HMAC digests.
+    // Compare as UTF-8 byte buffers to use timingSafeEqual.
+    try {
+      const expectedBuf = Buffer.from(expectedSig, 'utf8')
+      const actualBuf = Buffer.from(sigValue, 'utf8')
+      if (expectedBuf.length === actualBuf.length && timingSafeEqual(expectedBuf, actualBuf)) {
+        return { valid: true }
       }
+    } catch {
+      continue
     }
   }
 

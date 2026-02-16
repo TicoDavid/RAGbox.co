@@ -5,9 +5,10 @@
  *
  * CRITICAL: Must ACK in <250ms (ROAM timeout is 3s, no retries).
  * Strategy:
- *   1. Read raw body + verify signature (~5ms)
- *   2. Publish to Pub/Sub roam-events topic (~50ms)
- *   3. Return 200 immediately
+ *   1. Read raw body as ArrayBuffer → decode to string (preserves exact bytes)
+ *   2. Verify HMAC-SHA256 signature (~5ms)
+ *   3. Publish to Pub/Sub roam-events topic (~50ms)
+ *   4. Return 200 immediately
  *
  * All processing happens async in the Pub/Sub push endpoint.
  */
@@ -15,6 +16,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PubSub } from '@google-cloud/pubsub'
 import { verifyWebhookSignature } from '@/lib/roam/roamVerify'
+
+// Force Node.js runtime (not Edge) — required for crypto.createHmac
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 const ROAM_WEBHOOK_SECRET = process.env.ROAM_WEBHOOK_SECRET || ''
 const GCP_PROJECT = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCP_PROJECT || 'ragbox-sovereign-prod'
@@ -30,10 +35,14 @@ function getPubSub(): PubSub {
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const startMs = Date.now()
 
-  // Step 1: Read raw body for signature verification
+  // Step 1: Read raw body as ArrayBuffer → UTF-8 string.
+  // Using arrayBuffer() + TextDecoder instead of text() to guarantee
+  // we get the exact bytes the sender transmitted (no normalization).
   let rawBody: string
+  let rawBytes: ArrayBuffer
   try {
-    rawBody = await request.text()
+    rawBytes = await request.arrayBuffer()
+    rawBody = new TextDecoder('utf-8').decode(rawBytes)
   } catch {
     return NextResponse.json({ error: 'Bad request' }, { status: 400 })
   }
@@ -42,6 +51,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const webhookId = request.headers.get('webhook-id') || ''
   const webhookTimestamp = request.headers.get('webhook-timestamp') || ''
   const webhookSignature = request.headers.get('webhook-signature') || ''
+
+  if (!ROAM_WEBHOOK_SECRET) {
+    console.error('[ROAM Webhook] ROAM_WEBHOOK_SECRET not configured')
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+  }
 
   const verification = verifyWebhookSignature(
     rawBody,
@@ -54,7 +68,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   )
 
   if (!verification.valid) {
-    console.error(`[ROAM Webhook] Signature verification failed: ${verification.error}`)
+    console.error(
+      `[ROAM Webhook] Signature failed: ${verification.error}`,
+      `| bodyLen=${rawBody.length}`,
+      `| webhookId=${webhookId}`,
+      `| ts=${webhookTimestamp}`,
+      `| sigHeader=${webhookSignature.slice(0, 20)}...`
+    )
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -70,7 +90,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const topic = getPubSub().topic('roam-events')
     await topic.publishMessage({
-      data: Buffer.from(rawBody),
+      data: Buffer.from(rawBytes),
       attributes: {
         eventType: event.type || 'unknown',
         webhookId,
