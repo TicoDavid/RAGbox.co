@@ -112,7 +112,7 @@ export interface FolderNode {
 
 // ===== Chat Types =====
 
-export type MercuryChannel = 'dashboard' | 'whatsapp' | 'voice'
+export type MercuryChannel = 'dashboard' | 'whatsapp' | 'voice' | 'roam'
 
 export interface ChatMessage {
   id: string

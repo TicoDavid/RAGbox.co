@@ -20,6 +20,7 @@ const CHANNEL_BADGE: Record<MercuryChannel, { label: string; color: string }> = 
   dashboard: { label: 'Dashboard', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
   whatsapp: { label: 'WhatsApp', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
   voice: { label: 'Voice', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' },
+  roam: { label: 'ROAM', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' },
 }
 
 function ChannelBadge({ channel }: { channel?: MercuryChannel }) {

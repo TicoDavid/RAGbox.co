@@ -580,6 +580,7 @@ enum mercury_channel {
   dashboard
   whatsapp
   voice
+  roam
 }
 
 // ============================================
