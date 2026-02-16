@@ -98,6 +98,10 @@ const nextConfig = {
       'google-auth-library',
       '@prisma/client',
     ],
+    // Ensure Prisma query engine is included in standalone output
+    outputFileTracingIncludes: {
+      '/api/**': ['./node_modules/.prisma/**/*'],
+    },
   },
 
   // Headers for security
