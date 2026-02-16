@@ -12,7 +12,9 @@ import { MercuryPanel } from './mercury/MercuryPanel'
 import { MercuryVoicePanel } from './mercury/MercuryVoicePanel'
 import { SovereignStudio } from './studio'
 import { IntelligencePanel } from './intelligence'
+import { WhatsAppPanel } from './whatsapp/WhatsAppPanel'
 import { useContentIntelligenceStore } from '@/stores/contentIntelligenceStore'
+import { useWhatsAppStore } from '@/stores/whatsappStore'
 import {
   LeftStealthRail,
   RightStealthRail,
@@ -267,6 +269,7 @@ export function DashboardLayout() {
   const gapSummary = useContentIntelligenceStore((s) => s.gapSummary)
   const fetchGapSummary = useContentIntelligenceStore((s) => s.fetchGapSummary)
   const uploadDocument = useVaultStore((s) => s.uploadDocument)
+  const totalUnread = useWhatsAppStore((s) => s.totalUnread)
 
   // Rail state
   const [leftExpanded, setLeftExpanded] = useState(!isVaultCollapsed)
@@ -382,6 +385,8 @@ export function DashboardLayout() {
         return <ExportPanel />
       case 'intelligence':
         return <IntelligencePanel />
+      case 'whatsapp':
+        return <WhatsAppPanel />
       default:
         return null
     }
@@ -482,6 +487,7 @@ export function DashboardLayout() {
                 onTabClick={handleRightTabClick}
                 onCollapse={() => setRightExpanded(false)}
                 intelligenceBadge={gapSummary?.openGaps}
+                whatsappBadge={totalUnread}
               />
             </div>
           </div>
@@ -547,6 +553,7 @@ export function DashboardLayout() {
                 setRightTab(tab)
               }}
               onCollapse={() => setMobileRightOpen(false)}
+              whatsappBadge={totalUnread}
             />
           </div>
         </div>

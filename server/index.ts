@@ -14,6 +14,7 @@
 import http from 'http'
 import { parse } from 'url'
 import { startAgentWSServer } from './agent-ws'
+import { handleWhatsAppWebhook } from './whatsapp/webhook'
 
 // ============================================================================
 // CONFIGURATION
@@ -31,10 +32,12 @@ const server = http.createServer((req, res) => {
 
   // Health check endpoint
   if (pathname === '/health') {
+    const whatsappProvider = process.env.WHATSAPP_PROVIDER || 'vonage'
     res.writeHead(200, { 'Content-Type': 'application/json' })
     res.end(JSON.stringify({
       status: 'ok',
       service: 'ragbox-voice',
+      whatsapp: whatsappProvider,
       timestamp: new Date().toISOString(),
     }))
     return
@@ -59,11 +62,20 @@ const server = http.createServer((req, res) => {
       service: 'RAGbox Voice Server',
       version: '1.0.0',
       websocket: `/agent/ws`,
+      whatsapp: '/whatsapp/webhook',
       endpoints: {
         health: '/health',
         websocket: '/agent/ws?sessionId=<id>',
+        whatsapp_webhook: '/whatsapp/webhook',
+        whatsapp_status: '/whatsapp/webhook/status',
       },
     }))
+    return
+  }
+
+  // WhatsApp webhook endpoints
+  if (pathname?.startsWith('/whatsapp/webhook')) {
+    handleWhatsAppWebhook(req, res)
     return
   }
 

@@ -15,6 +15,7 @@ import {
   Mic,
   Maximize2,
   Lightbulb,
+  MessageCircle,
 } from 'lucide-react'
 
 // ============================================================================
@@ -22,7 +23,7 @@ import {
 // ============================================================================
 
 export type LeftRailTab = 'vault' | 'recent' | 'starred'
-export type RightRailTab = 'mercury' | 'studio' | 'audit' | 'export' | 'intelligence'
+export type RightRailTab = 'mercury' | 'studio' | 'audit' | 'export' | 'intelligence' | 'whatsapp'
 
 interface RailIconProps {
   icon: React.ElementType
@@ -221,6 +222,7 @@ interface RightRailProps {
   onTabClick: (tab: RightRailTab) => void
   onCollapse: () => void
   intelligenceBadge?: number
+  whatsappBadge?: number
 }
 
 export function RightStealthRail({
@@ -229,6 +231,7 @@ export function RightStealthRail({
   onTabClick,
   onCollapse,
   intelligenceBadge,
+  whatsappBadge,
 }: RightRailProps) {
   return (
     <div className="h-full flex flex-col bg-[#0A192F] border-l border-white/10" role="navigation" aria-label="Tools navigation">
@@ -278,6 +281,16 @@ export function RightStealthRail({
           onClick={() => onTabClick('intelligence')}
           side="right"
           badge={intelligenceBadge}
+        />
+
+        {/* WhatsApp */}
+        <RailIcon
+          icon={MessageCircle}
+          label="WhatsApp"
+          isActive={isExpanded && activeTab === 'whatsapp'}
+          onClick={() => onTabClick('whatsapp')}
+          side="right"
+          badge={whatsappBadge}
         />
       </div>
 

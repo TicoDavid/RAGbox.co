@@ -4,22 +4,47 @@ import { getToken } from 'next-auth/jwt'
 const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
 
-// Fallback MIME type detection by file extension when browser reports empty type
+// Extension → canonical MIME type mapping
 const EXT_MIME_MAP: Record<string, string> = {
   '.pdf': 'application/pdf',
+  '.doc': 'application/msword',
   '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   '.txt': 'text/plain',
   '.csv': 'text/csv',
   '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  '.xls': 'application/vnd.ms-excel',
+  '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.md': 'text/plain',
+  '.json': 'application/json',
 }
 
+// All MIME types we accept (including browser-reported variants)
+const ALLOWED_MIMES = new Set([
+  ...Object.values(EXT_MIME_MAP),
+  'application/x-pdf',            // Some browsers report this for PDF
+  'image/jpg',                     // Non-standard but common
+  'text/markdown',                 // .md files
+  'text/x-markdown',              // .md files (variant)
+])
+
 function resolveContentType(file: File): string {
-  if (file.type && file.type !== 'application/octet-stream') return file.type
   const ext = file.name.toLowerCase().match(/\.[^.]+$/)?.[0] || ''
-  return EXT_MIME_MAP[ext] || file.type || 'application/octet-stream'
+  // Prefer extension-based mapping (canonical) over browser-reported type
+  if (EXT_MIME_MAP[ext]) return EXT_MIME_MAP[ext]
+  if (file.type && file.type !== 'application/octet-stream') return file.type
+  return 'application/octet-stream'
+}
+
+function isAllowedType(contentType: string, ext: string): boolean {
+  // Strip charset/params from MIME type for comparison
+  const baseMime = contentType.split(';')[0].trim().toLowerCase()
+  // Allow if MIME is in the allowed set OR extension is in EXT_MIME_MAP
+  return ALLOWED_MIMES.has(baseMime) || ext in EXT_MIME_MAP
 }
 
 export async function POST(request: NextRequest) {
@@ -59,14 +84,14 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  const ext = file.name.toLowerCase().match(/\.[^.]+$/)?.[0] || ''
   const contentType = resolveContentType(file)
   const folderId = formData.get('folderId') as string | null
 
   // Validate content type before sending to backend
-  const ALLOWED_TYPES = new Set(Object.values(EXT_MIME_MAP))
-  if (!ALLOWED_TYPES.has(contentType)) {
+  if (!isAllowedType(contentType, ext)) {
     return NextResponse.json(
-      { success: false, error: `Unsupported file type: ${contentType}. Supported: PDF, DOCX, TXT, CSV, XLSX, PNG, JPG` },
+      { success: false, error: `Unsupported file type: ${contentType} (${ext}). Supported: PDF, DOC, DOCX, TXT, CSV, XLS, XLSX, PPTX, PNG, JPG, GIF, WebP, MD, JSON` },
       { status: 400 }
     )
   }

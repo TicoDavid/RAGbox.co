@@ -131,7 +131,7 @@ steps:
       - '--vpc-connector'
       - 'ragbox-connector'
       - '--vpc-egress'
-      - 'all-traffic'
+      - 'private-ranges-only'
       - '--set-env-vars'
       - 'NODE_ENV=production,GOOGLE_CLOUD_PROJECT=${PROJECT_ID},GCP_REGION=${_REGION}'
       - '--set-secrets'

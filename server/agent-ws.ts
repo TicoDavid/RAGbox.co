@@ -25,6 +25,7 @@ import { executeTool, type ToolCall, type ToolResult, type ToolContext } from '.
 import { checkToolPermission, createConfirmationRequest, storePendingConfirmation } from './tools/permissions'
 import * as obs from './observability'
 import { createInworldSession, type InworldSession } from './inworld'
+import { whatsAppEventEmitter, type WhatsAppEvent } from './whatsapp/events'
 
 // ============================================================================
 // TYPES
@@ -371,9 +372,21 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
       }
     })
 
+    // Subscribe to WhatsApp events for this user
+    const onWhatsAppEvent = (event: WhatsAppEvent) => {
+      if (event.userId === params.userId) {
+        sendJSON(ws, {
+          type: 'ui_action',
+          action: { kind: 'whatsapp_event', eventType: event.type, conversationId: event.conversationId, data: event.data },
+        })
+      }
+    }
+    whatsAppEventEmitter.on('message', onWhatsAppEvent)
+
     // Handle disconnection
     ws.on('close', async (code, reason) => {
       console.log(`[AgentWS] Connection closed: ${sessionId} (${code}: ${reason.toString()})`)
+      whatsAppEventEmitter.off('message', onWhatsAppEvent)
       obs.endSession(sessionId)
       session.inworldSession?.close()
       sessions.delete(sessionId)
