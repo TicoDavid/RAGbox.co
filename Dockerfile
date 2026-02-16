@@ -61,6 +61,12 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/prisma ./prisma
 
+# Find and set Prisma query engine path explicitly
+RUN ENGINE=$(find /app/node_modules/.prisma/client -name 'libquery_engine*' -type f 2>/dev/null | head -1) && \
+    if [ -n "$ENGINE" ]; then echo "PRISMA_ENGINE=$ENGINE"; else echo "WARNING: No Prisma engine binary found"; fi
+
+ENV PRISMA_QUERY_ENGINE_LIBRARY=/app/node_modules/.prisma/client/libquery_engine-linux-musl-openssl-3.0.x.so.node
+
 # Set ownership
 RUN chown -R nextjs:nodejs /app
 
