@@ -217,7 +217,7 @@ async function handleAutoReply(
   queryText: string,
 ): Promise<void> {
   try {
-    // Call Go backend RAG pipeline
+    // Call Go backend RAG pipeline (returns SSE stream)
     const ragResponse = await fetch(`${GO_BACKEND_URL}/api/chat`, {
       method: 'POST',
       headers: {
@@ -227,7 +227,7 @@ async function handleAutoReply(
       },
       body: JSON.stringify({
         query: queryText,
-        stream: false,
+        stream: true,
         privilegeMode: false,
         maxTier: 3,
         history: [],
@@ -238,11 +238,48 @@ async function handleAutoReply(
     let confidence: number | undefined
     let queryId: string | undefined
 
-    if (ragResponse.ok) {
-      const data = await ragResponse.json()
-      replyText = data.data?.answer || data.answer || ''
-      confidence = data.data?.confidence || data.confidence
-      queryId = data.data?.queryId || data.queryId
+    if (ragResponse.ok && ragResponse.body) {
+      // Parse SSE stream from Go backend
+      const text = await ragResponse.text()
+      const lines = text.split('\n')
+      let currentEvent = ''
+
+      for (const line of lines) {
+        if (line.startsWith('event: ')) {
+          currentEvent = line.slice(7).trim()
+        } else if (line.startsWith('data: ')) {
+          const dataStr = line.slice(6)
+          try {
+            const data = JSON.parse(dataStr)
+            switch (currentEvent) {
+              case 'token':
+                replyText += data.token || ''
+                break
+              case 'confidence':
+                confidence = data.confidence
+                break
+              case 'silence':
+                replyText = data.message || "I don't have enough information to answer that question confidently."
+                break
+              case 'done':
+                queryId = data.queryId
+                break
+            }
+          } catch {
+            // Skip unparseable data lines
+          }
+        }
+      }
+    } else if (ragResponse.ok) {
+      // Fallback: try plain JSON response
+      try {
+        const data = await ragResponse.json()
+        replyText = data.data?.answer || data.answer || ''
+        confidence = data.data?.confidence || data.confidence
+        queryId = data.data?.queryId || data.queryId
+      } catch {
+        // Response body empty or unparseable
+      }
     }
 
     if (!replyText) {
