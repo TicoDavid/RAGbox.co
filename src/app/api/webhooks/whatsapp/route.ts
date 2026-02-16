@@ -10,13 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-
-const globalForPrisma = globalThis as unknown as { webhookPrisma: PrismaClient | undefined }
-const prisma = globalForPrisma.webhookPrisma ?? new PrismaClient()
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.webhookPrisma = prisma
-}
+import prisma from '@/lib/prisma'
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'mercury-ragbox-verify'
 const VONAGE_API_KEY = process.env.VONAGE_API_KEY || ''
