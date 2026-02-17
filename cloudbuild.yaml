@@ -156,8 +156,8 @@ steps:
 
         echo "Service deployed at: $$SERVICE_URL"
 
-        # Wait for service to be ready (check root path served by Next.js)
-        for i in {1..10}; do
+        # Wait for service to be ready
+        for i in 1 2 3 4 5 6 7 8 9 10; do
           if curl -sf "$$SERVICE_URL/" > /dev/null; then
             echo "Service is healthy"
             break
@@ -166,9 +166,19 @@ steps:
           sleep 5
         done
 
-        # Note: Database migrations should be run as a separate Cloud Run job
-        # or using Cloud Build with database connectivity
-        echo "Migrations should be run via: npx prisma migrate deploy"
+        # Fetch internal auth secret
+        INTERNAL_SECRET=$(gcloud secrets versions access latest --secret=ragbox-internal-auth-secret 2>/dev/null || echo "")
+
+        # Run migrations via the admin endpoint (Cloud Run has VPC access to DB)
+        if [ -n "$$INTERNAL_SECRET" ]; then
+          echo "Running database migrations via Cloud Run..."
+          RESULT=$(curl -s -X POST "$$SERVICE_URL/api/admin/migrate" \
+            -H "Content-Type: application/json" \
+            -H "x-internal-auth: $$INTERNAL_SECRET")
+          echo "Migration result: $$RESULT"
+        else
+          echo "WARNING: No internal auth secret found, skipping migrations"
+        fi
     waitFor: ['deploy']
 
   # ==============================================
