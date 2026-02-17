@@ -3,6 +3,7 @@ import 'dotenv/config';
 import { InworldError } from '@inworld/runtime/common';
 import cors from 'cors';
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import { createServer } from 'http';
 import { parse } from 'url';
 import { RawData, WebSocketServer } from 'ws';
@@ -25,6 +26,24 @@ const dashboardWS = new WebSocketServer({ noServer: true });
 app.use(cors());
 app.use(express.json({ limit: '50mb' })); // Increased for voice cloning audio uploads
 app.use(express.static('frontend'));
+
+// Rate limiting — 60 requests per minute per IP for API endpoints
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later' },
+});
+
+// Stricter limit for expensive endpoints (character gen, voice cloning)
+const heavyLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Rate limit exceeded for this endpoint' },
+});
 
 const inworldApp = new InworldApp();
 
@@ -116,6 +135,7 @@ dashboardWS.on('connection', async (ws, request) => {
 
 app.post(
   '/load',
+  apiLimiter,
   query('sessionId').trim().isLength({ min: 1 }),
   body('agent').isObject(),
   body('userName').trim().isLength({ min: 1 }),
@@ -124,6 +144,7 @@ app.post(
 
 app.post(
   '/unload',
+  apiLimiter,
   query('sessionId').trim().isLength({ min: 1 }),
   inworldApp.unload.bind(inworldApp),
 );
@@ -131,6 +152,7 @@ app.post(
 // Character generation endpoint (uses Inworld's LLM infrastructure)
 app.post(
   '/generate-character',
+  heavyLimiter,
   body('description').trim().isLength({ min: 1 }),
   async (req, res) => {
     try {
@@ -149,6 +171,7 @@ app.post(
 // Voice cloning endpoint
 app.post(
   '/clone-voice',
+  heavyLimiter,
   body('audioData').isString().isLength({ min: 1 }),
   body('displayName').trim().isLength({ min: 1 }),
   async (req, res) => {

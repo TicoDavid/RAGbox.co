@@ -1,12 +1,12 @@
 # Mercury Voice Server — Inworld Runtime + RAGbox Bridge
-FROM node:20
+FROM node:20-slim
 
 WORKDIR /app/server
 
 # Copy package files for dependency caching
 COPY server/package.json server/package-lock.json* ./
 
-# Install ALL dependencies (devDeps needed for ts-node at runtime)
+# Install all dependencies (ts-node needed at runtime for TypeScript execution)
 RUN npm install --include=dev
 
 # Copy source (includes models/, components/, nodes/, etc.)
@@ -20,4 +20,5 @@ ENV NODE_ENV=production
 
 EXPOSE 8080
 
-CMD ["npx", "ts-node", "index.ts"]
+# --transpile-only skips type checking for faster startup
+CMD ["npx", "ts-node", "--transpile-only", "index.ts"]

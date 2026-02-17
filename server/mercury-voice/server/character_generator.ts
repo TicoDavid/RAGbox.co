@@ -134,8 +134,15 @@ export async function generateCharacterPrompt(
     );
   }
 
-  const result = JSON.parse(responseText);
-  
+  let result: { name?: string; voiceId?: string; systemPrompt?: unknown };
+  try {
+    result = JSON.parse(responseText);
+  } catch (parseErr) {
+    throw new Error(
+      `Failed to parse character generation response as JSON: ${(parseErr as Error).message}. Raw: ${responseText.slice(0, 200)}`,
+    );
+  }
+
   console.log('Parsed character result:', {
     name: result.name,
     voiceId: result.voiceId,
