@@ -545,7 +545,18 @@ export const useMercuryStore = create<MercuryState>()(
           })
         )
 
-        set({ messages: serverMessages, threadLoaded: true })
+        // Merge with existing local messages, deduplicate by ID
+        const existing = get().messages
+        const seen = new Set<string>()
+        const merged: ChatMessage[] = []
+        for (const msg of [...serverMessages, ...existing]) {
+          if (!seen.has(msg.id)) {
+            seen.add(msg.id)
+            merged.push(msg)
+          }
+        }
+        merged.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+        set({ messages: merged, threadLoaded: true })
       } catch (error) {
         console.warn('[MercuryStore] Failed to load thread:', error)
         set({ threadLoaded: true })

@@ -346,6 +346,13 @@ export function DashboardLayout() {
     }
   }, [isTablet, isDesktop, rightExpanded, rightTab])
 
+  // Listen for mercury:open-voice event from ContextBar phone button
+  useEffect(() => {
+    const handler = () => handleRightTabClick('mercury')
+    window.addEventListener('mercury:open-voice', handler)
+    return () => window.removeEventListener('mercury:open-voice', handler)
+  }, [handleRightTabClick])
+
   const handleIngestionUpload = async (files: File[]) => {
     for (const file of files) {
       await uploadDocument(file)

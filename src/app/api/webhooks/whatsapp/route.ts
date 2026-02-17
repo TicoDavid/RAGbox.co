@@ -248,12 +248,19 @@ async function handleAutoReply(
     if (ragResponse.ok) {
       const responseText = await ragResponse.text()
       const parsed = parseSSEText(responseText)
-      replyText = parsed.text
       confidence = parsed.confidence
 
-      // Silence Protocol: append suggestions if available
-      if (parsed.isSilence && parsed.suggestions && parsed.suggestions.length > 0) {
-        replyText += '\n\nYou could try asking about:\n' + parsed.suggestions.map((s) => `- ${s}`).join('\n')
+      if (parsed.isSilence || (confidence !== undefined && confidence < 0.65)) {
+        // Silence Protocol: clean user-friendly message
+        replyText = "I don't have enough confidence to answer that accurately based on my current knowledge."
+        if (parsed.suggestions && parsed.suggestions.length > 0) {
+          replyText += '\n\nYou might try:\n' + parsed.suggestions.map((s) => `• ${s}`).join('\n')
+        } else {
+          replyText += '\n\nTry rephrasing your question, or upload documents that might contain the answer.'
+        }
+        replyText += '\n\n○ Confidence: Below threshold'
+      } else {
+        replyText = parsed.text
       }
     }
 
