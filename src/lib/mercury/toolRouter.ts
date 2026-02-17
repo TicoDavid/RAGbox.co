@@ -45,6 +45,10 @@ const TOOL_PATTERNS: PatternDef[] = [
   { pattern: /^(enable|disable|toggle)\s+privilege/i, tool: 'toggle_privilege_mode', argMap: (m) => ({ enabled: String(/enable/i.test(m[0])) }) },
   { pattern: /^(?:list|show)\s+(?:my\s+)?documents?/i, tool: 'list_documents', argMap: () => ({}) },
   { pattern: /^(?:check|show)\s+(?:my\s+)?(?:content\s+)?gaps?/i, tool: 'check_content_gaps', argMap: () => ({}) },
+
+  // Help command
+  { pattern: /^\/help\s*$/i, tool: 'show_help', argMap: () => ({}) },
+  { pattern: /^(?:help|what can you do|how do I|commands?)/i, tool: 'show_help', argMap: () => ({}) },
 ]
 
 export function detectToolIntent(message: string): ToolIntent | null {

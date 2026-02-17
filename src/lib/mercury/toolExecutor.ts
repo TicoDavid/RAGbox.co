@@ -69,6 +69,8 @@ export async function executeTool(
         return await prepareSendEmail(args, authHeaders)
       case 'send_sms':
         return await prepareSendSms(args)
+      case 'show_help':
+        return showHelp()
       default:
         return { success: false, data: null, display: `Unknown tool: ${tool}` }
     }
@@ -291,6 +293,40 @@ async function prepareSendSms(args: Record<string, unknown>): Promise<ToolResult
       to,
       body: smsBody,
     },
+  }
+}
+
+function showHelp(): ToolResult {
+  const helpText = [
+    '**Mercury Commands**',
+    '',
+    '**Documents**',
+    '- `list documents` — Show all vault documents',
+    '- `summarize [document]` — Get a document summary',
+    '- `compare [doc1] with [doc2]` — Compare two documents',
+    '- `find dates in [document]` — Extract key dates',
+    '- `open [filename]` — Open a document',
+    '- `show stats` — Document statistics',
+    '',
+    '**Actions**',
+    '- `email [content] to [address]` — Send an email',
+    '- `text [content] to [number]` — Send an SMS',
+    '- `enable privilege` / `disable privilege` — Toggle privilege mode',
+    '- `export audit log` — Download audit trail',
+    '',
+    '**Analysis**',
+    '- `check content gaps` — Find missing knowledge areas',
+    '- `run health check` — Vault health report',
+    '',
+    '**Other**',
+    '- `/help` — Show this help message',
+    '- Just type a question to query your documents!',
+  ].join('\n')
+
+  return {
+    success: true,
+    data: null,
+    display: helpText,
   }
 }
 

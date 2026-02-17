@@ -7,6 +7,7 @@ import Hero from '@/components/Hero';
 import FeatureGrid from '@/components/FeatureGrid';
 import { AuthModal } from '@/components/AuthModal';
 import Footer from '@/components/Footer';
+import { TrustBar } from '@/components/landing/TrustBar';
 
 type AuthContext = 'signin' | 'signup' | 'upload';
 
@@ -64,6 +65,7 @@ function HomeContent() {
       <Navbar onOpenAuth={() => openAuth('signin')} />
       <Hero onOpenAuth={() => openAuth('signup')} />
       <FeatureGrid />
+      <TrustBar />
       <Footer />
       <AnimatePresence>
         {isAuthOpen && (
