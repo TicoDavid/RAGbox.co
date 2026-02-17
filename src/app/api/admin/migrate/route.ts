@@ -228,12 +228,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // ========================================
     // Phase 16+17: Privilege fields, Audit entries, API keys
     // ========================================
-    await prisma.$executeRawUnsafe(`ALTER TABLE "documents" ADD COLUMN IF NOT EXISTS "privilege_level" TEXT NOT NULL DEFAULT 'standard'`)
-    await prisma.$executeRawUnsafe(`ALTER TABLE "documents" ADD COLUMN IF NOT EXISTS "is_restricted" BOOLEAN NOT NULL DEFAULT false`)
-    await prisma.$executeRawUnsafe(`ALTER TABLE "documents" ADD COLUMN IF NOT EXISTS "access_list" TEXT[] DEFAULT '{}'`)
-    await prisma.$executeRawUnsafe(`ALTER TABLE "documents" ADD COLUMN IF NOT EXISTS "classified_at" TIMESTAMPTZ`)
-    await prisma.$executeRawUnsafe(`ALTER TABLE "documents" ADD COLUMN IF NOT EXISTS "classified_by" TEXT`)
-    results.push('document privilege columns: OK')
+    // documents table is owned by Go backend — ALTER may fail with 42501 (not owner).
+    // These columns may already exist from Go migrations; skip gracefully.
+    try {
+      await prisma.$executeRawUnsafe(`ALTER TABLE "documents" ADD COLUMN IF NOT EXISTS "privilege_level" TEXT NOT NULL DEFAULT 'standard'`)
+      await prisma.$executeRawUnsafe(`ALTER TABLE "documents" ADD COLUMN IF NOT EXISTS "is_restricted" BOOLEAN NOT NULL DEFAULT false`)
+      await prisma.$executeRawUnsafe(`ALTER TABLE "documents" ADD COLUMN IF NOT EXISTS "access_list" TEXT[] DEFAULT '{}'`)
+      await prisma.$executeRawUnsafe(`ALTER TABLE "documents" ADD COLUMN IF NOT EXISTS "classified_at" TIMESTAMPTZ`)
+      await prisma.$executeRawUnsafe(`ALTER TABLE "documents" ADD COLUMN IF NOT EXISTS "classified_by" TEXT`)
+      results.push('document privilege columns: OK')
+    } catch (docErr) {
+      results.push(`document privilege columns: SKIPPED (${docErr instanceof Error ? docErr.message.slice(0, 80) : 'permission error'})`)
+    }
 
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "audit_entries" (
@@ -294,8 +300,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     `)
     results.push('tenants: OK')
 
-    await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "documents" ADD COLUMN "tenant_id" TEXT NOT NULL DEFAULT 'default'; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "documents_tenant_id_idx" ON "documents"("tenant_id")`)
+    // documents table owned by Go backend — may fail with 42501
+    try {
+      await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "documents" ADD COLUMN "tenant_id" TEXT NOT NULL DEFAULT 'default'; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
+      await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "documents_tenant_id_idx" ON "documents"("tenant_id")`)
+    } catch { /* skip — Go backend owns documents table */ }
     await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "mercury_threads" ADD COLUMN "tenant_id" TEXT NOT NULL DEFAULT 'default'; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "mercury_threads_tenant_id_idx" ON "mercury_threads"("tenant_id")`)
     await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "audit_entries" ADD COLUMN "tenant_id" TEXT NOT NULL DEFAULT 'default'; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
