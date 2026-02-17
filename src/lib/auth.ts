@@ -1,7 +1,27 @@
-import { NextAuthOptions } from "next-auth";
+import { NextAuthOptions, CookieOption } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import AzureADProvider from "next-auth/providers/azure-ad";
 import CredentialsProvider from "next-auth/providers/credentials";
+
+const useSecureCookies = (process.env.NEXTAUTH_URL ?? "").startsWith("https://");
+const hostName = new URL(process.env.NEXTAUTH_URL || "http://localhost:3000").hostname;
+
+// Explicit cookie config for Cloud Run (.run.app is a public suffix domain)
+const cookiePrefix = useSecureCookies ? "__Secure-" : "";
+const cookieOptions: Partial<Record<string, CookieOption>> = {
+  sessionToken: {
+    name: `${cookiePrefix}next-auth.session-token`,
+    options: { httpOnly: true, sameSite: "lax", path: "/", secure: useSecureCookies, domain: undefined },
+  },
+  callbackUrl: {
+    name: `${cookiePrefix}next-auth.callback-url`,
+    options: { httpOnly: true, sameSite: "lax", path: "/", secure: useSecureCookies, domain: undefined },
+  },
+  csrfToken: {
+    name: `${useSecureCookies ? "__Host-" : ""}next-auth.csrf-token`,
+    options: { httpOnly: true, sameSite: "lax", path: "/", secure: useSecureCookies, domain: undefined },
+  },
+};
 
 // Global OTP store - use globalThis to persist across hot reloads
 // In production, use Redis or database
@@ -19,23 +39,21 @@ if (process.env.NODE_ENV === "development" && (!process.env.GOOGLE_CLIENT_ID || 
 }
 
 export const authOptions: NextAuthOptions = {
-  // Enable debug mode in development
-  debug: process.env.NODE_ENV === "development",
+  // Enable debug mode to capture OAuth errors in Cloud Run logs
+  debug: true,
 
-  // Logger: only log errors in production, debug in development
+  // Logger: always log errors so Cloud Run logs capture OAuth failures
   logger: {
     error(code, metadata) {
-      if (process.env.NODE_ENV === "development") {
-        console.error("[NextAuth Error]", code, JSON.stringify(metadata, null, 2));
-      }
+      console.error("[NextAuth Error]", code, JSON.stringify(metadata, null, 2));
     },
     warn(code) {
-      if (process.env.NODE_ENV === "development") {
-        console.warn("[NextAuth Warn]", code);
-      }
+      console.warn("[NextAuth Warn]", code);
     },
     debug(code, metadata) {
-      // Only in development — never log to production
+      if (process.env.NODE_ENV === "development") {
+        console.debug("[NextAuth Debug]", code, metadata);
+      }
     },
   },
 
@@ -46,14 +64,8 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
       authorization: {
         params: {
-          scope: [
-            'openid',
-            'email',
-            'profile',
-            'https://www.googleapis.com/auth/gmail.send',
-          ].join(' '),
+          scope: "openid email profile",
           access_type: "offline",
-          prompt: "consent",
           response_type: "code",
         }
       }
@@ -104,6 +116,8 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
+
+  cookies: cookieOptions,
 
   pages: {
     signIn: "/", // Use custom modal on landing page
