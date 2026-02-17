@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useCallback, useRef } from 'react'
+import React, { useEffect, useCallback } from 'react'
 import { ContextBar } from './ContextBar'
 import { ConversationThread } from './ConversationThread'
 import { InputBar } from './InputBar'
@@ -8,6 +8,106 @@ import { ActionConfirmationOverlay } from './ToolConfirmationDialog'
 import { useMercuryStore } from '@/stores/mercuryStore'
 import { usePrivilegeStore } from '@/stores/privilegeStore'
 import type { ChatMessage } from '@/types/ragbox'
+
+// ============================================================================
+// Module-level polling singleton — guarantees exactly ONE interval regardless
+// of how many times React mounts/unmounts MercuryPanel (Strict Mode, HMR, etc.)
+// ============================================================================
+let _pollInterval: ReturnType<typeof setInterval> | null = null
+let _pollThreadId: string | null = null
+let _pollInFlight = false
+let _pollCursor: string | null = null
+
+function startThreadPolling(threadId: string) {
+  // Already polling this thread — do nothing
+  if (_pollInterval && _pollThreadId === threadId) return
+
+  // Different thread or first start — tear down any existing interval
+  stopThreadPolling()
+  _pollThreadId = threadId
+  _pollCursor = null
+
+  const poll = async () => {
+    if (_pollInFlight) return
+    _pollInFlight = true
+
+    try {
+      const currentMessages = useMercuryStore.getState().messages
+
+      let after = _pollCursor
+      if (!after) {
+        after = currentMessages.length > 0
+          ? currentMessages[currentMessages.length - 1].timestamp.toISOString()
+          : new Date(Date.now() - 86400000).toISOString()
+      }
+
+      const res = await fetch(
+        `/api/mercury/thread/messages?threadId=${threadId}&after=${encodeURIComponent(after)}&limit=20`
+      )
+      if (!res.ok) return
+
+      const data = await res.json()
+      const newMessages: Array<{
+        id: string; role: string; channel: string; content: string;
+        confidence?: number; citations?: unknown; metadata?: Record<string, unknown>;
+        createdAt: string
+      }> = data.data?.messages || []
+
+      if (newMessages.length === 0) return
+
+      // Advance cursor so the next poll only fetches newer messages
+      _pollCursor = newMessages[newMessages.length - 1].createdAt
+
+      // Deduplicate by ID and content prefix (catches fire-and-forget persisted
+      // messages that come back from the server with a different cuid)
+      const existing = useMercuryStore.getState().messages
+      const existingIds = new Set(existing.map((m: ChatMessage) => m.id))
+      const existingContentKeys = new Set(
+        existing.map((m: ChatMessage) => `${m.role}:${m.content.slice(0, 80)}`)
+      )
+
+      const toAdd = newMessages
+        .filter((m) => {
+          if (existingIds.has(m.id)) return false
+          const contentKey = `${m.role}:${m.content.slice(0, 80)}`
+          if (existingContentKeys.has(contentKey)) return false
+          return true
+        })
+        .map((m) => ({
+          id: m.id,
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+          timestamp: new Date(m.createdAt),
+          confidence: m.confidence ?? undefined,
+          citations: m.citations as ChatMessage['citations'],
+          channel: m.channel as ChatMessage['channel'],
+          metadata: m.metadata ?? undefined,
+        }))
+
+      if (toAdd.length > 0) {
+        useMercuryStore.setState((state) => ({
+          messages: [...state.messages, ...toAdd],
+        }))
+      }
+    } catch {
+      // Silent fail — polling is best-effort
+    } finally {
+      _pollInFlight = false
+    }
+  }
+
+  _pollInterval = setInterval(poll, 5000)
+}
+
+function stopThreadPolling() {
+  if (_pollInterval) {
+    clearInterval(_pollInterval)
+    _pollInterval = null
+  }
+  _pollThreadId = null
+  _pollInFlight = false
+  _pollCursor = null
+}
 
 export function MercuryPanel() {
   const activePersona = useMercuryStore((s) => s.activePersona)
@@ -136,96 +236,15 @@ export function MercuryPanel() {
     }
   }, [handleVoiceQuery, handleVoiceResponse])
 
-  // Poll for new messages from other channels (WhatsApp, voice from other devices)
-  // Uses a ref-based guard to prevent concurrent polls and a stable cursor
-  // to avoid re-fetching messages we already have.
-  const pollingRef = useRef(false)
-  const lastPollCursorRef = useRef<string | null>(null)
-
+  // Start / stop the module-level polling singleton when threadId changes.
+  // Because the poll state lives outside React, Strict Mode double-mounts,
+  // HMR re-mounts, and multiple component instances all converge on a single
+  // interval — exactly one fetch every 5 seconds, guaranteed.
   useEffect(() => {
-    if (!threadId) return
-
-    // Reset cursor when threadId changes
-    lastPollCursorRef.current = null
-
-    const poll = async () => {
-      // Guard: skip if a previous poll is still in-flight
-      if (pollingRef.current) return
-      pollingRef.current = true
-
-      try {
-        const currentMessages = useMercuryStore.getState().messages
-
-        // Use the latest server-originated message's createdAt as cursor,
-        // or fall back to the last message timestamp, or 24h ago.
-        let after = lastPollCursorRef.current
-        if (!after) {
-          after = currentMessages.length > 0
-            ? currentMessages[currentMessages.length - 1].timestamp.toISOString()
-            : new Date(Date.now() - 86400000).toISOString()
-        }
-
-        const res = await fetch(
-          `/api/mercury/thread/messages?threadId=${threadId}&after=${encodeURIComponent(after)}&limit=20`
-        )
-        if (!res.ok) return
-
-        const data = await res.json()
-        const newMessages: Array<{
-          id: string; role: string; channel: string; content: string;
-          confidence?: number; citations?: unknown; metadata?: Record<string, unknown>;
-          createdAt: string
-        }> = data.data?.messages || []
-
-        if (newMessages.length === 0) return
-
-        // Advance the cursor to the latest server message's createdAt
-        // so the next poll only fetches newer messages
-        const latestCreatedAt = newMessages[newMessages.length - 1].createdAt
-        lastPollCursorRef.current = latestCreatedAt
-
-        // Deduplicate by both ID and content+timestamp to catch locally-
-        // created messages that were persisted with a different server ID
-        const existing = useMercuryStore.getState().messages
-        const existingIds = new Set(existing.map((m: ChatMessage) => m.id))
-        const existingContentKeys = new Set(
-          existing.map((m: ChatMessage) => `${m.role}:${m.content.slice(0, 80)}`)
-        )
-
-        const toAdd = newMessages
-          .filter((m) => {
-            if (existingIds.has(m.id)) return false
-            // Skip if we already have a message with the same role+content prefix
-            // (catches fire-and-forget persisted messages with different IDs)
-            const contentKey = `${m.role}:${m.content.slice(0, 80)}`
-            if (existingContentKeys.has(contentKey)) return false
-            return true
-          })
-          .map((m) => ({
-            id: m.id,
-            role: m.role as 'user' | 'assistant',
-            content: m.content,
-            timestamp: new Date(m.createdAt),
-            confidence: m.confidence ?? undefined,
-            citations: m.citations as ChatMessage['citations'],
-            channel: m.channel as ChatMessage['channel'],
-            metadata: m.metadata ?? undefined,
-          }))
-
-        if (toAdd.length > 0) {
-          useMercuryStore.setState((state) => ({
-            messages: [...state.messages, ...toAdd],
-          }))
-        }
-      } catch {
-        // Silent fail — polling is best-effort
-      } finally {
-        pollingRef.current = false
-      }
+    if (threadId) {
+      startThreadPolling(threadId)
     }
-
-    const interval = setInterval(poll, 5000)
-    return () => clearInterval(interval)
+    return () => stopThreadPolling()
   }, [threadId])
 
   // Apply theme shift for Whistleblower mode
