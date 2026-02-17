@@ -31,6 +31,7 @@ import {
   Wrench,
 } from 'lucide-react'
 import IngestionModal from '@/app/dashboard/components/IngestionModal'
+import { apiFetch } from '@/lib/api'
 
 // ============================================================================
 // PANEL CONTENT COMPONENTS
@@ -89,6 +90,36 @@ function StarredPanel() {
 }
 
 function AuditPanel() {
+  const [entries, setEntries] = useState<Array<{ id: string; action: string; createdAt: string; resourceId?: string }>>([])
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await apiFetch('/api/audit/entries?limit=10')
+        if (res.ok) {
+          const data = await res.json()
+          setEntries(data.data?.entries || [])
+        }
+      } catch {
+        // Silent — fallback to empty
+      }
+    }
+    load()
+  }, [])
+
+  const formatTime = (dateStr: string) => {
+    const diff = Date.now() - new Date(dateStr).getTime()
+    const mins = Math.floor(diff / 60000)
+    if (mins < 1) return 'just now'
+    if (mins < 60) return `${mins}m ago`
+    const hours = Math.floor(mins / 60)
+    if (hours < 24) return `${hours}h ago`
+    return `${Math.floor(hours / 24)}d ago`
+  }
+
+  const formatAction = (action: string) =>
+    action.replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+
   return (
     <div className="h-full flex flex-col">
       <div className="shrink-0 px-4 py-3 border-b border-white/5">
@@ -99,22 +130,21 @@ function AuditPanel() {
       </div>
       <div className="flex-1 overflow-y-auto p-4">
         <div className="space-y-2">
-          {[
-            { time: '2m ago', action: 'Queried document', doc: 'Contract_v2.pdf' },
-            { time: '5m ago', action: 'Opened vault', doc: null },
-            { time: '12m ago', action: 'Uploaded file', doc: 'Financial_Report.xlsx' },
-            { time: '1h ago', action: 'Changed security', doc: 'NDA_Acme.pdf' },
-          ].map((entry, i) => (
-            <div key={i} className="p-3 rounded-lg bg-slate-900/50 border border-white/5">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-emerald-400">{entry.action}</span>
-                <span className="text-[10px] text-slate-600">{entry.time}</span>
+          {entries.length === 0 ? (
+            <p className="text-sm text-slate-500 text-center py-4">No audit entries yet</p>
+          ) : (
+            entries.map((entry) => (
+              <div key={entry.id} className="p-3 rounded-lg bg-slate-900/50 border border-white/5">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-emerald-400">{formatAction(entry.action)}</span>
+                  <span className="text-[10px] text-slate-600">{formatTime(entry.createdAt)}</span>
+                </div>
+                {entry.resourceId && (
+                  <p className="text-xs text-slate-400 truncate">{entry.resourceId}</p>
+                )}
               </div>
-              {entry.doc && (
-                <p className="text-xs text-slate-400 truncate">{entry.doc}</p>
-              )}
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     </div>
