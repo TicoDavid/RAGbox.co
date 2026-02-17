@@ -95,6 +95,7 @@ const nextConfig = {
       '@google-cloud/bigquery',
       '@google-cloud/documentai',
       '@google-cloud/logging',
+      '@google-cloud/pubsub',
       'google-auth-library',
       '@prisma/client',
     ],

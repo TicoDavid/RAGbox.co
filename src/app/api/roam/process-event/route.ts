@@ -141,6 +141,13 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
     return
   }
 
+  // Self-loop prevention: skip messages sent by Mercury itself
+  const SELF_IDS = new Set(['mercury', 'm.e.r.c.u.r.y', 'mercury-bot'])
+  if (SELF_IDS.has(senderId.toLowerCase()) || senderName?.toLowerCase() === 'm.e.r.c.u.r.y') {
+    console.log(`[ROAM Processor] Self-loop prevented — sender: ${senderId} (${senderName})`)
+    return
+  }
+
   // Deduplicate by external message ID
   const existing = await prisma.mercuryThreadMessage.findFirst({
     where: {
@@ -157,6 +164,9 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
     console.error('[ROAM Processor] No ROAM_DEFAULT_USER_ID configured')
     return
   }
+
+  // Strip @mention prefix from query (e.g. "@M.E.R.C.U.R.Y what is TUMM?" → "what is TUMM?")
+  const queryText = text.replace(/^@\S+\s*/i, '').trim() || text
 
   // 1. Write inbound message to Mercury Unified Thread
   await writeMercuryThreadMessage(userId, 'user', text, undefined, {
@@ -181,7 +191,7 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
         'X-User-ID': userId,
       },
       body: JSON.stringify({
-        query: text,
+        query: queryText,
         mode: 'concise',
         privilegeMode: false,
         maxTier: 3,
@@ -242,7 +252,7 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
   })
 
   // 5. Write audit record
-  await writeAuditRecord(userId, text, replyText, confidence, groupId)
+  await writeAuditRecord(userId, queryText, replyText, confidence, groupId)
 }
 
 // ── Mercury Unified Thread Writer ──────────────────────────────────

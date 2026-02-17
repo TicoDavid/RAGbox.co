@@ -100,7 +100,8 @@ export async function sendMessage(
   payload: RoamSendMessagePayload
 ): Promise<RoamMessage> {
   const body: Record<string, string> = {
-    group_id: payload.groupId,
+    // ROAM uses addressId as the chat/group identifier
+    addressId: payload.groupId,
     text: payload.text,
   }
   if (payload.threadId) {
@@ -116,8 +117,21 @@ export async function sendMessage(
  * List groups the ROAM app (M.E.R.C.U.R.Y) has access to.
  */
 export async function listGroups(): Promise<RoamGroup[]> {
-  const res = await roamFetch<{ groups: RoamGroup[] }>('/groups')
-  return res.groups ?? []
+  interface RoamGroupRaw {
+    id?: string
+    addressId?: string
+    name: string
+    description?: string
+    memberCount?: number
+  }
+  const res = await roamFetch<{ groups: RoamGroupRaw[] }>('/groups')
+  // ROAM returns addressId as the primary identifier; normalize to id
+  return (res.groups ?? []).map(g => ({
+    id: g.addressId || g.id || '',
+    name: g.name,
+    description: g.description,
+    memberCount: g.memberCount,
+  }))
 }
 
 /**
