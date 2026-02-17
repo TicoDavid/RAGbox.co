@@ -300,9 +300,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     `)
     results.push('tenants: OK')
 
-    // documents table owned by Go backend — may fail with 42501
+    // documents table owned by Go backend — columns Prisma expects but Go migration didn't create
     try {
       await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "documents" ADD COLUMN "tenant_id" TEXT NOT NULL DEFAULT 'default'; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
+      await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "documents" ADD COLUMN "privilege_level" TEXT NOT NULL DEFAULT 'standard'; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
+      await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "documents" ADD COLUMN "is_restricted" BOOLEAN NOT NULL DEFAULT false; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
+      await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "documents" ADD COLUMN "access_list" TEXT[] DEFAULT '{}'; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
+      await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "documents" ADD COLUMN "classified_at" TIMESTAMPTZ; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
+      await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "documents" ADD COLUMN "classified_by" TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
       await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "documents_tenant_id_idx" ON "documents"("tenant_id")`)
     } catch { /* skip — Go backend owns documents table */ }
     await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "mercury_threads" ADD COLUMN "tenant_id" TEXT NOT NULL DEFAULT 'default'; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)

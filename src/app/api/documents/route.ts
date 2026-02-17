@@ -64,7 +64,6 @@ export async function GET(request: NextRequest) {
           indexStatus: true,
           deletionStatus: true,
           isPrivileged: true,
-          privilegeLevel: true,
           securityTier: true,
           checksum: true,
           folderId: true,
