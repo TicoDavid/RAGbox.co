@@ -37,66 +37,75 @@ export async function PATCH(
     )
   }
 
-  // Verify document exists and belongs to user
-  const doc = await prisma.document.findFirst({
-    where: { id, userId },
-    select: { id: true, privilegeLevel: true, isRestricted: true },
-  })
+  try {
+    // Verify document exists and belongs to user
+    const doc = await prisma.document.findFirst({
+      where: { id, userId },
+      select: { id: true, privilegeLevel: true, isRestricted: true },
+    })
 
-  if (!doc) {
-    return NextResponse.json({ success: false, error: 'Document not found' }, { status: 404 })
-  }
-
-  // Build update data
-  const updateData: Record<string, unknown> = {}
-  const oldLevel = doc.privilegeLevel
-
-  if (body.privilegeLevel !== undefined) {
-    updateData.privilegeLevel = body.privilegeLevel
-    updateData.isPrivileged = body.privilegeLevel === 'privileged'
-
-    // Auto-restrict when setting to privileged
-    if (body.privilegeLevel === 'privileged') {
-      updateData.isRestricted = true
-      updateData.classifiedAt = new Date()
-      updateData.classifiedBy = userId
+    if (!doc) {
+      return NextResponse.json({ success: false, error: 'Document not found' }, { status: 404 })
     }
 
-    // Clear restrictions when setting to standard
-    if (body.privilegeLevel === 'standard') {
-      updateData.isRestricted = false
-      updateData.accessList = []
+    // Build update data
+    const updateData: Record<string, unknown> = {}
+    const oldLevel = doc.privilegeLevel
+
+    if (body.privilegeLevel !== undefined) {
+      updateData.privilegeLevel = body.privilegeLevel
+      updateData.isPrivileged = body.privilegeLevel === 'privileged'
+
+      // Auto-restrict when setting to privileged
+      if (body.privilegeLevel === 'privileged') {
+        updateData.isRestricted = true
+        updateData.classifiedAt = new Date()
+        updateData.classifiedBy = userId
+      }
+
+      // Clear restrictions when setting to standard
+      if (body.privilegeLevel === 'standard') {
+        updateData.isRestricted = false
+        updateData.accessList = []
+      }
     }
+
+    if (body.isRestricted !== undefined) {
+      updateData.isRestricted = body.isRestricted
+    }
+
+    if (body.accessList !== undefined) {
+      updateData.accessList = body.accessList
+    }
+
+    const updated = await prisma.document.update({
+      where: { id },
+      data: updateData,
+      select: {
+        id: true,
+        privilegeLevel: true,
+        isRestricted: true,
+        accessList: true,
+        classifiedAt: true,
+        classifiedBy: true,
+      },
+    })
+
+    // Write audit entry (best-effort — don't crash if audit fails)
+    try {
+      await writeAuditEntry(userId, 'document.classify', id, {
+        oldLevel,
+        newLevel: updated.privilegeLevel,
+        isRestricted: updated.isRestricted,
+        accessListCount: updated.accessList.length,
+      })
+    } catch (auditErr) {
+      console.error('[Privilege] Audit write failed:', auditErr)
+    }
+
+    return NextResponse.json({ success: true, data: updated })
+  } catch (error) {
+    console.error('[Document Privilege] Error:', error)
+    return NextResponse.json({ success: false, error: 'Failed to update privilege' })
   }
-
-  if (body.isRestricted !== undefined) {
-    updateData.isRestricted = body.isRestricted
-  }
-
-  if (body.accessList !== undefined) {
-    updateData.accessList = body.accessList
-  }
-
-  const updated = await prisma.document.update({
-    where: { id },
-    data: updateData,
-    select: {
-      id: true,
-      privilegeLevel: true,
-      isRestricted: true,
-      accessList: true,
-      classifiedAt: true,
-      classifiedBy: true,
-    },
-  })
-
-  // Write audit entry
-  await writeAuditEntry(userId, 'document.classify', id, {
-    oldLevel,
-    newLevel: updated.privilegeLevel,
-    isRestricted: updated.isRestricted,
-    accessListCount: updated.accessList.length,
-  })
-
-  return NextResponse.json({ success: true, data: updated })
 }

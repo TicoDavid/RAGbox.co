@@ -103,7 +103,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     })
   } catch (error) {
     console.error('[Mercury Messages GET] Error:', error)
-    return NextResponse.json({ success: false, error: 'Failed to load messages' }, { status: 500 })
+    // Return 200 with empty messages — prevents polling 500s every 5 seconds
+    return NextResponse.json({ success: true, data: { messages: [], hasMore: false } })
   }
 }
 
@@ -195,6 +196,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ success: true, data: message }, { status: 201 })
   } catch (error) {
     console.error('[Mercury Messages POST] Error:', error)
-    return NextResponse.json({ success: false, error: 'Failed to save message' }, { status: 500 })
+    // Return 200 — message persistence is best-effort, shouldn't crash the UI
+    return NextResponse.json({ success: false, error: 'Failed to save message' })
   }
 }

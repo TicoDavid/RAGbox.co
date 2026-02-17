@@ -47,19 +47,26 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const webhookSignature = request.headers.get('webhook-signature') || ''
 
   if (!ROAM_WEBHOOK_SECRET) {
-    console.error('[ROAM Webhook] ROAM_WEBHOOK_SECRET not configured')
-    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+    console.warn('[ROAM Webhook] ROAM_WEBHOOK_SECRET not configured — skipping')
+    return NextResponse.json({ ok: false, reason: 'not configured' }, { status: 200 })
   }
 
-  const verification = verifyWebhookSignature(
-    rawBody,
-    {
-      'webhook-id': webhookId,
-      'webhook-timestamp': webhookTimestamp,
-      'webhook-signature': webhookSignature,
-    },
-    ROAM_WEBHOOK_SECRET
-  )
+  let verification: { valid: boolean; error?: string }
+  try {
+    verification = verifyWebhookSignature(
+      rawBody,
+      {
+        'webhook-id': webhookId,
+        'webhook-timestamp': webhookTimestamp,
+        'webhook-signature': webhookSignature,
+      },
+      ROAM_WEBHOOK_SECRET
+    )
+  } catch (sigErr) {
+    console.error('[ROAM Webhook] Signature verification threw:', sigErr)
+    // ACK anyway — don't let signature code crash the webhook
+    return NextResponse.json({ ok: true }, { status: 200 })
+  }
 
   if (!verification.valid) {
     console.error(

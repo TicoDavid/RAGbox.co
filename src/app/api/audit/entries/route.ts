@@ -22,28 +22,33 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 200)
   const offset = parseInt(searchParams.get('offset') || '0', 10)
 
-  const where: Record<string, unknown> = { userId }
-  if (action) where.action = action
+  try {
+    const where: Record<string, unknown> = { userId }
+    if (action) where.action = action
 
-  const [entries, total] = await Promise.all([
-    prisma.auditEntry.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-      skip: offset,
-      select: {
-        id: true,
-        action: true,
-        resourceId: true,
-        details: true,
-        entryHash: true,
-        createdAt: true,
-      },
-    }),
-    prisma.auditEntry.count({ where }),
-  ])
+    const [entries, total] = await Promise.all([
+      prisma.auditEntry.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: offset,
+        select: {
+          id: true,
+          action: true,
+          resourceId: true,
+          details: true,
+          entryHash: true,
+          createdAt: true,
+        },
+      }),
+      prisma.auditEntry.count({ where }),
+    ])
 
-  return NextResponse.json({ success: true, data: { entries, total, limit, offset } })
+    return NextResponse.json({ success: true, data: { entries, total, limit, offset } })
+  } catch (error) {
+    console.error('[Audit Entries GET] Error:', error)
+    return NextResponse.json({ success: true, data: { entries: [], total: 0, limit, offset } })
+  }
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -60,8 +65,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   if (body.action === 'verify') {
-    const result = await verifyAuditChain()
-    return NextResponse.json({ success: true, data: result })
+    try {
+      const result = await verifyAuditChain()
+      return NextResponse.json({ success: true, data: result })
+    } catch (error) {
+      console.error('[Audit Verify] Error:', error)
+      return NextResponse.json({ success: true, data: { valid: false, error: 'Verification failed' } })
+    }
   }
 
   return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 })

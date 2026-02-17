@@ -47,9 +47,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ success: true, data: thread })
   } catch (error) {
     console.error('[Mercury Thread] Error:', error)
-    return NextResponse.json(
-      { success: false, error: 'Failed to load thread' },
-      { status: 500 }
-    )
+    // Return 200 with null thread — prevents console 500s and retry storms
+    return NextResponse.json({ success: false, data: null })
   }
 }
