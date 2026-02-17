@@ -26,6 +26,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const where: Record<string, unknown> = {
     userId: auth.userId,
+    tenantId: auth.tenantId,
     deletionStatus: 'Active',
   }
   if (status) where.indexStatus = status

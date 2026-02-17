@@ -18,15 +18,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ success: false, error: 'Insufficient permissions' }, { status: 403 })
   }
 
+  const tenantId = auth.tenantId
+
   const [documentCount, privilegedCount, chunkStats, queryCount] = await Promise.all([
     prisma.document.count({
-      where: { userId: auth.userId, deletionStatus: 'Active' },
+      where: { userId: auth.userId, tenantId, deletionStatus: 'Active' },
     }),
     prisma.document.count({
-      where: { userId: auth.userId, deletionStatus: 'Active', privilegeLevel: 'privileged' },
+      where: { userId: auth.userId, tenantId, deletionStatus: 'Active', privilegeLevel: 'privileged' },
     }),
     prisma.document.aggregate({
-      where: { userId: auth.userId, deletionStatus: 'Active' },
+      where: { userId: auth.userId, tenantId, deletionStatus: 'Active' },
       _sum: { chunkCount: true },
     }),
     prisma.mercuryAction.count({

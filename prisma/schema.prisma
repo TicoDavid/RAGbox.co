@@ -61,6 +61,20 @@ enum user_status {
 }
 
 // ============================================
+// Tenant (Multi-Tenant Isolation)
+// ============================================
+
+model Tenant {
+  id        String   @id @default("default")
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("tenants")
+}
+
+// ============================================
 // Vault (Document Container)
 // ============================================
 
@@ -95,6 +109,7 @@ enum vault_status {
 
 model Document {
   id              String         @id @default(cuid())
+  tenantId        String         @default("default") @map("tenant_id")
   vaultId         String?        @map("vault_id")
   userId          String         @map("user_id")
   filename        String
@@ -546,6 +561,7 @@ model IntegrationSettings {
 
 model MercuryThread {
   id        String   @id @default(cuid())
+  tenantId  String   @default("default") @map("tenant_id")
   userId    String   @map("user_id")
   title     String?
   createdAt DateTime @default(now()) @map("created_at")
@@ -619,6 +635,7 @@ model MercuryAction {
 
 model AuditEntry {
   id           String   @id @default(cuid())
+  tenantId     String   @default("default") @map("tenant_id")
   userId       String   @map("user_id")
   action       String   // document.upload | document.delete | document.classify | query.search | query.response | privilege.grant | privilege.revoke | export.compliance
   resourceId   String?  @map("resource_id")
@@ -642,6 +659,7 @@ model AuditEntry {
 
 model ApiKey {
   id        String    @id @default(cuid())
+  tenantId  String    @default("default") @map("tenant_id")
   userId    String    @map("user_id")
   name      String
   keyPrefix String    @map("key_prefix")   // "rbx_live_" + first 8 chars

@@ -13,6 +13,7 @@ export interface ApiKeyAuth {
   userName: string | null
   keyId: string
   scopes: string[]
+  tenantId: string
 }
 
 /**
@@ -40,6 +41,7 @@ export async function authenticateApiKey(request: NextRequest): Promise<ApiKeyAu
     userName: apiKey.user.name,
     keyId: apiKey.id,
     scopes: apiKey.scopes,
+    tenantId: apiKey.tenantId ?? 'default',
   }
 }
 
