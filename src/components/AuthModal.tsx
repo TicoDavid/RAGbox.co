@@ -9,6 +9,7 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   context?: 'signin' | 'signup' | 'upload';
+  errorMessage?: string | null;
 }
 
 const HEADERS = {
@@ -17,7 +18,7 @@ const HEADERS = {
   upload: { title: 'Authenticate to Analyze', subtitle: 'Sign in to upload and interrogate your documents.' },
 };
 
-export function AuthModal({ isOpen, onClose, context = 'signin' }: AuthModalProps) {
+export function AuthModal({ isOpen, onClose, context = 'signin', errorMessage }: AuthModalProps) {
   const router = useRouter();
   const [step, setStep] = useState<'email' | 'otp'>('email');
   const [email, setEmail] = useState('');
@@ -265,6 +266,13 @@ export function AuthModal({ isOpen, onClose, context = 'signin' }: AuthModalProp
                   <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
                   <div className="relative flex justify-center text-[10px] uppercase tracking-widest"><span className="bg-white px-2 text-slate-400">Or</span></div>
                 </div>
+
+                {/* OAuth Error Message */}
+                {errorMessage && (
+                  <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs text-center">
+                    {errorMessage}
+                  </div>
+                )}
 
                 {/* Social Buttons */}
                 <div className="grid grid-cols-2 gap-3">
