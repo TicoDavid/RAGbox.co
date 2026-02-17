@@ -4,22 +4,36 @@ import AzureADProvider from "next-auth/providers/azure-ad";
 import CredentialsProvider from "next-auth/providers/credentials";
 
 const useSecureCookies = (process.env.NEXTAUTH_URL ?? "").startsWith("https://");
-const hostName = new URL(process.env.NEXTAUTH_URL || "http://localhost:3000").hostname;
 
-// Explicit cookie config for Cloud Run (.run.app is a public suffix domain)
+// Explicit cookie config for Cloud Run (.run.app is a public suffix domain).
+// All OAuth-flow cookies (state, pkce, nonce) must be explicitly configured
+// to prevent "State cookie was missing" errors on the OAuth callback.
 const cookiePrefix = useSecureCookies ? "__Secure-" : "";
+const baseCookieOpts = { httpOnly: true, sameSite: "lax" as const, path: "/", secure: useSecureCookies };
 const cookieOptions: Partial<Record<string, CookieOption>> = {
   sessionToken: {
     name: `${cookiePrefix}next-auth.session-token`,
-    options: { httpOnly: true, sameSite: "lax", path: "/", secure: useSecureCookies, domain: undefined },
+    options: baseCookieOpts,
   },
   callbackUrl: {
     name: `${cookiePrefix}next-auth.callback-url`,
-    options: { httpOnly: true, sameSite: "lax", path: "/", secure: useSecureCookies, domain: undefined },
+    options: baseCookieOpts,
   },
   csrfToken: {
     name: `${useSecureCookies ? "__Host-" : ""}next-auth.csrf-token`,
-    options: { httpOnly: true, sameSite: "lax", path: "/", secure: useSecureCookies, domain: undefined },
+    options: baseCookieOpts,
+  },
+  state: {
+    name: `${cookiePrefix}next-auth.state`,
+    options: { ...baseCookieOpts, maxAge: 900 },
+  },
+  pkceCodeVerifier: {
+    name: `${cookiePrefix}next-auth.pkce.code_verifier`,
+    options: { ...baseCookieOpts, maxAge: 900 },
+  },
+  nonce: {
+    name: `${cookiePrefix}next-auth.nonce`,
+    options: { ...baseCookieOpts, maxAge: 900 },
   },
 };
 
