@@ -36,12 +36,28 @@ export async function executeTool(
         return await chatQuery(`Extract liability and indemnification clauses from ${args.query}`, 'detailed', authHeaders)
       case 'list_documents':
         return await listDocuments(authHeaders)
+      case 'search_documents':
+        return await chatQuery(`Search my documents for: ${args.query}`, 'search', authHeaders)
+      case 'get_document_status':
+        return await getDocumentStatus(args.query as string || '', authHeaders)
+      case 'upload_status':
+        return await getUploadStatus(authHeaders)
       case 'check_content_gaps':
         return await checkContentGaps(authHeaders)
       case 'run_health_check':
         return await runHealthCheck(authHeaders)
       case 'get_document_stats':
         return await getDocumentStats(authHeaders)
+      case 'check_confidence':
+        return checkConfidence()
+      case 'find_risks':
+        return await chatQuery(
+          `Analyze and identify all legal, financial, and compliance risks in ${args.query}. List each risk with severity (High/Medium/Low).`,
+          'detailed',
+          authHeaders
+        )
+      case 'recent_activity':
+        return await getRecentActivity(authHeaders)
       case 'navigate_to':
         return {
           success: true,
@@ -296,12 +312,112 @@ async function prepareSendSms(args: Record<string, unknown>): Promise<ToolResult
   }
 }
 
+async function getDocumentStatus(query: string, authHeaders: HeadersInit): Promise<ToolResult> {
+  const headers = { ...Object.fromEntries(new Headers(authHeaders).entries()) }
+  const res = await apiFetch('/api/documents', { headers })
+
+  if (!res.ok) {
+    return { success: false, data: null, display: 'Failed to fetch document status.' }
+  }
+
+  const json = await res.json()
+  const docs: Array<{ id: string; originalName: string; indexStatus: string; sizeBytes: number; createdAt: string }> =
+    json.data || json.documents || []
+
+  if (query) {
+    const q = query.toLowerCase()
+    const match = docs.find((d) => d.originalName.toLowerCase().includes(q))
+    if (match) {
+      return {
+        success: true,
+        data: match,
+        display: `**${match.originalName}**\nStatus: ${match.indexStatus}\nSize: ${formatSize(match.sizeBytes)}\nUploaded: ${new Date(match.createdAt).toLocaleDateString()}`,
+      }
+    }
+    return { success: true, data: null, display: `No document found matching "${query}".` }
+  }
+
+  const lines = docs.map((d, i) => `${i + 1}. **${d.originalName}** — ${d.indexStatus}`)
+  return {
+    success: true,
+    data: docs,
+    display: `**Document Status**\n\n${lines.join('\n')}`,
+  }
+}
+
+async function getUploadStatus(authHeaders: HeadersInit): Promise<ToolResult> {
+  const headers = { ...Object.fromEntries(new Headers(authHeaders).entries()) }
+  const res = await apiFetch('/api/documents', { headers })
+
+  if (!res.ok) {
+    return { success: false, data: null, display: 'Failed to fetch upload status.' }
+  }
+
+  const json = await res.json()
+  const docs: Array<{ originalName: string; indexStatus: string; createdAt: string }> =
+    json.data || json.documents || []
+
+  const pending = docs.filter((d) => ['Uploading', 'Pending', 'Processing', 'Parsing', 'Embedding'].includes(d.indexStatus))
+
+  if (pending.length === 0) {
+    return { success: true, data: [], display: 'No uploads in progress. All documents are indexed.' }
+  }
+
+  const lines = pending.map((d, i) => `${i + 1}. **${d.originalName}** — ${d.indexStatus}`)
+  return {
+    success: true,
+    data: pending,
+    display: `**${pending.length}** upload(s) in progress:\n\n${lines.join('\n')}`,
+  }
+}
+
+function checkConfidence(): ToolResult {
+  // Read last assistant message confidence from the store (client-side only)
+  // Since toolExecutor runs server-side in the chat flow, we return instructions
+  // for the client to check its own store
+  return {
+    success: true,
+    data: null,
+    display: 'The confidence score is shown on each Mercury response as a badge. Look for the percentage indicator on the latest response. Scores above 85% indicate high confidence; below 85% triggers the Silence Protocol.',
+  }
+}
+
+async function getRecentActivity(authHeaders: HeadersInit): Promise<ToolResult> {
+  const headers = { ...Object.fromEntries(new Headers(authHeaders).entries()) }
+  const res = await apiFetch('/api/audit?limit=10', { headers })
+
+  if (!res.ok) {
+    return { success: false, data: null, display: 'Failed to fetch recent activity.' }
+  }
+
+  const json = await res.json()
+  const entries: Array<{ action: string; description: string; createdAt: string; severity: string }> =
+    json.data || json.auditLog || json.entries || []
+
+  if (entries.length === 0) {
+    return { success: true, data: [], display: 'No recent activity found.' }
+  }
+
+  const lines = entries.map((e, i) =>
+    `${i + 1}. [${new Date(e.createdAt).toLocaleString()}] **${e.action}** — ${e.description || 'No description'}`
+  )
+
+  return {
+    success: true,
+    data: entries,
+    display: `**Recent Activity (last ${entries.length})**\n\n${lines.join('\n')}`,
+  }
+}
+
 function showHelp(): ToolResult {
   const helpText = [
     '**Mercury Commands**',
     '',
     '**Documents**',
     '- `list documents` — Show all vault documents',
+    '- `search [query] in documents` — Search vault by keyword',
+    '- `get document status` — Check indexing status',
+    '- `upload status` — Check uploads in progress',
     '- `summarize [document]` — Get a document summary',
     '- `compare [doc1] with [doc2]` — Compare two documents',
     '- `find dates in [document]` — Extract key dates',
@@ -313,10 +429,14 @@ function showHelp(): ToolResult {
     '- `text [content] to [number]` — Send an SMS',
     '- `enable privilege` / `disable privilege` — Toggle privilege mode',
     '- `export audit log` — Download audit trail',
+    '- `navigate to [vault|audit|settings|forge]` — Switch panels',
     '',
     '**Analysis**',
     '- `check content gaps` — Find missing knowledge areas',
-    '- `run health check` — Vault health report',
+    '- `find risks` — Identify legal/financial risks',
+    '- `check confidence` — Understand confidence scoring',
+    '- `show recent activity` — View audit trail',
+    '- `show system status` — System health report',
     '',
     '**Other**',
     '- `/help` — Show this help message',
