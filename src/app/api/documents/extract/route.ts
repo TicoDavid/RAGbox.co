@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import { PubSub } from '@google-cloud/pubsub'
 import { invalidateUserCache } from '@/lib/cache/queryCache'
+import { writeAuditEntry } from '@/lib/audit/auditWriter'
 
 const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
@@ -237,6 +238,13 @@ export async function POST(request: NextRequest) {
     // Non-fatal — Go backend ingest is the primary path
     console.error('[Upload] Pub/Sub publish failed:', pubsubErr)
   }
+
+  // Audit log (best-effort)
+  writeAuditEntry(userId, 'document.upload', documentId, {
+    filename: file.name,
+    mimeType: contentType,
+    sizeBytes: file.size,
+  }).catch(() => {})
 
   // Invalidate query cache — new document may change RAG results
   invalidateUserCache(userId).catch(() => {})

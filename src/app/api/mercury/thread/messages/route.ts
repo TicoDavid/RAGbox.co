@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
+import { writeAuditEntry } from '@/lib/audit/auditWriter'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -192,6 +193,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       where: { id: resolvedThreadId },
       data: { updatedAt: new Date() },
     })
+
+    // Audit log (best-effort) — log user queries and assistant responses
+    writeAuditEntry(userId, role === 'user' ? 'mercury.query' : 'mercury.response', message.id, {
+      channel,
+      contentPreview: content.slice(0, 100),
+      confidence: confidence ?? undefined,
+    }).catch(() => {})
 
     return NextResponse.json({ success: true, data: message }, { status: 201 })
   } catch (error) {

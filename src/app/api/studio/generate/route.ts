@@ -8,27 +8,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
+import { getToken } from 'next-auth/jwt'
 import { generateArtifact } from '@/lib/studio/generator'
 import type { GenerationRequest } from '@/lib/studio/types'
 import { z } from 'zod'
-
-/**
- * Extract user ID from request (matches documents route pattern)
- */
-async function getUserId(request: NextRequest): Promise<string | null> {
-  const sessionCookie = (await cookies()).get('session')
-  if (sessionCookie?.value) {
-    return sessionCookie.value
-  }
-
-  const authHeader = request.headers.get('authorization')
-  if (authHeader?.startsWith('Bearer ')) {
-    return authHeader.slice(7)
-  }
-
-  return null
-}
 
 export const runtime = 'nodejs'
 export const maxDuration = 120 // Allow up to 2 minutes for complex artifacts
@@ -49,11 +32,18 @@ const GenerationRequestSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Authenticate (using same pattern as documents route)
-    const userId = await getUserId(request)
+    // 1. Authenticate via NextAuth JWT (same pattern as documents route)
+    const token = await getToken({ req: request })
+    if (!token) {
+      return NextResponse.json(
+        { success: false, error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
+    const userId = (token.id as string) || token.email || ''
     if (!userId) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: 'Unable to determine user identity' },
         { status: 401 }
       )
     }

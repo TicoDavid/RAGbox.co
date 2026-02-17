@@ -156,25 +156,48 @@ export function MercuryPanel() {
     clearPendingAction()
   }, [pendingAction, clearPendingAction, togglePrivilege])
 
-  // Listen for vault upload events and inject a notification into the chat
-  const handleUploadNotification = useCallback((e: Event) => {
-    const detail = (e as CustomEvent).detail as { filename: string; size: number }
-    const notification: ChatMessage = {
-      id: `notify-${Date.now()}`,
-      role: 'assistant',
-      content: `**Document uploaded:** ${detail.filename} (${formatFileSize(detail.size)}) is now being indexed. You can query it once processing completes.`,
-      timestamp: new Date(),
-      channel: 'dashboard',
-    }
-    useMercuryStore.setState((state) => ({
-      messages: [...state.messages, notification],
-    }))
-  }, [])
-
+  // Listen for vault upload events — debounce into a single summary notification.
+  // Collects uploads within a 2-second window, then posts one message.
   useEffect(() => {
-    window.addEventListener('vault:document-uploaded', handleUploadNotification)
-    return () => window.removeEventListener('vault:document-uploaded', handleUploadNotification)
-  }, [handleUploadNotification])
+    let pending: Array<{ filename: string; size: number }> = []
+    let timer: ReturnType<typeof setTimeout> | null = null
+
+    const flush = () => {
+      if (pending.length === 0) return
+      const items = [...pending]
+      pending = []
+      timer = null
+
+      const content = items.length === 1
+        ? `**Document uploaded:** ${items[0].filename} (${formatFileSize(items[0].size)}) is now being indexed.`
+        : `**${items.length} documents uploaded** and being indexed:\n${items.map((d) => `- ${d.filename} (${formatFileSize(d.size)})`).join('\n')}`
+
+      const notification: ChatMessage = {
+        id: `notify-${Date.now()}`,
+        role: 'assistant',
+        content,
+        timestamp: new Date(),
+        channel: 'dashboard',
+      }
+      useMercuryStore.setState((state) => ({
+        messages: [...state.messages, notification],
+      }))
+    }
+
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { filename: string; size: number }
+      pending.push(detail)
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(flush, 2000)
+    }
+
+    window.addEventListener('vault:document-uploaded', handler)
+    return () => {
+      window.removeEventListener('vault:document-uploaded', handler)
+      if (timer) clearTimeout(timer)
+      flush() // flush any remaining on unmount
+    }
+  }, [])
 
   // Sync voice transcript to Mercury chat history
   const handleVoiceQuery = useCallback((e: Event) => {
