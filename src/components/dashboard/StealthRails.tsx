@@ -124,7 +124,7 @@ export function LeftStealthRail({
               transition-all duration-200
               ${isVaultActive
                 ? 'bg-[var(--brand-blue)]/15 text-[var(--brand-blue)] shadow-[0_0_20px_rgba(36,99,235,0.4)]'
-                : 'text-[#0066FF] hover:text-white hover:bg-[#0066FF]/10'
+                : 'text-[#60A5FA] hover:text-white hover:bg-[var(--brand-blue)]/10'
               }
             `}
           >
