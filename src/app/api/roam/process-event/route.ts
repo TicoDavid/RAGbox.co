@@ -35,17 +35,24 @@ interface PubSubPushMessage {
 }
 
 // ── ROAM event payload shapes ──────────────────────────────────────
+// ROAM sends: chat.message.dm, chat.message.group, message.created, etc.
 
 interface RoamChatEvent {
-  type: 'message.created'
+  type: string
   data: {
-    id: string
-    group_id: string
-    sender_id: string
+    // Direct shape (chat.message.dm / chat.message.group)
+    contentType?: string
+    text?: string
+    sender?: { id: string; name?: string; email?: string }
+    chat?: { id: string }
+    timestamp?: string
+    // Legacy shape (message.created)
+    id?: string
+    group_id?: string
+    sender_id?: string
     sender_name?: string
-    text: string
     thread_id?: string
-    created_at: string
+    created_at?: string
   }
 }
 
@@ -60,6 +67,14 @@ interface RoamReactionEvent {
 }
 
 type RoamEvent = RoamChatEvent | RoamReactionEvent | { type: string; data: Record<string, unknown> }
+
+/** Event types that contain a chat message to process */
+const CHAT_EVENT_TYPES = new Set([
+  'message.created',
+  'chat.message.dm',
+  'chat.message.group',
+  'chat.message',
+])
 
 // ── Route handler ──────────────────────────────────────────────────
 
@@ -90,18 +105,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   console.log(`[ROAM Processor] Event: type=${event.type} msgId=${envelope.message.messageId}`)
 
   try {
-    switch (event.type) {
-      case 'message.created':
-        await processMessage(event as RoamChatEvent)
-        break
-
-      case 'reaction.added':
-        // Log reactions but don't process them
-        console.log(`[ROAM Processor] Reaction: ${(event as RoamReactionEvent).data.emoji}`)
-        break
-
-      default:
-        console.log(`[ROAM Processor] Unhandled event type: ${event.type}`)
+    if (CHAT_EVENT_TYPES.has(event.type)) {
+      await processMessage(event as RoamChatEvent)
+    } else if (event.type === 'reaction.added') {
+      console.log(`[ROAM Processor] Reaction: ${(event as RoamReactionEvent).data.emoji}`)
+    } else {
+      console.log(`[ROAM Processor] Unhandled event type: ${event.type}`)
     }
   } catch (error) {
     console.error('[ROAM Processor] Processing error:', error)
@@ -115,9 +124,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 // ── Message processor ──────────────────────────────────────────────
 
 async function processMessage(event: RoamChatEvent): Promise<void> {
-  const { id: messageId, group_id: groupId, sender_id: senderId, sender_name: senderName, text, thread_id: threadId } = event.data
+  const d = event.data
 
-  if (!text || !text.trim()) {
+  // Normalize across ROAM event shapes:
+  //   chat.message.dm/group: data.sender.id, data.chat.id, data.text
+  //   message.created:       data.sender_id, data.group_id, data.text
+  const text = d.text || ''
+  const messageId = d.id || d.timestamp || ''
+  const groupId = d.chat?.id || d.group_id || ''
+  const senderId = d.sender?.id || d.sender_id || ''
+  const senderName = d.sender?.name || d.sender_name
+  const threadId = d.thread_id
+
+  if (!text.trim()) {
     console.log('[ROAM Processor] Empty message — skipping')
     return
   }

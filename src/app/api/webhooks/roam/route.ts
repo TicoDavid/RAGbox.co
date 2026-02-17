@@ -7,10 +7,8 @@
  * Strategy:
  *   1. Read raw body as ArrayBuffer → decode to string (preserves exact bytes)
  *   2. Verify HMAC-SHA256 signature (~5ms)
- *   3. Publish to Pub/Sub roam-events topic (~50ms)
- *   4. Return 200 immediately
- *
- * All processing happens async in the Pub/Sub push endpoint.
+ *   3. Return 200 IMMEDIATELY
+ *   4. Pub/Sub publish happens fire-and-forget AFTER response is sent
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -33,11 +31,7 @@ function getPubSub(): PubSub {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const startMs = Date.now()
-
   // Step 1: Read raw body as ArrayBuffer → UTF-8 string.
-  // Using arrayBuffer() + TextDecoder instead of text() to guarantee
-  // we get the exact bytes the sender transmitted (no normalization).
   let rawBody: string
   let rawBytes: ArrayBuffer
   try {
@@ -78,36 +72,29 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Step 3: Parse event minimally (just extract type + ID for logging)
-  let event: { type?: string; id?: string }
+  // Step 3: Parse event type for Pub/Sub attribute (minimal work)
+  let eventType = 'unknown'
   try {
-    event = JSON.parse(rawBody)
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
-  }
+    const parsed = JSON.parse(rawBody)
+    eventType = parsed.type || 'unknown'
+  } catch { /* ignore — Pub/Sub will get raw bytes regardless */ }
 
-  // Step 4: Publish to Pub/Sub for async processing
-  try {
-    const topic = getPubSub().topic('roam-events')
-    await topic.publishMessage({
+  // Step 4: Fire-and-forget Pub/Sub publish — DO NOT AWAIT.
+  // Cloud Run keeps the instance alive after response, so the promise completes.
+  getPubSub()
+    .topic('roam-events')
+    .publishMessage({
       data: Buffer.from(rawBytes),
       attributes: {
-        eventType: event.type || 'unknown',
+        eventType,
         webhookId,
         receivedAt: new Date().toISOString(),
       },
     })
-  } catch (pubsubErr) {
-    // If Pub/Sub fails, log but still ACK to ROAM (to prevent retry storm)
-    // The event is lost, but better than ROAM blacklisting our webhook
-    console.error('[ROAM Webhook] Pub/Sub publish failed:', pubsubErr)
-  }
+    .catch((err: unknown) => {
+      console.error('[ROAM Webhook] Pub/Sub publish failed:', err)
+    })
 
-  const elapsed = Date.now() - startMs
-  if (elapsed > 200) {
-    console.warn(`[ROAM Webhook] Slow ACK: ${elapsed}ms (target <250ms)`)
-  }
-
-  // Step 5: Fast ACK
+  // Step 5: Fast ACK — return BEFORE Pub/Sub completes
   return NextResponse.json({ ok: true }, { status: 200 })
 }
