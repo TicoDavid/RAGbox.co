@@ -131,9 +131,14 @@ export function MercuryVoicePanel() {
       disableVAD()
       disconnect()
     } else {
-      await connect()
-      // Auto-enable VAD after connection
-      setTimeout(() => enableVAD(), 500)
+      try {
+        await connect()
+        // Auto-enable VAD after connection
+        setTimeout(() => enableVAD(), 500)
+      } catch {
+        // connect() rejected — voice server unreachable.
+        // State is reset to 'error' inside the hook.
+      }
     }
   }
 

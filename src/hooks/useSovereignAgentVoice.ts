@@ -447,8 +447,14 @@ export function useSovereignAgentVoice(
   const reconnectRef = useRef<NodeJS.Timeout | null>(null)
   const transcriptIdRef = useRef(0)
   const audioLevelIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  // Mirror isVADActive into a ref so the WebSocket onmessage closure
+  // always reads the current value instead of a stale capture.
+  const isVADActiveRef = useRef(false)
   const vadSpeakingRef = useRef(false)
   const ttsSampleRateRef = useRef(sampleRate) // Server may override via config message
+
+  // Keep the ref in sync with state so closures always read the latest value
+  isVADActiveRef.current = isVADActive
 
   // Derived state
   const isConnected = !['disconnected', 'error'].includes(state)
@@ -539,25 +545,33 @@ export function useSovereignAgentVoice(
     ws.binaryType = 'arraybuffer'
 
     // Wait for WebSocket to actually open before resolving
-    await new Promise<void>((resolve, reject) => {
-      ws.onopen = () => {
-        setState('idle')
-        setTranscript(prev => [...prev, {
-          id: genId(),
-          type: 'system',
-          text: 'Mercury Voice connected. Say something to begin.',
-          isFinal: true,
-          timestamp: Date.now(),
-        }])
-        resolve()
-      }
+    try {
+      await new Promise<void>((resolve, reject) => {
+        ws.onopen = () => {
+          setState('idle')
+          setTranscript(prev => [...prev, {
+            id: genId(),
+            type: 'system',
+            text: 'Mercury Voice connected. Say something to begin.',
+            isFinal: true,
+            timestamp: Date.now(),
+          }])
+          resolve()
+        }
 
-      const rejectOnce = () => {
-        reject(new Error('WebSocket failed to connect'))
-      }
-      ws.onerror = rejectOnce
-      ws.onclose = rejectOnce
-    })
+        const rejectOnce = () => {
+          reject(new Error('WebSocket failed to connect'))
+        }
+        ws.onerror = rejectOnce
+        ws.onclose = rejectOnce
+      })
+    } catch (err) {
+      // WebSocket failed to open — reset state so the UI doesn't stick on "Connecting"
+      wsRef.current = null
+      setState('error')
+      onError?.(err instanceof Error ? err : new Error('WebSocket failed to connect'))
+      throw err // re-throw so callers (enableVAD, handlePowerToggle) know it failed
+    }
 
     ws.onmessage = async (event) => {
       // Binary = TTS audio
@@ -572,11 +586,11 @@ export function useSovereignAgentVoice(
         switch (msg.type) {
           case 'state':
             // Only update state if not in VAD mode or if it's a terminal state
-            if (!isVADActive || ['speaking', 'processing', 'executing'].includes(msg.state)) {
+            if (!isVADActiveRef.current || ['speaking', 'processing', 'executing'].includes(msg.state)) {
               setState(msg.state as AgentVoiceState)
             }
             // When agent finishes speaking in VAD mode, go back to idle
-            if (isVADActive && msg.state === 'idle') {
+            if (isVADActiveRef.current && msg.state === 'idle') {
               setState('idle')
             }
             break
@@ -633,7 +647,7 @@ export function useSovereignAgentVoice(
               }))
             }
             // After agent responds, go back to idle in VAD mode
-            if (isVADActive) {
+            if (isVADActiveRef.current) {
               setTimeout(() => setState('idle'), 500)
             }
             break
@@ -721,7 +735,7 @@ export function useSovereignAgentVoice(
         reconnectRef.current = setTimeout(connect, 3000)
       }
     }
-  }, [wsUrl, userId, role, privMode, sampleRate, autoReconnect, handleUIAction, handleVADStateChange, isVADActive, onToolCall, onToolResult, onError])
+  }, [wsUrl, userId, role, privMode, sampleRate, autoReconnect, handleUIAction, handleVADStateChange, onToolCall, onToolResult, onError])
 
   // Disconnect
   const disconnect = useCallback(() => {

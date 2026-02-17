@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useCallback } from 'react'
+import React, { useEffect, useCallback, useRef } from 'react'
 import { ContextBar } from './ContextBar'
 import { ConversationThread } from './ConversationThread'
 import { InputBar } from './InputBar'
@@ -137,28 +137,71 @@ export function MercuryPanel() {
   }, [handleVoiceQuery, handleVoiceResponse])
 
   // Poll for new messages from other channels (WhatsApp, voice from other devices)
+  // Uses a ref-based guard to prevent concurrent polls and a stable cursor
+  // to avoid re-fetching messages we already have.
+  const pollingRef = useRef(false)
+  const lastPollCursorRef = useRef<string | null>(null)
+
   useEffect(() => {
     if (!threadId) return
 
-    const poll = async () => {
-      try {
-        const lastMsg = useMercuryStore.getState().messages
-        const lastTimestamp = lastMsg.length > 0
-          ? lastMsg[lastMsg.length - 1].timestamp.toISOString()
-          : new Date(Date.now() - 86400000).toISOString() // 24h ago
+    // Reset cursor when threadId changes
+    lastPollCursorRef.current = null
 
-        const res = await fetch(`/api/mercury/thread/messages?threadId=${threadId}&after=${encodeURIComponent(lastTimestamp)}&limit=20`)
+    const poll = async () => {
+      // Guard: skip if a previous poll is still in-flight
+      if (pollingRef.current) return
+      pollingRef.current = true
+
+      try {
+        const currentMessages = useMercuryStore.getState().messages
+
+        // Use the latest server-originated message's createdAt as cursor,
+        // or fall back to the last message timestamp, or 24h ago.
+        let after = lastPollCursorRef.current
+        if (!after) {
+          after = currentMessages.length > 0
+            ? currentMessages[currentMessages.length - 1].timestamp.toISOString()
+            : new Date(Date.now() - 86400000).toISOString()
+        }
+
+        const res = await fetch(
+          `/api/mercury/thread/messages?threadId=${threadId}&after=${encodeURIComponent(after)}&limit=20`
+        )
         if (!res.ok) return
 
         const data = await res.json()
-        const newMessages = data.data?.messages || []
+        const newMessages: Array<{
+          id: string; role: string; channel: string; content: string;
+          confidence?: number; citations?: unknown; metadata?: Record<string, unknown>;
+          createdAt: string
+        }> = data.data?.messages || []
+
         if (newMessages.length === 0) return
 
-        // Only inject messages we don't already have (by id)
-        const existingIds = new Set(useMercuryStore.getState().messages.map((m: ChatMessage) => m.id))
+        // Advance the cursor to the latest server message's createdAt
+        // so the next poll only fetches newer messages
+        const latestCreatedAt = newMessages[newMessages.length - 1].createdAt
+        lastPollCursorRef.current = latestCreatedAt
+
+        // Deduplicate by both ID and content+timestamp to catch locally-
+        // created messages that were persisted with a different server ID
+        const existing = useMercuryStore.getState().messages
+        const existingIds = new Set(existing.map((m: ChatMessage) => m.id))
+        const existingContentKeys = new Set(
+          existing.map((m: ChatMessage) => `${m.role}:${m.content.slice(0, 80)}`)
+        )
+
         const toAdd = newMessages
-          .filter((m: { id: string }) => !existingIds.has(m.id))
-          .map((m: { id: string; role: string; channel: string; content: string; confidence?: number; citations?: unknown; metadata?: Record<string, unknown>; createdAt: string }) => ({
+          .filter((m) => {
+            if (existingIds.has(m.id)) return false
+            // Skip if we already have a message with the same role+content prefix
+            // (catches fire-and-forget persisted messages with different IDs)
+            const contentKey = `${m.role}:${m.content.slice(0, 80)}`
+            if (existingContentKeys.has(contentKey)) return false
+            return true
+          })
+          .map((m) => ({
             id: m.id,
             role: m.role as 'user' | 'assistant',
             content: m.content,
@@ -176,6 +219,8 @@ export function MercuryPanel() {
         }
       } catch {
         // Silent fail — polling is best-effort
+      } finally {
+        pollingRef.current = false
       }
     }
 
