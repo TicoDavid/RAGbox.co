@@ -176,6 +176,12 @@ steps:
             -H "Content-Type: application/json" \
             -H "x-internal-auth: $$INTERNAL_SECRET")
           echo "Migration result: $$RESULT"
+
+          echo "Triggering reindex for pending documents..."
+          REINDEX=$(curl -s -X POST "$$SERVICE_URL/api/admin/reindex" \
+            -H "Content-Type: application/json" \
+            -H "x-internal-auth: $$INTERNAL_SECRET")
+          echo "Reindex result: $$REINDEX"
         else
           echo "WARNING: No internal auth secret found, skipping migrations"
         fi
