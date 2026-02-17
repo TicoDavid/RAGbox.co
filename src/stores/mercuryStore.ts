@@ -4,6 +4,7 @@ import type { ChatMessage, Citation, TemperaturePreset, MercuryChannel } from '@
 import { apiFetch } from '@/lib/api'
 import { detectToolIntent } from '@/lib/mercury/toolRouter'
 import { executeTool, type ToolResult } from '@/lib/mercury/toolExecutor'
+import { toCitationBlocks } from '@/lib/citations/transform'
 
 // Ad-Hoc Attachment (Session-only, not persisted to Vault)
 export interface SessionAttachment {
@@ -309,6 +310,21 @@ export const useMercuryStore = create<MercuryState>()(
           }
         }
 
+        // Build structured citation blocks from raw citations
+        const blocks = citations && citations.length > 0
+          ? toCitationBlocks(
+              citations.map((c, i) => ({
+                citationIndex: c.citationIndex ?? i,
+                documentId: c.documentId ?? '',
+                documentName: c.documentName ?? 'Document',
+                excerpt: c.excerpt ?? '',
+                relevanceScore: c.relevanceScore ?? 0,
+              })),
+              inputValue,
+              fullContent
+            )
+          : undefined
+
         const assistantMessage: ChatMessage = {
           id: `msg-${Date.now()}`,
           role: 'assistant',
@@ -316,6 +332,7 @@ export const useMercuryStore = create<MercuryState>()(
           timestamp: new Date(),
           confidence,
           citations,
+          citationBlocks: blocks,
           channel: 'dashboard',
         }
 

@@ -121,6 +121,7 @@ export interface ChatMessage {
   timestamp: Date
   confidence?: number
   citations?: Citation[]
+  citationBlocks?: import('@/lib/citations/types').CitationBlock[]
   reasoningTrace?: ReasoningStep[]
   isError?: boolean
   channel?: MercuryChannel

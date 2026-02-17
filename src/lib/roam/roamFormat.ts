@@ -12,6 +12,8 @@
  */
 
 import type { Citation } from '@/types/ragbox'
+import type { CitationBlock } from '@/lib/citations/types'
+import { formatCitationBlocksForRoam } from '@/lib/citations/renderers/roam'
 
 const ROAM_MAX_CHARS = 4000
 const TRUNCATION_MARKER = '\n\n[…response truncated]'
@@ -89,6 +91,33 @@ export function formatErrorForRoam(errorCode?: string): string {
     errorCode ? `Error: ${errorCode}` : '',
     'Please try again, or ask in the dashboard for more detail.',
   ].filter(Boolean).join('\n')
+}
+
+/**
+ * Format a Mercury RAG answer for ROAM using structured CitationBlocks.
+ * Backward compatible — falls back to formatForRoam() if no blocks provided.
+ */
+export function formatWithCitationBlocks(
+  answer: string,
+  blocks: CitationBlock[],
+  options: FormatOptions = {}
+): string {
+  const { confidence } = options
+
+  let text = stripMarkdown(answer)
+
+  // Append structured citation blocks
+  if (blocks.length > 0) {
+    const citationSection = formatCitationBlocksForRoam(blocks)
+    text = `${text}\n\n${citationSection}`
+  }
+
+  // Low-confidence warning
+  if (confidence !== undefined && confidence < 0.75) {
+    text = `${text}\n\n⚠ Confidence: ${Math.round(confidence * 100)}% — verify against source documents.`
+  }
+
+  return enforceCharLimit(text)
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────

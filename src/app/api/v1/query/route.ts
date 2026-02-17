@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { authenticateApiKey, hasScope } from '@/lib/api/apiKeyMiddleware'
 import { parseSSEText } from '@/lib/mercury/sseParser'
 import { writeAuditEntry } from '@/lib/audit/auditWriter'
+import { toCitationBlocks } from '@/lib/citations/transform'
 
 const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
@@ -92,6 +93,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       excerpt: c.excerpt,
     }))
 
+    // Build structured citation blocks
+    const citationBlocks = toCitationBlocks(
+      parsed.citations.map((c, i) => ({
+        citationIndex: c.index ?? i,
+        documentId: c.documentId,
+        documentName: c.documentName || 'Document',
+        excerpt: c.excerpt,
+        relevanceScore: parsed.confidence ?? 0,
+      })),
+      body.query,
+      parsed.text
+    )
+
     await writeAuditEntry(auth.userId, 'query.response', auth.keyId, {
       query: body.query.slice(0, 200),
       confidence: parsed.confidence,
@@ -105,6 +119,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         answer: parsed.text,
         confidence: parsed.confidence ?? 0,
         citations,
+        citationBlocks,
         silenceProtocol: false,
       },
     })

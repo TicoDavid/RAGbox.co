@@ -63,7 +63,8 @@ type Dependencies struct {
 	PipelineSvc *service.PipelineService
 
 	// Ingest trigger
-	IngestDeps handler.IngestDeps
+	IngestDeps     handler.IngestDeps
+	IngestTextDeps handler.IngestTextDeps
 
 	// User auto-provisioning
 	UserEnsurer middleware.UserEnsurer
@@ -131,6 +132,7 @@ func New(deps *Dependencies) *chi.Mux {
 		r.With(timeout30s).Post("/api/documents/{id}/star", handler.ToggleStar(docCRUD))
 		// Ingest may take longer (pipeline processing)
 		r.With(middleware.Timeout(120 * time.Second)).Post("/api/documents/{id}/ingest", handler.IngestDocument(deps.IngestDeps))
+		r.With(middleware.Timeout(120 * time.Second)).Post("/api/documents/{id}/ingest-text", handler.IngestText(deps.IngestTextDeps))
 
 		// Folders
 		r.With(timeout30s).Get("/api/documents/folders", handler.ListFolders(folderDeps))

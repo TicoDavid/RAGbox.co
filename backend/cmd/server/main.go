@@ -291,6 +291,10 @@ func run() error {
 			DocRepo:  docRepo,
 			Pipeline: pipelineSvc,
 		},
+		IngestTextDeps: handler.IngestTextDeps{
+			DocRepo:  docRepo,
+			Pipeline: pipelineSvc,
+		},
 
 		UserEnsurer: userRepo,
 

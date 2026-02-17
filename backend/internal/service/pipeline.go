@@ -212,6 +212,93 @@ func (s *PipelineService) failDocument(ctx context.Context, docID, stage string,
 	_ = s.docRepo.UpdateText(ctx, docID, string(detailsJSON), 0)
 }
 
+// ProcessText runs a simplified ingestion pipeline for pre-extracted text.
+// Skips Document AI parsing and PII scan — used for webhook knowledge ingestion
+// where text content is already provided by the caller.
+func (s *PipelineService) ProcessText(ctx context.Context, docID string) error {
+	// Concurrency guard
+	processingMu.Lock()
+	if processing[docID] {
+		processingMu.Unlock()
+		return fmt.Errorf("document %s is already being processed", docID)
+	}
+	processing[docID] = true
+	processingMu.Unlock()
+
+	defer func() {
+		processingMu.Lock()
+		delete(processing, docID)
+		processingMu.Unlock()
+	}()
+
+	slog.Info("text pipeline starting", "document_id", docID)
+
+	doc, err := s.docRepo.GetByID(ctx, docID)
+	if err != nil {
+		slog.Error("text pipeline failed to get document", "document_id", docID, "error", err)
+		return fmt.Errorf("pipeline.ProcessText: get document: %w", err)
+	}
+
+	if doc.ExtractedText == nil || *doc.ExtractedText == "" {
+		s.failDocument(ctx, docID, "no_text", fmt.Errorf("extractedText is empty"))
+		return fmt.Errorf("pipeline.ProcessText: no extracted text for document %s", docID)
+	}
+
+	text := *doc.ExtractedText
+
+	// Mark as processing
+	if err := s.docRepo.UpdateStatus(ctx, docID, model.IndexProcessing); err != nil {
+		slog.Error("text pipeline failed to update status", "document_id", docID, "error", err)
+		return fmt.Errorf("pipeline.ProcessText: set processing: %w", err)
+	}
+
+	// Step 1: Compute and store SHA-256 checksum
+	hash := sha256.Sum256([]byte(text))
+	checksum := hex.EncodeToString(hash[:])
+	if err := s.docRepo.UpdateChecksum(ctx, docID, checksum); err != nil {
+		slog.Warn("text pipeline failed to store checksum", "document_id", docID, "error", err)
+	} else {
+		slog.Info("text pipeline checksum stored", "document_id", docID, "sha256", checksum[:16]+"...")
+	}
+
+	// Step 2: Chunk
+	slog.Info("text pipeline chunking", "document_id", docID, "chars", len(text))
+	chunks, err := s.chunker.Chunk(ctx, text, docID)
+	if err != nil {
+		slog.Error("text pipeline chunking failed", "document_id", docID, "error", err)
+		s.failDocument(ctx, docID, "chunk_failed", err)
+		return fmt.Errorf("pipeline.ProcessText: chunk: %w", err)
+	}
+	slog.Info("text pipeline chunks created", "document_id", docID, "chunk_count", len(chunks))
+
+	// Step 3: Embed and store vectors
+	slog.Info("text pipeline embedding", "document_id", docID, "chunk_count", len(chunks))
+	if err := s.embedder.EmbedAndStore(ctx, chunks); err != nil {
+		slog.Error("text pipeline embedding failed", "document_id", docID, "error", err)
+		s.failDocument(ctx, docID, "embed_failed", err)
+		return fmt.Errorf("pipeline.ProcessText: embed: %w", err)
+	}
+
+	// Step 4: Update status to Indexed
+	if err := s.docRepo.UpdateStatus(ctx, docID, model.IndexIndexed); err != nil {
+		slog.Error("text pipeline failed to set indexed", "document_id", docID, "error", err)
+		return fmt.Errorf("pipeline.ProcessText: set indexed: %w", err)
+	}
+	if err := s.docRepo.UpdateChunkCount(ctx, docID, len(chunks)); err != nil {
+		slog.Warn("text pipeline failed to update chunk count", "document_id", docID, "error", err)
+	}
+
+	// Step 5: Audit
+	if s.audit != nil {
+		if err := s.audit.Log(ctx, model.AuditDocumentUpload, doc.UserID, doc.ID, "document"); err != nil {
+			slog.Warn("text pipeline audit log failed", "document_id", docID, "error", err)
+		}
+	}
+
+	slog.Info("text pipeline completed", "document_id", docID, "chunk_count", len(chunks))
+	return nil
+}
+
 func ptrStr(s *string) string {
 	if s == nil {
 		return ""
