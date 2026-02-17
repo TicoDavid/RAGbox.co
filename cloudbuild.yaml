@@ -156,6 +156,9 @@ steps:
 
         echo "Service deployed at: $$SERVICE_URL"
 
+        # Cache for smoke-test step (which uses curl image without gcloud)
+        echo -n "$$SERVICE_URL" > /workspace/.service_url
+
         # Wait for service to be ready
         for i in 1 2 3 4 5 6 7 8 9 10; do
           if curl -sf "$$SERVICE_URL/" > /dev/null; then
@@ -168,6 +171,9 @@ steps:
 
         # Fetch internal auth secret
         INTERNAL_SECRET=$(gcloud secrets versions access latest --secret=ragbox-internal-auth-secret 2>/dev/null || echo "")
+
+        # Cache for smoke-test step
+        echo -n "$$INTERNAL_SECRET" > /workspace/.internal_secret
 
         # Run migrations via the admin endpoint (Cloud Run has VPC access to DB)
         if [ -n "$$INTERNAL_SECRET" ]; then
@@ -188,7 +194,31 @@ steps:
     waitFor: ['deploy']
 
   # ==============================================
-  # Step 10: Notify Success
+  # Step 10: API Smoke Test
+  # ==============================================
+  - id: 'smoke-test'
+    name: 'gcr.io/cloud-builders/curl'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        SERVICE_URL=$(cat /workspace/.service_url 2>/dev/null || echo "")
+        if [ -z "$$SERVICE_URL" ]; then
+          # Fallback: resolve from gcloud (requires gcloud image, so just use stored URL)
+          echo "WARNING: SERVICE_URL not cached — skipping smoke test"
+          exit 0
+        fi
+
+        INTERNAL_SECRET=$(cat /workspace/.internal_secret 2>/dev/null || echo "")
+        export SERVICE_URL INTERNAL_SECRET
+
+        echo "Running post-deploy smoke test against $$SERVICE_URL ..."
+        bash scripts/smoke-test.sh "$$SERVICE_URL" || true
+    waitFor: ['run-migrations']
+    allowFailure: true
+
+  # ==============================================
+  # Step 11: Notify Success
   # ==============================================
   - id: 'notify'
     name: 'gcr.io/cloud-builders/gcloud'
@@ -208,7 +238,7 @@ steps:
         echo "Image: ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE_NAME}:${SHORT_SHA}"
         echo "URL: $$SERVICE_URL"
         echo "==================================="
-    waitFor: ['run-migrations']
+    waitFor: ['smoke-test']
 
 # Images to push to Artifact Registry
 images:
