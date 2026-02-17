@@ -413,9 +413,9 @@ export function useSovereignAgentVoice(
 ): UseSovereignAgentVoiceReturn {
   const {
     wsUrl = process.env.NEXT_PUBLIC_VOICE_WS_URL
-      || (typeof window !== 'undefined'
-        ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.hostname}:3003/agent/ws`
-        : 'ws://localhost:3003/agent/ws'),
+      || (typeof window !== 'undefined' && window.location.hostname === 'localhost'
+        ? `ws://localhost:4000/agent/ws`
+        : 'wss://mercury-voice-4rvm4ohelq-uk.a.run.app/agent/ws'),
     userId = 'anonymous',
     role = 'User',
     privilegeMode = false,
