@@ -1,7 +1,8 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Search, FileText, Shield, Zap } from 'lucide-react'
+import { apiFetch } from '@/lib/api'
 
 const suggestions = [
   { icon: Search, text: 'Ask a question about your documents' },
@@ -10,17 +11,40 @@ const suggestions = [
   { icon: Zap, text: 'Generate a report from vault data' },
 ]
 
+interface PersonaInfo {
+  firstName: string
+  greeting: string | null
+}
+
 export function EmptyState() {
+  const [persona, setPersona] = useState<PersonaInfo | null>(null)
+
+  useEffect(() => {
+    apiFetch('/api/persona')
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data?.data?.persona) {
+          setPersona({
+            firstName: data.data.persona.firstName,
+            greeting: data.data.persona.greeting,
+          })
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  const displayName = persona?.firstName || 'M.E.R.C.U.R.Y.'
+  const greeting = persona?.greeting || 'Your AI knowledge assistant. Ask anything about your uploaded documents and get verified, cited answers.'
+
   return (
     <div className="flex-1 relative overflow-hidden flex items-center justify-center">
       {/* Watermark shows through — this overlay is semi-transparent */}
       <div className="relative z-10 text-center max-w-md px-6">
         <h2 className="text-lg font-semibold text-white/90 mb-2">
-          Welcome to M.E.R.C.U.R.Y.
+          Welcome to {displayName}
         </h2>
         <p className="text-sm text-slate-400 mb-6">
-          Your AI knowledge assistant. Ask anything about your uploaded documents
-          and get verified, cited answers.
+          {greeting}
         </p>
         <div className="space-y-2">
           {suggestions.map((s) => (

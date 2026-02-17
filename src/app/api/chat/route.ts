@@ -11,9 +11,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import { isToolError, createErrorResponse } from '@/lib/mercury/toolErrors'
 import { getCachedQuery, setCachedQuery } from '@/lib/cache/queryCache'
+import prisma from '@/lib/prisma'
 
 const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
+const DEFAULT_TENANT = 'default'
 
 export async function POST(request: NextRequest): Promise<NextResponse | Response> {
   try {
@@ -42,6 +44,23 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
         { success: false, error: 'Query is required' },
         { status: 400 }
       )
+    }
+
+    // Fetch persona for this tenant to inject identity context
+    let personaContext = ''
+    try {
+      const persona = await prisma.mercuryPersona.findUnique({
+        where: { tenantId: DEFAULT_TENANT },
+      })
+      if (persona) {
+        personaContext = [
+          `Your name is ${persona.firstName}${persona.lastName ? ` ${persona.lastName}` : ''}.`,
+          persona.title ? `Your title is ${persona.title}.` : '',
+          persona.personalityPrompt,
+        ].filter(Boolean).join(' ')
+      }
+    } catch {
+      // Non-fatal — proceed without persona context
     }
 
     // Check cache for non-streaming requests (or when explicitly not streaming)
@@ -77,6 +96,7 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
         privilegeMode: privilegeMode ?? false,
         history: history ?? [],
         maxTier: maxTier ?? 3,
+        ...(personaContext ? { systemPrompt: personaContext } : {}),
       }),
     })
 

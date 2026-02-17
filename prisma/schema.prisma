@@ -71,7 +71,39 @@ model Tenant {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  // Relations
+  persona   MercuryPersona?
+
   @@map("tenants")
+}
+
+// ============================================
+// Mercury Persona (Tenant-Scoped AI Assistant)
+// ============================================
+
+model MercuryPersona {
+  id                    String   @id @default(uuid())
+  tenantId              String   @unique @map("tenant_id")
+  firstName             String   @map("first_name")
+  lastName              String   @default("") @map("last_name")
+  title                 String?  @default("AI Assistant")
+  personalityPrompt     String   @map("personality_prompt") @db.Text
+  voiceId               String?  @map("voice_id")
+  avatarUrl             String?  @map("avatar_url")
+  greeting              String?
+  signatureBlock        String?  @map("signature_block") @db.Text
+  silenceHighThreshold  Float    @default(0.85) @map("silence_high_threshold")
+  silenceMedThreshold   Float    @default(0.70) @map("silence_med_threshold")
+  channelConfig         Json     @default("{}") @map("channel_config")
+  isActive              Boolean  @default(true) @map("is_active")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@map("mercury_personas")
 }
 
 // ============================================
