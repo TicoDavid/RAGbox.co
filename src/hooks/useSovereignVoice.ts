@@ -1,8 +1,9 @@
 /**
- * @deprecated This hook implements the Gemini Live voice session approach and
- * is no longer the canonical voice implementation. Use `useVoiceChat` from
- * `src/app/dashboard/hooks/useVoiceChat.ts` instead, which provides the
- * Deepgram-based continuous-listening model used in the dashboard.
+ * useSovereignVoice — Lightweight voice-to-text hook for inline input
+ *
+ * Uses Web Speech API for push-to-talk transcription in the InputBar.
+ * For full voice chat with TTS, see `useVoiceChat` in
+ * `src/app/dashboard/hooks/useVoiceChat.ts`.
  */
 'use client'
 

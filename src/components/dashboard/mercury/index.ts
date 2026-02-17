@@ -3,7 +3,6 @@
  */
 
 export { VoiceTrigger } from './VoiceTrigger'
-export { VoicePanel } from './VoicePanel'
 export { AgentDriverPanel } from './AgentDriverPanel'
 
 // Re-export types
