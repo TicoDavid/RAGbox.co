@@ -4,7 +4,7 @@ INSERT INTO mercury_personas (
     silence_high_threshold, silence_med_threshold, channel_config,
     greeting, signature_block, email_enabled, is_active, created_at, updated_at
 ) VALUES (
-    'evelyn-monroe-001',
+    'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
     '105836695160618550214',
     'Evelyn',
     'Monroe',
