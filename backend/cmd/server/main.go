@@ -69,12 +69,13 @@ func run() error {
 	defer genAI.Close()
 	slog.Info("vertex ai genai client initialized")
 
-	// Validate Vertex AI connection at startup
+	// Validate Vertex AI connection at startup (non-fatal — 429 rate limits are transient)
 	slog.Info("validating vertex ai connection")
 	if err := genAI.HealthCheck(ctx); err != nil {
-		return fmt.Errorf("vertex AI health check failed: %w", err)
+		slog.Warn("vertex ai health check failed (non-fatal, will retry on first request)", "error", err)
+	} else {
+		slog.Info("vertex ai connection validated")
 	}
-	slog.Info("vertex ai connection validated")
 
 	// Vertex AI embedding model (REST API with default credentials)
 	// Embeddings use a regional endpoint (text-embedding-004 is not on global)
@@ -84,12 +85,13 @@ func run() error {
 	}
 	slog.Info("vertex ai embedding client initialized")
 
-	// Validate embedding connection at startup
+	// Validate embedding connection at startup (non-fatal — 429 rate limits are transient)
 	slog.Info("validating vertex ai embeddings connection")
 	if err := embeddingAdapter.HealthCheck(ctx); err != nil {
-		return fmt.Errorf("embedding health check failed: %w", err)
+		slog.Warn("embedding health check failed (non-fatal, will retry on first request)", "error", err)
+	} else {
+		slog.Info("vertex ai embeddings connection validated")
 	}
-	slog.Info("vertex ai embeddings connection validated")
 
 	// Document AI for text extraction
 	var docAIAdapter *gcpclient.DocumentAIAdapter
