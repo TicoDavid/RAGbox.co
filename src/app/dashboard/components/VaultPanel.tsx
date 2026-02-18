@@ -236,6 +236,110 @@ const VaultPanel: React.FC<VaultPanelProps> = ({
 
         {/* Vault Items */}
         <div className="vault-items-container">
+          {/* Legal Starter Vault — Premium Card */}
+          <div
+            className="vault-module open legal-starter-vault"
+            onClick={() => {
+              const starter = vaults.find(v => v.name.toLowerCase().includes('legal') || v.name.toLowerCase().includes('starter'))
+              if (starter) onVaultClick(starter.id)
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label="Explore Legal Starter Vault — 8 sample documents, pre-configured for legal professionals"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                const starter = vaults.find(v => v.name.toLowerCase().includes('legal') || v.name.toLowerCase().includes('starter'))
+                if (starter) onVaultClick(starter.id)
+              }
+            }}
+            style={{ position: 'relative', overflow: 'hidden' }}
+          >
+            {/* Gold "LEGAL" badge */}
+            <div style={{
+              position: 'absolute',
+              top: '8px',
+              right: '8px',
+              padding: '2px 8px',
+              borderRadius: '6px',
+              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+              color: '#000',
+              fontSize: '10px',
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              zIndex: 2,
+            }}>
+              LEGAL
+            </div>
+
+            {/* Shield icon as status indicator */}
+            <div className="vault-status-indicator">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"
+                  stroke="#f59e0b"
+                  strokeWidth="1.5"
+                  fill="none"
+                />
+                <path
+                  d="M9 12l2 2 4-4"
+                  stroke="#f59e0b"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+
+            {/* Vault info */}
+            <div className="vault-module-info">
+              <div className="vault-module-name" style={{ color: '#f5f5f5' }}>Legal Starter Vault</div>
+              <div className="vault-module-meta">
+                <span style={{ color: '#94a3b8', fontSize: '11px' }}>
+                  Pre-configured for legal professionals. 8 sample documents included.
+                </span>
+              </div>
+              {/* Prompt suggestion chips */}
+              <div style={{
+                display: 'flex',
+                gap: '6px',
+                marginTop: '8px',
+                overflowX: 'auto',
+                paddingBottom: '4px',
+                scrollbarWidth: 'none',
+              }}>
+                {[
+                  'Termination conditions',
+                  'Payment terms',
+                  'Governing jurisdiction',
+                  'Indemnification clauses',
+                  'Confidentiality obligations',
+                ].map((prompt) => (
+                  <span
+                    key={prompt}
+                    style={{
+                      whiteSpace: 'nowrap',
+                      padding: '3px 10px',
+                      borderRadius: '999px',
+                      background: 'rgba(245, 158, 11, 0.1)',
+                      border: '1px solid rgba(245, 158, 11, 0.2)',
+                      color: '#d4a041',
+                      fontSize: '10px',
+                      fontWeight: 500,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {prompt}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Metallic highlight */}
+            <div className="vault-module-shine" aria-hidden="true" />
+          </div>
+
           {vaults.map(vault => (
             <div
               key={vault.id}

@@ -5,21 +5,18 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { useTheme } from 'next-themes'
-import { Box, Scale, Settings, Sun, Moon, User } from 'lucide-react'
+import { Box, Scale, Settings, Sun, Moon, User, UserCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { apiFetch } from '@/lib/api'
 
 interface NavItem {
   icon: React.ReactNode
   label: string
+  subtitle?: string
   id: string
   href: string
+  statusDot?: boolean
 }
-
-const navItems: NavItem[] = [
-  { icon: <Box className="w-5 h-5" strokeWidth={2.5} />, label: 'The Box', id: 'box', href: '/dashboard' },
-  { icon: <Scale className="w-5 h-5" strokeWidth={2.5} />, label: 'Truth & Audit', id: 'audit', href: '/dashboard/audit' },
-  { icon: <Settings className="w-5 h-5" strokeWidth={2.5} />, label: 'Settings', id: 'settings', href: '/dashboard/settings' },
-]
 
 /**
  * Sidebar Component - Left Navigation
@@ -27,22 +24,62 @@ const navItems: NavItem[] = [
  * Features:
  * - RAGbox.co logo at top
  * - Vertical navigation with icons + labels
+ * - My Agent link with live persona name + status dot
  * - User profile pill with theme toggle at bottom
  */
 export function Sidebar() {
   const pathname = usePathname()
   const { setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
+  const [agentId, setAgentId] = useState<string | null>(null)
+  const [agentName, setAgentName] = useState<string>('My Agent')
+  const [agentActive, setAgentActive] = useState(false)
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
+  // Fetch persona for agent nav item
+  useEffect(() => {
+    async function loadPersona() {
+      try {
+        const res = await apiFetch('/api/persona')
+        if (res.ok) {
+          const data = await res.json()
+          const persona = data.data?.persona
+          if (persona?.id) {
+            setAgentId(persona.id)
+            setAgentName(`${persona.firstName}${persona.lastName ? ' ' + persona.lastName : ''}`)
+            setAgentActive(true)
+          }
+        }
+      } catch {
+        // Silent — nav still works without persona
+      }
+    }
+    loadPersona()
+  }, [])
+
   const isDark = resolvedTheme === 'dark'
+
+  const navItems: NavItem[] = [
+    { icon: <Box className="w-5 h-5" strokeWidth={2.5} />, label: 'The Box', id: 'box', href: '/dashboard' },
+    {
+      icon: <UserCircle className="w-5 h-5" strokeWidth={2.5} />,
+      label: 'My Agent',
+      subtitle: agentName,
+      id: 'agent',
+      href: agentId ? `/dashboard/agents/${agentId}` : '/dashboard/agents',
+      statusDot: agentActive,
+    },
+    { icon: <Scale className="w-5 h-5" strokeWidth={2.5} />, label: 'Truth & Audit', id: 'audit', href: '/dashboard/audit' },
+    { icon: <Settings className="w-5 h-5" strokeWidth={2.5} />, label: 'Settings', id: 'settings', href: '/dashboard/settings' },
+  ]
 
   // Determine active item based on current pathname
   const getActiveItem = () => {
     if (pathname === '/dashboard') return 'box'
+    if (pathname.startsWith('/dashboard/agents')) return 'agent'
     if (pathname.startsWith('/dashboard/audit')) return 'audit'
     if (pathname.startsWith('/dashboard/settings')) return 'settings'
     return 'box'
@@ -106,8 +143,20 @@ export function Sidebar() {
                       )
                 )}
               >
-                {item.icon}
-                <span className="font-bold">{item.label}</span>
+                <div className="relative">
+                  {item.icon}
+                  {item.statusDot && (
+                    <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[var(--bg-primary)] animate-pulse" />
+                  )}
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-bold">{item.label}</span>
+                  {item.subtitle && (
+                    <span className="text-xs dark:text-white/40 text-black/40 -mt-0.5">
+                      {item.subtitle}
+                    </span>
+                  )}
+                </div>
               </Link>
             </motion.li>
           ))}

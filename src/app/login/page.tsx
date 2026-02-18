@@ -1,18 +1,45 @@
-﻿'use client'
+'use client'
 
+import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Shield } from 'lucide-react'
+import { Shield, KeyRound } from 'lucide-react'
 import Link from 'next/link'
 import { signIn } from 'next-auth/react'
 import { cn } from '@/lib/utils'
 
 export default function LoginPage() {
+  const [betaCode, setBetaCode] = useState('')
+  const [codeError, setCodeError] = useState('')
+
+  const storeBetaCode = () => {
+    if (typeof window !== 'undefined' && betaCode.trim()) {
+      sessionStorage.setItem('ragbox_beta_code', betaCode.trim().toUpperCase())
+    }
+  }
+
   const handleGoogleAuth = () => {
+    if (!betaCode.trim()) {
+      setCodeError('Please enter your access code')
+      return
+    }
+    setCodeError('')
+    storeBetaCode()
     signIn('google', { callbackUrl: '/dashboard' })
   }
 
   const handleMicrosoftAuth = () => {
+    if (!betaCode.trim()) {
+      setCodeError('Please enter your access code')
+      return
+    }
+    setCodeError('')
+    storeBetaCode()
     signIn('azure-ad', { callbackUrl: '/dashboard' })
+  }
+
+  const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setBetaCode(e.target.value.toUpperCase())
+    if (codeError) setCodeError('')
   }
 
   return (
@@ -54,6 +81,50 @@ export default function LoginPage() {
         <motion.div className="text-center mb-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
           <h1 className="text-2xl font-bold text-white tracking-tight mb-2">Authenticate to Access Vault</h1>
           <p className="text-sm text-white/40">Your documents await. Verify your identity to proceed.</p>
+        </motion.div>
+
+        {/* Beta Access Code Entry */}
+        <motion.div
+          className="mb-6"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.55 }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <KeyRound className="w-4 h-4 text-electric-400" />
+            <h2 className="text-sm font-semibold text-white/80 tracking-wide">Enter Your Access Code</h2>
+          </div>
+          <input
+            type="text"
+            value={betaCode}
+            onChange={handleCodeChange}
+            placeholder="RBX-LEGAL-XXXXXX"
+            className={cn(
+              'w-full px-4 py-3.5 rounded-2xl bg-white/5 border text-white text-sm font-mono tracking-widest text-center',
+              'placeholder:text-white/20 placeholder:tracking-widest',
+              'focus:outline-none focus:ring-2 focus:ring-electric-500/50 focus:border-electric-500/50',
+              'transition-all duration-200',
+              codeError
+                ? 'border-red-500/50'
+                : 'border-white/10 hover:border-white/20'
+            )}
+            autoComplete="off"
+            spellCheck={false}
+          />
+          {codeError && (
+            <p className="text-xs text-red-400 mt-1.5 text-center">{codeError}</p>
+          )}
+          <p className="text-xs text-white/30 mt-2 text-center">
+            Don&apos;t have a code?{' '}
+            <a
+              href="https://ragbox.co"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-electric-400 hover:text-electric-300 underline underline-offset-2 transition-colors"
+            >
+              Apply at ragbox.co
+            </a>
+          </p>
         </motion.div>
 
         <motion.div className="space-y-3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
