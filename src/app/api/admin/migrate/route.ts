@@ -398,6 +398,45 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     await prisma.$executeRawUnsafe(`ALTER TYPE mercury_channel ADD VALUE IF NOT EXISTS 'email'`)
     results.push('mercury_channel email: OK')
 
+    // ========================================
+    // Phase BETA: Beta codes, subscription tier, waitlist expansion
+    // ========================================
+
+    // subscription_tier enum
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN CREATE TYPE "subscription_tier" AS ENUM ('starter', 'professional', 'enterprise'); EXCEPTION WHEN duplicate_object THEN NULL; END $$
+    `)
+    results.push('subscription_tier enum: OK')
+
+    // Add subscription_tier column to users
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN ALTER TABLE "users" ADD COLUMN "subscription_tier" "subscription_tier" NOT NULL DEFAULT 'professional'; EXCEPTION WHEN duplicate_column THEN NULL; END $$
+    `)
+    results.push('users.subscription_tier: OK')
+
+    // beta_codes table
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "beta_codes" (
+        "id" TEXT NOT NULL,
+        "code" TEXT NOT NULL,
+        "batch" INTEGER NOT NULL,
+        "used" BOOLEAN NOT NULL DEFAULT false,
+        "used_by" TEXT,
+        "used_at" TIMESTAMP(3),
+        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "beta_codes_pkey" PRIMARY KEY ("id")
+      )
+    `)
+    await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "beta_codes_code_key" ON "beta_codes"("code")`)
+    results.push('beta_codes: OK')
+
+    // Expand waitlist_entries with new columns
+    await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "waitlist_entries" ADD COLUMN "full_name" TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
+    await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "waitlist_entries" ADD COLUMN "company" TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
+    await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "waitlist_entries" ADD COLUMN "role" TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
+    await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "waitlist_entries" ADD COLUMN "company_size" TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
+    results.push('waitlist_entries expansion: OK')
+
     return NextResponse.json({ success: true, results })
   } catch (error) {
     return NextResponse.json({
