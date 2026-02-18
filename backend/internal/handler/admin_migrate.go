@@ -60,27 +60,35 @@ func AdminMigrate(deps AdminMigrateDeps) http.HandlerFunc {
 					slog.Info("granted full privileges to ragbox user")
 				}
 
-				// Also try ownership transfer for tables owned by postgres
-				ownershipFix := `
-					DO $$
-					DECLARE obj RECORD;
-					BEGIN
-						FOR obj IN SELECT tablename, tableowner FROM pg_tables WHERE schemaname = 'public' AND tableowner = 'postgres'
-						LOOP
-							EXECUTE format('ALTER TABLE %I OWNER TO ragbox', obj.tablename);
-						END LOOP;
-						FOR obj IN SELECT typname FROM pg_type t JOIN pg_namespace n ON t.typnamespace = n.oid
-							JOIN pg_roles r ON t.typowner = r.oid WHERE n.nspname = 'public' AND t.typtype = 'e' AND r.rolname = 'postgres'
-						LOOP
-							EXECUTE format('ALTER TYPE %I OWNER TO ragbox', obj.typname);
-						END LOOP;
-					END $$;
-				`
-				if _, err := adminPool.Exec(ctx, ownershipFix); err != nil {
-					slog.Warn("ownership transfer failed (non-fatal)", "error", err)
-				} else {
-					slog.Info("postgres-owned tables transferred to ragbox")
+				// Run migrations as postgres (owner of tables), then transfer ownership
+				runSQL = func(ctx context.Context, sql string) error {
+					_, err := adminPool.Exec(ctx, sql)
+					return err
 				}
+
+				// After migrations, transfer postgres-owned tables to ragbox
+				defer func() {
+					ownershipFix := `
+						DO $$
+						DECLARE obj RECORD;
+						BEGIN
+							FOR obj IN SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tableowner = 'postgres'
+							LOOP
+								EXECUTE format('ALTER TABLE %I OWNER TO ragbox', obj.tablename);
+							END LOOP;
+							FOR obj IN SELECT typname FROM pg_type t JOIN pg_namespace n ON t.typnamespace = n.oid
+								JOIN pg_roles r ON t.typowner = r.oid WHERE n.nspname = 'public' AND t.typtype = 'e' AND r.rolname = 'postgres'
+							LOOP
+								EXECUTE format('ALTER TYPE %I OWNER TO ragbox', obj.typname);
+							END LOOP;
+						END $$;
+					`
+					if _, err := adminPool.Exec(ctx, ownershipFix); err != nil {
+						slog.Warn("ownership transfer failed (non-fatal)", "error", err)
+					} else {
+						slog.Info("postgres-owned tables/enums transferred to ragbox")
+					}
+				}()
 			}
 			// Migrations still run as ragbox (deps.RunSQL) — now with proper ownership
 		}
