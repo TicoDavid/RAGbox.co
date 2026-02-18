@@ -11,6 +11,27 @@
  */
 
 const { PrismaClient } = require('@prisma/client');
+const { KeyManagementServiceClient } = require('@google-cloud/kms');
+
+const kmsClient = new KeyManagementServiceClient();
+const keyName = kmsClient.cryptoKeyPath(
+  'ragbox-sovereign-prod',
+  'us-east4',
+  'ragbox-prod-keyring',
+  'secrets-key'
+);
+
+function isEncrypted(token) {
+  return token.startsWith('Ci') && token.length > 200;
+}
+
+async function decryptToken(ciphertext) {
+  const [result] = await kmsClient.decrypt({
+    name: keyName,
+    ciphertext: Buffer.from(ciphertext, 'base64'),
+  });
+  return Buffer.from(result.plaintext).toString('utf-8');
+}
 
 async function main() {
   const prisma = new PrismaClient();
@@ -27,13 +48,19 @@ async function main() {
 
     for (const cred of credentials) {
       try {
+        // Decrypt token if KMS-encrypted (backward compatible with plaintext)
+        let refreshToken = cred.refreshToken;
+        if (isEncrypted(refreshToken)) {
+          refreshToken = await decryptToken(refreshToken);
+        }
+
         const response = await fetch('https://oauth2.googleapis.com/token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: new URLSearchParams({
             client_id: process.env.GOOGLE_CLIENT_ID,
             client_secret: process.env.GOOGLE_CLIENT_SECRET,
-            refresh_token: cred.refreshToken,
+            refresh_token: refreshToken,
             grant_type: 'refresh_token',
           }),
         });

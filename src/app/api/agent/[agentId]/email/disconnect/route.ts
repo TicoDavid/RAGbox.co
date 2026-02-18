@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { decryptToken, isEncrypted } from '@/lib/gmail/crypto'
 
 export async function DELETE(
   _request: NextRequest,
@@ -23,10 +24,16 @@ export async function DELETE(
       return NextResponse.json({ error: 'No credential found' }, { status: 404 })
     }
 
+    // Decrypt token for revocation (backward compatible with plaintext)
+    let revokeToken = credential.refreshToken
+    if (isEncrypted(revokeToken)) {
+      revokeToken = await decryptToken(revokeToken)
+    }
+
     // Revoke the refresh token at Google
     try {
       await fetch(
-        `https://oauth2.googleapis.com/revoke?token=${credential.refreshToken}`,
+        `https://oauth2.googleapis.com/revoke?token=${revokeToken}`,
         { method: 'POST' }
       )
     } catch {
