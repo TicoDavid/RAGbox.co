@@ -288,6 +288,8 @@ model Citation {
 
 // ============================================
 // Audit Log
+// DEPRECATED — do not write new entries here.
+// Use AuditEntry (Go backend) for all new audit writes.
 // ============================================
 
 model AuditLog {
@@ -677,8 +679,10 @@ model AuditEntry {
   userId       String   @map("user_id")
   action       String   // document.upload | document.delete | document.classify | query.search | query.response | privilege.grant | privilege.revoke | export.compliance
   resourceId   String?  @map("resource_id")
+  severity     String   @default("INFO")
   details      Json?
   ipAddress    String?  @map("ip_address")
+  userAgent    String?  @map("user_agent")
   previousHash String?  @map("previous_hash")
   entryHash    String   @map("entry_hash") // SHA-256 of (previousHash + action + resourceId + details + timestamp)
   createdAt    DateTime @default(now()) @map("created_at")

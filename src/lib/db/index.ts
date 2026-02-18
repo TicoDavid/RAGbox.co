@@ -34,8 +34,10 @@ export interface CreateAuditLogInput {
 
 /**
  * Create an audit log entry via Prisma
+ * @deprecated AuditLog is frozen. Route new audit writes to Go backend (AuditEntry).
  */
 export async function createAuditLog(input: CreateAuditLogInput): Promise<AuditLogEntry> {
+  console.warn('DEPRECATED: AuditLog is frozen. Route new audit writes to Go backend AuditEntry.')
   try {
     const entry = await prisma.auditLog.create({
       data: {
