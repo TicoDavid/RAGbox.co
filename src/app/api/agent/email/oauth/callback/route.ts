@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { encryptToken } from '@/lib/gmail/crypto'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const { searchParams } = new URL(request.url)
@@ -56,6 +57,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       )
     }
 
+    // Encrypt the refresh token before storage
+    const encryptedRefreshToken = await encryptToken(refreshToken)
+
     // Get user's email address from Google
     const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -80,14 +84,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         agentId: state,
         emailAddress: email,
         provider: 'google',
-        refreshToken,
+        refreshToken: encryptedRefreshToken,
         scopes: scope,
         isActive: true,
         lastRefreshed: new Date(),
       },
       update: {
         emailAddress: email,
-        refreshToken,
+        refreshToken: encryptedRefreshToken,
         scopes: scope,
         isActive: true,
         errorCount: 0,

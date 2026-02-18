@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma'
+import { decryptToken, isEncrypted } from './crypto'
 
 export class GmailAuthError extends Error {
   constructor(message: string, public agentId: string) {
@@ -20,6 +21,12 @@ export async function getValidAccessToken(agentId: string): Promise<string> {
     throw new GmailAuthError('Email credential is disabled', agentId)
   }
 
+  // Decrypt refresh token if encrypted (backward compatible with plaintext)
+  let refreshToken = credential.refreshToken
+  if (isEncrypted(refreshToken)) {
+    refreshToken = await decryptToken(refreshToken)
+  }
+
   // Refresh the access token using the stored refresh token
   const response = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
@@ -27,7 +34,7 @@ export async function getValidAccessToken(agentId: string): Promise<string> {
     body: new URLSearchParams({
       client_id: process.env.GOOGLE_CLIENT_ID!,
       client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-      refresh_token: credential.refreshToken,
+      refresh_token: refreshToken,
       grant_type: 'refresh_token',
     }),
   })
