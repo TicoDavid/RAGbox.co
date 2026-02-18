@@ -36,7 +36,7 @@ func AdminMigrate(deps AdminMigrateDeps) http.HandlerFunc {
 		runSQL := deps.RunSQL
 
 		// If ADMIN_DATABASE_URL is set, create a temporary admin pool for migrations
-		adminURL := os.Getenv("ADMIN_DATABASE_URL")
+		adminURL := strings.TrimSpace(os.Getenv("ADMIN_DATABASE_URL"))
 		if adminURL != "" {
 			slog.Info("using ADMIN_DATABASE_URL for migrations (postgres superuser)")
 			adminPool, err := pgxpool.New(ctx, adminURL)
