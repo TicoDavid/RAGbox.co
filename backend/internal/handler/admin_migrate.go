@@ -46,51 +46,43 @@ func AdminMigrate(deps AdminMigrateDeps) http.HandlerFunc {
 			} else {
 				defer adminPool.Close()
 
-				// Grant ragbox full privileges on all tables, sequences, and types
-				grantSQL := `
-					GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO ragbox;
-					GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO ragbox;
-					GRANT USAGE, CREATE ON SCHEMA public TO ragbox;
-					ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO ragbox;
-					ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO ragbox;
-				`
-				if _, err := adminPool.Exec(ctx, grantSQL); err != nil {
-					slog.Warn("grant privileges failed", "error", err)
+				// Grant cross-role membership so postgres can modify ragbox-owned tables
+				if _, err := adminPool.Exec(ctx, "GRANT ragbox TO postgres"); err != nil {
+					slog.Warn("grant ragbox to postgres failed", "error", err)
 				} else {
-					slog.Info("granted full privileges to ragbox user")
+					slog.Info("granted ragbox role to postgres")
 				}
 
-				// Run migrations as postgres (owner of tables), then transfer ownership
+				// Run migrations as postgres (now a member of ragbox, can ALTER all tables)
 				runSQL = func(ctx context.Context, sql string) error {
 					_, err := adminPool.Exec(ctx, sql)
 					return err
 				}
 
-				// After migrations, transfer postgres-owned tables to ragbox
+				// After migrations, transfer all non-ragbox tables to ragbox
 				defer func() {
-					ownershipFix := `
+					transferSQL := `
 						DO $$
 						DECLARE obj RECORD;
 						BEGIN
-							FOR obj IN SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tableowner = 'postgres'
+							FOR obj IN SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tableowner != 'ragbox'
 							LOOP
 								EXECUTE format('ALTER TABLE %I OWNER TO ragbox', obj.tablename);
 							END LOOP;
 							FOR obj IN SELECT typname FROM pg_type t JOIN pg_namespace n ON t.typnamespace = n.oid
-								JOIN pg_roles r ON t.typowner = r.oid WHERE n.nspname = 'public' AND t.typtype = 'e' AND r.rolname = 'postgres'
+								JOIN pg_roles r ON t.typowner = r.oid WHERE n.nspname = 'public' AND t.typtype = 'e' AND r.rolname != 'ragbox'
 							LOOP
 								EXECUTE format('ALTER TYPE %I OWNER TO ragbox', obj.typname);
 							END LOOP;
 						END $$;
 					`
-					if _, err := adminPool.Exec(ctx, ownershipFix); err != nil {
+					if _, err := adminPool.Exec(ctx, transferSQL); err != nil {
 						slog.Warn("ownership transfer failed (non-fatal)", "error", err)
 					} else {
-						slog.Info("postgres-owned tables/enums transferred to ragbox")
+						slog.Info("all table ownership transferred to ragbox")
 					}
 				}()
 			}
-			// Migrations still run as ragbox (deps.RunSQL) — now with proper ownership
 		}
 
 		migrationsDir := deps.MigrationsDir
