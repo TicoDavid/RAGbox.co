@@ -15,12 +15,13 @@ const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
 const GCP_PROJECT = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCP_PROJECT || 'ragbox-sovereign-prod'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  // Auth: Bearer token from Cloud Scheduler OR x-internal-auth
+  // Auth: x-cron-secret header, Bearer token, OR x-internal-auth
+  const cronHeader = request.headers.get('x-cron-secret') || ''
   const authHeader = request.headers.get('authorization') || ''
   const bearerToken = authHeader.replace('Bearer ', '')
   const internalAuth = request.headers.get('x-internal-auth') || ''
 
-  const cronValid = CRON_SECRET && bearerToken === CRON_SECRET
+  const cronValid = CRON_SECRET && (cronHeader === CRON_SECRET || bearerToken === CRON_SECRET)
   const internalValid = INTERNAL_AUTH_SECRET && internalAuth === INTERNAL_AUTH_SECRET
 
   if (!cronValid && !internalValid) {
