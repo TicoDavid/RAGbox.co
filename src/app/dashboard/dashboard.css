@@ -950,6 +950,31 @@
     }
 }
 
+/* Legal Starter Vault — Premium Gold Accent */
+.vault-module.legal-starter-vault {
+    border-color: rgba(245, 158, 11, 0.3);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(15, 23, 42, 0.95) 60%);
+    box-shadow:
+        inset 0 1px 0 rgba(245, 158, 11, 0.08),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+        0 0 12px rgba(245, 158, 11, 0.15),
+        0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.vault-module.legal-starter-vault:hover {
+    border-color: rgba(245, 158, 11, 0.5);
+    box-shadow:
+        inset 0 1px 0 rgba(245, 158, 11, 0.12),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+        0 0 20px rgba(245, 158, 11, 0.25),
+        0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.vault-module.legal-starter-vault .vault-module-name {
+    color: #fafafa;
+    font-weight: 700;
+}
+
 /* Drag Target State */
 .vault-module.drag-target {
     border-color: #FFAB00;
