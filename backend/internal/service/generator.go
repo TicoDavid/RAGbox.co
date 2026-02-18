@@ -139,24 +139,28 @@ func (s *GeneratorService) buildDynamicPrompt(persona *model.MercuryPersona, str
 
 	// Layer 2: Dynamic persona (replaces static mercury_identity.txt)
 	sb.WriteString("\n\n=== ACTIVE PERSONA ===\n")
-	sb.WriteString(fmt.Sprintf("You are %s, %s at %s.\n\n", persona.Name, persona.Title, persona.Organization))
+	title := "AI Assistant"
+	if persona.Title != nil {
+		title = *persona.Title
+	}
+	sb.WriteString(fmt.Sprintf("You are %s, %s.\n\n", persona.FullName(), title))
 	sb.WriteString("PERSONALITY & COMMUNICATION STYLE:\n")
-	sb.WriteString(persona.Personality)
+	sb.WriteString(persona.PersonalityPrompt)
 	sb.WriteString("\n\n")
 	sb.WriteString(fmt.Sprintf("SILENCE PROTOCOL THRESHOLD: %.2f — If your confidence in an answer is below this threshold, "+
-		"decline to answer rather than speculate. Say you need to check the vault.\n", persona.SilenceThreshold))
+		"decline to answer rather than speculate. Say you need to check the vault.\n", persona.SilenceHighThreshold))
 
 	// Channel rules
-	if len(persona.Channels) > 0 && string(persona.Channels) != "{}" && string(persona.Channels) != "null" {
+	if len(persona.ChannelConfig) > 0 && string(persona.ChannelConfig) != "{}" && string(persona.ChannelConfig) != "null" {
 		sb.WriteString("\nCHANNEL-SPECIFIC RULES:\n")
-		sb.WriteString(string(persona.Channels))
+		sb.WriteString(string(persona.ChannelConfig))
 		sb.WriteString("\n")
 	}
 
 	// Email signature
-	if persona.EmailSignature != nil && *persona.EmailSignature != "" {
+	if persona.SignatureBlock != nil && *persona.SignatureBlock != "" {
 		sb.WriteString("\nEMAIL SIGNATURE (use when sending emails):\n")
-		sb.WriteString(*persona.EmailSignature)
+		sb.WriteString(*persona.SignatureBlock)
 		sb.WriteString("\n")
 	}
 

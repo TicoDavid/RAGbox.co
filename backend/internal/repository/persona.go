@@ -25,9 +25,10 @@ func NewPersonaRepo(pool *pgxpool.Pool) *PersonaRepo {
 // Returns (nil, nil) if no persona is configured — callers should fall back to default prompt.
 func (r *PersonaRepo) GetByTenantID(ctx context.Context, tenantID string) (*model.MercuryPersona, error) {
 	row := r.pool.QueryRow(ctx, `
-		SELECT id, tenant_id, name, title, organization, personality,
-		       voice_id, silence_threshold, channels, greeting_message,
-		       email_signature, avatar_url, email_enabled, email_address,
+		SELECT id, tenant_id, first_name, last_name, title, personality_prompt,
+		       voice_id, silence_high_threshold, silence_med_threshold,
+		       channel_config, greeting, signature_block, avatar_url,
+		       is_active, email_enabled, email_address,
 		       created_at, updated_at
 		FROM mercury_personas
 		WHERE tenant_id = $1
@@ -35,13 +36,14 @@ func (r *PersonaRepo) GetByTenantID(ctx context.Context, tenantID string) (*mode
 	`, tenantID)
 
 	var p model.MercuryPersona
-	var channels []byte
+	var channelConfig []byte
 	var createdAt, updatedAt time.Time
 
 	err := row.Scan(
-		&p.ID, &p.TenantID, &p.Name, &p.Title, &p.Organization, &p.Personality,
-		&p.VoiceID, &p.SilenceThreshold, &channels, &p.GreetingMessage,
-		&p.EmailSignature, &p.AvatarURL, &p.EmailEnabled, &p.EmailAddress,
+		&p.ID, &p.TenantID, &p.FirstName, &p.LastName, &p.Title, &p.PersonalityPrompt,
+		&p.VoiceID, &p.SilenceHighThreshold, &p.SilenceMedThreshold,
+		&channelConfig, &p.Greeting, &p.SignatureBlock, &p.AvatarURL,
+		&p.IsActive, &p.EmailEnabled, &p.EmailAddress,
 		&createdAt, &updatedAt,
 	)
 	if err != nil {
@@ -51,7 +53,7 @@ func (r *PersonaRepo) GetByTenantID(ctx context.Context, tenantID string) (*mode
 		return nil, err
 	}
 
-	p.Channels = json.RawMessage(channels)
+	p.ChannelConfig = json.RawMessage(channelConfig)
 	p.CreatedAt = createdAt
 	p.UpdatedAt = updatedAt
 

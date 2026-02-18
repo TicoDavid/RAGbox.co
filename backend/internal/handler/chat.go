@@ -183,7 +183,7 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 				slog.Error("persona lookup failed (falling back to file-based)", "user_id", userID, "error", err)
 			} else if p != nil {
 				dbPersona = p
-				slog.Info("[DEBUG-CHAT] using DB persona", "persona_name", p.Name, "tenant_id", p.TenantID)
+				slog.Info("[DEBUG-CHAT] using DB persona", "persona_name", p.FullName(), "tenant_id", p.TenantID)
 			}
 		}
 
