@@ -102,7 +102,7 @@ Standing by for Sarah's demo findings or further polish requests.
 - [x] /api/beta/validate PASS — rejects invalid (`{"valid":false}`), accepts valid (`{"valid":true}`)
 - [x] /api/beta/redeem PASS — returns 401 for unauthenticated (correct: requires NextAuth session post-OAuth). Code logic verified: finds code, idempotent ownership check, marks used, writes audit entry.
 - [ ] /api/beta/waitlist — not yet verified
-- [ ] Vertex AI 429 mitigation — not yet implemented
+- [x] Vertex AI 429 mitigation — IMPLEMENTED (see below)
 
 Standing by for next task assignment.
 
@@ -116,3 +116,22 @@ Standing by for next task assignment.
 - [x] Beta codes seeded by ADAM — confirmed (50 codes, 3 batches)
 - **BLOCKER: I need an actual beta code to proceed.** DB is behind VPC (unreachable from local). Seed endpoint doesn't list codes on re-call. No admin list endpoint exists. Filed in BLOCKERS.md.
 - Waiting on ADAM to provide one unused code (RBX-LEGAL-XXXXXX) so I can run full E2E.
+
+[~00:45 UTC] ADAM — COMPLETE — Vertex AI 429 mitigation implemented in Go backend:
+- NEW: `backend/internal/gcpclient/retry.go` — generic `withRetry[T]` helper with 500→1000→2000ms backoff, 4s ceiling
+- MODIFIED: `backend/internal/gcpclient/genai.go` — `GenerateContent()` wrapped with retry (both SDK + REST paths)
+- MODIFIED: `backend/internal/gcpclient/embedding.go` — `embedWithTaskType()` wrapped with retry
+- MODIFIED: `backend/internal/handler/chat.go` — retrieval/generation/self-RAG errors surface clean fallback message ("The system is experiencing high demand. Please try again in a few seconds.") when retries exhausted
+- NEW: `backend/internal/gcpclient/retry_test.go` — 6 tests: first-attempt success, non-retryable passthrough, retry-then-succeed, exhaust-all-retries, context-cancelled, error detection. ALL PASS.
+- `go build ./...` clean, `go test ./internal/gcpclient/... ./internal/handler/...` ALL PASS.
+
+[~01:00 UTC] ADAM — COMPLETE — Full E2E demo run (CLI-based, against prod):
+1. [PASS] Beta code validation — `RBX-LEGAL-BSDPGU` → `{"valid":true}`
+2. [PASS] OAuth provider available — Google OAuth registered, signin/callback URLs configured
+3. [PASS] Legal Starter Vault — 8 legal PDFs + 3 test docs = 11 documents (user 105836695160618550214)
+4. [PASS] Mercury RAG query — "What are the termination conditions in the Mutual NDA?" → streaming response with voluntary termination (30 days notice), termination for cause (15-day cure), auto-expiration (3 years). Confidence: 90.8%.
+5. [PASS] Cited answer — 4 citations from 01_Mutual_NDA.pdf (doc 687865bf), excerpts from sections 4.1, 4.2, 4.4. Inline markers [3], [4] match.
+6. [CONDITIONAL] Send test email — endpoint exists, returns 401 for unauth (correct). Requires browser OAuth session — cannot test from CLI.
+7. [PASS] Audit log — 36 entries returned. Document-level audit working. Query tracking via learning sessions (by design).
+NOTE: First Mercury query hit Vertex AI 429 (transient). Retry code not yet deployed to prod — succeeded on manual retry after 5s.
+ACTION NEEDED: Deploy 429-fix build to prod before demo.

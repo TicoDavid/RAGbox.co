@@ -66,7 +66,14 @@ func (a *EmbeddingAdapter) Embed(ctx context.Context, texts []string) ([][]float
 // embedWithTaskType is the shared implementation that sends texts to the Vertex AI embedding API
 // with the specified task_type. text-embedding-004 produces different vector spaces for
 // RETRIEVAL_DOCUMENT vs RETRIEVAL_QUERY, optimized for asymmetric retrieval.
+// Retries up to 3 times on 429/RESOURCE_EXHAUSTED with 500→1000→2000ms backoff (4s ceiling).
 func (a *EmbeddingAdapter) embedWithTaskType(ctx context.Context, texts []string, taskType string) ([][]float32, error) {
+	return withRetry(ctx, "EmbedTexts", func() ([][]float32, error) {
+		return a.doEmbed(ctx, texts, taskType)
+	})
+}
+
+func (a *EmbeddingAdapter) doEmbed(ctx context.Context, texts []string, taskType string) ([][]float32, error) {
 	instances := make([]embeddingInstance, len(texts))
 	for i, t := range texts {
 		instances[i] = embeddingInstance{Content: t, TaskType: taskType}

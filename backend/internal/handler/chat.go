@@ -9,6 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"errors"
+
+	"github.com/connexus-ai/ragbox-backend/internal/gcpclient"
 	"github.com/connexus-ai/ragbox-backend/internal/middleware"
 	"github.com/connexus-ai/ragbox-backend/internal/model"
 	"github.com/connexus-ai/ragbox-backend/internal/service"
@@ -134,7 +137,7 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 		retrieval, err := deps.Retriever.Retrieve(ctx, req.Query, req.PrivilegeMode)
 		if err != nil {
 			slog.Error("chat retrieval failed", "user_id", userID, "stage", "retrieval", "error", err)
-			sendEvent(w, flusher, "error", fmt.Sprintf(`{"message":%q}`, err.Error()))
+			sendEvent(w, flusher, "error", fmt.Sprintf(`{"message":%q}`, rateLimitMessage(err)))
 			sendEvent(w, flusher, "done", `{}`)
 			return
 		}
@@ -233,7 +236,7 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 		initial, err := deps.Generator.Generate(ctx, req.Query, retrieval.Chunks, opts)
 		if err != nil {
 			slog.Error("chat generation failed", "user_id", userID, "stage", "generation", "error", err)
-			sendEvent(w, flusher, "error", fmt.Sprintf(`{"message":%q}`, err.Error()))
+			sendEvent(w, flusher, "error", fmt.Sprintf(`{"message":%q}`, rateLimitMessage(err)))
 			sendEvent(w, flusher, "done", `{}`)
 			return
 		}
@@ -242,7 +245,7 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 		result, err := deps.SelfRAG.Reflect(ctx, req.Query, retrieval.Chunks, initial)
 		if err != nil {
 			slog.Error("chat self-rag reflection failed", "user_id", userID, "stage", "reflection", "error", err)
-			sendEvent(w, flusher, "error", fmt.Sprintf(`{"message":%q}`, err.Error()))
+			sendEvent(w, flusher, "error", fmt.Sprintf(`{"message":%q}`, rateLimitMessage(err)))
 			sendEvent(w, flusher, "done", `{}`)
 			return
 		}
@@ -326,6 +329,15 @@ func truncate(s string, n int) string {
 		return s
 	}
 	return s[:n] + "…"
+}
+
+// rateLimitMessage returns a clean user-facing message for rate-limit errors,
+// or the original error message for other errors.
+func rateLimitMessage(err error) string {
+	if errors.Is(err, gcpclient.ErrRateLimited) {
+		return gcpclient.ErrRateLimited.Error()
+	}
+	return err.Error()
 }
 
 // splitIntoTokens splits text into word-level tokens for streaming.

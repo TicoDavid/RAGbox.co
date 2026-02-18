@@ -56,11 +56,14 @@ func NewGenAIAdapter(ctx context.Context, project, location, model string) (*Gen
 }
 
 // GenerateContent sends a prompt to Gemini and returns the text response.
+// Retries up to 3 times on 429/RESOURCE_EXHAUSTED with 500→1000→2000ms backoff (4s ceiling).
 func (a *GenAIAdapter) GenerateContent(ctx context.Context, systemPrompt string, userPrompt string) (string, error) {
-	if a.useREST {
-		return a.generateContentREST(ctx, systemPrompt, userPrompt)
-	}
-	return a.generateContentSDK(ctx, systemPrompt, userPrompt)
+	return withRetry(ctx, "GenerateContent", func() (string, error) {
+		if a.useREST {
+			return a.generateContentREST(ctx, systemPrompt, userPrompt)
+		}
+		return a.generateContentSDK(ctx, systemPrompt, userPrompt)
+	})
 }
 
 // generateContentSDK uses the Go SDK for regional endpoints.
