@@ -26,11 +26,24 @@ export async function POST(
       return NextResponse.json({ error: 'No credential found' }, { status: 404 })
     }
 
+    // Look up persona name for the subject line
+    const persona = await prisma.mercuryPersona.findUnique({
+      where: { id: agentId },
+      select: { firstName: true, lastName: true },
+    })
+    const agentName = persona
+      ? `${persona.firstName} ${persona.lastName}`.trim()
+      : 'Mercury'
+
+    // RFC 2047 encode the subject to handle non-ASCII chars (em-dash, ö)
+    const subjectText = `RAGb\u00f6x Email Test \u2014 ${agentName}`
+    const encodedSubject = `=?UTF-8?B?${Buffer.from(subjectText).toString('base64')}?=`
+
     // Build RFC 2822 email — test sends to itself
     const message = [
       'From: ' + credential.emailAddress,
       'To: ' + credential.emailAddress,
-      'Subject: RAGbox Email Test — ' + agentId,
+      'Subject: ' + encodedSubject,
       'Content-Type: text/plain; charset=utf-8',
       '',
       'This is a test email from your RAGbox agent. If you received this, email sending is working correctly.',
