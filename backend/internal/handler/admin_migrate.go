@@ -11,6 +11,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // MigrationRunner executes a raw SQL string against the database.
@@ -23,11 +25,55 @@ type AdminMigrateDeps struct {
 }
 
 // AdminMigrate runs all *.up.sql migrations in order from the migrations directory.
-// Protected by internal auth (x-internal-auth header checked in middleware).
+// If ADMIN_DATABASE_URL is set, it connects as the admin user (postgres) to handle
+// ownership-restricted ALTER TABLE operations. Otherwise falls back to RunSQL.
 func AdminMigrate(deps AdminMigrateDeps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 120*time.Second)
 		defer cancel()
+
+		// Determine which SQL runner to use
+		runSQL := deps.RunSQL
+
+		// If ADMIN_DATABASE_URL is set, create a temporary admin pool for migrations
+		adminURL := os.Getenv("ADMIN_DATABASE_URL")
+		if adminURL != "" {
+			slog.Info("using ADMIN_DATABASE_URL for migrations (postgres superuser)")
+			adminPool, err := pgxpool.New(ctx, adminURL)
+			if err != nil {
+				slog.Error("failed to connect with admin credentials", "error", err)
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusInternalServerError)
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"success": false,
+					"error":   fmt.Sprintf("admin db connect: %v", err),
+				})
+				return
+			}
+			defer adminPool.Close()
+
+			// First, fix table ownership so the ragbox user can ALTER tables in the future
+			ownershipFix := `
+				DO $$
+				DECLARE tbl TEXT;
+				BEGIN
+					FOR tbl IN SELECT tablename FROM pg_tables WHERE schemaname = 'public'
+					LOOP
+						EXECUTE format('ALTER TABLE %I OWNER TO ragbox', tbl);
+					END LOOP;
+				END $$;
+			`
+			if _, err := adminPool.Exec(ctx, ownershipFix); err != nil {
+				slog.Warn("ownership fix failed (non-fatal)", "error", err)
+			} else {
+				slog.Info("table ownership transferred to ragbox user")
+			}
+
+			runSQL = func(ctx context.Context, sql string) error {
+				_, err := adminPool.Exec(ctx, sql)
+				return err
+			}
+		}
 
 		migrationsDir := deps.MigrationsDir
 		if migrationsDir == "" {
@@ -73,7 +119,7 @@ func AdminMigrate(deps AdminMigrateDeps) http.HandlerFunc {
 				continue
 			}
 
-			if err := deps.RunSQL(ctx, string(sqlBytes)); err != nil {
+			if err := runSQL(ctx, string(sqlBytes)); err != nil {
 				slog.Error("migration failed", "file", filename, "error", err)
 				results = append(results, map[string]interface{}{
 					"file":   filename,

@@ -70,7 +70,7 @@ steps:
       - '--set-env-vars'
       - 'ENVIRONMENT=production,GCP_REGION=us-east4,VERTEX_AI_LOCATION=global,VERTEX_AI_MODEL=gemini-3-pro-preview,PROMPTS_DIR=/prompts,DOCUMENT_AI_LOCATION=us,DOCUMENT_AI_PROCESSOR_ID=610ba2535700c5de'
       - '--set-secrets'
-      - 'DATABASE_URL=ragbox-prod-database-url:latest,GOOGLE_CLOUD_PROJECT=ragbox-gcp-project:latest,FIREBASE_PROJECT_ID=firebase-project-id:latest,INTERNAL_AUTH_SECRET=ragbox-internal-auth-secret:latest,GCS_BUCKET_NAME=ragbox-gcs-bucket:latest,FRONTEND_URL=ragbox-frontend-url:latest'
+      - 'DATABASE_URL=ragbox-prod-database-url:latest,GOOGLE_CLOUD_PROJECT=ragbox-gcp-project:latest,FIREBASE_PROJECT_ID=firebase-project-id:latest,INTERNAL_AUTH_SECRET=ragbox-internal-auth-secret:latest,GCS_BUCKET_NAME=ragbox-gcs-bucket:latest,FRONTEND_URL=ragbox-frontend-url:latest,ADMIN_DATABASE_URL=ragbox-admin-database-url:latest'
       - '--service-account'
       - 'ragbox-prod-cloudrun@$PROJECT_ID.iam.gserviceaccount.com'
     id: 'deploy'
