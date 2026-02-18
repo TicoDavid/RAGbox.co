@@ -10,19 +10,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getValidAccessToken } from '@/lib/gmail/token'
 
-const CRON_SECRET = process.env.CRON_SECRET || ''
-const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
 const GCP_PROJECT = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCP_PROJECT || 'ragbox-sovereign-prod'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  // Auth: x-cron-secret header, Bearer token, OR x-internal-auth
-  const cronHeader = request.headers.get('x-cron-secret') || ''
-  const authHeader = request.headers.get('authorization') || ''
-  const bearerToken = authHeader.replace('Bearer ', '')
-  const internalAuth = request.headers.get('x-internal-auth') || ''
+  // Read secrets per-request to avoid stale module-scope values
+  const cronSecret = (process.env.CRON_SECRET || '').trim()
+  const internalAuthSecret = (process.env.INTERNAL_AUTH_SECRET || '').trim()
 
-  const cronValid = CRON_SECRET && (cronHeader === CRON_SECRET || bearerToken === CRON_SECRET)
-  const internalValid = INTERNAL_AUTH_SECRET && internalAuth === INTERNAL_AUTH_SECRET
+  // Auth: x-cron-secret header, Bearer token, OR x-internal-auth
+  const cronHeader = (request.headers.get('x-cron-secret') || '').trim()
+  const authHeader = request.headers.get('authorization') || ''
+  const bearerToken = authHeader.replace('Bearer ', '').trim()
+  const internalAuth = (request.headers.get('x-internal-auth') || '').trim()
+
+  const cronValid = cronSecret && (cronHeader === cronSecret || bearerToken === cronSecret)
+  const internalValid = internalAuthSecret && internalAuth === internalAuthSecret
 
   if (!cronValid && !internalValid) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
