@@ -35,44 +35,39 @@ func AdminMigrate(deps AdminMigrateDeps) http.HandlerFunc {
 		// Determine which SQL runner to use
 		runSQL := deps.RunSQL
 
-		// If ADMIN_DATABASE_URL is set, create a temporary admin pool for migrations
+		// If ADMIN_DATABASE_URL is set, use postgres superuser to fix table ownership
+		// so the ragbox user (deps.RunSQL) can run migrations with ALTER TABLE.
 		adminURL := strings.TrimSpace(os.Getenv("ADMIN_DATABASE_URL"))
 		if adminURL != "" {
-			slog.Info("using ADMIN_DATABASE_URL for migrations (postgres superuser)")
+			slog.Info("using ADMIN_DATABASE_URL to fix table ownership")
 			adminPool, err := pgxpool.New(ctx, adminURL)
 			if err != nil {
-				slog.Error("failed to connect with admin credentials", "error", err)
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusInternalServerError)
-				json.NewEncoder(w).Encode(map[string]interface{}{
-					"success": false,
-					"error":   fmt.Sprintf("admin db connect: %v", err),
-				})
-				return
-			}
-			defer adminPool.Close()
-
-			// First, fix table ownership so the ragbox user can ALTER tables in the future
-			ownershipFix := `
-				DO $$
-				DECLARE tbl TEXT;
-				BEGIN
-					FOR tbl IN SELECT tablename FROM pg_tables WHERE schemaname = 'public'
-					LOOP
-						EXECUTE format('ALTER TABLE %I OWNER TO ragbox', tbl);
-					END LOOP;
-				END $$;
-			`
-			if _, err := adminPool.Exec(ctx, ownershipFix); err != nil {
-				slog.Warn("ownership fix failed (non-fatal)", "error", err)
+				slog.Warn("failed to connect with admin credentials (non-fatal)", "error", err)
 			} else {
-				slog.Info("table ownership transferred to ragbox user")
-			}
+				defer adminPool.Close()
 
-			runSQL = func(ctx context.Context, sql string) error {
-				_, err := adminPool.Exec(ctx, sql)
-				return err
+				// Transfer ownership of all public tables + enums to ragbox
+				ownershipFix := `
+					DO $$
+					DECLARE obj RECORD;
+					BEGIN
+						FOR obj IN SELECT tablename FROM pg_tables WHERE schemaname = 'public'
+						LOOP
+							EXECUTE format('ALTER TABLE %I OWNER TO ragbox', obj.tablename);
+						END LOOP;
+						FOR obj IN SELECT typname FROM pg_type t JOIN pg_namespace n ON t.typnamespace = n.oid WHERE n.nspname = 'public' AND t.typtype = 'e'
+						LOOP
+							EXECUTE format('ALTER TYPE %I OWNER TO ragbox', obj.typname);
+						END LOOP;
+					END $$;
+				`
+				if _, err := adminPool.Exec(ctx, ownershipFix); err != nil {
+					slog.Warn("ownership fix failed (non-fatal)", "error", err)
+				} else {
+					slog.Info("table and enum ownership transferred to ragbox user")
+				}
 			}
+			// Migrations still run as ragbox (deps.RunSQL) — now with proper ownership
 		}
 
 		migrationsDir := deps.MigrationsDir
