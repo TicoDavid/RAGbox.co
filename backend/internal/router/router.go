@@ -69,6 +69,9 @@ type Dependencies struct {
 	// Persona (for chat handler dynamic persona lookup)
 	PersonaFetcher handler.PersonaFetcher
 
+	// Cortex (working memory for chat)
+	CortexSvc handler.CortexSearcher
+
 	// Admin migrations
 	AdminMigrateDeps handler.AdminMigrateDeps
 

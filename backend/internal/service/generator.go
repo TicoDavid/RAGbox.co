@@ -17,10 +17,12 @@ type GenAIClient interface {
 
 // GenerateOpts configures a generation call.
 type GenerateOpts struct {
-	Mode           string              // "concise", "detailed", "risk-analysis"
-	Persona        string              // persona key (e.g. "persona_cfo", "persona_legal")
-	StrictMode     bool                // if true, compliance layer is added
+	Mode           string                // "concise", "detailed", "risk-analysis"
+	Persona        string                // persona key (e.g. "persona_cfo", "persona_legal")
+	StrictMode     bool                  // if true, compliance layer is added
 	DynamicPersona *model.MercuryPersona // if set, overrides file-based Persona lookup
+	CortexContext  []string              // recent conversation context (informational, no citations)
+	Instructions   []string              // standing user instructions
 }
 
 // GenerationResult is the output of a single generation call.
@@ -76,7 +78,7 @@ func (s *GeneratorService) Generate(ctx context.Context, query string, chunks []
 	start := time.Now()
 
 	systemPrompt := s.buildSystemPrompt(opts)
-	userPrompt := buildUserPrompt(query, chunks, opts.Mode)
+	userPrompt := buildUserPrompt(query, chunks, opts.Mode, opts.CortexContext...)
 
 	raw, err := s.client.GenerateContent(ctx, systemPrompt, userPrompt)
 	if err != nil {
@@ -97,13 +99,29 @@ func (s *GeneratorService) Generate(ctx context.Context, query string, chunks []
 // buildSystemPrompt assembles the system prompt using the PromptLoader if available.
 // If a DynamicPersona is provided (from the DB), it overrides the file-based persona.
 func (s *GeneratorService) buildSystemPrompt(opts GenerateOpts) string {
+	var base string
 	if opts.DynamicPersona != nil {
-		return s.buildDynamicPrompt(opts.DynamicPersona, opts.StrictMode)
+		base = s.buildDynamicPrompt(opts.DynamicPersona, opts.StrictMode)
+	} else if s.promptLoader != nil {
+		base = s.promptLoader.BuildSystemPrompt(opts.Persona, opts.StrictMode)
+	} else {
+		base = defaultSystemPrompt
 	}
-	if s.promptLoader != nil {
-		return s.promptLoader.BuildSystemPrompt(opts.Persona, opts.StrictMode)
+
+	// Append standing instructions from cortex
+	if len(opts.Instructions) > 0 {
+		var sb strings.Builder
+		sb.WriteString(base)
+		sb.WriteString("\n\n=== STANDING INSTRUCTIONS FROM USER ===\n")
+		for _, instr := range opts.Instructions {
+			sb.WriteString("- ")
+			sb.WriteString(instr)
+			sb.WriteString("\n")
+		}
+		return sb.String()
 	}
-	return defaultSystemPrompt
+
+	return base
 }
 
 // buildDynamicPrompt constructs a system prompt from a DB-stored MercuryPersona.
@@ -166,13 +184,24 @@ Rules:
 {"answer": "...", "citations": [{"chunkIndex": 1, "excerpt": "...", "relevance": 0.9}], "confidence": 0.85}`
 
 // buildUserPrompt constructs the user message with context chunks and query.
-func buildUserPrompt(query string, chunks []RankedChunk, mode string) string {
+func buildUserPrompt(query string, chunks []RankedChunk, mode string, cortexContext ...string) string {
 	var sb strings.Builder
 
 	sb.WriteString("=== CONTEXT CHUNKS ===\n")
 	for i, c := range chunks {
 		sb.WriteString(fmt.Sprintf("[%d] (doc: %s, score: %.2f)\n%s\n\n",
 			i+1, c.Document.ID, c.Similarity, c.Chunk.Content))
+	}
+
+	// Cortex context: recent conversation memory (informational, NOT cited)
+	if len(cortexContext) > 0 {
+		sb.WriteString("=== RECENT CONTEXT (from past conversations — do NOT cite these, use for context only) ===\n")
+		for _, ctx := range cortexContext {
+			sb.WriteString("- ")
+			sb.WriteString(ctx)
+			sb.WriteString("\n")
+		}
+		sb.WriteString("\n")
 	}
 
 	sb.WriteString("=== QUERY ===\n")

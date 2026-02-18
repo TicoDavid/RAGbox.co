@@ -28,6 +28,13 @@ type PersonaFetcher interface {
 	GetByTenantID(ctx context.Context, tenantID string) (*model.MercuryPersona, error)
 }
 
+// CortexSearcher abstracts cortex working memory for the chat handler.
+type CortexSearcher interface {
+	Search(ctx context.Context, tenantID, query string, limit int) ([]model.CortexEntry, error)
+	GetActiveInstructions(ctx context.Context, tenantID string) ([]model.CortexEntry, error)
+	Ingest(ctx context.Context, tenantID, content, sourceChannel string, sourceMessageID *string, isInstruction bool) error
+}
+
 // ChatDeps bundles the services needed by the chat handler.
 type ChatDeps struct {
 	Retriever      *service.RetrieverService
@@ -36,7 +43,8 @@ type ChatDeps struct {
 	Metrics        *middleware.Metrics // optional, for silence trigger tracking
 	ContentGapSvc  *service.ContentGapService
 	SessionSvc     *service.SessionService
-	PersonaFetcher PersonaFetcher // optional — nil means use file-based persona
+	PersonaFetcher PersonaFetcher  // optional — nil means use file-based persona
+	CortexSvc      CortexSearcher  // optional — nil means no working memory
 }
 
 // Chat returns an SSE streaming handler for Mercury chat.
@@ -179,6 +187,37 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			}
 		}
 
+		// Step 2b: Cortex search (working memory — parallel to vault, non-fatal)
+		var cortexContext []string
+		var cortexInstructions []string
+		if deps.CortexSvc != nil {
+			cortexResults, err := deps.CortexSvc.Search(ctx, userID, req.Query, 3)
+			if err != nil {
+				slog.Error("cortex search failed (non-fatal)", "user_id", userID, "error", err)
+			} else {
+				for _, entry := range cortexResults {
+					cortexContext = append(cortexContext, entry.Content)
+				}
+			}
+
+			instructions, err := deps.CortexSvc.GetActiveInstructions(ctx, userID)
+			if err != nil {
+				slog.Error("cortex instructions failed (non-fatal)", "user_id", userID, "error", err)
+			} else {
+				for _, entry := range instructions {
+					cortexInstructions = append(cortexInstructions, entry.Content)
+				}
+			}
+
+			if len(cortexContext) > 0 || len(cortexInstructions) > 0 {
+				slog.Info("[DEBUG-CHAT] cortex enrichment",
+					"user_id", userID,
+					"context_count", len(cortexContext),
+					"instruction_count", len(cortexInstructions),
+				)
+			}
+		}
+
 		// Step 3: Generate
 		sendEvent(w, flusher, "status", `{"stage":"generating","iteration":1}`)
 
@@ -187,6 +226,8 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			Persona:        req.Persona,
 			StrictMode:     req.StrictMode,
 			DynamicPersona: dbPersona,
+			CortexContext:  cortexContext,
+			Instructions:   cortexInstructions,
 		}
 
 		initial, err := deps.Generator.Generate(ctx, req.Query, retrieval.Chunks, opts)
@@ -249,6 +290,27 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 		}
 
 		sendEvent(w, flusher, "done", `{}`)
+
+		// Auto-capture: store query + response in cortex for future context
+		if deps.CortexSvc != nil && !result.SilenceTriggered {
+			go func() {
+				bgCtx, bgCancel := context.WithTimeout(context.Background(), 30*time.Second)
+				defer bgCancel()
+
+				// Store user query
+				if err := deps.CortexSvc.Ingest(bgCtx, userID, req.Query, "dashboard", nil, false); err != nil {
+					slog.Error("cortex ingest query failed", "user_id", userID, "error", err)
+				}
+				// Store assistant response (truncate to 2000 chars to avoid huge embeddings)
+				response := result.FinalAnswer
+				if len(response) > 2000 {
+					response = response[:2000]
+				}
+				if err := deps.CortexSvc.Ingest(bgCtx, userID, response, "assistant", nil, false); err != nil {
+					slog.Error("cortex ingest response failed", "user_id", userID, "error", err)
+				}
+			}()
+		}
 	}
 }
 

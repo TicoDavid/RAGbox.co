@@ -129,6 +129,7 @@ func run() error {
 	auditRepo := repository.NewAuditRepo(pool)
 	userRepo := repository.NewUserRepo(pool)
 	personaRepo := repository.NewPersonaRepo(pool)
+	cortexRepo := repository.NewCortexRepo(pool)
 
 	// ─── Services ──────────────────────────────────────────────────────
 
@@ -209,6 +210,11 @@ func run() error {
 	sessionSvc := service.NewSessionService(sessionRepo)
 	slog.Info("session service initialized")
 
+	// Cortex (working memory) service — uses embeddingAdapter.Embed() (RETRIEVAL_QUERY task type)
+	// Both storage and search use the same task type for vector space consistency
+	cortexSvc := service.NewCortexService(cortexRepo, embeddingAdapter)
+	slog.Info("cortex service initialized")
+
 	// Privilege state (in-memory per-user toggle)
 	privilegeState := handler.NewPrivilegeState()
 
@@ -268,6 +274,7 @@ func run() error {
 			ContentGapSvc:  contentGapSvc,
 			SessionSvc:     sessionSvc,
 			PersonaFetcher: personaRepo,
+			CortexSvc:      cortexSvc,
 		},
 
 		ContentGapDeps: handler.ContentGapDeps{
