@@ -46,25 +46,40 @@ func AdminMigrate(deps AdminMigrateDeps) http.HandlerFunc {
 			} else {
 				defer adminPool.Close()
 
-				// Transfer ownership of all public tables + enums to ragbox
+				// Grant ragbox full privileges on all tables, sequences, and types
+				grantSQL := `
+					GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO ragbox;
+					GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO ragbox;
+					GRANT USAGE, CREATE ON SCHEMA public TO ragbox;
+					ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO ragbox;
+					ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO ragbox;
+				`
+				if _, err := adminPool.Exec(ctx, grantSQL); err != nil {
+					slog.Warn("grant privileges failed", "error", err)
+				} else {
+					slog.Info("granted full privileges to ragbox user")
+				}
+
+				// Also try ownership transfer for tables owned by postgres
 				ownershipFix := `
 					DO $$
 					DECLARE obj RECORD;
 					BEGIN
-						FOR obj IN SELECT tablename FROM pg_tables WHERE schemaname = 'public'
+						FOR obj IN SELECT tablename, tableowner FROM pg_tables WHERE schemaname = 'public' AND tableowner = 'postgres'
 						LOOP
 							EXECUTE format('ALTER TABLE %I OWNER TO ragbox', obj.tablename);
 						END LOOP;
-						FOR obj IN SELECT typname FROM pg_type t JOIN pg_namespace n ON t.typnamespace = n.oid WHERE n.nspname = 'public' AND t.typtype = 'e'
+						FOR obj IN SELECT typname FROM pg_type t JOIN pg_namespace n ON t.typnamespace = n.oid
+							JOIN pg_roles r ON t.typowner = r.oid WHERE n.nspname = 'public' AND t.typtype = 'e' AND r.rolname = 'postgres'
 						LOOP
 							EXECUTE format('ALTER TYPE %I OWNER TO ragbox', obj.typname);
 						END LOOP;
 					END $$;
 				`
 				if _, err := adminPool.Exec(ctx, ownershipFix); err != nil {
-					slog.Warn("ownership fix failed (non-fatal)", "error", err)
+					slog.Warn("ownership transfer failed (non-fatal)", "error", err)
 				} else {
-					slog.Info("table and enum ownership transferred to ragbox user")
+					slog.Info("postgres-owned tables transferred to ragbox")
 				}
 			}
 			// Migrations still run as ragbox (deps.RunSQL) — now with proper ownership
