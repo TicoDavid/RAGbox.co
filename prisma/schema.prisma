@@ -165,6 +165,7 @@ model Document {
   classifiedBy    String?        @map("classified_by")
   securityTier    Int            @default(0) @map("security_tier")
   chunkCount      Int            @default(0) @map("chunk_count")
+  isStarred       Boolean        @default(false) @map("is_starred")
   checksum        String?
   folderId        String?        @map("folder_id")
   metadata        Json?
