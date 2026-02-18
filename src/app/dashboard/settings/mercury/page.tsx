@@ -135,6 +135,10 @@ export default function MercurySettingsPage() {
       if (res.ok) {
         const data = await res.json()
         window.location.href = data.url
+      } else {
+        const data = await res.json().catch(() => ({ error: 'unknown' }))
+        setEmailToast(`Gmail connection failed: ${data.error || res.statusText}`)
+        setTimeout(() => setEmailToast(null), 5000)
       }
     } catch {
       setEmailToast('Failed to start Gmail connection')
