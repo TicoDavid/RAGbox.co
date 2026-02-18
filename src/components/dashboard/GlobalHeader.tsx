@@ -40,7 +40,7 @@ import { PrivilegeKeyIcon, IdentityIcon, LanternIcon } from './icons/SovereignIc
 import { useMercuryStore } from '@/stores/mercuryStore'
 import { PERSONAS } from './mercury/personaData'
 import { useSettings, type CachedModel, LANGUAGES, type LanguageId, type DensityId } from '@/contexts/SettingsContext'
-import { verifyAndFetchModels, OPENROUTER_ENDPOINT, getModelDisplayName } from '@/services/OpenRouterService'
+import { getModelDisplayName, OPENROUTER_ENDPOINT } from '@/services/OpenRouterService'
 
 // Profile types for multi-profile switching
 interface Profile {
@@ -1322,13 +1322,19 @@ function APIKeysSettings() {
     setModelError(null)
   }
 
-  // Handle OpenRouter verification with model fetching
+  // Handle OpenRouter verification via server-side proxy (key never leaves server)
   const handleOpenRouterVerify = async (connectionId: string, apiKey: string) => {
     setFetchingModels(connectionId)
     setModelError(null)
 
     try {
-      const result = await verifyAndFetchModels(apiKey)
+      const res = await fetch('/api/models', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey }),
+      })
+
+      const result = await res.json()
 
       if (!result.success) {
         setModelError(result.error || 'Verification failed')
@@ -1337,7 +1343,7 @@ function APIKeysSettings() {
       }
 
       // Convert to cached models
-      const cachedModels: CachedModel[] = (result.models || []).slice(0, 50).map(m => ({
+      const cachedModels: CachedModel[] = (result.models || []).slice(0, 50).map((m: { id: string; name: string; context_length: number }) => ({
         id: m.id,
         name: m.name,
         contextLength: m.context_length
@@ -1351,7 +1357,7 @@ function APIKeysSettings() {
       })
 
       return true
-    } catch (error) {
+    } catch {
       setModelError('Network error')
       return false
     } finally {
