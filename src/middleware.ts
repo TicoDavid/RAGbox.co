@@ -6,7 +6,7 @@ const hits = new Map<string, { count: number; resetAt: number }>()
 const WINDOW_MS = 60_000  // 1 minute
 const DEFAULT_LIMIT = 120 // requests per window
 const STRICT_LIMIT = 30   // for auth/sensitive endpoints
-const STRICT_PATHS = ['/api/auth/send-otp', '/api/waitlist', '/api/v1/knowledge/ingest']
+const STRICT_PATHS = ['/api/auth/send-otp', '/api/waitlist', '/api/beta/', '/api/v1/knowledge/ingest']
 
 function getLimit(pathname: string): number {
   if (STRICT_PATHS.some(p => pathname.startsWith(p))) return STRICT_LIMIT
