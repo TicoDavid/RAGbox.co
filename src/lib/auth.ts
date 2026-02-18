@@ -53,8 +53,8 @@ if (process.env.NODE_ENV === "development" && (!process.env.GOOGLE_CLIENT_ID || 
 }
 
 export const authOptions: NextAuthOptions = {
-  // Enable debug mode to capture OAuth errors in Cloud Run logs
-  debug: true,
+  // Debug only in dev — production debug causes extra session introspection
+  debug: process.env.NODE_ENV === "development",
 
   // Logger: always log errors so Cloud Run logs capture OAuth failures
   logger: {
