@@ -2,15 +2,17 @@
  * Mercury Email Action — Gmail API
  *
  * POST /api/mercury/actions/send-email
- * Body: { to: string, subject: string, body: string }
+ * Body: { to: string, subject: string, body: string, agentId?: string, replyToMessageId?: string }
  *
- * Sends email FROM the authenticated user's Gmail via OAuth token.
+ * Mode 1 (Agent): If agentId provided, sends FROM the agent's stored Gmail credential.
+ * Mode 2 (Legacy): If no agentId, sends FROM the session user's OAuth token.
  * Logs to MercuryAction for audit trail.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
+import { getValidAccessToken } from '@/lib/gmail/token'
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || ''
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || ''
@@ -27,26 +29,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ success: false, error: 'Unable to determine user identity' }, { status: 401 })
     }
 
-    // Check provider — Gmail only works with Google OAuth
-    if (token.provider && token.provider !== 'google') {
-      return NextResponse.json(
-        { success: false, error: 'Email sending requires Google sign-in. Please re-authenticate with Google.' },
-        { status: 403 }
-      )
-    }
-
-    let accessToken = token.accessToken as string | undefined
-    const refreshToken = token.refreshToken as string | undefined
-
-    if (!accessToken) {
-      return NextResponse.json(
-        { success: false, error: 'No OAuth token available. Please sign out and sign in again with Google.' },
-        { status: 403 }
-      )
-    }
-
-    const body = await request.json()
-    const { to, subject, body: emailBody } = body
+    const reqBody = await request.json()
+    const { to, subject, body: emailBody, agentId, replyToMessageId } = reqBody
 
     if (!to || !subject || !emailBody) {
       return NextResponse.json(
@@ -63,18 +47,62 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       )
     }
 
-    const fromEmail = (token.email as string) || ''
+    let accessToken: string
+    let fromEmail: string
+
+    if (agentId) {
+      // === NEW: Agent credential mode ===
+      try {
+        accessToken = await getValidAccessToken(agentId)
+      } catch (error) {
+        return NextResponse.json(
+          { success: false, error: error instanceof Error ? error.message : 'Agent token refresh failed' },
+          { status: 403 }
+        )
+      }
+      const cred = await prisma.agentEmailCredential.findUnique({
+        where: { agentId },
+      })
+      if (!cred) {
+        return NextResponse.json({ success: false, error: 'No email credential for agent' }, { status: 404 })
+      }
+      fromEmail = cred.emailAddress
+    } else {
+      // === LEGACY: Session user mode ===
+      if (token.provider && token.provider !== 'google') {
+        return NextResponse.json(
+          { success: false, error: 'Email sending requires Google sign-in. Please re-authenticate with Google.' },
+          { status: 403 }
+        )
+      }
+
+      const sessionToken = token.accessToken as string | undefined
+      if (!sessionToken) {
+        return NextResponse.json(
+          { success: false, error: 'No OAuth token available. Please sign out and sign in again with Google.' },
+          { status: 403 }
+        )
+      }
+      accessToken = sessionToken
+      fromEmail = (token.email as string) || ''
+    }
 
     // Build RFC 2822 message
-    const rfc2822 = [
+    const headers = [
       `From: ${fromEmail}`,
       `To: ${to}`,
       `Subject: ${subject}`,
       'MIME-Version: 1.0',
-      'Content-Type: text/plain; charset=utf-8',
-      '',
-      emailBody,
-    ].join('\r\n')
+      'Content-Type: text/html; charset=utf-8',
+    ]
+
+    // Thread replies in Gmail via In-Reply-To / References
+    if (replyToMessageId) {
+      headers.push(`In-Reply-To: ${replyToMessageId}`)
+      headers.push(`References: ${replyToMessageId}`)
+    }
+
+    const rfc2822 = [...headers, '', emailBody].join('\r\n')
 
     // Base64url encode
     const raw = Buffer.from(rfc2822)
@@ -86,12 +114,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Attempt to send
     let sendResult = await sendViaGmail(accessToken, raw)
 
-    // If 401, try refreshing the token
-    if (!sendResult.ok && sendResult.status === 401 && refreshToken) {
-      const refreshed = await refreshGoogleToken(refreshToken)
-      if (refreshed.accessToken) {
-        accessToken = refreshed.accessToken
-        sendResult = await sendViaGmail(accessToken, raw)
+    // If 401 on legacy mode, try refreshing the token
+    if (!sendResult.ok && sendResult.status === 401 && !agentId) {
+      const refreshToken = token.refreshToken as string | undefined
+      if (refreshToken) {
+        const refreshed = await refreshGoogleToken(refreshToken)
+        if (refreshed.accessToken) {
+          accessToken = refreshed.accessToken
+          sendResult = await sendViaGmail(accessToken, raw)
+        }
       }
     }
 
@@ -99,7 +130,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       const errorDetail = sendResult.errorMessage || `Gmail API returned ${sendResult.status}`
 
       // Log failed action
-      await logMercuryAction(userId, 'email', to, subject, emailBody, 'failed', { error: errorDetail })
+      await logMercuryAction(userId, 'email', to, subject, emailBody, 'failed', { error: errorDetail }, agentId || null)
 
       if (sendResult.status === 403) {
         return NextResponse.json(
@@ -121,7 +152,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     await logMercuryAction(userId, 'email', to, subject, emailBody, 'completed', {
       messageId: sendResult.messageId,
       gmailThreadId: sendResult.threadId,
-    })
+    }, agentId || null)
 
     // Write to Mercury unified thread
     await writeMercuryThread(userId, to, subject)
@@ -203,11 +234,13 @@ async function logMercuryAction(
   body: string,
   status: string,
   metadata: Record<string, unknown>,
+  agentId: string | null,
 ): Promise<void> {
   try {
     await prisma.mercuryAction.create({
       data: {
         userId,
+        agentId,
         actionType,
         recipient,
         subject,

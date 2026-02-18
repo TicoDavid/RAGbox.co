@@ -1,8 +1,9 @@
 'use client'
 
 import React, { useEffect, useState, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { apiFetch } from '@/lib/api'
-import { Loader2, Save, User, MessageSquare, Shield } from 'lucide-react'
+import { Loader2, Save, User, MessageSquare, Shield, Mail, CheckCircle, AlertTriangle, Unlink, Send } from 'lucide-react'
 
 interface Persona {
   id: string
@@ -17,6 +18,17 @@ interface Persona {
   silenceMedThreshold: number
 }
 
+interface EmailStatus {
+  connected: boolean
+  emailAddress?: string
+  provider?: string
+  isActive?: boolean
+  lastRefreshed?: string
+  errorCount?: number
+  lastError?: string
+  watchExpires?: string
+}
+
 const PRESETS = [
   { key: 'professional', label: 'Professional', desc: 'Precise, formal, citation-focused' },
   { key: 'friendly', label: 'Friendly', desc: 'Warm, conversational, accessible' },
@@ -25,6 +37,7 @@ const PRESETS = [
 ]
 
 export default function MercurySettingsPage() {
+  const searchParams = useSearchParams()
   const [persona, setPersona] = useState<Persona | null>(null)
   const [presets, setPresets] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
@@ -41,6 +54,26 @@ export default function MercurySettingsPage() {
   const [signatureBlock, setSignatureBlock] = useState('')
   const [silenceHigh, setSilenceHigh] = useState(0.85)
   const [silenceMed, setSilenceMed] = useState(0.70)
+
+  // Email state
+  const [emailStatus, setEmailStatus] = useState<EmailStatus>({ connected: false })
+  const [emailLoading, setEmailLoading] = useState(false)
+  const [emailAction, setEmailAction] = useState<string | null>(null)
+  const [emailToast, setEmailToast] = useState<string | null>(null)
+  const [disconnectConfirm, setDisconnectConfirm] = useState(false)
+
+  // Show toast on OAuth redirect
+  useEffect(() => {
+    if (searchParams.get('email') === 'connected') {
+      setEmailToast('Gmail connected successfully')
+      setTimeout(() => setEmailToast(null), 5000)
+    }
+    const emailError = searchParams.get('email_error')
+    if (emailError) {
+      setEmailToast(`Gmail connection failed: ${emailError}`)
+      setTimeout(() => setEmailToast(null), 8000)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     async function load() {
@@ -65,6 +98,9 @@ export default function MercurySettingsPage() {
             ([, v]) => v === p.personalityPrompt
           )
           setSelectedPreset(matchedPreset ? matchedPreset[0] : 'custom')
+
+          // Fetch email status for this persona
+          loadEmailStatus(p.id)
         }
       } catch {
         // Silent
@@ -73,7 +109,84 @@ export default function MercurySettingsPage() {
       }
     }
     load()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const loadEmailStatus = async (agentId: string) => {
+    try {
+      setEmailLoading(true)
+      const res = await apiFetch(`/api/agent/${agentId}/email`)
+      if (res.ok) {
+        const data = await res.json()
+        setEmailStatus(data)
+      }
+    } catch {
+      // Silent
+    } finally {
+      setEmailLoading(false)
+    }
+  }
+
+  const handleConnectGmail = async () => {
+    if (!persona) return
+    setEmailAction('connecting')
+    try {
+      const res = await apiFetch(`/api/agent/${persona.id}/email/connect`)
+      if (res.ok) {
+        const data = await res.json()
+        window.location.href = data.url
+      }
+    } catch {
+      setEmailToast('Failed to start Gmail connection')
+      setTimeout(() => setEmailToast(null), 5000)
+    } finally {
+      setEmailAction(null)
+    }
+  }
+
+  const handleDisconnectGmail = async () => {
+    if (!persona) return
+    setEmailAction('disconnecting')
+    try {
+      const res = await apiFetch(`/api/agent/${persona.id}/email/disconnect`, {
+        method: 'DELETE',
+      })
+      if (res.ok) {
+        setEmailStatus({ connected: false })
+        setDisconnectConfirm(false)
+        setEmailToast('Gmail disconnected')
+        setTimeout(() => setEmailToast(null), 5000)
+      }
+    } catch {
+      setEmailToast('Failed to disconnect Gmail')
+      setTimeout(() => setEmailToast(null), 5000)
+    } finally {
+      setEmailAction(null)
+    }
+  }
+
+  const handleTestEmail = async () => {
+    if (!persona) return
+    setEmailAction('testing')
+    try {
+      const res = await apiFetch(`/api/agent/${persona.id}/email/test`, {
+        method: 'POST',
+      })
+      if (res.ok) {
+        setEmailToast('Test email sent! Check your inbox.')
+        setTimeout(() => setEmailToast(null), 5000)
+      } else {
+        const data = await res.json()
+        setEmailToast(`Test email failed: ${data.error || 'unknown error'}`)
+        setTimeout(() => setEmailToast(null), 5000)
+      }
+    } catch {
+      setEmailToast('Failed to send test email')
+      setTimeout(() => setEmailToast(null), 5000)
+    } finally {
+      setEmailAction(null)
+    }
+  }
 
   const handlePresetChange = useCallback((key: string) => {
     setSelectedPreset(key)
@@ -123,6 +236,17 @@ export default function MercurySettingsPage() {
 
   return (
     <div className="max-w-2xl mx-auto p-6 space-y-8">
+      {/* Toast notification */}
+      {emailToast && (
+        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg text-sm font-medium shadow-lg transition-all ${
+          emailToast.includes('failed') || emailToast.includes('Failed') || emailToast.includes('error')
+            ? 'bg-red-500/90 text-white'
+            : 'bg-emerald-500/90 text-white'
+        }`}>
+          {emailToast}
+        </div>
+      )}
+
       <div>
         <h1 className="text-xl font-semibold text-white flex items-center gap-2">
           <User className="w-5 h-5 text-[var(--brand-blue)]" />
@@ -165,6 +289,122 @@ export default function MercurySettingsPage() {
             placeholder="AI Assistant"
           />
         </div>
+      </section>
+
+      {/* Email Integration */}
+      <section className="space-y-4">
+        <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+          <Mail className="w-4 h-4" />
+          Gmail Integration
+        </h2>
+        <p className="text-xs text-slate-500">
+          Connect a Gmail account so Mercury can send and receive emails as your agent.
+        </p>
+
+        {emailLoading ? (
+          <div className="flex items-center gap-2 text-sm text-slate-400">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Loading email status...
+          </div>
+        ) : emailStatus.connected ? (
+          <div className="space-y-3 p-4 rounded-lg border border-[var(--border-default)] bg-[var(--bg-tertiary)]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
+                <span className="text-sm font-medium text-emerald-400">Connected</span>
+              </div>
+              {emailStatus.errorCount && emailStatus.errorCount > 0 ? (
+                <div className="flex items-center gap-1">
+                  <AlertTriangle className="w-4 h-4 text-amber-400" />
+                  <span className="text-xs text-amber-400">{emailStatus.errorCount} error{emailStatus.errorCount > 1 ? 's' : ''}</span>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-400">Email</span>
+                <span className="text-sm text-white font-mono">{emailStatus.emailAddress}</span>
+              </div>
+              {emailStatus.lastRefreshed && (
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-slate-400">Last refreshed</span>
+                  <span className="text-xs text-slate-300">
+                    {new Date(emailStatus.lastRefreshed).toLocaleString()}
+                  </span>
+                </div>
+              )}
+              {emailStatus.watchExpires && (
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-slate-400">Watch expires</span>
+                  <span className="text-xs text-slate-300">
+                    {new Date(emailStatus.watchExpires).toLocaleString()}
+                  </span>
+                </div>
+              )}
+              {emailStatus.lastError && (
+                <div className="mt-2 p-2 rounded bg-red-500/10 border border-red-500/20">
+                  <span className="text-xs text-red-400">Last error: {emailStatus.lastError}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 pt-2 border-t border-[var(--border-default)]">
+              <button
+                onClick={handleTestEmail}
+                disabled={emailAction === 'testing'}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] text-white text-xs font-medium transition-colors disabled:opacity-50"
+              >
+                {emailAction === 'testing' ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Send className="w-3 h-3" />
+                )}
+                Send Test Email
+              </button>
+
+              {disconnectConfirm ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-red-400">Are you sure?</span>
+                  <button
+                    onClick={handleDisconnectGmail}
+                    disabled={emailAction === 'disconnecting'}
+                    className="px-3 py-1.5 rounded-md bg-red-600 hover:bg-red-500 text-white text-xs font-medium transition-colors disabled:opacity-50"
+                  >
+                    {emailAction === 'disconnecting' ? 'Disconnecting...' : 'Yes, disconnect'}
+                  </button>
+                  <button
+                    onClick={() => setDisconnectConfirm(false)}
+                    className="px-3 py-1.5 rounded-md border border-[var(--border-default)] text-slate-400 text-xs hover:text-white transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setDisconnectConfirm(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-red-500/30 text-red-400 text-xs font-medium hover:bg-red-500/10 transition-colors"
+                >
+                  <Unlink className="w-3 h-3" />
+                  Disconnect Gmail
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={handleConnectGmail}
+            disabled={emailAction === 'connecting'}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] text-white text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            {emailAction === 'connecting' ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Mail className="w-4 h-4" />
+            )}
+            Connect Gmail
+          </button>
+        )}
       </section>
 
       {/* Personality */}

@@ -110,6 +110,13 @@ check "ROAM webhook (no sig)"   POST "/api/webhooks/roam"      "200 401" '{"type
 check "WhatsApp webhook verify" GET  "/api/webhooks/whatsapp"   "200 400 403"
 
 echo ""
+echo "── Agent Email Endpoints ──"
+check "Agent Email Status"    GET  "/api/agent/test-agent/email"        "401"
+check "Gmail Webhook"         POST "/api/gmail/webhook"                 "403"  '{"message":{"data":""}}'
+check "Gmail Watch"           POST "/api/gmail/watch"                   "401"  '{"agentId":"test"}'
+check "Cron Watch Renew"      GET  "/api/cron/gmail-watch-renew"        "401"
+
+echo ""
 echo "── Export/Proxy Endpoints ──"
 check "Export (needs auth)"     GET  "/api/export"              "401 502"
 check "Audit export"            GET  "/api/audit/export"        "401 502"

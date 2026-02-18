@@ -468,6 +468,20 @@ export const useMercuryStore = create<MercuryState>()(
         if (actionType === 'send_email') {
           endpoint = '/api/mercury/actions/send-email'
           body = { to: payload.to, subject: payload.subject, body: payload.body }
+
+          // Inject agentId if persona has email enabled
+          try {
+            const personaRes = await fetch('/api/persona')
+            if (personaRes.ok) {
+              const personaJson = await personaRes.json()
+              const persona = personaJson.data?.persona
+              if (persona?.emailEnabled && persona?.id) {
+                body.agentId = persona.id
+              }
+            }
+          } catch {
+            // Non-fatal — falls back to legacy session-user mode
+          }
         } else if (actionType === 'send_sms') {
           endpoint = '/api/mercury/actions/send-sms'
           body = { to: payload.to, body: payload.body }

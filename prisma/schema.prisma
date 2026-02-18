@@ -97,6 +97,8 @@ model MercuryPersona {
   silenceMedThreshold   Float    @default(0.70) @map("silence_med_threshold")
   channelConfig         Json     @default("{}") @map("channel_config")
   isActive              Boolean  @default(true) @map("is_active")
+  emailEnabled          Boolean  @default(false) @map("email_enabled")
+  emailAddress          String?  @map("email_address")
   createdAt             DateTime @default(now()) @map("created_at")
   updatedAt             DateTime @updatedAt @map("updated_at")
 
@@ -637,6 +639,7 @@ enum mercury_channel {
   whatsapp
   voice
   roam
+  email
 }
 
 // ============================================
@@ -646,6 +649,7 @@ enum mercury_channel {
 model MercuryAction {
   id          String   @id @default(cuid())
   userId      String   @map("user_id")
+  agentId     String?  @map("agent_id")
   actionType  String   @map("action_type")
   recipient   String?
   subject     String?
@@ -746,4 +750,28 @@ enum knowledge_event_status {
   processing
   indexed
   failed
+}
+
+// ============================================
+// Agent Email Credential (Per-Agent Gmail OAuth)
+// ============================================
+
+model AgentEmailCredential {
+  id            String    @id @default(cuid())
+  agentId       String    @unique @map("agent_id")
+  emailAddress  String    @map("email_address")
+  provider      String    @default("google")
+  refreshToken  String    @map("refresh_token")
+  scopes        String    @default("https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.labels")
+  isActive      Boolean   @default(true) @map("is_active")
+  lastRefreshed DateTime? @map("last_refreshed")
+  errorCount    Int       @default(0) @map("error_count")
+  lastError     String?   @map("last_error")
+  watchExpires  DateTime? @map("watch_expires")
+  lastHistoryId String?   @map("last_history_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([emailAddress])
+  @@map("agent_email_credentials")
 }

@@ -358,6 +358,46 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     `)
     results.push('mercury_personas: OK')
 
+    // ========================================
+    // Phase E-EMAIL: Agent Email Credentials
+    // ========================================
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "agent_email_credentials" (
+        "id" TEXT NOT NULL,
+        "agent_id" TEXT NOT NULL,
+        "email_address" TEXT NOT NULL,
+        "provider" TEXT DEFAULT 'google',
+        "refresh_token" TEXT NOT NULL,
+        "scopes" TEXT DEFAULT 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.labels',
+        "is_active" BOOLEAN DEFAULT true,
+        "last_refreshed" TIMESTAMPTZ,
+        "error_count" INTEGER DEFAULT 0,
+        "last_error" TEXT,
+        "watch_expires" TIMESTAMPTZ,
+        "last_history_id" TEXT,
+        "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "agent_email_credentials_pkey" PRIMARY KEY ("id")
+      )
+    `)
+    await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "agent_email_credentials_agent_id_key" ON "agent_email_credentials"("agent_id")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "idx_agent_email_credentials_email" ON "agent_email_credentials"("email_address")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "idx_agent_email_credentials_agent" ON "agent_email_credentials"("agent_id")`)
+    results.push('agent_email_credentials: OK')
+
+    // Add email fields to mercury_personas
+    await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "mercury_personas" ADD COLUMN "email_enabled" BOOLEAN DEFAULT false; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
+    await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "mercury_personas" ADD COLUMN "email_address" TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
+    results.push('mercury_personas email columns: OK')
+
+    // Add agent_id to mercury_actions
+    await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "mercury_actions" ADD COLUMN "agent_id" TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
+    results.push('mercury_actions agent_id: OK')
+
+    // Add 'email' channel to mercury_channel enum
+    await prisma.$executeRawUnsafe(`ALTER TYPE mercury_channel ADD VALUE IF NOT EXISTS 'email'`)
+    results.push('mercury_channel email: OK')
+
     return NextResponse.json({ success: true, results })
   } catch (error) {
     return NextResponse.json({
