@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/connexus-ai/ragbox-backend/internal/middleware"
+	"github.com/connexus-ai/ragbox-backend/internal/model"
 	"github.com/connexus-ai/ragbox-backend/internal/service"
 )
 
@@ -22,14 +23,20 @@ type ChatRequest struct {
 	StrictMode    bool   `json:"strictMode"`
 }
 
+// PersonaFetcher loads persona from the database.
+type PersonaFetcher interface {
+	GetByTenantID(ctx context.Context, tenantID string) (*model.MercuryPersona, error)
+}
+
 // ChatDeps bundles the services needed by the chat handler.
 type ChatDeps struct {
-	Retriever     *service.RetrieverService
-	Generator     service.Generator
-	SelfRAG       *service.SelfRAGService
-	Metrics       *middleware.Metrics // optional, for silence trigger tracking
-	ContentGapSvc *service.ContentGapService
-	SessionSvc    *service.SessionService
+	Retriever      *service.RetrieverService
+	Generator      service.Generator
+	SelfRAG        *service.SelfRAGService
+	Metrics        *middleware.Metrics // optional, for silence trigger tracking
+	ContentGapSvc  *service.ContentGapService
+	SessionSvc     *service.SessionService
+	PersonaFetcher PersonaFetcher // optional — nil means use file-based persona
 }
 
 // Chat returns an SSE streaming handler for Mercury chat.
@@ -88,11 +95,11 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			}
 		}
 
-		// Validate persona if provided
-		if req.Persona != "" {
+		// Validate persona if provided (file-based keys only — DB personas override)
+		if req.Persona != "" && deps.PersonaFetcher == nil {
 			switch req.Persona {
 			case "default", "cfo", "legal":
-				// valid
+				// valid file-based persona key
 			default:
 				respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "persona must be one of: default, cfo, legal"})
 				return
@@ -160,13 +167,26 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			return
 		}
 
-		// Step 2: Generate
+		// Step 2: Load persona (DB persona overrides file-based persona key)
+		var dbPersona *model.MercuryPersona
+		if deps.PersonaFetcher != nil {
+			p, err := deps.PersonaFetcher.GetByTenantID(ctx, userID)
+			if err != nil {
+				slog.Error("persona lookup failed (falling back to file-based)", "user_id", userID, "error", err)
+			} else if p != nil {
+				dbPersona = p
+				slog.Info("[DEBUG-CHAT] using DB persona", "persona_name", p.Name, "tenant_id", p.TenantID)
+			}
+		}
+
+		// Step 3: Generate
 		sendEvent(w, flusher, "status", `{"stage":"generating","iteration":1}`)
 
 		opts := service.GenerateOpts{
-			Mode:       req.Mode,
-			Persona:    req.Persona,
-			StrictMode: req.StrictMode,
+			Mode:           req.Mode,
+			Persona:        req.Persona,
+			StrictMode:     req.StrictMode,
+			DynamicPersona: dbPersona,
 		}
 
 		initial, err := deps.Generator.Generate(ctx, req.Query, retrieval.Chunks, opts)

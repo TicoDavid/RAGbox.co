@@ -128,6 +128,7 @@ func run() error {
 	chunkRepo := repository.NewChunkRepo(pool)
 	auditRepo := repository.NewAuditRepo(pool)
 	userRepo := repository.NewUserRepo(pool)
+	personaRepo := repository.NewPersonaRepo(pool)
 
 	// ─── Services ──────────────────────────────────────────────────────
 
@@ -260,12 +261,13 @@ func run() error {
 		PrivilegeState: privilegeState,
 
 		ChatDeps: handler.ChatDeps{
-			Retriever:     retrieverService,
-			Generator:     generatorService,
-			SelfRAG:       selfRAGService,
-			Metrics:       metrics,
-			ContentGapSvc: contentGapSvc,
-			SessionSvc:    sessionSvc,
+			Retriever:      retrieverService,
+			Generator:      generatorService,
+			SelfRAG:        selfRAGService,
+			Metrics:        metrics,
+			ContentGapSvc:  contentGapSvc,
+			SessionSvc:     sessionSvc,
+			PersonaFetcher: personaRepo,
 		},
 
 		ContentGapDeps: handler.ContentGapDeps{

@@ -66,6 +66,9 @@ type Dependencies struct {
 	IngestDeps     handler.IngestDeps
 	IngestTextDeps handler.IngestTextDeps
 
+	// Persona (for chat handler dynamic persona lookup)
+	PersonaFetcher handler.PersonaFetcher
+
 	// Admin migrations
 	AdminMigrateDeps handler.AdminMigrateDeps
 

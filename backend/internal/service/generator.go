@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/connexus-ai/ragbox-backend/internal/model"
 )
 
 // GenAIClient abstracts the Vertex AI Gemini generative model for testability.
@@ -15,9 +17,10 @@ type GenAIClient interface {
 
 // GenerateOpts configures a generation call.
 type GenerateOpts struct {
-	Mode       string // "concise", "detailed", "risk-analysis"
-	Persona    string // persona key (e.g. "persona_cfo", "persona_legal")
-	StrictMode bool   // if true, compliance layer is added
+	Mode           string              // "concise", "detailed", "risk-analysis"
+	Persona        string              // persona key (e.g. "persona_cfo", "persona_legal")
+	StrictMode     bool                // if true, compliance layer is added
+	DynamicPersona *model.MercuryPersona // if set, overrides file-based Persona lookup
 }
 
 // GenerationResult is the output of a single generation call.
@@ -41,6 +44,7 @@ type CitationRef struct {
 // SystemPromptBuilder abstracts the prompt assembly layer for testability.
 type SystemPromptBuilder interface {
 	BuildSystemPrompt(persona string, strictMode bool) string
+	Rules() string
 }
 
 // GeneratorService produces grounded answers from Gemini using retrieved context.
@@ -91,12 +95,65 @@ func (s *GeneratorService) Generate(ctx context.Context, query string, chunks []
 }
 
 // buildSystemPrompt assembles the system prompt using the PromptLoader if available.
+// If a DynamicPersona is provided (from the DB), it overrides the file-based persona.
 func (s *GeneratorService) buildSystemPrompt(opts GenerateOpts) string {
+	if opts.DynamicPersona != nil {
+		return s.buildDynamicPrompt(opts.DynamicPersona, opts.StrictMode)
+	}
 	if s.promptLoader != nil {
 		return s.promptLoader.BuildSystemPrompt(opts.Persona, opts.StrictMode)
 	}
-	// Fallback system prompt when no PromptLoader is configured
 	return defaultSystemPrompt
+}
+
+// buildDynamicPrompt constructs a system prompt from a DB-stored MercuryPersona.
+// Layer 1: Rules Engine (from PromptLoader), Layer 2: Dynamic persona, Layer 3: Compliance (if strict).
+func (s *GeneratorService) buildDynamicPrompt(persona *model.MercuryPersona, strictMode bool) string {
+	var sb strings.Builder
+
+	// Layer 1: Rules Engine (always present)
+	if s.promptLoader != nil {
+		sb.WriteString("=== RULES (NON-NEGOTIABLE) ===\n")
+		sb.WriteString(s.promptLoader.Rules())
+	} else {
+		sb.WriteString(defaultSystemPrompt)
+	}
+
+	// Layer 2: Dynamic persona (replaces static mercury_identity.txt)
+	sb.WriteString("\n\n=== ACTIVE PERSONA ===\n")
+	sb.WriteString(fmt.Sprintf("You are %s, %s at %s.\n\n", persona.Name, persona.Title, persona.Organization))
+	sb.WriteString("PERSONALITY & COMMUNICATION STYLE:\n")
+	sb.WriteString(persona.Personality)
+	sb.WriteString("\n\n")
+	sb.WriteString(fmt.Sprintf("SILENCE PROTOCOL THRESHOLD: %.2f — If your confidence in an answer is below this threshold, "+
+		"decline to answer rather than speculate. Say you need to check the vault.\n", persona.SilenceThreshold))
+
+	// Channel rules
+	if len(persona.Channels) > 0 && string(persona.Channels) != "{}" && string(persona.Channels) != "null" {
+		sb.WriteString("\nCHANNEL-SPECIFIC RULES:\n")
+		sb.WriteString(string(persona.Channels))
+		sb.WriteString("\n")
+	}
+
+	// Email signature
+	if persona.EmailSignature != nil && *persona.EmailSignature != "" {
+		sb.WriteString("\nEMAIL SIGNATURE (use when sending emails):\n")
+		sb.WriteString(*persona.EmailSignature)
+		sb.WriteString("\n")
+	}
+
+	// Layer 3: Compliance (optional)
+	if strictMode && s.promptLoader != nil {
+		compliancePrompt := s.promptLoader.BuildSystemPrompt("compliance_strict", true)
+		// BuildSystemPrompt with strictMode appends the compliance block
+		// Extract it by finding the compliance section
+		if idx := strings.Index(compliancePrompt, "=== COMPLIANCE MODE ==="); idx >= 0 {
+			sb.WriteString("\n\n")
+			sb.WriteString(compliancePrompt[idx:])
+		}
+	}
+
+	return sb.String()
 }
 
 const defaultSystemPrompt = `You are Mercury, a document intelligence assistant.
