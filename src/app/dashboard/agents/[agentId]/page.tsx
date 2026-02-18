@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
@@ -14,7 +14,11 @@ import {
   ArrowRight,
   CheckCircle,
   Circle,
+  AlertCircle,
+  RotateCcw,
+  ArrowLeft,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { apiFetch } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import type { MercuryChannel } from '@/types/ragbox'
@@ -196,6 +200,28 @@ function ChannelCard({ icon, label, provider, connected, comingSoon, detail, act
 }
 
 // ---------------------------------------------------------------------------
+// Inline Error Component
+// ---------------------------------------------------------------------------
+
+function InlineError({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-red-500/20 bg-red-500/5">
+      <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+      <p className="text-sm text-red-300 flex-1">{message}</p>
+      {onRetry && (
+        <button
+          onClick={onRetry}
+          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-red-300 hover:text-white bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-colors"
+        >
+          <RotateCcw className="w-3 h-3" />
+          Retry
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Skeleton Components (loading placeholders)
 // ---------------------------------------------------------------------------
 
@@ -285,23 +311,27 @@ interface QuickActionsProps {
   onCompose: (channel: 'email' | 'whatsapp') => void
   onAsk: () => void
   onAudit: () => void
+  actionLoading: string | null
 }
 
-function QuickActions({ onCompose, onAsk, onAudit }: QuickActionsProps) {
+function QuickActions({ onCompose, onAsk, onAudit, actionLoading }: QuickActionsProps) {
   const actions = [
     {
+      id: 'email',
       label: 'Send Email',
       icon: <Mail className="w-4 h-4" />,
       onClick: () => onCompose('email'),
       color: 'bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] text-white',
     },
     {
+      id: 'whatsapp',
       label: 'Send WhatsApp',
       icon: <MessageCircle className="w-4 h-4" />,
       onClick: () => onCompose('whatsapp'),
       color: 'bg-emerald-600 hover:bg-emerald-500 text-white',
     },
     {
+      id: 'ask',
       label: 'Ask Evelyn',
       icon: <Send className="w-4 h-4" />,
       onClick: onAsk,
@@ -311,23 +341,34 @@ function QuickActions({ onCompose, onAsk, onAudit }: QuickActionsProps) {
 
   return (
     <div className="space-y-2">
-      {actions.map((action) => (
-        <button
-          key={action.label}
-          onClick={action.onClick}
-          className={cn(
-            'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200',
-            action.color
-          )}
-        >
-          {action.icon}
-          <span>{action.label}</span>
-        </button>
-      ))}
+      {actions.map((action) => {
+        const isLoading = actionLoading === action.id
+        const isDisabled = actionLoading !== null
+
+        return (
+          <button
+            key={action.id}
+            onClick={action.onClick}
+            disabled={isDisabled}
+            className={cn(
+              'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200',
+              action.color,
+              isDisabled && 'opacity-50 cursor-not-allowed'
+            )}
+          >
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : action.icon}
+            <span>{action.label}</span>
+          </button>
+        )
+      })}
 
       <button
         onClick={onAudit}
-        className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-all duration-200 group"
+        disabled={actionLoading !== null}
+        className={cn(
+          'w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-all duration-200 group',
+          actionLoading !== null && 'opacity-50 cursor-not-allowed'
+        )}
       >
         <span className="flex items-center gap-3">
           <FileSearch className="w-4 h-4" />
@@ -355,82 +396,118 @@ export default function AgentPage() {
   const [emailLoading, setEmailLoading] = useState(true)
   const [feedLoading, setFeedLoading] = useState(true)
 
+  // Error states (3b)
+  const [personaError, setPersonaError] = useState<string | null>(null)
+  const [personaNotFound, setPersonaNotFound] = useState(false)
+  const [emailError, setEmailError] = useState<string | null>(null)
+  const [feedError, setFeedError] = useState<string | null>(null)
+
+  // Action loading state (3c)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
+
+  const loadPersona = useCallback(async () => {
+    setLoading(true)
+    setPersonaError(null)
+    setPersonaNotFound(false)
+    try {
+      const res = await apiFetch('/api/persona')
+      if (res.status === 404) {
+        setPersonaNotFound(true)
+        return
+      }
+      if (!res.ok) {
+        setPersonaError('Unable to load agent profile. Check your connection.')
+        return
+      }
+      const data = await res.json()
+      setPersona(data.data?.persona ?? null)
+    } catch {
+      setPersonaError('Unable to load agent profile. Check your connection.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const loadEmail = useCallback(async () => {
+    setEmailLoading(true)
+    setEmailError(null)
+    try {
+      const res = await apiFetch(`/api/agent/${agentId}/email`)
+      if (!res.ok) {
+        setEmailError('Status unavailable')
+        return
+      }
+      const data = await res.json()
+      setEmailStatus(data)
+    } catch {
+      setEmailError('Status unavailable')
+    } finally {
+      setEmailLoading(false)
+    }
+  }, [agentId])
+
+  const loadFeed = useCallback(async () => {
+    setFeedLoading(true)
+    setFeedError(null)
+    try {
+      const res = await apiFetch('/api/mercury/thread')
+      if (!res.ok) {
+        setFeedError('Unable to load activity')
+        return
+      }
+      const threadData = await res.json()
+      const threadId = threadData.data?.id
+      if (threadId) {
+        const msgRes = await apiFetch(
+          `/api/mercury/thread/messages?threadId=${threadId}&limit=10`
+        )
+        if (!msgRes.ok) {
+          setFeedError('Unable to load activity')
+          return
+        }
+        const msgData = await msgRes.json()
+        setMessages(msgData.data?.messages || [])
+      }
+    } catch {
+      setFeedError('Unable to load activity')
+    } finally {
+      setFeedLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
-    async function loadPersona() {
-      try {
-        const res = await apiFetch('/api/persona')
-        if (res.ok) {
-          const data = await res.json()
-          setPersona(data.data?.persona ?? null)
-        }
-      } catch {
-        // Silent
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    async function loadEmail() {
-      try {
-        const res = await apiFetch(`/api/agent/${agentId}/email`)
-        if (res.ok) {
-          const data = await res.json()
-          setEmailStatus(data)
-        }
-      } catch {
-        // Silent
-      } finally {
-        setEmailLoading(false)
-      }
-    }
-
-    async function loadFeed() {
-      try {
-        const res = await apiFetch('/api/mercury/thread')
-        if (res.ok) {
-          const threadData = await res.json()
-          const threadId = threadData.data?.id
-          if (threadId) {
-            const msgRes = await apiFetch(
-              `/api/mercury/thread/messages?threadId=${threadId}&limit=10`
-            )
-            if (msgRes.ok) {
-              const msgData = await msgRes.json()
-              setMessages(msgData.data?.messages || [])
-            }
-          }
-        }
-      } catch {
-        // Silent
-      } finally {
-        setFeedLoading(false)
-      }
-    }
-
     // Fire all three in parallel — each manages its own loading state
     loadPersona()
     loadEmail()
     loadFeed()
-  }, [agentId])
+  }, [loadPersona, loadEmail, loadFeed])
 
   const handleConnectEmail = async () => {
+    setActionLoading('email')
     try {
       const res = await apiFetch(`/api/agent/${agentId}/email/connect`)
-      if (res.ok) {
-        const data = await res.json()
-        window.location.href = data.url
+      if (!res.ok) {
+        toast.error('Failed to start email connection. Please try again.')
+        return
       }
+      const data = await res.json()
+      toast.success('Redirecting to email authorization...')
+      window.location.href = data.url
     } catch {
-      // Silent
+      toast.error('Failed to start email connection. Check your network.')
+    } finally {
+      setActionLoading(null)
     }
   }
 
   const handleCompose = (channel: 'email' | 'whatsapp') => {
-    // Navigate to Mercury chat with the compose intent
+    setActionLoading(channel)
+    toast.success(`Opening ${channel === 'email' ? 'email' : 'WhatsApp'} composer...`)
     router.push(`/dashboard?compose=${channel}`)
   }
 
   const handleAsk = () => {
+    setActionLoading('ask')
     router.push('/dashboard')
   }
 
@@ -483,25 +560,64 @@ export default function AgentPage() {
     )
   }
 
-  // Fallback if no persona loaded
-  if (!persona) {
+  // 3d — Not-found state (404 from persona endpoint)
+  if (personaNotFound) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-[var(--bg-primary)] text-center px-6">
         <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6">
           <Clock className="w-8 h-8 text-slate-600" />
         </div>
-        <h2 className="text-lg font-semibold text-white mb-2">Agent Not Found</h2>
+        <h2 className="text-lg font-semibold text-white mb-2">Agent not found</h2>
         <p className="text-sm text-slate-500 max-w-sm">
-          This agent hasn&apos;t been configured yet. Visit Settings &rarr; Mercury to set up your agent.
+          This agent doesn&apos;t exist or hasn&apos;t been configured yet.
         </p>
-        <button
-          onClick={() => router.push('/dashboard/settings/mercury')}
-          className="mt-6 px-5 py-2.5 rounded-xl bg-[var(--brand-blue)] text-white text-sm font-medium hover:bg-[var(--brand-blue-hover)] transition-colors"
-        >
-          Configure Agent
-        </button>
+        <div className="flex items-center gap-3 mt-6">
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-blue)] text-white text-sm font-medium hover:bg-[var(--brand-blue-hover)] transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to dashboard
+          </button>
+        </div>
       </div>
     )
+  }
+
+  // 3b — Persona fetch error (non-404)
+  if (personaError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-[var(--bg-primary)] text-center px-6">
+        <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center mb-6">
+          <AlertCircle className="w-8 h-8 text-red-400" />
+        </div>
+        <h2 className="text-lg font-semibold text-white mb-2">Unable to load agent profile</h2>
+        <p className="text-sm text-slate-500 max-w-sm">
+          Check your connection and try again.
+        </p>
+        <div className="flex items-center gap-3 mt-6">
+          <button
+            onClick={loadPersona}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-blue)] text-white text-sm font-medium hover:bg-[var(--brand-blue-hover)] transition-colors"
+          >
+            <RotateCcw className="w-4 h-4" />
+            Try again
+          </button>
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/10 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to dashboard
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Fallback if persona didn't load (shouldn't reach here normally)
+  if (!persona) {
+    return null
   }
 
   return (
@@ -519,6 +635,29 @@ export default function AgentPage() {
         >
           {emailLoading ? (
             <ChannelCardSkeleton />
+          ) : emailError ? (
+            <div className="flex-1 min-w-[200px] rounded-xl border border-red-500/20 bg-red-500/5 p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center">
+                  <Mail className="w-5 h-5 text-red-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white">Email</p>
+                  <p className="text-xs text-slate-500">Gmail</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 mb-3">
+                <AlertCircle className="w-3.5 h-3.5 text-red-400" />
+                <span className="text-xs text-red-300">{emailError}</span>
+              </div>
+              <button
+                onClick={loadEmail}
+                className="w-full py-2 rounded-lg text-xs font-medium bg-red-500/10 text-red-300 hover:bg-red-500/20 border border-red-500/20 transition-colors inline-flex items-center justify-center gap-1.5"
+              >
+                <RotateCcw className="w-3 h-3" />
+                Retry
+              </button>
+            </div>
           ) : (
             <ChannelCard
               icon={<Mail className="w-5 h-5" />}
@@ -562,7 +701,15 @@ export default function AgentPage() {
               </h2>
             </div>
             <div className="p-3 max-h-[400px] overflow-y-auto">
-              {feedLoading ? <ActivityFeedSkeleton /> : <RecentActivityFeed messages={messages} />}
+              {feedLoading ? (
+                <ActivityFeedSkeleton />
+              ) : feedError ? (
+                <div className="p-3">
+                  <InlineError message={feedError} onRetry={loadFeed} />
+                </div>
+              ) : (
+                <RecentActivityFeed messages={messages} />
+              )}
             </div>
           </div>
 
@@ -579,6 +726,7 @@ export default function AgentPage() {
                 onCompose={handleCompose}
                 onAsk={handleAsk}
                 onAudit={handleAudit}
+                actionLoading={actionLoading}
               />
             </div>
           </div>
