@@ -24,6 +24,7 @@ model User {
   image     String?
   role      user_role @default(Associate)
   status    user_status @default(Active)
+  subscriptionTier subscription_tier @default(professional) @map("subscription_tier")
   privilegeModeEnabled Boolean @default(false) @map("privilege_mode_enabled")
   privilegeModeChangedAt DateTime? @map("privilege_mode_changed_at")
   createdAt DateTime @default(now()) @map("created_at")
@@ -59,6 +60,28 @@ enum user_role {
 enum user_status {
   Active
   Suspended
+}
+
+enum subscription_tier {
+  starter
+  professional
+  enterprise
+}
+
+// ============================================
+// Beta Access Codes (Invite-Only Launch)
+// ============================================
+
+model BetaCode {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  batch     Int       // 1=David network, 2=inbound, 3=investor demos
+  used      Boolean   @default(false)
+  usedBy    String?   @map("used_by")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("beta_codes")
 }
 
 // ============================================
@@ -544,12 +567,16 @@ enum wa_conversation_status {
 // ============================================
 
 model WaitlistEntry {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  source    String?  // landing, blog, referral, etc.
-  referrer  String?
-  ipAddress String?  @map("ip_address")
-  createdAt DateTime @default(now()) @map("created_at")
+  id          String   @id @default(cuid())
+  email       String   @unique
+  fullName    String?  @map("full_name")
+  company     String?
+  role        String?
+  companySize String?  @map("company_size")
+  source      String?  // landing, blog, referral, etc.
+  referrer    String?
+  ipAddress   String?  @map("ip_address")
+  createdAt   DateTime @default(now()) @map("created_at")
 
   @@map("waitlist_entries")
 }
