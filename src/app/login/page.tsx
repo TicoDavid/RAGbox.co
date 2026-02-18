@@ -1,7 +1,7 @@
 ﻿'use client'
 
 import { motion } from 'framer-motion'
-import { Shield, Building2 } from 'lucide-react'
+import { Shield } from 'lucide-react'
 import Link from 'next/link'
 import { signIn } from 'next-auth/react'
 import { cn } from '@/lib/utils'
@@ -75,15 +75,7 @@ export default function LoginPage() {
           </motion.button>
         </motion.div>
 
-        <motion.div className="flex items-center gap-4 my-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}>
-          <div className="flex-1 h-px bg-white/10"/><span className="text-xs text-white/30 uppercase tracking-wider">Enterprise SSO</span><div className="flex-1 h-px bg-white/10"/>
-        </motion.div>
-
-        <motion.button className={cn('w-full flex items-center justify-center gap-3 px-6 py-3 rounded-full bg-white/5 text-white/60 border border-white/10 font-medium text-sm transition-all duration-200 hover:bg-white/10 hover:text-white active:scale-[0.98]')} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-          <Building2 className="w-4 h-4"/><span>Sign in with SAML/SSO</span>
-        </motion.button>
-
-        <motion.div className="text-center mt-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}>
+        <motion.div className="text-center mt-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}>
           <Link href="/" className="text-sm text-white/40 hover:text-white/60 transition-colors">Back to landing page</Link>
         </motion.div>
 

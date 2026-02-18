@@ -296,6 +296,14 @@ func run() error {
 			Pipeline: pipelineSvc,
 		},
 
+		AdminMigrateDeps: handler.AdminMigrateDeps{
+			RunSQL: func(ctx context.Context, sql string) error {
+				_, err := pool.Exec(ctx, sql)
+				return err
+			},
+			MigrationsDir: "/migrations",
+		},
+
 		UserEnsurer: userRepo,
 
 		GeneralRateLimiter: generalRL,

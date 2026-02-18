@@ -12,6 +12,7 @@ substitutions:
   _REGION: us-east4
   _SERVICE_NAME: ragbox-app
   _REPOSITORY: ragbox-repo
+  _SENTRY_DSN: ''  # Set via trigger or --substitutions when Sentry project is created
   _MIN_INSTANCES: '0'
   _MAX_INSTANCES: '100'
   _MEMORY: '2Gi'
@@ -133,7 +134,7 @@ steps:
       - '--vpc-egress'
       - 'private-ranges-only'
       - '--set-env-vars'
-      - 'NODE_ENV=production,GOOGLE_CLOUD_PROJECT=${PROJECT_ID},GCP_REGION=${_REGION},VONAGE_API_KEY=0a494ee1,VONAGE_APPLICATION_ID=c4e5db33-e412-4d6b-ab9e-20d7cc9f1cf3,VONAGE_WHATSAPP_NUMBER=14157386102,WHATSAPP_PROVIDER=vonage,WHATSAPP_VERIFY_TOKEN=mercury-ragbox-verify,WHATSAPP_DEFAULT_USER_ID=105836695160618550214,ROAM_DEFAULT_USER_ID=105836695160618550214,NEXT_PUBLIC_VOICE_WS_URL=wss://mercury-voice-4rvm4ohelq-uk.a.run.app/agent/ws'
+      - 'NODE_ENV=production,GOOGLE_CLOUD_PROJECT=${PROJECT_ID},GCP_REGION=${_REGION},VONAGE_API_KEY=0a494ee1,VONAGE_APPLICATION_ID=c4e5db33-e412-4d6b-ab9e-20d7cc9f1cf3,VONAGE_WHATSAPP_NUMBER=14157386102,WHATSAPP_PROVIDER=vonage,WHATSAPP_VERIFY_TOKEN=mercury-ragbox-verify,WHATSAPP_DEFAULT_USER_ID=105836695160618550214,ROAM_DEFAULT_USER_ID=105836695160618550214,NEXT_PUBLIC_VOICE_WS_URL=wss://mercury-voice-4rvm4ohelq-uk.a.run.app/agent/ws,SENTRY_DSN=${_SENTRY_DSN},NEXT_PUBLIC_SENTRY_DSN=${_SENTRY_DSN}'
       - '--set-secrets'
       - 'DATABASE_URL=ragbox-prod-database-url:latest,FIREBASE_API_KEY=firebase-api-key:latest,FIREBASE_AUTH_DOMAIN=firebase-auth-domain:latest,FIREBASE_PROJECT_ID=firebase-project-id:latest,NEXTAUTH_SECRET=nextauth-secret:latest,NEXTAUTH_URL=nextauth-url:latest,GOOGLE_CLIENT_ID=google-client-id:latest,GOOGLE_CLIENT_SECRET=google-client-secret:latest,GO_BACKEND_URL=ragbox-backend-url:latest,INTERNAL_AUTH_SECRET=ragbox-internal-auth-secret:latest,VONAGE_API_SECRET=vonage-api-secret:latest,ROAM_API_KEY=roam-api-key:latest,ROAM_WEBHOOK_SECRET=roam-webhook-secret:latest,ROAM_CLIENT_ID=roam-client-id:latest'
       - '--service-account'

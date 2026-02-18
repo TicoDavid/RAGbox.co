@@ -66,6 +66,9 @@ type Dependencies struct {
 	IngestDeps     handler.IngestDeps
 	IngestTextDeps handler.IngestTextDeps
 
+	// Admin migrations
+	AdminMigrateDeps handler.AdminMigrateDeps
+
 	// User auto-provisioning
 	UserEnsurer middleware.UserEnsurer
 
@@ -73,6 +76,24 @@ type Dependencies struct {
 	GeneralRateLimiter *middleware.RateLimiter
 	ChatRateLimiter    *middleware.RateLimiter
 	ForgeRateLimiter   *middleware.RateLimiter
+}
+
+// internalAuthOnly wraps a handler with a simple internal auth check.
+// Used for admin endpoints called by Cloud Build (no Firebase, no user context).
+func internalAuthOnly(secret string, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		token := r.Header.Get("X-Internal-Auth")
+		if secret == "" || token != secret {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "unauthorized",
+			})
+			return
+		}
+		next.ServeHTTP(w, r)
+	}
 }
 
 // New creates and configures the Chi router with all routes.
@@ -92,6 +113,10 @@ func New(deps *Dependencies) *chi.Mux {
 	if deps.MetricsReg != nil {
 		r.Handle("/metrics", middleware.MetricsHandler(deps.MetricsReg))
 	}
+
+	// Admin routes (internal auth only — called by Cloud Build)
+	r.Post("/api/admin/migrate", internalAuthOnly(deps.InternalAuthSecret,
+		handler.AdminMigrate(deps.AdminMigrateDeps)))
 
 	// Build shared dependency structs
 	docCRUD := handler.DocCRUDDeps{

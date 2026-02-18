@@ -136,7 +136,7 @@ const nextConfig = {
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob: https://storage.googleapis.com https://*.googleusercontent.com",
               "media-src 'self' https://storage.googleapis.com",
-              "connect-src 'self' https://*.googleapis.com https://*.deepgram.com https://openrouter.ai wss://*.deepgram.com wss:",
+              "connect-src 'self' https://*.googleapis.com https://*.deepgram.com https://openrouter.ai wss://*.deepgram.com wss: https://*.sentry.io https://*.ingest.sentry.io",
               "frame-ancestors 'none'",
             ].join('; '),
           },
@@ -146,4 +146,13 @@ const nextConfig = {
   },
 }
 
-module.exports = nextConfig
+const { withSentryConfig } = require("@sentry/nextjs");
+
+module.exports = withSentryConfig(nextConfig, {
+  // Suppress build logs from Sentry
+  silent: true,
+  // Hide source maps from client bundles
+  hideSourceMaps: true,
+  // Disable telemetry
+  telemetry: false,
+});
