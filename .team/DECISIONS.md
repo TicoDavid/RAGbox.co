@@ -28,13 +28,13 @@
 
 [2026-02-18] CHUNK OVERLAP — Sheldon — 15% for legal clause boundary preservation. Standardize across pipeline.
 
-[2026-02-18] EVELYN MONROE — PENDING DAVID — Demo-grade or production-grade? Determines polish level.
+[2026-02-18] EVELYN MONROE — DAVID — PRODUCTION-GRADE. Not a demo prop. Full error handling, permissions, audit events, stable routing. Ship it right.
 
-[2026-02-18] VOICE ARCHITECTURE — PENDING DAVID — Fix Inworld or pivot to Cartesia? Blocks post-launch voice work.
+[2026-02-18] VOICE ARCHITECTURE — DAVID — INWORLD. Fix it, don't replace it. Cartesia is not the path.
 
-[2026-02-18] TIMELINE — PENDING DAVID — 3-day sprint confirmed? Hard deadline?
+[2026-02-18] TIMELINE — DAVID — HOT DEADLINE. Build now. No buffer. Ship ASAP.
 
-[2026-02-18] PRICING APPROVAL — PENDING DAVID — $149/$399/$999 needs sign-off.
+[2026-02-18] PRICING APPROVED — DAVID — $149/$399/$999 confirmed. Starter $149/mo, Professional $399/mo, Enterprise $999/mo. Mercury add-on at Starter, included at Professional+. Put it on the landing page.
 
 ---
 
