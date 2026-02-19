@@ -221,6 +221,12 @@ export function SovereignExplorer({ onClose }: SovereignExplorerProps) {
     try {
       if (enabled) {
         const res = await apiFetch(`/api/documents/${docId}/ingest`, { method: 'POST' })
+        if (res.status === 409) {
+          // Auto-ingest already started processing this document
+          toast.info('Document is already being processed')
+          await fetchDocuments()
+          return
+        }
         if (!res.ok) throw new Error('Failed to start indexing')
         toast.success('Indexing started')
       } else {
@@ -294,7 +300,9 @@ export function SovereignExplorer({ onClose }: SovereignExplorerProps) {
   const handleIngestionUpload = useCallback(async (files: File[]) => {
     await uploadDocuments(files, selectedFolderId || undefined)
     setIsIngestionOpen(false)
-  }, [uploadDocuments, selectedFolderId])
+    // Auto-refresh after pipeline has time to complete indexing
+    setTimeout(() => fetchDocuments(), 8000)
+  }, [uploadDocuments, selectedFolderId, fetchDocuments])
 
   const handleChat = useCallback(() => {
     if (selectedId) selectAndChat(selectedId)
@@ -311,11 +319,18 @@ export function SovereignExplorer({ onClose }: SovereignExplorerProps) {
     setIsVectorizing(true)
     try {
       let success = 0
+      let alreadyProcessing = 0
       for (const doc of pendingDocs) {
         const res = await apiFetch(`/api/documents/${doc.id}/ingest`, { method: 'POST' })
         if (res.ok) success++
+        else if (res.status === 409) alreadyProcessing++
       }
-      toast.success(`Vectorization started for ${success} document${success !== 1 ? 's' : ''}`)
+      if (success > 0) {
+        toast.success(`Vectorization started for ${success} document${success !== 1 ? 's' : ''}`)
+      }
+      if (alreadyProcessing > 0) {
+        toast.info(`${alreadyProcessing} document${alreadyProcessing !== 1 ? 's' : ''} already processing`)
+      }
       await fetchDocuments()
     } catch {
       toast.error('Batch vectorization failed')
