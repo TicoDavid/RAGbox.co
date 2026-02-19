@@ -355,7 +355,7 @@ export function AIModelSettings() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
-          className="p-3 rounded-xl bg-slate-900/50 border border-white/5 space-y-3"
+          className="p-3 rounded-xl bg-[var(--bg-primary)]/50 border border-white/5 space-y-3"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -393,7 +393,7 @@ export function AIModelSettings() {
                   setTestStatus('idle')
                 }}
                 disabled={isConfigured && !isEditing}
-                className="w-full appearance-none px-3 py-2 rounded-lg bg-slate-800/50 border border-white/10 text-sm text-white
+                className="w-full appearance-none px-3 py-2 rounded-lg bg-[var(--bg-tertiary)]/50 border border-white/10 text-sm text-white
                          focus:outline-none focus:border-cyan-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {PROVIDER_OPTIONS.map((p) => (
@@ -408,7 +408,7 @@ export function AIModelSettings() {
           <div>
             <label className="block text-[10px] text-slate-500 uppercase tracking-wider mb-1">API Key</label>
             {isConfigured && !isEditing ? (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800/50 border border-white/10">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--bg-tertiary)]/50 border border-white/10">
                 <span className="text-sm text-slate-400 font-mono flex-1">
                   {serverConfig?.maskedKey || '***'}
                 </span>
@@ -425,7 +425,7 @@ export function AIModelSettings() {
                     setTestError(null)
                   }}
                   placeholder="sk-or-... / sk-... / key-..."
-                  className="w-full px-3 py-2 pr-10 rounded-lg bg-slate-800/50 border border-white/10 text-sm text-white
+                  className="w-full px-3 py-2 pr-10 rounded-lg bg-[var(--bg-tertiary)]/50 border border-white/10 text-sm text-white
                            placeholder-slate-600 focus:outline-none focus:border-cyan-500/50 font-mono"
                 />
                 <button
@@ -447,7 +447,7 @@ export function AIModelSettings() {
                   value={selectedModel}
                   onChange={(e) => setSelectedModel(e.target.value)}
                   disabled={isConfigured && !isEditing}
-                  className="w-full appearance-none px-3 py-2 rounded-lg bg-slate-800/50 border border-white/10 text-sm text-white
+                  className="w-full appearance-none px-3 py-2 rounded-lg bg-[var(--bg-tertiary)]/50 border border-white/10 text-sm text-white
                            focus:outline-none focus:border-cyan-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <option value="">Select a model...</option>
@@ -468,7 +468,7 @@ export function AIModelSettings() {
                 onClick={handleTestConnection}
                 disabled={testStatus === 'testing'}
                 className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg
-                         bg-slate-800/50 border border-white/10 text-slate-300 text-xs font-medium
+                         bg-[var(--bg-tertiary)]/50 border border-white/10 text-slate-300 text-xs font-medium
                          hover:bg-white/5 disabled:opacity-50 transition-all"
               >
                 {testStatus === 'testing' ? (
@@ -553,7 +553,7 @@ export function AIModelSettings() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="p-3 rounded-xl bg-slate-900/50 border border-white/5 space-y-2"
+          className="p-3 rounded-xl bg-[var(--bg-primary)]/50 border border-white/5 space-y-2"
         >
           <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Routing Policy</p>
           {POLICY_OPTIONS.map((opt) => (

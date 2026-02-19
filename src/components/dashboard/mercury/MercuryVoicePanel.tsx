@@ -18,7 +18,7 @@ import { usePrivilegeStore } from '@/stores/privilegeStore'
 
 function AudioLevelBar({ level, isActive }: { level: number; isActive: boolean }) {
   return (
-    <div className="w-full h-2 bg-slate-800/50 rounded-full overflow-hidden">
+    <div className="w-full h-2 bg-[var(--bg-tertiary)]/50 rounded-full overflow-hidden">
       <motion.div
         className={`h-full rounded-full ${
           isActive
@@ -183,7 +183,7 @@ export function MercuryVoicePanel() {
               transition-all duration-300
               ${isPoweredOn
                 ? 'bg-gradient-to-br from-cyan-500 to-blue-600 shadow-[0_0_30px_rgba(0,240,255,0.5)]'
-                : 'bg-slate-800/80 hover:bg-slate-700/80 border border-slate-600'
+                : 'bg-[var(--bg-tertiary)]/80 hover:bg-[var(--bg-elevated)]/80 border border-[var(--border-strong)]'
               }
               ${isConnecting ? 'animate-pulse bg-amber-600/50' : ''}
               disabled:cursor-not-allowed
@@ -237,7 +237,7 @@ export function MercuryVoicePanel() {
               transition-all text-sm font-medium
               ${isVADActive
                 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                : 'bg-slate-800/50 text-slate-400 border border-slate-700 hover:border-slate-600'
+                : 'bg-[var(--bg-tertiary)]/50 text-slate-400 border border-[var(--border-default)] hover:border-[var(--border-strong)]'
               }
             `}
           >
@@ -249,7 +249,7 @@ export function MercuryVoicePanel() {
         {/* Transcript Area */}
         <div
           ref={transcriptRef}
-          className="flex-1 overflow-y-auto bg-slate-900/50 rounded-lg border border-white/5 p-3"
+          className="flex-1 overflow-y-auto bg-[var(--bg-primary)]/50 rounded-lg border border-white/5 p-3"
         >
           {!isPoweredOn ? (
             <div className="h-full flex items-center justify-center">

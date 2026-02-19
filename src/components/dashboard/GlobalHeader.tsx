@@ -291,10 +291,10 @@ export function GlobalHeader() {
 
             {/* Persona Dropdown */}
             {personaMenuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-80 bg-[#0B1221]/98 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-50 py-2 overflow-hidden">
+              <div className="absolute right-0 top-full mt-2 w-80 bg-[var(--bg-primary)]/98 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-50 py-2 overflow-hidden">
                 {/* System Prompt Preview (on hover) */}
                 {hoveredPersona && (
-                  <div className="px-4 py-3 bg-slate-900/80 border-b border-white/10">
+                  <div className="px-4 py-3 bg-[var(--bg-primary)]/80 border-b border-white/10">
                     <p className="text-[10px] font-semibold text-cyan-400 uppercase tracking-wider mb-1">
                       System Instruction
                     </p>
@@ -408,7 +408,7 @@ export function GlobalHeader() {
               <PrivilegeKeyIcon size={20} color={privilegeMode ? '#FFAB00' : '#C0C0C0'} />
             </button>
             {/* Enhanced Tooltip */}
-            <div className="absolute right-0 top-full mt-2 w-64 p-3 bg-[#0B1221]/95 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+            <div className="absolute right-0 top-full mt-2 w-64 p-3 bg-[var(--bg-primary)]/95 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
               <div className="flex items-center gap-2 mb-2">
                 <PrivilegeKeyIcon size={16} color={privilegeMode ? '#FFAB00' : '#C0C0C0'} />
                 <span className={`text-sm font-semibold ${privilegeMode ? 'text-amber-400' : 'text-slate-300'}`}>
@@ -468,7 +468,7 @@ export function GlobalHeader() {
 
             {/* Profile Dropdown Menu */}
             {profileMenuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-72 bg-[#0B1221]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
+              <div className="absolute right-0 top-full mt-2 w-72 bg-[var(--bg-primary)]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
                 {/* User Info Header */}
                 <div className="px-4 py-3 border-b border-white/5">
                   <div className="flex items-center gap-3">
@@ -642,7 +642,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
 
       {/* Modal - Wide layout */}
-      <div className="relative w-full max-w-4xl mx-4 h-[80vh] max-h-[700px] bg-[#0B1221]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+      <div className="relative w-full max-w-4xl mx-4 h-[80vh] max-h-[700px] bg-[var(--bg-primary)]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
         <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-white/10">
           <div className="flex items-center gap-3">
@@ -844,7 +844,7 @@ function BillingSettings() {
               {(subscription.tokensUsed / 1000000).toFixed(2)}M / {(subscription.tokensLimit / 1000000).toFixed(0)}M
             </span>
           </div>
-          <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+          <div className="h-2 bg-[var(--bg-tertiary)]rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all"
               style={{ width: `${Math.min(usagePercent, 100)}%` }}
@@ -1110,7 +1110,7 @@ function DocumentationSettings() {
             className="flex items-center justify-between p-4 bg-white/5 border border-white/10 hover:border-cyan-500/30 hover:bg-cyan-500/5 rounded-xl transition-all group"
           >
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-slate-800 group-hover:bg-cyan-500/20 rounded-lg transition-colors">
+              <div className="p-2 bg-[var(--bg-tertiary)]group-hover:bg-cyan-500/20 rounded-lg transition-colors">
                 <span className="text-slate-400 group-hover:text-cyan-400 transition-colors">
                   {doc.icon}
                 </span>
@@ -1169,7 +1169,7 @@ function ReportIssueSettings() {
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Describe the issue or feature request in detail..."
           rows={5}
-          className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[var(--brand-blue)] resize-none"
+          className="w-full px-4 py-3 bg-[var(--bg-primary)]/50 border border-[var(--border-default)]/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[var(--brand-blue)] resize-none"
         />
       </div>
 
@@ -1206,7 +1206,7 @@ function CommunitySettings() {
             rel="noopener noreferrer"
             className="flex items-center gap-4 p-4 bg-white/5 border border-white/10 hover:border-cyan-500/30 rounded-xl transition-all group"
           >
-            <div className="p-3 bg-slate-800 group-hover:bg-cyan-500/20 rounded-xl transition-colors">
+            <div className="p-3 bg-[var(--bg-tertiary)]group-hover:bg-cyan-500/20 rounded-xl transition-colors">
               <span className="text-slate-400 group-hover:text-cyan-400 transition-colors">
                 {link.icon}
               </span>
@@ -1463,7 +1463,7 @@ function APIKeysSettings() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Connection Name"
-                  className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[var(--brand-blue)]"
+                  className="w-full px-3 py-2 bg-[var(--bg-primary)]/50 border border-[var(--border-default)]/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[var(--brand-blue)]"
                 />
                 <input
                   id="edit-conn-endpoint"
@@ -1473,7 +1473,7 @@ function APIKeysSettings() {
                   onChange={(e) => setFormData({ ...formData, endpoint: e.target.value })}
                   placeholder="Endpoint URL"
                   disabled={conn.type === 'openrouter'}
-                  className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[var(--brand-blue)] disabled:opacity-50"
+                  className="w-full px-3 py-2 bg-[var(--bg-primary)]/50 border border-[var(--border-default)]/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[var(--brand-blue)] disabled:opacity-50"
                 />
                 <input
                   id="edit-conn-apikey"
@@ -1482,7 +1482,7 @@ function APIKeysSettings() {
                   value={formData.apiKey}
                   onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
                   placeholder="API Key"
-                  className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[var(--brand-blue)]"
+                  className="w-full px-3 py-2 bg-[var(--bg-primary)]/50 border border-[var(--border-default)]/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[var(--brand-blue)]"
                 />
                 <div className="flex gap-2">
                   <button
@@ -1502,7 +1502,7 @@ function APIKeysSettings() {
                   </button>
                   <button
                     onClick={() => { setEditingId(null); setFormData({ name: '', endpoint: '', apiKey: '' }) }}
-                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm rounded-lg transition-colors"
+                    className="px-4 py-2 bg-[var(--bg-tertiary)]hover:bg-[var(--bg-elevated)] text-slate-300 text-sm rounded-lg transition-colors"
                   >
                     Cancel
                   </button>
@@ -1580,7 +1580,7 @@ function APIKeysSettings() {
                       name={`conn-model-${conn.id}`}
                       value={conn.selectedModel || ''}
                       onChange={(e) => setConnectionModel(conn.id, e.target.value)}
-                      className="w-full px-3 py-2.5 bg-slate-900/50 border border-slate-700/50 rounded-lg text-sm text-white focus:outline-none focus:border-cyan-500 appearance-none cursor-pointer"
+                      className="w-full px-3 py-2.5 bg-[var(--bg-primary)]/50 border border-[var(--border-default)]/50 rounded-lg text-sm text-white focus:outline-none focus:border-cyan-500 appearance-none cursor-pointer"
                       style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
                     >
                       {conn.availableModels.map((model) => (
@@ -1642,7 +1642,7 @@ function APIKeysSettings() {
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Connection Name"
-              className="w-full px-3 py-2.5 bg-slate-900/50 border border-slate-700/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[var(--brand-blue)]"
+              className="w-full px-3 py-2.5 bg-[var(--bg-primary)]/50 border border-[var(--border-default)]/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[var(--brand-blue)]"
             />
           )}
 
@@ -1657,7 +1657,7 @@ function APIKeysSettings() {
               onChange={(e) => setFormData({ ...formData, endpoint: e.target.value })}
               placeholder="https://api.example.com/v1"
               disabled={selectedProvider !== 'custom'}
-              className="w-full px-3 py-2.5 bg-slate-900/50 border border-slate-700/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[var(--brand-blue)] disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2.5 bg-[var(--bg-primary)]/50 border border-[var(--border-default)]/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[var(--brand-blue)] disabled:opacity-60 disabled:cursor-not-allowed"
             />
             {selectedProvider !== 'custom' && (
               <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
@@ -1677,7 +1677,7 @@ function APIKeysSettings() {
               value={formData.apiKey}
               onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
               placeholder={selectedProvider === 'openrouter' ? 'sk-or-v1-...' : 'sk-...'}
-              className="w-full px-3 py-2.5 bg-slate-900/50 border border-slate-700/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[var(--brand-blue)]"
+              className="w-full px-3 py-2.5 bg-[var(--bg-primary)]/50 border border-[var(--border-default)]/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[var(--brand-blue)]"
             />
           </div>
 
@@ -1712,7 +1712,7 @@ function APIKeysSettings() {
             </button>
             <button
               onClick={() => { setShowAddForm(false); setFormData({ name: '', endpoint: '', apiKey: '' }); setModelError(null) }}
-              className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm rounded-lg transition-colors"
+              className="px-4 py-2.5 bg-[var(--bg-tertiary)]hover:bg-[var(--bg-elevated)] text-slate-300 text-sm rounded-lg transition-colors"
             >
               Cancel
             </button>

@@ -130,7 +130,7 @@ function EmailConfirmationCard({
         </div>
 
         {/* Email Preview */}
-        <div className="mb-5 space-y-3 p-4 rounded-lg bg-gray-900/60 border border-gray-700/50">
+        <div className="mb-5 space-y-3 p-4 rounded-lg bg-[var(--bg-primary)]/60 border border-[var(--border-default)]/50">
           <div className="flex items-start gap-2">
             <span className="text-xs font-medium text-gray-500 w-14 shrink-0 pt-0.5">To</span>
             <span className="text-sm text-gray-200 break-all">{to}</span>
@@ -139,7 +139,7 @@ function EmailConfirmationCard({
             <span className="text-xs font-medium text-gray-500 w-14 shrink-0 pt-0.5">Subject</span>
             <span className="text-sm text-gray-200">{subject}</span>
           </div>
-          <div className="border-t border-gray-700/50 pt-3">
+          <div className="border-t border-[var(--border-default)]/50 pt-3">
             <span className="text-xs font-medium text-gray-500 block mb-1">Body</span>
             <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap max-h-40 overflow-y-auto">
               {body.length > 300 ? `${body.slice(0, 300)}...` : body}
@@ -156,7 +156,7 @@ function EmailConfirmationCard({
               onClick={onDeny}
               className="px-4 py-2 rounded-lg text-sm font-medium
                        text-gray-400 hover:text-gray-200
-                       bg-gray-800 hover:bg-gray-700
+                       bg-[var(--bg-tertiary)] hover:bg-[var(--bg-elevated)]
                        transition-colors flex items-center gap-2"
             >
               <X className="w-4 h-4" />
@@ -228,12 +228,12 @@ function SmsConfirmationCard({
         </div>
 
         {/* SMS Preview */}
-        <div className="mb-5 space-y-3 p-4 rounded-lg bg-gray-900/60 border border-gray-700/50">
+        <div className="mb-5 space-y-3 p-4 rounded-lg bg-[var(--bg-primary)]/60 border border-[var(--border-default)]/50">
           <div className="flex items-start gap-2">
             <span className="text-xs font-medium text-gray-500 w-10 shrink-0 pt-0.5">To</span>
             <span className="text-sm text-gray-200 font-mono">{to}</span>
           </div>
-          <div className="border-t border-gray-700/50 pt-3">
+          <div className="border-t border-[var(--border-default)]/50 pt-3">
             <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
               {body}
             </p>
@@ -259,7 +259,7 @@ function SmsConfirmationCard({
               onClick={onDeny}
               className="px-4 py-2 rounded-lg text-sm font-medium
                        text-gray-400 hover:text-gray-200
-                       bg-gray-800 hover:bg-gray-700
+                       bg-[var(--bg-tertiary)] hover:bg-[var(--bg-elevated)]
                        transition-colors flex items-center gap-2"
             >
               <X className="w-4 h-4" />
@@ -420,7 +420,7 @@ export function ToolConfirmationDialog({
 
           {/* Voice confirmation status */}
           {voiceEnabled && (
-            <div className="mb-4 p-3 rounded-lg bg-gray-800/50 border border-gray-700">
+            <div className="mb-4 p-3 rounded-lg bg-[var(--bg-tertiary)]/50 border border-[var(--border-default)]">
               <div className="flex items-center gap-2 mb-2">
                 {isListening ? (
                   <>
@@ -457,7 +457,7 @@ export function ToolConfirmationDialog({
                 onClick={() => onDeny(request.toolCallId)}
                 className="px-4 py-2 rounded-lg text-sm font-medium
                          text-gray-400 hover:text-gray-200
-                         bg-gray-800 hover:bg-gray-700
+                         bg-[var(--bg-tertiary)] hover:bg-[var(--bg-elevated)]
                          transition-colors flex items-center gap-2"
               >
                 <X className="w-4 h-4" />
