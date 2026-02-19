@@ -16,7 +16,7 @@ import { getToken } from 'next-auth/jwt'
 import { z } from 'zod'
 import prisma from '@/lib/prisma'
 import { maskApiKey } from '@/lib/utils/mask-key'
-import { encryptKey, decryptKey } from '@/lib/utils/kms-stub'
+import { encryptKey, decryptKey } from '@/lib/utils/kms'
 
 const DEFAULT_TENANT = 'default'
 

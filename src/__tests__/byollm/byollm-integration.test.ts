@@ -79,8 +79,10 @@ jest.mock('@/lib/mercury/toolErrors', () => ({
   }),
 }))
 
-// Use REAL kms-stub and mask-key (they're pure functions, no external deps)
-// No mock needed — we test their actual behavior
+// Route handlers import from @/lib/utils/kms (real GCP KMS).
+// In tests, redirect kms → kms-stub so we don't need GCP credentials.
+// AC-3 tests still use the REAL kms-stub functions directly.
+jest.mock('@/lib/utils/kms', () => require('@/lib/utils/kms-stub'))
 
 // ── Imports (after mocks) ────────────────────────────────────
 

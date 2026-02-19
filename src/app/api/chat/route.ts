@@ -16,7 +16,7 @@ import { getToken } from 'next-auth/jwt'
 import { isToolError, createErrorResponse } from '@/lib/mercury/toolErrors'
 import { getCachedQuery, setCachedQuery } from '@/lib/cache/queryCache'
 import prisma from '@/lib/prisma'
-import { decryptKey } from '@/lib/utils/kms-stub'
+import { decryptKey } from '@/lib/utils/kms'
 
 const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''

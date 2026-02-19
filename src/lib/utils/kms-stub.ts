@@ -1,17 +1,10 @@
 /**
- * KMS Encryption Stubs — BYOLLM API Key Encryption
+ * KMS Encryption Stubs — DEV ONLY
  *
- * Placeholder implementations using base64 encoding for local dev.
- * The real KMS wiring happens in the Go backend (STORY-023).
+ * Set KMS_MODE=stub in .env.local to use this in development.
+ * Production uses src/lib/utils/kms.ts with GCP Cloud KMS.
  *
- * See: connexus-ops/docs/kms-encryption-pattern.md for the production
- * implementation plan using Cloud KMS `secrets-key`.
- *
- * TODO(STORY-023): Replace these stubs with calls to the Go backend
- * encrypt/decrypt endpoints once KMSCrypto is wired in the Go service.
- * Production flow:
- *   encryptKey → POST /api/internal/kms/encrypt (Go backend)
- *   decryptKey → POST /api/internal/kms/decrypt (Go backend)
+ * Base64 encoding with "kms-stub:" prefix. NOT secure — dev only.
  */
 
 const STUB_PREFIX = 'kms-stub:'
