@@ -424,7 +424,11 @@ export const useMercuryStore = create<MercuryState>()(
       }
     },
 
-    clearConversation: () => set({ messages: [], streamingContent: '', attachments: [], sessionQueryCount: 0, sessionTopics: [] }),
+    clearConversation: () => {
+      set({ messages: [], streamingContent: '', attachments: [], sessionQueryCount: 0, sessionTopics: [] })
+      // Delete persisted messages from server (best-effort)
+      fetch('/api/mercury/thread/messages', { method: 'DELETE' }).catch(() => {})
+    },
 
     setTemperaturePreset: (preset) => set({ temperaturePreset: preset }),
 

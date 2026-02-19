@@ -208,3 +208,43 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ success: false, error: 'Failed to save message' })
   }
 }
+
+export async function DELETE(request: NextRequest): Promise<NextResponse> {
+  try {
+    const token = await getToken({ req: request })
+    if (!token) {
+      return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 })
+    }
+
+    const userId = (token.id as string) || token.email || ''
+    if (!userId) {
+      return NextResponse.json({ success: false, error: 'Unable to determine user identity' }, { status: 401 })
+    }
+
+    // Find the user's most recent thread
+    const thread = await prisma.mercuryThread.findFirst({
+      where: { userId },
+      orderBy: { updatedAt: 'desc' },
+      select: { id: true },
+    })
+
+    if (!thread) {
+      return NextResponse.json({ success: true, data: { deleted: 0 } })
+    }
+
+    // Delete all messages in the thread
+    const result = await prisma.mercuryThreadMessage.deleteMany({
+      where: { threadId: thread.id },
+    })
+
+    // Audit log
+    writeAuditEntry(userId, 'mercury.clear', thread.id, {
+      deletedCount: result.count,
+    }).catch(() => {})
+
+    return NextResponse.json({ success: true, data: { deleted: result.count } })
+  } catch (error) {
+    console.error('[Mercury Messages DELETE] Error:', error)
+    return NextResponse.json({ success: false, error: 'Failed to clear messages' }, { status: 500 })
+  }
+}

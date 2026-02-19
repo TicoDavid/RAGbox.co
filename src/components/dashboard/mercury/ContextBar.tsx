@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { RefreshCw, Phone } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import { useMercuryStore } from '@/stores/mercuryStore'
 
 function VoiceStatusDot() {
@@ -67,16 +67,6 @@ export function ContextBar() {
           )}
         </div>
       )}
-
-      {/* Voice Conversation */}
-      <button
-        onClick={() => window.dispatchEvent(new CustomEvent('mercury:open-voice'))}
-        className="p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-cyan-400 hover:bg-cyan-500/10 transition-colors"
-        title="Open voice conversation"
-        aria-label="Open voice conversation"
-      >
-        <Phone className="w-4 h-4" />
-      </button>
 
       {/* Refresh / Clear Chat */}
       <button

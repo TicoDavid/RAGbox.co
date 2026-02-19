@@ -14,6 +14,8 @@ import { MercuryVoicePanel } from './mercury/MercuryVoicePanel'
 import { SovereignStudio } from './studio'
 import { IntelligencePanel } from './intelligence'
 import { WhatsAppPanel } from './whatsapp/WhatsAppPanel'
+import { AgentSummaryPanel } from './mercury/AgentSummaryPanel'
+import { toast } from 'sonner'
 import { useContentIntelligenceStore } from '@/stores/contentIntelligenceStore'
 import { useWhatsAppStore } from '@/stores/whatsappStore'
 import {
@@ -166,8 +168,9 @@ function ExportPanel() {
         ].map((item) => (
           <button
             key={item.label}
+            onClick={() => toast.info('Export coming soon')}
             className="w-full flex items-center gap-3 p-3 rounded-xl
-                     bg-slate-900/50 border border-white/5 hover:border-blue-500/30
+                     bg-[var(--bg-primary)]/50 border border-white/5 hover:border-blue-500/30
                      hover:bg-blue-500/5 transition-all text-left"
           >
             <Download className="w-5 h-5 text-blue-400" />
@@ -379,12 +382,6 @@ export function DashboardLayout() {
     }
   }, [isTablet, isDesktop, rightExpanded, rightTab])
 
-  // Listen for mercury:open-voice event from ContextBar phone button
-  useEffect(() => {
-    const handler = () => handleRightTabClick('mercury')
-    window.addEventListener('mercury:open-voice', handler)
-    return () => window.removeEventListener('mercury:open-voice', handler)
-  }, [handleRightTabClick])
 
   const handleIngestionUpload = async (files: File[]) => {
     await uploadDocuments(files)
@@ -466,6 +463,8 @@ export function DashboardLayout() {
         return <IntelligencePanel />
       case 'whatsapp':
         return <WhatsAppPanel />
+      case 'agent':
+        return <AgentSummaryPanel />
       default:
         return null
     }

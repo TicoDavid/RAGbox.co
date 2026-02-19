@@ -8,7 +8,7 @@ import {
   Clock,
   Star,
   Sparkles,
-  Shield,
+  Scale,
   Download,
   ChevronLeft,
   ChevronRight,
@@ -16,6 +16,7 @@ import {
   Maximize2,
   Lightbulb,
   MessageCircle,
+  UserCircle,
 } from 'lucide-react'
 
 // ============================================================================
@@ -23,7 +24,7 @@ import {
 // ============================================================================
 
 export type LeftRailTab = 'vault' | 'recent' | 'starred'
-export type RightRailTab = 'mercury' | 'studio' | 'audit' | 'export' | 'intelligence' | 'whatsapp'
+export type RightRailTab = 'mercury' | 'studio' | 'audit' | 'export' | 'intelligence' | 'whatsapp' | 'agent'
 
 interface RailIconProps {
   icon: React.ElementType
@@ -255,10 +256,19 @@ export function RightStealthRail({
           side="right"
         />
 
-        {/* Audit Log */}
+        {/* My Agent */}
         <RailIcon
-          icon={Shield}
-          label="Audit Log"
+          icon={UserCircle}
+          label="My Agent"
+          isActive={isExpanded && activeTab === 'agent'}
+          onClick={() => onTabClick('agent')}
+          side="right"
+        />
+
+        {/* Truth & Audit */}
+        <RailIcon
+          icon={Scale}
+          label="Truth & Audit"
           isActive={isExpanded && activeTab === 'audit'}
           onClick={() => onTabClick('audit')}
           side="right"
