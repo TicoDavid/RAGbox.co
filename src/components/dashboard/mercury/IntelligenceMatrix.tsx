@@ -15,6 +15,7 @@ import {
   ChevronDown,
   Sparkles,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { useSettings, type ActiveIntelligence, type IntelligenceTier } from '@/contexts/SettingsContext'
 import {
   fetchOpenRouterModels,
@@ -249,6 +250,9 @@ export function IntelligenceMatrix({ isOpen, onClose, anchorRef }: IntelligenceM
       tier: option.tier,
     }
     setActiveIntelligence(newIntel)
+    toast.success(`Switched to ${option.displayName}`, {
+      description: option.tier === 'native' ? 'Sovereign RAG pipeline' : `via ${option.provider}`,
+    })
     onClose()
   }, [setActiveIntelligence, onClose])
 
@@ -421,7 +425,7 @@ export function IntelligenceMatrix({ isOpen, onClose, anchorRef }: IntelligenceM
                 {filteredUniverse.length > 0 && (
                   <div className="mt-2">
                     <SectionHeader title="Open Universe" count={filteredUniverse.length} tier="universe" />
-                    {filteredUniverse.slice(0, 50).map((option) => (
+                    {filteredUniverse.slice(0, 500).map((option) => (
                       <IntelligenceOptionItem
                         key={option.id}
                         option={option}
@@ -429,9 +433,9 @@ export function IntelligenceMatrix({ isOpen, onClose, anchorRef }: IntelligenceM
                         onSelect={() => handleSelect(option)}
                       />
                     ))}
-                    {filteredUniverse.length > 50 && (
+                    {filteredUniverse.length > 500 && (
                       <div className="px-3 py-2 text-center text-xs text-[var(--text-tertiary)]">
-                        + {filteredUniverse.length - 50} more models · Refine your search
+                        + {filteredUniverse.length - 500} more models · Refine your search
                       </div>
                     )}
                   </div>

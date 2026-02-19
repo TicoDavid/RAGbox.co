@@ -1337,7 +1337,7 @@ function APIKeysSettings() {
       }
 
       // Convert to cached models
-      const cachedModels: CachedModel[] = (result.models || []).slice(0, 50).map((m: { id: string; name: string; context_length: number }) => ({
+      const cachedModels: CachedModel[] = (result.models || []).slice(0, 500).map((m: { id: string; name: string; context_length: number }) => ({
         id: m.id,
         name: m.name,
         contextLength: m.context_length

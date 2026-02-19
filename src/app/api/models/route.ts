@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Return only safe fields — strip pricing internals
-    const models = sortedModels.slice(0, 50).map((m: { id: string; name: string; context_length: number }) => ({
+    const models = sortedModels.slice(0, 500).map((m: { id: string; name: string; context_length: number }) => ({
       id: m.id,
       name: m.name,
       context_length: m.context_length,

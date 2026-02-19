@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { ShieldCheck, Key } from 'lucide-react'
+import { toast } from 'sonner'
 import { useSettings } from '@/contexts/SettingsContext'
 import { useMercuryStore } from '@/stores/mercuryStore'
 
@@ -56,6 +57,7 @@ export function ChatModelPicker() {
         provider: 'RAGbox',
         tier: 'native',
       })
+      toast.success('Switched to AEGIS', { description: 'Sovereign RAG pipeline' })
     } else {
       setActiveIntelligence({
         id: byollmConnection.selectedModel!,
@@ -63,6 +65,7 @@ export function ChatModelPicker() {
         provider: byollmConnection.type,
         tier: 'private',
       })
+      toast.success(`Switched to ${modelName}`, { description: `via ${byollmConnection.type}` })
     }
   }
 
