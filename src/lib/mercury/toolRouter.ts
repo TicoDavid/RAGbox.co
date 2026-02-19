@@ -60,6 +60,26 @@ const TOOL_PATTERNS: PatternDef[] = [
   { pattern: /^(?:vault|box)\s+contents?/i, tool: 'list_documents', argMap: () => ({}) },
   { pattern: /^how\s+many\s+(?:files?|documents?|docs?)/i, tool: 'get_document_stats', argMap: () => ({}) },
 
+  // Vault/file search — natural-language phrasings that aren't caught by command-verb patterns
+  { pattern: /^(?:which|what)\s+(?:files?|documents?|docs?)\s+(?:mention|discuss|contain|talk about|reference|cover)\s+(.+)/i,
+    tool: 'search_documents', argMap: (m) => ({ query: m[1] }) },
+  { pattern: /^(?:do\s+I\s+have|is\s+there)\s+(?:any(?:thing|\s+(?:file|document|doc))?|a\s+(?:file|document|doc))\s+(?:about|on|regarding|mentioning|related to)\s+(.+)/i,
+    tool: 'search_documents', argMap: (m) => ({ query: m[1] }) },
+  { pattern: /^(?:show|find|get)\s+(?:me\s+)?(?:documents?|files?|docs?)\s+(?:about|on|regarding|related to|mentioning)\s+(.+)/i,
+    tool: 'search_documents', argMap: (m) => ({ query: m[1] }) },
+
+  // Recent/latest vault queries
+  { pattern: /^(?:show|list|get)\s+(?:me\s+)?(?:the\s+)?(?:latest|recent|newest|last)\s+(?:files?|documents?|docs?|uploads?)/i,
+    tool: 'list_documents', argMap: () => ({}) },
+  { pattern: /^(?:what(?:'s|\s+was)\s+the\s+last\s+(?:thing|file|document|doc)\s+(?:I\s+)?uploaded)/i,
+    tool: 'list_documents', argMap: () => ({}) },
+
+  // Delete/remove vault file
+  { pattern: /^(?:delete|remove|trash)\s+(?:the\s+)?(?:file|document|doc)\s+(.+)/i,
+    tool: 'delete_document', argMap: (m) => ({ query: m[1].trim() }) },
+  { pattern: /^(?:delete|remove|trash)\s+(.+\.(?:pdf|docx|txt|doc|csv|xlsx))/i,
+    tool: 'delete_document', argMap: (m) => ({ query: m[1].trim() }) },
+
   // Help command
   { pattern: /^\/help\s*$/i, tool: 'show_help', argMap: () => ({}) },
   { pattern: /^(?:help|what can you do|how do I|commands?)/i, tool: 'show_help', argMap: () => ({}) },

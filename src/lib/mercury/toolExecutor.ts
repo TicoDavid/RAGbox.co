@@ -81,6 +81,8 @@ export async function executeTool(
         }
       case 'open_document':
         return await openDocument(args.query as string, authHeaders)
+      case 'delete_document':
+        return await prepareDeleteDocument(args.query as string, authHeaders)
       case 'send_email':
         return await prepareSendEmail(args, authHeaders)
       case 'send_sms':
@@ -243,6 +245,23 @@ async function openDocument(query: string, authHeaders: HeadersInit): Promise<To
     data: { documentId: docId },
     display: `Opening document...`,
     action: { type: 'open_document', payload: { documentId: docId } },
+  }
+}
+
+async function prepareDeleteDocument(query: string, authHeaders: HeadersInit): Promise<ToolResult> {
+  const { resolveDocumentId } = await import('./toolRouter')
+  const docId = await resolveDocumentId(query, authHeaders)
+
+  if (!docId) {
+    return { success: false, data: null, display: `Could not find a document matching "${query}".` }
+  }
+
+  return {
+    success: true,
+    data: { documentId: docId },
+    display: `Are you sure you want to delete the document matching "${query}"? This action cannot be undone.`,
+    requiresConfirmation: true,
+    confirmationPayload: { type: 'delete_document', documentId: docId },
   }
 }
 
