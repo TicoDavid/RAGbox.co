@@ -3,6 +3,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { apiFetch } from '@/lib/api';
+import { useMercuryStore } from '@/stores/mercuryStore';
 import { DeepgramClient } from '@/lib/voice/deepgram-client';
 import { AudioCapture } from '@/lib/voice/audio-capture';
 import { AudioPlayback } from '@/lib/voice/audio-playback';
@@ -229,6 +230,7 @@ export function useVoiceChat(
       }
 
       // 2. Send transcript to /api/chat
+      const personaId = useMercuryStore.getState().activePersona;
       const chatResponse = await apiFetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -236,7 +238,7 @@ export function useVoiceChat(
           query: text,
           context,
           history: chatHistory,
-          systemPrompt: fullSystemPrompt || undefined,
+          personaId,
         }),
       });
 

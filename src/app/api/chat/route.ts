@@ -42,30 +42,13 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
     }
 
     const body = await request.json()
-    const { query, stream, privilegeMode, history, maxTier } = body
+    const { query, stream, privilegeMode, history, maxTier, personaId } = body
 
     if (!query || typeof query !== 'string') {
       return NextResponse.json(
         { success: false, error: 'Query is required' },
         { status: 400 }
       )
-    }
-
-    // Fetch persona for this tenant to inject identity context
-    let personaContext = ''
-    try {
-      const persona = await prisma.mercuryPersona.findUnique({
-        where: { tenantId: DEFAULT_TENANT },
-      })
-      if (persona) {
-        personaContext = [
-          `Your name is ${persona.firstName}${persona.lastName ? ` ${persona.lastName}` : ''}.`,
-          persona.title ? `Your title is ${persona.title}.` : '',
-          persona.personalityPrompt,
-        ].filter(Boolean).join(' ')
-      }
-    } catch (err) {
-      console.error('[Chat] Persona fetch failed:', err)
     }
 
     // Check cache for non-streaming requests (or when explicitly not streaming)
@@ -168,7 +151,7 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
         privilegeMode: privilegeMode ?? false,
         history: history ?? [],
         maxTier: maxTier ?? 3,
-        ...(personaContext ? { systemPrompt: personaContext } : {}),
+        ...(personaId ? { personaId } : {}),
         ...byollmFields,
       }),
     })

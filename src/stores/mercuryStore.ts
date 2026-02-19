@@ -223,14 +223,15 @@ export const useMercuryStore = create<MercuryState>()(
           return
         }
 
-        // Build request body with optional BYOLLM routing
-        const { selectedLlm } = get()
+        // Build request body with persona + optional BYOLLM routing
+        const { selectedLlm, activePersona } = get()
         const chatBody: Record<string, unknown> = {
           query: inputValue,
           stream: true,
           useVectorPipeline: true,
           privilegeMode,
           maxTier: 3,
+          personaId: activePersona,
           history: messages.map(m => ({ role: m.role, content: m.content })),
         }
         if (selectedLlm.provider === 'byollm') {
