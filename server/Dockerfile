@@ -27,7 +27,10 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY package.json ./
+COPY package.json package-lock.json ./
+
+# Install TypeScript for compilation (not in prod deps)
+RUN npm install --no-save typescript
 
 # Copy voice server source (only files needed for compilation)
 COPY server/index.ts server/agent-ws.ts server/inworld.ts \

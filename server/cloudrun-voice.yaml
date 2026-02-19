@@ -31,10 +31,11 @@ spec:
         autoscaling.knative.dev/minScale: "0"
         autoscaling.knative.dev/maxScale: "10"
     spec:
+      serviceAccountName: ragbox-prod-cloudrun@ragbox-sovereign-prod.iam.gserviceaccount.com
       containerConcurrency: 80
       timeoutSeconds: 3600
       containers:
-        - image: gcr.io/ragbox-sovereign-prod/mercury-voice:latest
+        - image: us-east4-docker.pkg.dev/ragbox-sovereign-prod/ragbox/mercury-voice:latest
           ports:
             - name: http1
               containerPort: 3003

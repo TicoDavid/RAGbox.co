@@ -340,7 +340,7 @@ async function summarizeDocument(args: { documentId: string; length?: string }, 
   }
 
   const text = doc.extractedText || ''
-  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 20)
+  const sentences = text.split(/[.!?]+/).filter((s: string) => s.trim().length > 20)
 
   const lengthConfig = {
     brief: 3,
@@ -376,8 +376,8 @@ async function getDocumentStats(ctx: ToolContext): Promise<unknown> {
 
   return {
     totalDocuments: total,
-    byType: byType.map(t => ({ type: t.mimeType, count: t._count })),
-    recentUploads: recent.map(d => ({ name: d.filename, createdAt: d.createdAt })),
+    byType: byType.map((t: any) => ({ type: t.mimeType, count: t._count })),
+    recentUploads: recent.map((d: any) => ({ name: d.filename, createdAt: d.createdAt })),
   }
 }
 
@@ -417,7 +417,7 @@ async function listDocuments(args: { limit?: number; sortBy?: string }, ctx: Too
   return {
     count: documents.length,
     privilegeMode: ctx.privilegeMode,
-    documents: documents.map(d => ({
+    documents: documents.map((d: any) => ({
       id: d.id,
       name: d.originalName || d.filename,
       type: d.mimeType,
@@ -542,7 +542,7 @@ async function getLearningSessionsSummary(args: { limit?: number }, ctx: ToolCon
 
   return {
     count: queries.length,
-    sessions: queries.map(q => ({
+    sessions: queries.map((q: any) => ({
       id: q.id,
       query: q.queryText,
       timestamp: q.createdAt.toISOString(),
