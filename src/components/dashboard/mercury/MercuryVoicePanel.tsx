@@ -22,8 +22,8 @@ function AudioLevelBar({ level, isActive }: { level: number; isActive: boolean }
       <motion.div
         className={`h-full rounded-full ${
           isActive
-            ? 'bg-gradient-to-r from-cyan-500 to-emerald-400'
-            : 'bg-slate-600'
+            ? 'bg-gradient-to-r from-[var(--brand-blue)] to-[var(--success)]'
+            : 'bg-[var(--bg-elevated)]'
         }`}
         initial={{ width: 0 }}
         animate={{ width: `${Math.min(level * 100 * 5, 100)}%` }}
@@ -50,27 +50,27 @@ function StateIndicator({
 }) {
   const getStateConfig = () => {
     if (state === 'connecting') {
-      return { color: 'text-amber-400', pulse: true, label: 'Connecting...' }
+      return { color: 'text-[var(--warning)]', pulse: true, label: 'Connecting...' }
     }
     if (state === 'error') {
-      return { color: 'text-red-400', pulse: false, label: 'Error' }
+      return { color: 'text-[var(--danger)]', pulse: false, label: 'Error' }
     }
     if (!isConnected) {
-      return { color: 'text-slate-500', pulse: false, label: 'Offline' }
+      return { color: 'text-[var(--text-tertiary)]', pulse: false, label: 'Offline' }
     }
     if (isSpeaking) {
-      return { color: 'text-cyan-400', pulse: true, label: 'Speaking' }
+      return { color: 'text-[var(--brand-blue)]', pulse: true, label: 'Speaking' }
     }
     if (state === 'processing') {
-      return { color: 'text-amber-400', pulse: true, label: 'Processing' }
+      return { color: 'text-[var(--warning)]', pulse: true, label: 'Processing' }
     }
     if (state === 'listening') {
-      return { color: 'text-emerald-400', pulse: true, label: 'Listening' }
+      return { color: 'text-[var(--success)]', pulse: true, label: 'Listening' }
     }
     if (isVADActive) {
-      return { color: 'text-emerald-400', pulse: true, label: 'Listening' }
+      return { color: 'text-[var(--success)]', pulse: true, label: 'Listening' }
     }
-    return { color: 'text-cyan-400', pulse: false, label: 'Online' }
+    return { color: 'text-[var(--brand-blue)]', pulse: false, label: 'Online' }
   }
 
   const config = getStateConfig()
@@ -154,10 +154,10 @@ export function MercuryVoicePanel() {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="shrink-0 px-4 py-3 border-b border-white/5">
+      <div className="shrink-0 px-4 py-3 border-b border-[var(--border-subtle)]">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-white uppercase tracking-wider flex items-center gap-2">
-            <Mic className="w-4 h-4 text-cyan-400" />
+          <h3 className="text-sm font-semibold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
+            <Mic className="w-4 h-4 text-[var(--brand-blue)]" />
             Mercury
           </h3>
           <StateIndicator
@@ -182,23 +182,23 @@ export function MercuryVoicePanel() {
               relative w-20 h-20 rounded-full flex items-center justify-center
               transition-all duration-300
               ${isPoweredOn
-                ? 'bg-gradient-to-br from-cyan-500 to-blue-600 shadow-[0_0_30px_rgba(0,240,255,0.5)]'
+                ? 'bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-blue-dim)] shadow-[0_0_30px_rgba(0,240,255,0.5)]'
                 : 'bg-[var(--bg-tertiary)]/80 hover:bg-[var(--bg-elevated)]/80 border border-[var(--border-strong)]'
               }
-              ${isConnecting ? 'animate-pulse bg-amber-600/50' : ''}
+              ${isConnecting ? 'animate-pulse bg-[var(--warning)]/50' : ''}
               disabled:cursor-not-allowed
             `}
           >
             {isPoweredOn ? (
-              <Power className="w-8 h-8 text-white" />
+              <Power className="w-8 h-8 text-[var(--text-primary)]" />
             ) : (
-              <PowerOff className="w-8 h-8 text-slate-400" />
+              <PowerOff className="w-8 h-8 text-[var(--text-secondary)]" />
             )}
 
             {/* Outer ring animation when active and listening */}
             {isPoweredOn && (
               <motion.div
-                className="absolute inset-0 rounded-full border-2 border-cyan-400"
+                className="absolute inset-0 rounded-full border-2 border-[var(--brand-blue)]"
                 initial={{ scale: 1, opacity: 0.8 }}
                 animate={{ scale: 1.3, opacity: 0 }}
                 transition={{ duration: 1.5, repeat: Infinity }}
@@ -208,7 +208,7 @@ export function MercuryVoicePanel() {
             {/* Pulsing glow when speaking */}
             {isSpeaking && (
               <motion.div
-                className="absolute inset-0 rounded-full bg-cyan-400/30"
+                className="absolute inset-0 rounded-full bg-[var(--brand-blue)]/30"
                 initial={{ opacity: 0.3 }}
                 animate={{ opacity: [0.3, 0.6, 0.3] }}
                 transition={{ duration: 0.8, repeat: Infinity }}
@@ -220,7 +220,7 @@ export function MercuryVoicePanel() {
         {/* Audio Level */}
         {isPoweredOn && (
           <div className="space-y-1">
-            <div className="flex items-center justify-between text-xs text-slate-500">
+            <div className="flex items-center justify-between text-xs text-[var(--text-tertiary)]">
               <span>Audio Level</span>
               <span>{(audioLevel * 100).toFixed(0)}%</span>
             </div>
@@ -236,8 +236,8 @@ export function MercuryVoicePanel() {
               flex items-center justify-center gap-2 py-2 px-4 rounded-lg
               transition-all text-sm font-medium
               ${isVADActive
-                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                : 'bg-[var(--bg-tertiary)]/50 text-slate-400 border border-[var(--border-default)] hover:border-[var(--border-strong)]'
+                ? 'bg-[var(--success)]/20 text-[var(--success)] border border-[var(--success)]/30'
+                : 'bg-[var(--bg-tertiary)]/50 text-[var(--text-secondary)] border border-[var(--border-default)] hover:border-[var(--border-strong)]'
               }
             `}
           >
@@ -249,11 +249,11 @@ export function MercuryVoicePanel() {
         {/* Transcript Area */}
         <div
           ref={transcriptRef}
-          className="flex-1 overflow-y-auto bg-[var(--bg-primary)]/50 rounded-lg border border-white/5 p-3"
+          className="flex-1 overflow-y-auto bg-[var(--bg-primary)]/50 rounded-lg border border-[var(--border-subtle)] p-3"
         >
           {!isPoweredOn ? (
             <div className="h-full flex items-center justify-center">
-              <p className="text-xs text-slate-600 text-center">
+              <p className="text-xs text-[var(--text-muted)] text-center">
                 Press power to activate<br />Mercury voice agent
               </p>
             </div>
@@ -265,16 +265,16 @@ export function MercuryVoicePanel() {
                   key={entry.id}
                   className={`${
                     entry.type === 'user'
-                      ? 'text-slate-300'
+                      ? 'text-[var(--text-secondary)]'
                       : entry.type === 'agent'
-                      ? 'text-slate-200'
-                      : 'text-slate-500 italic'
+                      ? 'text-[var(--text-primary)]'
+                      : 'text-[var(--text-tertiary)] italic'
                   }`}
                 >
                   {entry.type !== 'system' && (
                     <span
                       className={`text-xs block mb-1 ${
-                        entry.type === 'user' ? 'text-cyan-500' : 'text-emerald-500'
+                        entry.type === 'user' ? 'text-[var(--brand-blue)]' : 'text-[var(--success)]'
                       }`}
                     >
                       {entry.type === 'user' ? 'You' : 'Mercury'}
@@ -288,7 +288,7 @@ export function MercuryVoicePanel() {
 
               {/* Empty state */}
               {transcript.length === 0 && (
-                <p className="text-xs text-slate-600 text-center py-4">
+                <p className="text-xs text-[var(--text-muted)] text-center py-4">
                   Start speaking to Mercury
                 </p>
               )}
@@ -298,7 +298,7 @@ export function MercuryVoicePanel() {
 
         {/* Status Footer */}
         <div className="shrink-0 text-center">
-          <p className="text-[10px] text-slate-600 uppercase tracking-wider">
+          <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
             {isPoweredOn ? 'Hands-free voice mode' : 'Voice agent offline'}
           </p>
         </div>
