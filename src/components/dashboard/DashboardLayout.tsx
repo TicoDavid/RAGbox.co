@@ -410,14 +410,6 @@ export function DashboardLayout() {
           handleRightTabClick('audit')
         }
         break
-      case 'settings':
-        if (isMobile) {
-          setRightTab('aimodel')
-          setMobileRightOpen(true)
-        } else {
-          handleRightTabClick('aimodel')
-        }
-        break
     }
   }, [isMobile, handleLeftTabClick, handleRightTabClick])
 
@@ -425,7 +417,6 @@ export function DashboardLayout() {
   const sidebarActivePanel = useMemo(() => {
     if (pathname.startsWith('/dashboard/agents')) return null // agent uses pathname
     if (rightExpanded && rightTab === 'audit') return 'audit'
-    if (rightExpanded && (rightTab === 'studio' || rightTab === 'aimodel')) return 'settings'
     return 'box'
   }, [pathname, rightExpanded, rightTab])
 
@@ -438,7 +429,7 @@ export function DashboardLayout() {
     if (panel) {
       didAutoOpenPanel.current = true
       if (panel === 'audit') handleRightTabClick('audit')
-      else if (panel === 'settings') handleRightTabClick('studio')
+      else if (panel === 'settings') handleRightTabClick('aimodel')
       window.history.replaceState({}, '', '/dashboard')
     }
   }, [handleRightTabClick])
