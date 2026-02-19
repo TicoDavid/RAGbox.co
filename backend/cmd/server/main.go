@@ -307,6 +307,10 @@ func run() error {
 			Pipeline: pipelineSvc,
 		},
 
+		TranscribeDeps: handler.TranscribeDeps{
+			DeepgramAPIKey: cfg.DeepgramAPIKey,
+		},
+
 		AdminMigrateDeps: handler.AdminMigrateDeps{
 			RunSQL: func(ctx context.Context, sql string) error {
 				_, err := pool.Exec(ctx, sql)

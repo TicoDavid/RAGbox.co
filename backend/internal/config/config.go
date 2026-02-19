@@ -37,6 +37,7 @@ type Config struct {
 	KMSKeyRing          string
 	KMSKeyName          string
 	InternalAuthSecret  string
+	DeepgramAPIKey      string
 }
 
 // Load reads configuration from environment variables.
@@ -82,6 +83,7 @@ func Load() (*Config, error) {
 		KMSKeyRing:          envStr("KMS_KEY_RING", "ragbox-keys"),
 		KMSKeyName:          envStr("KMS_KEY_NAME", "document-key"),
 		InternalAuthSecret:  envStr("INTERNAL_AUTH_SECRET", ""),
+		DeepgramAPIKey:      envStr("DEEPGRAM_API_KEY", ""),
 	}
 
 	// Internal auth secret is required in non-development environments

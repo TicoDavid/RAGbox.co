@@ -75,6 +75,9 @@ type Dependencies struct {
 	// Admin migrations
 	AdminMigrateDeps handler.AdminMigrateDeps
 
+	// Voice transcription
+	TranscribeDeps handler.TranscribeDeps
+
 	// User auto-provisioning
 	UserEnsurer middleware.UserEnsurer
 
@@ -196,6 +199,9 @@ func New(deps *Dependencies) *chi.Mux {
 
 		// Export (ZIP generation can take a while)
 		r.With(middleware.Timeout(60 * time.Second)).Get("/api/export", handler.ExportData(deps.ExportDeps))
+
+		// Voice transcription — single utterance STT via Deepgram
+		r.With(timeout30s).Post("/api/voice/transcribe", handler.Transcribe(deps.TranscribeDeps))
 
 		// Forge — AI generation, 60s timeout. Strictest rate limit (5/min).
 		forgeMiddleware := []func(http.Handler) http.Handler{middleware.Timeout(60 * time.Second)}
