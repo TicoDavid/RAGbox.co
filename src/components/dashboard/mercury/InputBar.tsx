@@ -18,7 +18,6 @@ import {
 import { VoiceTrigger } from './VoiceTrigger'
 import { PERSONAS } from './personaData'
 import { IntelligenceMatrix, IntelligenceBadge } from './IntelligenceMatrix'
-import { ChatModelPicker } from './ChatModelPicker'
 import { useSettings } from '@/contexts/SettingsContext'
 
 export { PERSONAS, type Persona, type PersonaCategory } from './personaData'
@@ -34,8 +33,9 @@ export function InputBar() {
   const removeAttachment = useMercuryStore((s) => s.removeAttachment)
   const updateAttachment = useMercuryStore((s) => s.updateAttachment)
   const activePersona = useMercuryStore((s) => s.activePersona)
+  const setSelectedLlm = useMercuryStore((s) => s.setSelectedLlm)
   const privilegeMode = usePrivilegeStore((s) => s.isEnabled)
-  const { isAegisActive } = useSettings()
+  const { isAegisActive, connections, activeIntelligence, llmPolicy } = useSettings()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
@@ -46,6 +46,26 @@ export function InputBar() {
   const [isMatrixOpen, setIsMatrixOpen] = useState(false)
 
   const currentPersona = PERSONAS.find((p) => p.id === activePersona) || PERSONAS[0]
+
+  // Sync selectedLlm in mercuryStore whenever activeIntelligence or policy changes
+  const byollmConnection = connections.find(
+    (c) => c.verified && c.selectedModel && c.type !== 'local' && c.type !== 'custom'
+  )
+  useEffect(() => {
+    if (llmPolicy === 'aegis_only' || !byollmConnection) {
+      setSelectedLlm({ provider: 'aegis', model: 'aegis-core' })
+      return
+    }
+    if (llmPolicy === 'byollm_only' && byollmConnection.selectedModel) {
+      setSelectedLlm({ provider: 'byollm', model: byollmConnection.selectedModel })
+      return
+    }
+    if (isAegisActive) {
+      setSelectedLlm({ provider: 'aegis', model: 'aegis-core' })
+    } else if (byollmConnection.selectedModel) {
+      setSelectedLlm({ provider: 'byollm', model: byollmConnection.selectedModel })
+    }
+  }, [llmPolicy, isAegisActive, byollmConnection, setSelectedLlm, activeIntelligence])
 
   useEffect(() => {
     const textarea = textareaRef.current
@@ -177,12 +197,10 @@ export function InputBar() {
           </div>
         )}
 
-        <div className="relative mb-2">
+        <div className="relative mb-2 flex justify-start">
           <IntelligenceBadge onClick={() => setIsMatrixOpen(true)} />
           <IntelligenceMatrix isOpen={isMatrixOpen} onClose={() => setIsMatrixOpen(false)} />
         </div>
-
-        <ChatModelPicker />
 
         <div className={`flex items-center gap-2 px-5 py-3.5 rounded-full bg-[var(--bg-primary)] transition-all duration-500 ease-out ${isAegisActive ? 'border border-[var(--warning)]/40 shadow-[0_0_40px_-10px_rgba(245,158,11,0.25),0_0_80px_-20px_rgba(245,158,11,0.10)] animate-[aegisBreathe_4s_ease-in-out_infinite]' : 'border border-[var(--privilege-border)]/30 border-t-[var(--privilege-border)]/40 shadow-2xl shadow-black/80 focus-within:border-[var(--warning)]/50 focus-within:shadow-[0_8px_32px_-8px_rgba(217,119,6,0.15)]'}`}>
           <div className="relative shrink-0">
