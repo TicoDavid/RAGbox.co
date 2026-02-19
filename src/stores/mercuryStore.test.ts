@@ -60,6 +60,9 @@ function jsonResponse(payload: object) {
 
 const originalFetch = global.fetch
 
+/** Default fetch mock that satisfies fire-and-forget calls (persistToThread, etc.) */
+const defaultFetchResponse = { ok: true, json: async () => ({}) }
+
 beforeEach(() => {
   // Reset Zustand store between tests
   useMercuryStore.setState({
@@ -70,7 +73,7 @@ beforeEach(() => {
     abortController: null,
     temperaturePreset: 'executive-cpo',
   })
-  global.fetch = jest.fn()
+  global.fetch = jest.fn().mockResolvedValue(defaultFetchResponse)
 })
 
 afterAll(() => {
@@ -86,15 +89,20 @@ describe('mercuryStore', () => {
         { event: 'token', data: JSON.stringify({ text: 'ok' }) },
         { event: 'done', data: '{}' },
       ])
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(stream))
+      ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+        if (url === '/api/chat') return Promise.resolve(mockResponse(stream))
+        return Promise.resolve(defaultFetchResponse)
+      })
 
       useMercuryStore.setState({ inputValue: 'hello' })
       await useMercuryStore.getState().sendMessage(true)
 
-      const call = (global.fetch as jest.Mock).mock.calls[0]
-      expect(call[0]).toBe('/api/chat')
+      const chatCall = (global.fetch as jest.Mock).mock.calls.find(
+        (c: unknown[]) => c[0] === '/api/chat'
+      )
+      expect(chatCall).toBeDefined()
 
-      const body = JSON.parse(call[1].body)
+      const body = JSON.parse(chatCall[1].body)
       expect(body).toEqual({
         query: 'hello',
         stream: true,
@@ -110,7 +118,10 @@ describe('mercuryStore', () => {
         { event: 'token', data: JSON.stringify({ text: 'x' }) },
         { event: 'done', data: '{}' },
       ])
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(stream))
+      ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+        if (url === '/api/chat') return Promise.resolve(mockResponse(stream))
+        return Promise.resolve(defaultFetchResponse)
+      })
 
       useMercuryStore.setState({
         inputValue: 'follow-up',
@@ -121,7 +132,10 @@ describe('mercuryStore', () => {
       })
       await useMercuryStore.getState().sendMessage(false)
 
-      const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body)
+      const chatCall = (global.fetch as jest.Mock).mock.calls.find(
+        (c: unknown[]) => c[0] === '/api/chat'
+      )
+      const body = JSON.parse(chatCall[1].body)
       expect(body.history).toEqual([
         { role: 'user', content: 'first' },
         { role: 'assistant', content: 'reply' },
@@ -148,7 +162,10 @@ describe('mercuryStore', () => {
         { event: 'token', data: JSON.stringify({ text: ' world' }) },
         { event: 'done', data: '{}' },
       ])
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(stream))
+      ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+        if (url === '/api/chat') return Promise.resolve(mockResponse(stream))
+        return Promise.resolve(defaultFetchResponse)
+      })
 
       useMercuryStore.setState({ inputValue: 'hi' })
       await useMercuryStore.getState().sendMessage(false)
@@ -170,7 +187,10 @@ describe('mercuryStore', () => {
         { event: 'confidence', data: JSON.stringify({ score: 0.92, iterations: 1 }) },
         { event: 'done', data: '{}' },
       ])
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(stream))
+      ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+        if (url === '/api/chat') return Promise.resolve(mockResponse(stream))
+        return Promise.resolve(defaultFetchResponse)
+      })
 
       useMercuryStore.setState({ inputValue: 'q' })
       await useMercuryStore.getState().sendMessage(false)
@@ -192,7 +212,10 @@ describe('mercuryStore', () => {
         }) },
         { event: 'done', data: '{}' },
       ])
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(stream))
+      ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+        if (url === '/api/chat') return Promise.resolve(mockResponse(stream))
+        return Promise.resolve(defaultFetchResponse)
+      })
 
       useMercuryStore.setState({ inputValue: 'q' })
       await useMercuryStore.getState().sendMessage(false)
@@ -212,7 +235,10 @@ describe('mercuryStore', () => {
           controller.close()
         },
       })
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(stream))
+      ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+        if (url === '/api/chat') return Promise.resolve(mockResponse(stream))
+        return Promise.resolve(defaultFetchResponse)
+      })
 
       useMercuryStore.setState({ inputValue: 'q' })
       await useMercuryStore.getState().sendMessage(false)
@@ -224,9 +250,12 @@ describe('mercuryStore', () => {
 
   describe('sendMessage – JSON fallback', () => {
     test('parses nested data.answer from JSON response', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce(
-        jsonResponse({ success: true, data: { answer: 'JSON answer', confidence: 0.88 } }),
-      )
+      ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+        if (url === '/api/chat') return Promise.resolve(
+          jsonResponse({ success: true, data: { answer: 'JSON answer', confidence: 0.88 } }),
+        )
+        return Promise.resolve(defaultFetchResponse)
+      })
 
       useMercuryStore.setState({ inputValue: 'q' })
       await useMercuryStore.getState().sendMessage(false)
@@ -237,9 +266,12 @@ describe('mercuryStore', () => {
     })
 
     test('falls back to top-level answer when data wrapper missing', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce(
-        jsonResponse({ answer: 'flat answer', confidence: 0.75 }),
-      )
+      ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+        if (url === '/api/chat') return Promise.resolve(
+          jsonResponse({ answer: 'flat answer', confidence: 0.75 }),
+        )
+        return Promise.resolve(defaultFetchResponse)
+      })
 
       useMercuryStore.setState({ inputValue: 'q' })
       await useMercuryStore.getState().sendMessage(false)
@@ -251,9 +283,10 @@ describe('mercuryStore', () => {
 
   describe('sendMessage – error handling', () => {
     test('adds error message on non-ok response', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce(
-        mockResponse(null, { ok: false }),
-      )
+      ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+        if (url === '/api/chat') return Promise.resolve(mockResponse(null, { ok: false }))
+        return Promise.resolve(defaultFetchResponse)
+      })
 
       useMercuryStore.setState({ inputValue: 'q' })
       await useMercuryStore.getState().sendMessage(false)

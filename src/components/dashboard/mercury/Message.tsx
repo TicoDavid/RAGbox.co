@@ -7,6 +7,7 @@ import type { Components } from 'react-markdown'
 import type { ChatMessage, MercuryChannel } from '@/types/ragbox'
 import { CitationTag } from './CitationTag'
 import { ConfidenceBadge } from './ConfidenceBadge'
+import { ModelBadge } from './ModelBadge'
 import { Copy, Check, ThumbsUp, ThumbsDown, Share2 } from 'lucide-react'
 
 // Markdown components for styled rendering in the dark theme
@@ -164,6 +165,9 @@ export function Message({ message }: MessageProps) {
           <ChannelBadge channel={message.channel} isUser={isUser} />
           {message.confidence !== undefined && !isUser && (
             <ConfidenceBadge confidence={message.confidence} />
+          )}
+          {!isUser && (
+            <ModelBadge modelUsed={message.modelUsed} provider={message.provider} latencyMs={message.latencyMs} />
           )}
         </div>
 

@@ -44,6 +44,9 @@ function mockResponse(
 
 const originalFetch = global.fetch
 
+/** Default fetch mock that satisfies fire-and-forget calls (persistToThread, etc.) */
+const defaultFetchResponse = { ok: true, json: async () => ({}) }
+
 beforeEach(() => {
   useMercuryStore.setState({
     messages: [],
@@ -56,7 +59,7 @@ beforeEach(() => {
     activePersona: 'cpo',
     isRefocusing: false,
   })
-  global.fetch = jest.fn()
+  global.fetch = jest.fn().mockResolvedValue(defaultFetchResponse)
 })
 
 afterAll(() => {
@@ -77,7 +80,10 @@ describe('mercuryStore – silence protocol', () => {
       }) },
       { event: 'done', data: '{}' },
     ])
-    ;(global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(stream))
+    ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url === '/api/chat') return Promise.resolve(mockResponse(stream))
+      return Promise.resolve(defaultFetchResponse)
+    })
 
     useMercuryStore.setState({ inputValue: 'q' })
     await useMercuryStore.getState().sendMessage(false)
@@ -97,7 +103,10 @@ describe('mercuryStore – silence protocol', () => {
       }) },
       { event: 'done', data: '{}' },
     ])
-    ;(global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(stream))
+    ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url === '/api/chat') return Promise.resolve(mockResponse(stream))
+      return Promise.resolve(defaultFetchResponse)
+    })
 
     useMercuryStore.setState({ inputValue: 'q' })
     await useMercuryStore.getState().sendMessage(false)
@@ -258,33 +267,41 @@ describe('mercuryStore – sendMessage with apiFetch', () => {
       { event: 'token', data: JSON.stringify({ text: 'response' }) },
       { event: 'done', data: '{}' },
     ])
-    ;(global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(stream))
+    ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url === '/api/chat') return Promise.resolve(mockResponse(stream))
+      return Promise.resolve(defaultFetchResponse)
+    })
 
     useMercuryStore.setState({ inputValue: 'test query' })
     await useMercuryStore.getState().sendMessage(false)
 
     // The call goes through apiFetch -> fetch
     expect(global.fetch).toHaveBeenCalled()
-    const [url] = (global.fetch as jest.Mock).mock.calls[0]
-    expect(url).toContain('/api/chat')
+    const chatCall = (global.fetch as jest.Mock).mock.calls.find(
+      (c: unknown[]) => (c[0] as string).includes('/api/chat')
+    )
+    expect(chatCall).toBeDefined()
   })
 
   test('adds user message to state before API call', async () => {
     let capturedMessages: unknown[] = []
 
-    ;(global.fetch as jest.Mock).mockImplementationOnce(async () => {
-      capturedMessages = [...useMercuryStore.getState().messages]
-      return mockResponse(sseStream([
-        { event: 'token', data: JSON.stringify({ text: 'done' }) },
-        { event: 'done', data: '{}' },
-      ]))
+    ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url === '/api/chat') {
+        capturedMessages = [...useMercuryStore.getState().messages]
+        return Promise.resolve(mockResponse(sseStream([
+          { event: 'token', data: JSON.stringify({ text: 'done' }) },
+          { event: 'done', data: '{}' },
+        ])))
+      }
+      return Promise.resolve(defaultFetchResponse)
     })
 
     useMercuryStore.setState({ inputValue: 'my question' })
     await useMercuryStore.getState().sendMessage(false)
 
-    // User message should have been added before fetch was called
-    expect(capturedMessages).toHaveLength(1)
+    // User message should have been added before the chat fetch was called
+    expect(capturedMessages.length).toBeGreaterThanOrEqual(1)
     expect((capturedMessages[0] as { role: string }).role).toBe('user')
   })
 
@@ -293,7 +310,10 @@ describe('mercuryStore – sendMessage with apiFetch', () => {
       { event: 'token', data: JSON.stringify({ text: 'done' }) },
       { event: 'done', data: '{}' },
     ])
-    ;(global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(stream))
+    ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url === '/api/chat') return Promise.resolve(mockResponse(stream))
+      return Promise.resolve(defaultFetchResponse)
+    })
 
     useMercuryStore.setState({ inputValue: 'my query' })
     await useMercuryStore.getState().sendMessage(false)

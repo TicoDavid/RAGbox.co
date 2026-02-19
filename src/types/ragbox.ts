@@ -126,6 +126,9 @@ export interface ChatMessage {
   isError?: boolean
   channel?: MercuryChannel
   metadata?: Record<string, unknown>
+  modelUsed?: string
+  provider?: string
+  latencyMs?: number
 }
 
 export interface Citation {

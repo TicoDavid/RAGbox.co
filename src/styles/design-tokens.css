@@ -36,6 +36,7 @@
 
   /* ===== Privilege Mode (Amber Accent) ===== */
   --privilege-color: #f59e0b;
+  --privilege-confidential: #f59e0b;
   --privilege-bg: #451a03;
   --privilege-border: #b45309;
 
@@ -128,6 +129,7 @@
   --brand-blue-hover: #00D4E0;
 
   --privilege-color: #FF3D00;
+  --privilege-confidential: #FF3D00;
   --privilege-bg: #1A0A00;
   --privilege-border: #FF6B3D;
 
@@ -160,6 +162,7 @@
   --brand-blue-hover: #34d399;
 
   --privilege-color: #fbbf24;
+  --privilege-confidential: #fbbf24;
   --privilege-bg: #1c1917;
   --privilege-border: #d97706;
 
@@ -198,6 +201,7 @@
 
   /* Privilege accents */
   --privilege-color: #FBBF24;
+  --privilege-confidential: #FBBF24;
   --privilege-bg: #1C1508;
   --privilege-border: #D97706;
 

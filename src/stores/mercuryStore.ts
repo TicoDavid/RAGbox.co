@@ -241,6 +241,9 @@ export const useMercuryStore = create<MercuryState>()(
         let fullContent = ''
         let confidence: number | undefined
         let citations: Citation[] | undefined
+        let modelUsed: string | undefined
+        let provider: string | undefined
+        let latencyMs: number | undefined
 
         // Handle non-streaming JSON fallback
         if (contentType.includes('application/json')) {
@@ -300,6 +303,9 @@ export const useMercuryStore = create<MercuryState>()(
                       break
                     case 'confidence':
                       confidence = data.score ?? data.confidence
+                      modelUsed = data.modelUsed ?? modelUsed
+                      provider = data.provider ?? provider
+                      latencyMs = data.latencyMs ?? latencyMs
                       break
                     case 'silence':
                       // Silence Protocol: use the message as content
@@ -355,6 +361,9 @@ export const useMercuryStore = create<MercuryState>()(
           citations,
           citationBlocks: blocks,
           channel: 'dashboard',
+          modelUsed,
+          provider,
+          latencyMs,
         }
 
         set((state) => {
