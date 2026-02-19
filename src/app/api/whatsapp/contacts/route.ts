@@ -7,9 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import prisma from '@/lib/prisma'
 
 /** E.164 phone number format */
 const E164_REGEX = /^\+[1-9]\d{6,14}$/
