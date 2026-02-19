@@ -440,6 +440,32 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "waitlist_entries" ADD COLUMN "company_size" TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
     results.push('waitlist_entries expansion: OK')
 
+    // ========================================
+    // BYOLLM: llm_configs table (STORY-020)
+    // ========================================
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "llm_configs" (
+        "id" TEXT NOT NULL,
+        "tenant_id" TEXT NOT NULL,
+        "provider" TEXT NOT NULL DEFAULT 'openrouter',
+        "api_key_encrypted" TEXT NOT NULL,
+        "base_url" TEXT,
+        "default_model" TEXT,
+        "policy" TEXT NOT NULL DEFAULT 'choice',
+        "last_tested_at" TIMESTAMP(3),
+        "last_test_result" TEXT,
+        "last_test_latency" INTEGER,
+        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updated_at" TIMESTAMP(3) NOT NULL,
+        CONSTRAINT "llm_configs_pkey" PRIMARY KEY ("id")
+      )
+    `)
+    await prisma.$executeRawUnsafe(`
+      CREATE UNIQUE INDEX IF NOT EXISTS "llm_configs_tenant_id_key"
+      ON "llm_configs"("tenant_id")
+    `)
+    results.push('llm_configs (BYOLLM): OK')
+
     return NextResponse.json({ success: true, results })
   } catch (error) {
     return NextResponse.json({
