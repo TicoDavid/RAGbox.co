@@ -16,7 +16,6 @@ import {
   Maximize2,
   Lightbulb,
   MessageCircle,
-  Brain,
 } from 'lucide-react'
 
 // ============================================================================
@@ -24,7 +23,7 @@ import {
 // ============================================================================
 
 export type LeftRailTab = 'vault' | 'recent' | 'starred'
-export type RightRailTab = 'mercury' | 'studio' | 'audit' | 'export' | 'intelligence' | 'whatsapp' | 'aimodel'
+export type RightRailTab = 'mercury' | 'studio' | 'audit' | 'export' | 'intelligence' | 'whatsapp'
 
 interface RailIconProps {
   icon: React.ElementType
@@ -253,15 +252,6 @@ export function RightStealthRail({
           label="Studio"
           isActive={isExpanded && activeTab === 'studio'}
           onClick={() => onTabClick('studio')}
-          side="right"
-        />
-
-        {/* AI Model Settings */}
-        <RailIcon
-          icon={Brain}
-          label="AI Models"
-          isActive={isExpanded && activeTab === 'aimodel'}
-          onClick={() => onTabClick('aimodel')}
           side="right"
         />
 

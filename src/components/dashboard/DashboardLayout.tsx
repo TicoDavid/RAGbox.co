@@ -14,7 +14,6 @@ import { MercuryVoicePanel } from './mercury/MercuryVoicePanel'
 import { SovereignStudio } from './studio'
 import { IntelligencePanel } from './intelligence'
 import { WhatsAppPanel } from './whatsapp/WhatsAppPanel'
-import { AIModelSettings } from './settings/AIModelSettings'
 import { useContentIntelligenceStore } from '@/stores/contentIntelligenceStore'
 import { useWhatsAppStore } from '@/stores/whatsappStore'
 import {
@@ -429,7 +428,6 @@ export function DashboardLayout() {
     if (panel) {
       didAutoOpenPanel.current = true
       if (panel === 'audit') handleRightTabClick('audit')
-      else if (panel === 'settings') handleRightTabClick('aimodel')
       window.history.replaceState({}, '', '/dashboard')
     }
   }, [handleRightTabClick])
@@ -468,8 +466,6 @@ export function DashboardLayout() {
         return <IntelligencePanel />
       case 'whatsapp':
         return <WhatsAppPanel />
-      case 'aimodel':
-        return <AIModelSettings />
       default:
         return null
     }
