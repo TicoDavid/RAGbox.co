@@ -112,27 +112,27 @@ function BrandDNAAccordion({
   }
 
   return (
-    <div className="border border-white/10 rounded-xl bg-[#0a1628]/80 overflow-hidden">
+    <div className="border border-[var(--border-default)] rounded-xl bg-[var(--bg-primary)]/80 overflow-hidden">
       {/* Header */}
       <button
         onClick={onToggle}
         aria-expanded={isExpanded}
         aria-label="Toggle brand DNA configuration"
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-[var(--bg-elevated)]/30 transition-colors"
       >
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
-            <Shield className="w-4 h-4 text-amber-400" />
+          <div className="w-8 h-8 rounded-lg bg-[var(--warning)]/20 flex items-center justify-center">
+            <Shield className="w-4 h-4 text-[var(--warning)]" />
           </div>
           <div className="text-left">
-            <p className="text-sm font-semibold text-white">Brand DNA</p>
-            <p className="text-[10px] text-slate-500 uppercase tracking-wider">Template Configuration</p>
+            <p className="text-sm font-semibold text-[var(--text-primary)]">Brand DNA</p>
+            <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">Template Configuration</p>
           </div>
         </div>
         {isExpanded ? (
-          <ChevronUp className="w-4 h-4 text-slate-400" />
+          <ChevronUp className="w-4 h-4 text-[var(--text-secondary)]" />
         ) : (
-          <ChevronDown className="w-4 h-4 text-slate-400" />
+          <ChevronDown className="w-4 h-4 text-[var(--text-secondary)]" />
         )}
       </button>
 
@@ -146,19 +146,19 @@ function BrandDNAAccordion({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 space-y-3 border-t border-white/5 pt-3">
+            <div className="px-4 pb-4 space-y-3 border-t border-[var(--border-subtle)] pt-3">
               {/* Word Template */}
               <div>
-                <label className="text-[10px] text-slate-500 uppercase tracking-wider block mb-2">
+                <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider block mb-2">
                   Report Letterhead (.docx)
                 </label>
-                <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-slate-600 hover:border-amber-500/50 cursor-pointer transition-colors bg-slate-900/50">
-                  <Upload className="w-4 h-4 text-slate-400" />
-                  <span className="text-xs text-slate-400 truncate flex-1">
+                <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-[var(--border-strong)] hover:border-[var(--warning)]/50 cursor-pointer transition-colors bg-[var(--bg-primary)]/50">
+                  <Upload className="w-4 h-4 text-[var(--text-secondary)]" />
+                  <span className="text-xs text-[var(--text-secondary)] truncate flex-1">
                     {config.wordTemplate?.name || 'Upload Word Template'}
                   </span>
                   {config.wordTemplate && (
-                    <Check className="w-4 h-4 text-emerald-400" />
+                    <Check className="w-4 h-4 text-[var(--success)]" />
                   )}
                   <input
                     type="file"
@@ -171,16 +171,16 @@ function BrandDNAAccordion({
 
               {/* Slide Template */}
               <div>
-                <label className="text-[10px] text-slate-500 uppercase tracking-wider block mb-2">
+                <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider block mb-2">
                   Presentation Deck (.pptx)
                 </label>
-                <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-slate-600 hover:border-amber-500/50 cursor-pointer transition-colors bg-slate-900/50">
-                  <Upload className="w-4 h-4 text-slate-400" />
-                  <span className="text-xs text-slate-400 truncate flex-1">
+                <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-[var(--border-strong)] hover:border-[var(--warning)]/50 cursor-pointer transition-colors bg-[var(--bg-primary)]/50">
+                  <Upload className="w-4 h-4 text-[var(--text-secondary)]" />
+                  <span className="text-xs text-[var(--text-secondary)] truncate flex-1">
                     {config.slideTemplate?.name || 'Upload Slide Master'}
                   </span>
                   {config.slideTemplate && (
-                    <Check className="w-4 h-4 text-emerald-400" />
+                    <Check className="w-4 h-4 text-[var(--success)]" />
                   )}
                   <input
                     type="file"
@@ -193,14 +193,14 @@ function BrandDNAAccordion({
 
               {/* Tone Selector */}
               <div>
-                <label className="text-[10px] text-slate-500 uppercase tracking-wider block mb-2">
+                <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider block mb-2">
                   Voice & Tone
                 </label>
                 <select
                   value={config.tone}
                   onChange={(e) => onChange({ ...config, tone: e.target.value as ToneOption })}
                   aria-label="Voice and tone"
-                  className="w-full px-3 py-2 rounded-lg bg-slate-900/50 border border-slate-600 text-sm text-white focus:border-amber-500/50 focus:outline-none transition-colors"
+                  className="w-full px-3 py-2 rounded-lg bg-[var(--bg-primary)]/50 border border-[var(--border-strong)] text-sm text-[var(--text-primary)] focus:border-[var(--warning)]/50 focus:outline-none transition-colors"
                 >
                   {TONES.map((tone) => (
                     <option key={tone.value} value={tone.value}>
@@ -231,10 +231,10 @@ function ArtifactCard({
   disabled?: boolean
 }) {
   const colorClasses: Record<string, { bg: string; border: string; text: string; glow: string }> = {
-    cyan: { bg: 'bg-cyan-500/10', border: 'border-cyan-500/30', text: 'text-cyan-400', glow: 'shadow-cyan-500/20' },
+    cyan: { bg: 'bg-[var(--brand-blue)]/10', border: 'border-[var(--brand-blue)]/30', text: 'text-[var(--brand-blue)]', glow: 'shadow-[var(--brand-blue)]/20' },
     purple: { bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-400', glow: 'shadow-purple-500/20' },
-    emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', text: 'text-emerald-400', glow: 'shadow-emerald-500/20' },
-    amber: { bg: 'bg-amber-500/10', border: 'border-amber-500/30', text: 'text-amber-400', glow: 'shadow-amber-500/20' },
+    emerald: { bg: 'bg-[var(--success)]/10', border: 'border-[var(--success)]/30', text: 'text-[var(--success)]', glow: 'shadow-[var(--success)]/20' },
+    amber: { bg: 'bg-[var(--warning)]/10', border: 'border-[var(--warning)]/30', text: 'text-[var(--warning)]', glow: 'shadow-[var(--warning)]/20' },
     rose: { bg: 'bg-rose-500/10', border: 'border-rose-500/30', text: 'text-rose-400', glow: 'shadow-rose-500/20' },
     blue: { bg: 'bg-blue-500/10', border: 'border-blue-500/30', text: 'text-blue-400', glow: 'shadow-blue-500/20' },
     orange: { bg: 'bg-orange-500/10', border: 'border-orange-500/30', text: 'text-orange-400', glow: 'shadow-orange-500/20' },
@@ -252,8 +252,8 @@ function ArtifactCard({
       aria-label={`Generate ${artifact.label}: ${artifact.desc}`}
       className={`
         w-full p-3 rounded-xl text-left transition-all duration-200
-        bg-[#112240] hover:bg-[#1e3a8a]/80
-        border border-white/10 hover:${colors.border}
+        bg-[var(--bg-secondary)] hover:bg-[var(--bg-elevated)]
+        border border-[var(--border-default)] hover:${colors.border}
         hover:shadow-lg hover:${colors.glow}
         disabled:opacity-50 disabled:cursor-not-allowed
         group
@@ -264,8 +264,8 @@ function ArtifactCard({
           <artifact.icon className={`w-5 h-5 ${colors.text}`} />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-medium text-white truncate">{artifact.label}</p>
-          <p className="text-[10px] text-slate-400 truncate">{artifact.desc}</p>
+          <p className="text-sm font-medium text-[var(--text-primary)] truncate">{artifact.label}</p>
+          <p className="text-[10px] text-[var(--text-secondary)] truncate">{artifact.desc}</p>
         </div>
       </div>
     </motion.button>
@@ -323,25 +323,25 @@ function FileSelectorModal({
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        className="relative w-full max-w-md bg-[#0a1628]/95 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.5)]"
+        className="relative w-full max-w-md bg-[var(--bg-primary)]/95 backdrop-blur-xl border border-[var(--border-default)] rounded-2xl overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.5)]"
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-[var(--border-subtle)] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-amber-500/20 flex items-center justify-center">
-              <Crosshair className="w-5 h-5 text-amber-400" />
+            <div className="w-9 h-9 rounded-lg bg-[var(--warning)]/20 flex items-center justify-center">
+              <Crosshair className="w-5 h-5 text-[var(--warning)]" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-white">Select Sources</h3>
-              <p className="text-xs text-slate-400">for {artifactLabel}</p>
+              <h3 className="text-lg font-semibold text-[var(--text-primary)]">Select Sources</h3>
+              <p className="text-xs text-[var(--text-secondary)]">for {artifactLabel}</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-white/5 transition-colors"
+            className="p-2 rounded-lg hover:bg-[var(--bg-elevated)]/30 transition-colors"
             aria-label="Close source selector"
           >
-            <X className="w-4 h-4 text-slate-400" />
+            <X className="w-4 h-4 text-[var(--text-secondary)]" />
           </button>
         </div>
 
@@ -350,11 +350,11 @@ function FileSelectorModal({
           {docs.length === 0 ? (
             <div className="text-center py-6">
               {/* Empty Vault - CTA to upload */}
-              <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-4">
-                <FileText className="w-8 h-8 text-amber-400/60" />
+              <div className="w-16 h-16 rounded-2xl bg-[var(--warning)]/10 border border-[var(--warning)]/20 flex items-center justify-center mx-auto mb-4">
+                <FileText className="w-8 h-8 text-[var(--warning)]/60" />
               </div>
-              <p className="text-base font-medium text-white mb-1">Vault Empty</p>
-              <p className="text-xs text-slate-500 mb-5">Upload files to begin artifact generation</p>
+              <p className="text-base font-medium text-[var(--text-primary)] mb-1">Vault Empty</p>
+              <p className="text-xs text-[var(--text-tertiary)] mb-5">Upload files to begin artifact generation</p>
 
               {/* Upload Evidence Button */}
               <button
@@ -362,7 +362,7 @@ function FileSelectorModal({
                   onClose()
                   onUploadClick?.()
                 }}
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-black font-semibold text-sm hover:from-amber-400 hover:to-orange-400 transition-all shadow-lg shadow-amber-500/20"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-[var(--warning)] to-orange-500 text-black font-semibold text-sm hover:from-[var(--warning)] hover:to-orange-400 transition-all shadow-lg shadow-[var(--warning)]/20"
                 aria-label="Upload evidence files"
               >
                 <Plus className="w-5 h-5" />
@@ -378,16 +378,16 @@ function FileSelectorModal({
                   className={`
                     w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all
                     ${selected.includes(doc.id)
-                      ? 'bg-amber-500/20 border border-amber-500/30'
-                      : 'bg-slate-900/50 border border-white/5 hover:border-white/10'
+                      ? 'bg-[var(--warning)]/20 border border-[var(--warning)]/30'
+                      : 'bg-[var(--bg-primary)]/50 border border-[var(--border-subtle)] hover:border-[var(--border-default)]'
                     }
                   `}
                 >
                   <div className={`
                     w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors
                     ${selected.includes(doc.id)
-                      ? 'border-amber-400 bg-amber-400'
-                      : 'border-slate-600'
+                      ? 'border-[var(--warning)] bg-[var(--warning)]'
+                      : 'border-[var(--border-strong)]'
                     }
                   `}>
                     {selected.includes(doc.id) && (
@@ -395,8 +395,8 @@ function FileSelectorModal({
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm text-white truncate">{doc.name}</p>
-                    <p className="text-[10px] text-slate-500">
+                    <p className="text-sm text-[var(--text-primary)] truncate">{doc.name}</p>
+                    <p className="text-[10px] text-[var(--text-tertiary)]">
                       {((doc.size ?? 0) / 1024).toFixed(1)} KB
                     </p>
                   </div>
@@ -407,14 +407,14 @@ function FileSelectorModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-white/5 flex items-center justify-between">
-          <p className="text-xs text-slate-500">
+        <div className="px-6 py-4 border-t border-[var(--border-subtle)] flex items-center justify-between">
+          <p className="text-xs text-[var(--text-tertiary)]">
             {selected.length} file{selected.length !== 1 ? 's' : ''} selected
           </p>
           <div className="flex gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-lg text-sm text-slate-400 hover:bg-white/5 transition-colors"
+              className="px-4 py-2 rounded-lg text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]/30 transition-colors"
             >
               Cancel
             </button>
@@ -424,8 +424,8 @@ function FileSelectorModal({
               className={`
                 px-5 py-2 rounded-lg text-sm font-bold transition-all
                 ${selected.length > 0
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-black hover:from-amber-400 hover:to-orange-400 shadow-lg shadow-amber-500/25'
-                  : 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                  ? 'bg-gradient-to-r from-[var(--warning)] to-orange-500 text-black hover:from-[var(--warning)] hover:to-orange-400 shadow-lg shadow-[var(--warning)]/25'
+                  : 'bg-[var(--bg-elevated)] text-[var(--text-secondary)] cursor-not-allowed'
                 }
               `}
             >
@@ -472,10 +472,10 @@ function GenerationProgress({
         transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
         className="w-16 h-16 mx-auto mb-4"
       >
-        <Loader2 className="w-16 h-16 text-amber-400" />
+        <Loader2 className="w-16 h-16 text-[var(--warning)]" />
       </motion.div>
 
-      <h4 className="text-lg font-semibold text-white mb-2">
+      <h4 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
         Manufacturing {artifactLabel}
       </h4>
 
@@ -483,15 +483,15 @@ function GenerationProgress({
         key={phaseIndex}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-sm text-amber-400"
+        className="text-sm text-[var(--warning)]"
       >
         {GENERATION_PHASES[phaseIndex]}
       </motion.p>
 
       {/* Indeterminate progress bar */}
-      <div className="mt-6 h-1 bg-slate-800 rounded-full overflow-hidden">
+      <div className="mt-6 h-1 bg-[var(--bg-secondary)] rounded-full overflow-hidden">
         <motion.div
-          className="h-full w-1/3 bg-gradient-to-r from-amber-500 to-orange-500"
+          className="h-full w-1/3 bg-gradient-to-r from-[var(--warning)] to-orange-500"
           animate={{ x: ['-100%', '400%'] }}
           transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
         />
@@ -511,21 +511,21 @@ function GenerationError({
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl"
+      className="p-4 bg-[var(--danger)]/10 border border-[var(--danger)]/30 rounded-xl"
     >
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
-          <AlertCircle className="w-5 h-5 text-red-400" />
+        <div className="w-10 h-10 rounded-lg bg-[var(--danger)]/20 flex items-center justify-center">
+          <AlertCircle className="w-5 h-5 text-[var(--danger)]" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-white">Generation Failed</p>
-          <p className="text-xs text-red-400 truncate">{message}</p>
+          <p className="text-sm font-medium text-[var(--text-primary)]">Generation Failed</p>
+          <p className="text-xs text-[var(--danger)] truncate">{message}</p>
         </div>
       </div>
 
       <button
         onClick={onDismiss}
-        className="w-full px-4 py-2 rounded-lg text-sm text-slate-300 bg-slate-700/50 hover:bg-slate-700 transition-colors"
+        className="w-full px-4 py-2 rounded-lg text-sm text-[var(--text-secondary)] bg-[var(--bg-elevated)]/50 hover:bg-[var(--bg-elevated)] transition-colors"
         aria-label="Try generating again"
       >
         Try Again
@@ -551,22 +551,22 @@ function ArtifactResult({
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl"
+      className="p-4 bg-[var(--success)]/10 border border-[var(--success)]/30 rounded-xl"
     >
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-          <Check className="w-5 h-5 text-emerald-400" />
+        <div className="w-10 h-10 rounded-lg bg-[var(--success)]/20 flex items-center justify-center">
+          <Check className="w-5 h-5 text-[var(--success)]" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-white">Artifact Ready</p>
-          <p className="text-xs text-emerald-400 truncate">{name}</p>
+          <p className="text-sm font-medium text-[var(--text-primary)]">Artifact Ready</p>
+          <p className="text-xs text-[var(--success)] truncate">{name}</p>
         </div>
       </div>
 
       <div className="flex gap-2">
         <button
           onClick={onDownload}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-amber-500 text-black font-medium text-sm hover:bg-amber-400 transition-colors"
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[var(--warning)] text-black font-medium text-sm hover:bg-[var(--warning)] transition-colors"
           aria-label={`Download ${name}`}
         >
           <Download className="w-4 h-4" />
@@ -574,7 +574,7 @@ function ArtifactResult({
         </button>
         <button
           onClick={onDismiss}
-          className="px-4 py-2 rounded-lg text-sm text-slate-400 hover:bg-white/5 transition-colors"
+          className="px-4 py-2 rounded-lg text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]/30 transition-colors"
           aria-label="Dismiss artifact result"
         >
           Dismiss
@@ -685,12 +685,12 @@ export function SovereignStudio() {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="shrink-0 px-4 py-3 border-b border-white/5">
-        <h3 className="text-sm font-semibold text-white uppercase tracking-wider flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-amber-400" />
+      <div className="shrink-0 px-4 py-3 border-b border-[var(--border-subtle)]">
+        <h3 className="text-sm font-semibold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-[var(--warning)]" />
           Sovereign Studio
         </h3>
-        <p className="text-[10px] text-slate-500 mt-0.5">Document Factory</p>
+        <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5">Document Factory</p>
       </div>
 
       {/* Content */}
@@ -728,7 +728,7 @@ export function SovereignStudio() {
         {/* Artifact Grid */}
         {generation.phase !== 'generating' && generation.phase !== 'complete' && generation.phase !== 'error' && (
           <>
-            <p className="text-[10px] text-slate-500 uppercase tracking-wider">
+            <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">
               Select Weapon Type
             </p>
             <div className="grid grid-cols-1 gap-2">
@@ -773,20 +773,20 @@ export function SovereignStudio() {
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative w-full max-w-lg bg-[#0a1628]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-[0_0_60px_rgba(0,0,0,0.5)]"
+              className="relative w-full max-w-lg bg-[var(--bg-primary)]/95 backdrop-blur-xl border border-[var(--border-default)] rounded-2xl p-6 shadow-[0_0_60px_rgba(0,0,0,0.5)]"
             >
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                  <Plus className="w-5 h-5 text-amber-400" />
+                <div className="w-10 h-10 rounded-lg bg-[var(--warning)]/20 flex items-center justify-center">
+                  <Plus className="w-5 h-5 text-[var(--warning)]" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-white">Upload Evidence</h3>
-                  <p className="text-xs text-slate-400">Add files to your vault</p>
+                  <h3 className="text-lg font-semibold text-[var(--text-primary)]">Upload Evidence</h3>
+                  <p className="text-xs text-[var(--text-secondary)]">Add files to your vault</p>
                 </div>
               </div>
 
               {/* Drop Zone */}
-              <label className="block p-8 border-2 border-dashed border-amber-500/30 rounded-xl bg-amber-500/5 hover:bg-amber-500/10 transition-colors cursor-pointer text-center">
+              <label className="block p-8 border-2 border-dashed border-[var(--warning)]/30 rounded-xl bg-[var(--warning)]/5 hover:bg-[var(--warning)]/10 transition-colors cursor-pointer text-center">
                 <input
                   type="file"
                   multiple
@@ -797,15 +797,15 @@ export function SovereignStudio() {
                     setShowIngestion(false)
                   }}
                 />
-                <FileText className="w-12 h-12 text-amber-400/60 mx-auto mb-3" />
-                <p className="text-sm text-white font-medium mb-1">Drop files here or click to upload</p>
-                <p className="text-xs text-slate-500">PDF, DOCX, TXT, XLSX supported</p>
+                <FileText className="w-12 h-12 text-[var(--warning)]/60 mx-auto mb-3" />
+                <p className="text-sm text-[var(--text-primary)] font-medium mb-1">Drop files here or click to upload</p>
+                <p className="text-xs text-[var(--text-tertiary)]">PDF, DOCX, TXT, XLSX supported</p>
               </label>
 
               <div className="flex justify-end mt-6">
                 <button
                   onClick={() => setShowIngestion(false)}
-                  className="px-4 py-2 rounded-lg text-sm text-slate-400 hover:bg-white/5 transition-colors"
+                  className="px-4 py-2 rounded-lg text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]/30 transition-colors"
                 >
                   Cancel
                 </button>
