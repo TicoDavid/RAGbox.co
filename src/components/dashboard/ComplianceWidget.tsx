@@ -42,14 +42,14 @@ export function ComplianceWidget() {
     <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <FileText className="w-4 h-4 text-orange-400" />
+          <FileText className="w-4 h-4 text-[var(--warning)]" />
           <h4 className="text-sm font-semibold text-[var(--text-primary)]">ROAM Compliance</h4>
         </div>
         <button
           onClick={runExport}
           disabled={loading}
           className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md
-            bg-[var(--brand-blue)] text-white hover:bg-[var(--brand-blue-hover)]
+            bg-[var(--brand-blue)] text-[var(--text-primary)] hover:bg-[var(--brand-blue-hover)]
             disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading ? (
@@ -63,7 +63,7 @@ export function ComplianceWidget() {
 
       {result && (
         <div className="space-y-1.5 text-xs">
-          <div className="flex items-center gap-1.5 text-emerald-500">
+          <div className="flex items-center gap-1.5 text-[var(--success)]">
             <CheckCircle className="w-3 h-3" />
             <span>Last export: {result.date}</span>
           </div>
@@ -77,7 +77,7 @@ export function ComplianceWidget() {
             </div>
           )}
           {result.errors.length > 0 && (
-            <div className="flex items-center gap-1.5 text-amber-500">
+            <div className="flex items-center gap-1.5 text-[var(--warning)]">
               <AlertCircle className="w-3 h-3" />
               <span>{result.errors.length} errors</span>
             </div>
@@ -86,7 +86,7 @@ export function ComplianceWidget() {
       )}
 
       {error && (
-        <div className="flex items-center gap-1.5 text-xs text-red-500">
+        <div className="flex items-center gap-1.5 text-xs text-[var(--danger)]">
           <AlertCircle className="w-3 h-3" />
           <span>{error}</span>
         </div>

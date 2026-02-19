@@ -14,7 +14,7 @@ export function IntelligencePanel() {
   return (
     <div className="flex flex-col h-full bg-[var(--bg-primary)]">
       {/* Tab Bar */}
-      <div className="shrink-0 flex items-center gap-1 px-4 py-3 border-b border-white/5">
+      <div className="shrink-0 flex items-center gap-1 px-4 py-3 border-b border-[var(--border-subtle)]">
         <TabButton active={activeTab === 'gaps'} onClick={() => setActiveTab('gaps')} label="Knowledge Gaps" />
         <TabButton active={activeTab === 'health'} onClick={() => setActiveTab('health')} label="KB Health" />
       </div>
@@ -35,7 +35,7 @@ function TabButton({ active, onClick, label }: { active: boolean; onClick: () =>
       className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
         active
           ? 'bg-[var(--brand-blue)]/10 text-[var(--brand-blue)]'
-          : 'text-slate-500 hover:text-white hover:bg-white/5'
+          : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]/50'
       }`}
     >
       {label}

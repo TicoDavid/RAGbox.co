@@ -46,25 +46,25 @@ export function DashboardStats() {
       icon: FileText,
       label: 'Documents',
       value: stats?.documentCount ?? '-',
-      color: 'text-blue-400',
+      color: 'text-[var(--brand-blue)]',
     },
     {
       icon: Database,
       label: 'Chunks',
       value: stats?.chunkCount ?? '-',
-      color: 'text-emerald-400',
+      color: 'text-[var(--success)]',
     },
     {
       icon: Shield,
       label: 'Privileged',
       value: stats?.privilegedCount ?? '-',
-      color: 'text-amber-400',
+      color: 'text-[var(--warning)]',
     },
     {
       icon: Search,
       label: 'Queries',
       value: stats?.queryCount ?? '-',
-      color: 'text-purple-400',
+      color: 'text-[var(--text-accent)]',
     },
   ]
 
@@ -74,14 +74,14 @@ export function DashboardStats() {
         <div
           key={item.label}
           className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg
-                     bg-slate-900/50 border border-white/5"
+                     bg-[var(--bg-primary)]/50 border border-[var(--border-subtle)]"
         >
           <item.icon className={`w-4 h-4 ${item.color} shrink-0`} />
           <div className="min-w-0">
-            <p className="text-base font-semibold text-white leading-tight">
+            <p className="text-base font-semibold text-[var(--text-primary)] leading-tight">
               {typeof item.value === 'number' ? item.value.toLocaleString() : item.value}
             </p>
-            <p className="text-[10px] text-slate-500 uppercase tracking-wider">{item.label}</p>
+            <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">{item.label}</p>
           </div>
         </div>
       ))}

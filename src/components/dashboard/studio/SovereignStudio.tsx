@@ -232,13 +232,13 @@ function ArtifactCard({
 }) {
   const colorClasses: Record<string, { bg: string; border: string; text: string; glow: string }> = {
     cyan: { bg: 'bg-[var(--brand-blue)]/10', border: 'border-[var(--brand-blue)]/30', text: 'text-[var(--brand-blue)]', glow: 'shadow-[var(--brand-blue)]/20' },
-    purple: { bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-400', glow: 'shadow-purple-500/20' },
+    purple: { bg: 'bg-[var(--text-accent)]/10', border: 'border-[var(--text-accent)]/30', text: 'text-[var(--text-accent)]', glow: 'shadow-[var(--text-accent)]/20' },
     emerald: { bg: 'bg-[var(--success)]/10', border: 'border-[var(--success)]/30', text: 'text-[var(--success)]', glow: 'shadow-[var(--success)]/20' },
     amber: { bg: 'bg-[var(--warning)]/10', border: 'border-[var(--warning)]/30', text: 'text-[var(--warning)]', glow: 'shadow-[var(--warning)]/20' },
-    rose: { bg: 'bg-rose-500/10', border: 'border-rose-500/30', text: 'text-rose-400', glow: 'shadow-rose-500/20' },
-    blue: { bg: 'bg-blue-500/10', border: 'border-blue-500/30', text: 'text-blue-400', glow: 'shadow-blue-500/20' },
-    orange: { bg: 'bg-orange-500/10', border: 'border-orange-500/30', text: 'text-orange-400', glow: 'shadow-orange-500/20' },
-    teal: { bg: 'bg-teal-500/10', border: 'border-teal-500/30', text: 'text-teal-400', glow: 'shadow-teal-500/20' },
+    rose: { bg: 'bg-[var(--danger)]/10', border: 'border-[var(--danger)]/30', text: 'text-[var(--danger)]', glow: 'shadow-[var(--danger)]/20' },
+    blue: { bg: 'bg-[var(--brand-blue)]/10', border: 'border-[var(--brand-blue)]/30', text: 'text-[var(--brand-blue)]', glow: 'shadow-[var(--brand-blue)]/20' },
+    orange: { bg: 'bg-[var(--warning)]/10', border: 'border-[var(--warning)]/30', text: 'text-[var(--warning)]', glow: 'shadow-[var(--warning)]/20' },
+    teal: { bg: 'bg-[var(--success)]/10', border: 'border-[var(--success)]/30', text: 'text-[var(--success)]', glow: 'shadow-[var(--success)]/20' },
   }
 
   const colors = colorClasses[artifact.color]
