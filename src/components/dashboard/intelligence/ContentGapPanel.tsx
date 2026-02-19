@@ -18,19 +18,19 @@ function formatRelativeTime(date: Date | string): string {
 }
 
 function confidenceColor(score: number): string {
-  if (score < 0.5) return 'text-red-400'
-  if (score < 0.7) return 'text-amber-400'
-  return 'text-yellow-400'
+  if (score < 0.5) return 'text-[var(--danger)]'
+  if (score < 0.7) return 'text-[var(--warning)]'
+  return 'text-[var(--warning)]'
 }
 
 function SkeletonCard() {
   return (
-    <div className="p-4 rounded-xl bg-[var(--bg-secondary)] border border-white/5 animate-pulse">
-      <div className="h-4 bg-white/5 rounded w-3/4 mb-3" />
-      <div className="h-3 bg-white/5 rounded w-1/2 mb-2" />
+    <div className="p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)] animate-pulse">
+      <div className="h-4 bg-[var(--bg-elevated)]/50 rounded w-3/4 mb-3" />
+      <div className="h-3 bg-[var(--bg-elevated)]/50 rounded w-1/2 mb-2" />
       <div className="flex gap-2">
-        <div className="h-5 bg-white/5 rounded-full w-16" />
-        <div className="h-5 bg-white/5 rounded-full w-20" />
+        <div className="h-5 bg-[var(--bg-elevated)]/50 rounded-full w-16" />
+        <div className="h-5 bg-[var(--bg-elevated)]/50 rounded-full w-20" />
       </div>
     </div>
   )
@@ -51,13 +51,13 @@ export function ContentGapPanel() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-white/5">
-        <AlertTriangle className="w-4 h-4 text-amber-400" />
+      <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-[var(--border-subtle)]">
+        <AlertTriangle className="w-4 h-4 text-[var(--warning)]" />
         <h3 className="text-sm font-semibold text-[var(--text-primary)] uppercase tracking-wider">
           Knowledge Gaps
         </h3>
         {gapSummary && gapSummary.openGaps > 0 && (
-          <span className="bg-red-500/10 text-red-400 text-xs px-2 py-0.5 rounded-full">
+          <span className="bg-[var(--danger)]/10 text-[var(--danger)] text-xs px-2 py-0.5 rounded-full">
             {gapSummary.openGaps}
           </span>
         )}
@@ -73,8 +73,8 @@ export function ContentGapPanel() {
           </>
         ) : gaps.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-            <CheckCircle2 className="w-10 h-10 text-emerald-400/30 mb-3" />
-            <p className="text-sm text-slate-500">
+            <CheckCircle2 className="w-10 h-10 text-[var(--success)]/30 mb-3" />
+            <p className="text-sm text-[var(--text-tertiary)]">
               No knowledge gaps detected. Your knowledge base is covering queries well.
             </p>
           </div>
@@ -82,7 +82,7 @@ export function ContentGapPanel() {
           gaps.map((gap) => (
             <div
               key={gap.id}
-              className="p-4 rounded-xl bg-[var(--bg-secondary)] border border-white/5 hover:border-white/10 transition-colors"
+              className="p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)] hover:border-[var(--border-default)] transition-colors"
             >
               {/* Query text */}
               <p className="text-sm text-[var(--text-primary)] mb-2 leading-relaxed">
@@ -96,7 +96,7 @@ export function ContentGapPanel() {
                 <span className={`text-xs font-medium ${confidenceColor(gap.confidenceScore)}`}>
                   {Math.round(gap.confidenceScore * 100)}% confidence
                 </span>
-                <span className="text-[10px] text-slate-600">
+                <span className="text-[10px] text-[var(--text-muted)]">
                   {formatRelativeTime(gap.createdAt)}
                 </span>
               </div>
@@ -119,14 +119,14 @@ export function ContentGapPanel() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => dismissGap(gap.id)}
-                  className="inline-flex items-center gap-1 text-slate-500 hover:text-white text-xs transition-colors"
+                  className="inline-flex items-center gap-1 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] text-xs transition-colors"
                 >
                   <X className="w-3 h-3" />
                   Dismiss
                 </button>
                 <button
                   onClick={() => addressGap(gap.id)}
-                  className="inline-flex items-center gap-1 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-xs px-3 py-1 rounded-lg transition-colors"
+                  className="inline-flex items-center gap-1 bg-[var(--success)]/10 text-[var(--success)] hover:bg-[var(--success)]/20 text-xs px-3 py-1 rounded-lg transition-colors"
                 >
                   <CheckCircle2 className="w-3 h-3" />
                   Addressed

@@ -8,22 +8,22 @@ import type { KBHealthCheck } from '@/types/ragbox'
 function statusIcon(status: KBHealthCheck['status']) {
   switch (status) {
     case 'passed':
-      return <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+      return <CheckCircle2 className="w-5 h-5 text-[var(--success)]" />
     case 'warning':
-      return <AlertTriangle className="w-5 h-5 text-amber-400" />
+      return <AlertTriangle className="w-5 h-5 text-[var(--warning)]" />
     case 'failed':
-      return <XCircle className="w-5 h-5 text-red-400" />
+      return <XCircle className="w-5 h-5 text-[var(--danger)]" />
   }
 }
 
 function statusBorder(status: KBHealthCheck['status']): string {
   switch (status) {
     case 'passed':
-      return 'border-emerald-500/20'
+      return 'border-[var(--success)]/20'
     case 'warning':
-      return 'border-amber-500/20'
+      return 'border-[var(--warning)]/20'
     case 'failed':
-      return 'border-red-500/20'
+      return 'border-[var(--danger)]/20'
   }
 }
 
@@ -54,9 +54,9 @@ export function KBHealthPanel({ vaultId }: KBHealthPanelProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Header + Run button */}
-      <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-white/5">
+      <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-[var(--border-subtle)]">
         <div className="flex items-center gap-2">
-          <Activity className="w-4 h-4 text-cyan-400" />
+          <Activity className="w-4 h-4 text-[var(--brand-blue)]" />
           <h3 className="text-sm font-semibold text-[var(--text-primary)] uppercase tracking-wider">
             KB Health
           </h3>
@@ -65,7 +65,7 @@ export function KBHealthPanel({ vaultId }: KBHealthPanelProps) {
           onClick={() => runHealthCheck(vaultId)}
           disabled={healthLoading}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg
-                     bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 disabled:opacity-50
+                     bg-[var(--brand-blue)]/10 text-[var(--brand-blue)] hover:bg-[var(--brand-blue)]/20 disabled:opacity-50
                      transition-colors"
         >
           {healthLoading ? (
@@ -80,15 +80,15 @@ export function KBHealthPanel({ vaultId }: KBHealthPanelProps) {
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {lastHealthRun && (
-          <p className="text-[10px] text-slate-600 px-1">
+          <p className="text-[10px] text-[var(--text-muted)] px-1">
             Last run: {formatCheckTime(lastHealthRun)}
           </p>
         )}
 
         {!latestFreshness && !latestCoverage && !healthLoading && (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-            <Activity className="w-10 h-10 text-slate-600/30 mb-3" />
-            <p className="text-sm text-slate-500">
+            <Activity className="w-10 h-10 text-[var(--text-muted)]/30 mb-3" />
+            <p className="text-sm text-[var(--text-tertiary)]">
               No health checks yet. Run a check to see vault status.
             </p>
           </div>
@@ -96,7 +96,7 @@ export function KBHealthPanel({ vaultId }: KBHealthPanelProps) {
 
         {healthLoading && !latestFreshness && (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-6 h-6 text-cyan-400 animate-spin" />
+            <Loader2 className="w-6 h-6 text-[var(--brand-blue)] animate-spin" />
           </div>
         )}
 
@@ -134,11 +134,11 @@ export function KBHealthPanel({ vaultId }: KBHealthPanelProps) {
 
         {/* Expanded details */}
         {expandedCard === 'freshness' && Array.isArray(latestFreshness?.details.staleList) && (
-          <div className="p-3 rounded-lg bg-[var(--bg-secondary)] border border-white/5">
-            <p className="text-xs font-medium text-slate-400 mb-2">Stale Documents</p>
+          <div className="p-3 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
+            <p className="text-xs font-medium text-[var(--text-secondary)] mb-2">Stale Documents</p>
             <div className="space-y-1">
               {(latestFreshness.details.staleList as string[]).map((name) => (
-                <p key={name} className="text-xs text-slate-500 truncate">{name}</p>
+                <p key={name} className="text-xs text-[var(--text-tertiary)] truncate">{name}</p>
               ))}
             </div>
           </div>
@@ -161,18 +161,18 @@ function HealthCard({ check, icon, label, detail, isExpanded, onToggle }: Health
   return (
     <button
       onClick={onToggle}
-      className={`flex flex-col items-center gap-2 p-3 rounded-xl bg-[var(--bg-secondary)] border ${statusBorder(check.status)} hover:bg-white/5 transition-colors text-center w-full`}
+      className={`flex flex-col items-center gap-2 p-3 rounded-xl bg-[var(--bg-secondary)] border ${statusBorder(check.status)} hover:bg-[var(--bg-elevated)]/50 transition-colors text-center w-full`}
     >
       {statusIcon(check.status)}
-      <div className="flex items-center gap-1 text-slate-400">
+      <div className="flex items-center gap-1 text-[var(--text-secondary)]">
         {icon}
         <span className="text-xs font-medium">{label}</span>
       </div>
       {detail && (
-        <p className="text-[10px] text-slate-500">{detail}</p>
+        <p className="text-[10px] text-[var(--text-tertiary)]">{detail}</p>
       )}
       {Array.isArray(check.details.staleList) && (
-        <div className="text-slate-600">
+        <div className="text-[var(--text-muted)]">
           {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
         </div>
       )}
