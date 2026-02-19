@@ -91,6 +91,12 @@ function ActionButtons({ content }: { content: string }) {
 
   const btnClass = 'p-1 rounded hover:bg-white/10 transition-colors text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
 
+  const handleShare = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(content)
+    } catch { /* clipboard may not be available */ }
+  }, [content])
+
   return (
     <div className="flex items-center gap-0.5 mt-1.5 -ml-1">
       <button onClick={handleCopy} title="Copy" className={btnClass}>
@@ -109,6 +115,9 @@ function ActionButtons({ content }: { content: string }) {
         className={`${btnClass} ${feedback === 'down' ? 'text-[var(--danger)]' : ''}`}
       >
         <ThumbsDown className="w-3.5 h-3.5" />
+      </button>
+      <button onClick={handleShare} title="Share" className={btnClass}>
+        <Share2 className="w-3.5 h-3.5" />
       </button>
     </div>
   )
