@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
+import { KeyRound } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 
 interface AuthModalProps {
@@ -26,6 +27,8 @@ export function AuthModal({ isOpen, onClose, context = 'signin', errorMessage }:
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [devOtp, setDevOtp] = useState(''); // For dev mode display
+  const [betaCode, setBetaCode] = useState('');
+  const [codeError, setCodeError] = useState('');
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Reset state when modal opens/closes
@@ -38,6 +41,8 @@ export function AuthModal({ isOpen, onClose, context = 'signin', errorMessage }:
         setIsLoading(false);
         setError('');
         setDevOtp('');
+        setBetaCode('');
+        setCodeError('');
       }, 300);
     }
   }, [isOpen]);
@@ -153,13 +158,37 @@ export function AuthModal({ isOpen, onClose, context = 'signin', errorMessage }:
     }
   };
 
-  // 4. Google Sign In
+  // 4. Beta code helpers
+  const storeBetaCode = () => {
+    if (typeof window !== 'undefined' && betaCode.trim()) {
+      sessionStorage.setItem('ragbox_beta_code', betaCode.trim().toUpperCase());
+    }
+  };
+
+  const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setBetaCode(e.target.value.toUpperCase());
+    if (codeError) setCodeError('');
+  };
+
+  // 5. Google Sign In
   const handleGoogleSignIn = () => {
+    if (!betaCode.trim()) {
+      setCodeError('Please enter your access code');
+      return;
+    }
+    setCodeError('');
+    storeBetaCode();
     signIn('google', { callbackUrl: '/dashboard' });
   };
 
-  // 5. Microsoft Sign In (Azure AD)
+  // 6. Microsoft Sign In (Azure AD)
   const handleMicrosoftSignIn = () => {
+    if (!betaCode.trim()) {
+      setCodeError('Please enter your access code');
+      return;
+    }
+    setCodeError('');
+    storeBetaCode();
     signIn('azure-ad', { callbackUrl: '/dashboard' });
   };
 
@@ -204,6 +233,41 @@ export function AuthModal({ isOpen, onClose, context = 'signin', errorMessage }:
               }
             </p>
           </div>
+
+          {/* Beta Access Code (above OAuth buttons) */}
+          {step === 'email' && (
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <KeyRound className="w-4 h-4 text-blue-500" />
+                <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Enter Your Access Code</span>
+              </div>
+              <input
+                type="text"
+                value={betaCode}
+                onChange={handleCodeChange}
+                placeholder="RBX-LEGAL-XXXXXX"
+                className={`w-full px-4 py-3 rounded-xl bg-slate-50 border text-slate-900 text-sm font-mono tracking-widest text-center placeholder:text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all ${
+                  codeError ? 'border-red-400' : 'border-slate-200 hover:border-slate-300'
+                }`}
+                autoComplete="off"
+                spellCheck={false}
+              />
+              {codeError && (
+                <p className="text-xs text-red-500 mt-1.5 text-center">{codeError}</p>
+              )}
+              <p className="text-[10px] text-slate-400 mt-1.5 text-center">
+                Don&apos;t have a code?{' '}
+                <a
+                  href="https://ragbox.co"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:text-blue-600 underline underline-offset-2 transition-colors"
+                >
+                  Apply at ragbox.co
+                </a>
+              </p>
+            </div>
+          )}
 
           {/* Error Display */}
           {error && (
