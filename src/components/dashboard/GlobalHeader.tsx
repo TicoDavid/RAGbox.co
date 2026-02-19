@@ -1265,11 +1265,8 @@ function ActiveModelBadge() {
         </svg>
       )}
       <span className={`text-xs font-medium ${isNative ? 'text-amber-400' : 'text-cyan-400'}`}>
-        {isNative ? 'M.E.R.C.U.R.Y.' : activeIntelligence.displayName}
+        M.E.R.C.U.R.Y.
       </span>
-      {!isNative && (
-        <span className="text-[10px] text-slate-500">via {activeIntelligence.provider}</span>
-      )}
     </div>
   )
 }
