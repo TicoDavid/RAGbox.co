@@ -25,14 +25,20 @@ function HomeContent() {
   const [authContext, setAuthContext] = useState<AuthContext>('signin');
   const [authError, setAuthError] = useState<string | null>(null);
 
-  // Detect OAuth error in URL params and auto-open auth modal
+  // Detect OAuth error in URL params — only show if user initiated sign-in
   useEffect(() => {
     const error = searchParams.get('error');
     if (error) {
-      setAuthError(OAUTH_ERROR_MESSAGES[error] || OAUTH_ERROR_MESSAGES.default);
-      setAuthOpen(true);
-      // Clean up URL without triggering navigation
+      // Clean up URL immediately regardless
       window.history.replaceState({}, '', '/');
+
+      // Only show the error if the user actually started an OAuth flow
+      const authInitiated = typeof window !== 'undefined' && sessionStorage.getItem('ragbox_auth_initiated');
+      if (authInitiated) {
+        sessionStorage.removeItem('ragbox_auth_initiated');
+        setAuthError(OAUTH_ERROR_MESSAGES[error] || OAUTH_ERROR_MESSAGES.default);
+        setAuthOpen(true);
+      }
     }
   }, [searchParams]);
 

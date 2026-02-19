@@ -178,6 +178,9 @@ export function AuthModal({ isOpen, onClose, context = 'signin', errorMessage }:
     }
     setCodeError('');
     storeBetaCode();
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('ragbox_auth_initiated', '1');
+    }
     signIn('google', { callbackUrl: '/dashboard' });
   };
 
@@ -189,6 +192,9 @@ export function AuthModal({ isOpen, onClose, context = 'signin', errorMessage }:
     }
     setCodeError('');
     storeBetaCode();
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('ragbox_auth_initiated', '1');
+    }
     signIn('azure-ad', { callbackUrl: '/dashboard' });
   };
 
