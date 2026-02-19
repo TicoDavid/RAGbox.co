@@ -57,7 +57,7 @@ steps:
       - '--set-env-vars'
       - 'NODE_ENV=production,GO_BACKEND_URL=https://ragbox-backend-100739220279.us-east4.run.app,DEFAULT_USER_ID=105836695160618550214,INWORLD_WORKSPACE=ragbx'
       - '--set-secrets'
-      - 'INWORLD_API_KEY=ragbox-inworld-api-key:latest,INTERNAL_AUTH_SECRET=ragbox-internal-auth-secret:latest'
+      - 'INWORLD_API_KEY=ragbox-inworld-api-key:latest,INTERNAL_AUTH_SECRET=ragbox-internal-auth-secret:latest,ASSEMBLY_AI_API_KEY=assembly-ai-api-key:latest'
       - '--service-account'
       - 'ragbox-prod-cloudrun@$PROJECT_ID.iam.gserviceaccount.com'
     id: 'deploy'
