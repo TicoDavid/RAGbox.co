@@ -51,13 +51,15 @@ const TOOL_PATTERNS: PatternDef[] = [
   { pattern: /^(?:check|show|what(?:'s| is))\s+(?:the\s+)?(?:response\s+)?confidence(?:\s+score)?/i, tool: 'check_confidence', argMap: () => ({}) },
   { pattern: /^(?:find|extract|show|identify|list)\s+(?:the\s+)?(?:legal\s+)?risks?(?:\s+in\s+(.+))?/i, tool: 'find_risks', argMap: (m) => ({ query: m[1] || 'all documents' }) },
   { pattern: /^(?:show|list)\s+(?:recent\s+)?(?:my\s+)?activity/i, tool: 'recent_activity', argMap: () => ({}) },
-  { pattern: /^(?:list|show)\s+(?:my\s+)?documents?/i, tool: 'list_documents', argMap: () => ({}) },
+  { pattern: /^(?:list|show)\s+(?:my\s+)?(?:documents?|files?)/i, tool: 'list_documents', argMap: () => ({}) },
   { pattern: /^(?:check|show)\s+(?:my\s+)?(?:content\s+)?gaps?/i, tool: 'check_content_gaps', argMap: () => ({}) },
 
   // Natural-language vault meta-queries (catch phrasings that bypass command verbs)
-  { pattern: /^what\s+(?:files?|documents?|docs?)\s+(?:do\s+I\s+have|are\s+(?:in|there|uploaded|available))/i, tool: 'list_documents', argMap: () => ({}) },
+  // "show me (my) files/documents" — end-anchored to avoid stealing "show me docs about X"
+  { pattern: /^show\s+me\s+(?:my\s+)?(?:files?|documents?|docs?)\s*$/i, tool: 'list_documents', argMap: () => ({}) },
+  { pattern: /^what\s+(?:files?|documents?|docs?)\s+(?:do\s+I\s+have|(?:are\s+)?(?:in|there|uploaded|available|stored))/i, tool: 'list_documents', argMap: () => ({}) },
   { pattern: /^what(?:'s|\s+is)\s+in\s+(?:my\s+)?(?:vault|box|the\s+vault|the\s+box)/i, tool: 'list_documents', argMap: () => ({}) },
-  { pattern: /^(?:vault|box)\s+contents?/i, tool: 'list_documents', argMap: () => ({}) },
+  { pattern: /^(?:vault|box)\s+(?:contents?|inventory|files?)/i, tool: 'list_documents', argMap: () => ({}) },
   { pattern: /^how\s+many\s+(?:files?|documents?|docs?)/i, tool: 'get_document_stats', argMap: () => ({}) },
 
   // Vault/file search — natural-language phrasings that aren't caught by command-verb patterns

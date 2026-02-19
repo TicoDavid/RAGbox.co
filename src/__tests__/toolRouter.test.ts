@@ -211,6 +211,60 @@ describe('vault meta-query patterns', () => {
     expect(result).not.toBeNull()
     expect(result!.tool).toBe('get_document_stats')
   })
+
+  test('what files are stored', () => {
+    const result = detectToolIntent('what files are stored')
+    expect(result).not.toBeNull()
+    expect(result!.tool).toBe('list_documents')
+  })
+
+  test('what documents stored (no "are")', () => {
+    const result = detectToolIntent('what documents stored')
+    expect(result).not.toBeNull()
+    expect(result!.tool).toBe('list_documents')
+  })
+
+  test('list my files', () => {
+    const result = detectToolIntent('list my files')
+    expect(result).not.toBeNull()
+    expect(result!.tool).toBe('list_documents')
+  })
+
+  test('show me my files', () => {
+    const result = detectToolIntent('show me my files')
+    expect(result).not.toBeNull()
+    expect(result!.tool).toBe('list_documents')
+  })
+
+  test('show me my documents', () => {
+    const result = detectToolIntent('show me my documents')
+    expect(result).not.toBeNull()
+    expect(result!.tool).toBe('list_documents')
+  })
+
+  test('show me files', () => {
+    const result = detectToolIntent('show me files')
+    expect(result).not.toBeNull()
+    expect(result!.tool).toBe('list_documents')
+  })
+
+  test('vault inventory', () => {
+    const result = detectToolIntent('vault inventory')
+    expect(result).not.toBeNull()
+    expect(result!.tool).toBe('list_documents')
+  })
+
+  test('vault files', () => {
+    const result = detectToolIntent('vault files')
+    expect(result).not.toBeNull()
+    expect(result!.tool).toBe('list_documents')
+  })
+
+  test('how many files', () => {
+    const result = detectToolIntent('how many files')
+    expect(result).not.toBeNull()
+    expect(result!.tool).toBe('get_document_stats')
+  })
 })
 
 // ── Vault/file search — natural-language phrasings ─────────
@@ -272,7 +326,7 @@ describe('vault/file search — natural-language patterns', () => {
     expect(result!.args.query).toBe('HIPAA compliance')
   })
 
-  test('show me documents about [topic]', () => {
+  test('show me documents about [topic] → search, not list', () => {
     const result = detectToolIntent('show me documents about employment law')
     expect(result).not.toBeNull()
     expect(result!.tool).toBe('search_documents')
