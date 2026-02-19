@@ -1,15 +1,19 @@
 # RAGbox Voice Server - Production Dockerfile
 # Separate Cloud Run service for WebSocket voice pipeline
 # Service: mercury-voice | Port: 3003
+# NOTE: Uses debian-slim (NOT alpine) because @inworld/runtime
+#       ships glibc-linked native binaries (libinworld.so)
 
 # ==============================================
 # Stage 1: Dependencies
 # ==============================================
-FROM node:20-alpine AS deps
+FROM node:20-slim AS deps
 WORKDIR /app
 
 # Native module build deps (required by @inworld/runtime)
-RUN apk add --no-cache python3 make g++
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy root package files (voice server shares the monorepo deps)
 COPY package.json package-lock.json ./
@@ -17,13 +21,13 @@ COPY package.json package-lock.json ./
 # Install production dependencies only
 RUN npm ci --omit=dev --ignore-scripts
 
-# Rebuild native modules for alpine
+# Rebuild native modules for linux
 RUN npm rebuild
 
 # ==============================================
 # Stage 2: Builder (compile TypeScript)
 # ==============================================
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -45,14 +49,14 @@ RUN npx tsc --project server/tsconfig.json
 # ==============================================
 # Stage 3: Production Runner
 # ==============================================
-FROM node:20-alpine AS runner
+FROM node:20-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 
 # Security: non-root user
-RUN addgroup --system --gid 1001 voice && \
-    adduser --system --uid 1001 mercury
+RUN groupadd --system --gid 1001 voice && \
+    useradd --system --uid 1001 --gid voice mercury
 
 # Copy compiled output + dependencies
 COPY --from=builder /app/server/dist ./dist
@@ -72,6 +76,6 @@ EXPOSE 3003
 
 # Health check for Cloud Run
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
-  CMD wget -q --spider http://localhost:3003/health || exit 1
+  CMD node -e "fetch('http://localhost:3003/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 
 CMD ["node", "dist/index.js"]
