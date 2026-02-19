@@ -90,10 +90,24 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
     const { llmProvider, llmModel } = body
     let byollmFields: Record<string, string> = {}
 
+    console.log('[DEBUG-CHAT] BYOLLM routing:', {
+      frontendProvider: llmProvider ?? '(none)',
+      frontendModel: llmModel ?? '(none)',
+      userId,
+    })
+
     if (llmProvider === 'byollm') {
       try {
         const llmConfig = await prisma.lLMConfig.findUnique({
           where: { tenantId: DEFAULT_TENANT },
+        })
+
+        console.log('[DEBUG-CHAT] llm_configs lookup:', {
+          found: !!llmConfig,
+          provider: llmConfig?.provider ?? '(null)',
+          policy: llmConfig?.policy ?? '(null)',
+          hasEncryptedKey: !!llmConfig?.apiKeyEncrypted,
+          defaultModel: llmConfig?.defaultModel ?? '(null)',
         })
 
         if (llmConfig) {
@@ -108,6 +122,11 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
               llmApiKey: rawKey,
               ...(llmConfig.baseUrl ? { llmBaseUrl: llmConfig.baseUrl } : {}),
             }
+            console.log('[DEBUG-CHAT] BYOLLM active — forwarding to Go:', {
+              provider: byollmFields.llmProvider,
+              model: byollmFields.llmModel,
+              hasKey: !!byollmFields.llmApiKey,
+            })
           }
         }
       } catch (err) {

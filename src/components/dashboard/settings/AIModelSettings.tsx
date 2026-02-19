@@ -97,6 +97,7 @@ export function AIModelSettings() {
     setConnectionModel,
     llmPolicy,
     setLlmPolicy,
+    setActiveIntelligence,
   } = useSettings()
 
   // Server-side config loaded from API
@@ -233,6 +234,18 @@ export function AIModelSettings() {
             selectedModel,
           })
         }
+        // Auto-switch active intelligence so chat uses the saved BYOLLM model
+        if (llmPolicy !== 'aegis_only' && selectedModel) {
+          const providerLabel = PROVIDER_OPTIONS.find((p) => p.value === selectedProvider)?.label || selectedProvider
+          const models = HARDCODED_MODELS[selectedProvider] || []
+          const modelLabel = models.find((m) => m.id === selectedModel)?.name || selectedModel
+          setActiveIntelligence({
+            id: selectedModel,
+            displayName: modelLabel,
+            provider: providerLabel,
+            tier: 'private',
+          })
+        }
         setIsEditing(false)
         setApiKeyInput('')
       } else {
@@ -243,7 +256,7 @@ export function AIModelSettings() {
     } finally {
       setIsSaving(false)
     }
-  }, [selectedProvider, apiKeyInput, selectedModel, llmPolicy, byollmConnection, addConnection, updateConnection])
+  }, [selectedProvider, apiKeyInput, selectedModel, llmPolicy, byollmConnection, addConnection, updateConnection, setActiveIntelligence])
 
   // ── Remove Config: DELETE /api/settings/llm ──
   const handleRemove = useCallback(async () => {
