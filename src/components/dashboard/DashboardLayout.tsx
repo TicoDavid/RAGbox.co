@@ -23,7 +23,6 @@ import { Sidebar } from '@/components/Sidebar'
 import {
   Star,
   Shield,
-  Download,
   FileText,
   Menu,
   X,
