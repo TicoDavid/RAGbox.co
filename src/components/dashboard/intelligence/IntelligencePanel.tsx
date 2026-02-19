@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
+import { BrainCircuit } from 'lucide-react'
+import { useContentIntelligenceStore } from '@/stores/contentIntelligenceStore'
 import { ContentGapPanel } from './ContentGapPanel'
 import { KBHealthPanel } from './KBHealthPanel'
 
@@ -8,8 +10,30 @@ type IntelTab = 'gaps' | 'health'
 
 export function IntelligencePanel() {
   const [activeTab, setActiveTab] = useState<IntelTab>('gaps')
-  // TODO: Replace with actual vault selection once vault listing is wired
   const defaultVaultId = 'default'
+
+  const gaps = useContentIntelligenceStore((s) => s.gaps)
+  const healthChecks = useContentIntelligenceStore((s) => s.healthChecks)
+  const gapsLoading = useContentIntelligenceStore((s) => s.gapsLoading)
+  const healthLoading = useContentIntelligenceStore((s) => s.healthLoading)
+
+  const isEmpty = gaps.length === 0 && healthChecks.length === 0 && !gapsLoading && !healthLoading
+
+  if (isEmpty) {
+    return (
+      <div className="flex flex-col h-full bg-[var(--bg-primary)]">
+        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-[var(--brand-blue)]/10 flex items-center justify-center mb-4">
+            <BrainCircuit className="w-7 h-7 text-[var(--brand-blue)]/40" />
+          </div>
+          <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-2">Intelligence Idle</h3>
+          <p className="text-xs text-[var(--text-tertiary)] leading-relaxed max-w-[240px]">
+            Upload documents and start querying to surface knowledge gaps and health insights.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col h-full bg-[var(--bg-primary)]">
