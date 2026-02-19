@@ -262,7 +262,7 @@ function ActivityFeedSkeleton() {
 // ---------------------------------------------------------------------------
 
 function RecentActivityFeed({ messages }: { messages: ThreadMessage[] }) {
-  if (messages.length === 0) {
+  if (!messages || messages.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center py-12 text-center">
         <div className="w-16 h-16 rounded-full bg-[var(--brand-blue)]/10 flex items-center justify-center mb-4">

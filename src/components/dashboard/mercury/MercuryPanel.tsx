@@ -302,7 +302,7 @@ export function MercuryPanel() {
         {/* Conversation with Lens Refocus Animation */}
         <div
           className={`
-            flex-1 min-h-0
+            flex-1 min-h-0 flex flex-col
             ${isRefocusing ? 'animate-refocus' : ''}
           `}
         >
