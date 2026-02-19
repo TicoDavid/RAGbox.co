@@ -296,7 +296,7 @@ export function MercuryPanel() {
       </div>
 
       {/* Layer 3: All content — transparent bg so watermark shows through */}
-      <div className="relative z-10 flex flex-col h-full">
+      <div className="relative z-10 flex flex-col h-full min-h-0">
         <ContextBar />
 
         {/* Conversation with Lens Refocus Animation */}
