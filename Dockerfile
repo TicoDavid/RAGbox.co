@@ -32,6 +32,10 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
+# NEXT_PUBLIC_* vars must be present at build time to be baked into the JS bundle
+ARG NEXT_PUBLIC_VOICE_WS_URL=wss://app.ragbox.co/agent/ws
+ENV NEXT_PUBLIC_VOICE_WS_URL=$NEXT_PUBLIC_VOICE_WS_URL
+
 # Build the Next.js application (standalone output)
 RUN npm run build
 
