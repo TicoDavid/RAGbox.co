@@ -75,7 +75,7 @@ function AgentIdentityCard({ persona }: { persona: Persona }) {
 
   return (
     <motion.section
-      className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#0A192F] via-[#112240] to-[#0A192F] p-8"
+      className="relative overflow-hidden rounded-2xl border border-[var(--border-default)] bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-secondary)] to-[var(--bg-primary)] p-8"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -85,8 +85,8 @@ function AgentIdentityCard({ persona }: { persona: Persona }) {
 
       <div className="relative flex items-center gap-6">
         {/* Avatar */}
-        <div className="shrink-0 w-20 h-20 rounded-full bg-gradient-to-br from-[#1e3a5f] to-[#0f2744] border-2 border-amber-500/30 flex items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.15)]">
-          <span className="text-2xl font-bold text-amber-400/90 tracking-wider font-[var(--font-space)]">
+        <div className="shrink-0 w-20 h-20 rounded-full bg-gradient-to-br from-[var(--bg-tertiary)] to-[var(--bg-primary)] border-2 border-[var(--warning)]/30 flex items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.15)]">
+          <span className="text-2xl font-bold text-[var(--warning)]/90 tracking-wider font-[var(--font-space)]">
             {initials}
           </span>
         </div>
@@ -94,19 +94,19 @@ function AgentIdentityCard({ persona }: { persona: Persona }) {
         {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-2xl font-bold text-white tracking-tight">
+            <h1 className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">
               {persona.firstName} {persona.lastName}
             </h1>
             {/* Active badge */}
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-xs font-medium text-emerald-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[var(--success)]/15 border border-[var(--success)]/30 text-xs font-medium text-[var(--success)]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)] animate-pulse" />
               Active
             </span>
           </div>
-          <p className="text-sm text-slate-400 mb-2">
+          <p className="text-sm text-[var(--text-secondary)] mb-2">
             {persona.title || 'Executive Assistant'}
           </p>
-          <p className="text-sm text-slate-500 italic">
+          <p className="text-sm text-[var(--text-tertiary)] italic">
             &ldquo;Your documents. Your voice. Your advocate.&rdquo;
           </p>
         </div>
@@ -136,10 +136,10 @@ function ChannelCard({ icon, label, provider, connected, comingSoon, detail, act
       className={cn(
         'flex-1 min-w-[200px] rounded-xl border p-5 transition-colors',
         comingSoon
-          ? 'border-white/5 bg-white/[0.01] opacity-75'
+          ? 'border-[var(--border-subtle)] bg-[var(--bg-elevated)]/5 opacity-75'
           : connected
-            ? 'border-emerald-500/20 bg-emerald-500/5'
-            : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.04]'
+            ? 'border-[var(--success)]/20 bg-[var(--success)]/5'
+            : 'border-[var(--border-default)] bg-[var(--bg-elevated)]/10 hover:bg-[var(--bg-elevated)]/20'
       )}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
@@ -149,37 +149,37 @@ function ChannelCard({ icon, label, provider, connected, comingSoon, detail, act
         <div className={cn(
           'w-10 h-10 rounded-lg flex items-center justify-center',
           comingSoon
-            ? 'bg-white/5 text-slate-600'
+            ? 'bg-[var(--bg-elevated)]/30 text-[var(--text-tertiary)]'
             : connected
-              ? 'bg-emerald-500/15 text-emerald-400'
-              : 'bg-white/5 text-slate-500'
+              ? 'bg-[var(--success)]/15 text-[var(--success)]'
+              : 'bg-[var(--bg-elevated)]/30 text-[var(--text-tertiary)]'
         )}>
           {icon}
         </div>
         <div>
-          <p className="text-sm font-semibold text-white">{label}</p>
-          <p className="text-xs text-slate-500">{provider}</p>
+          <p className="text-sm font-semibold text-[var(--text-primary)]">{label}</p>
+          <p className="text-xs text-[var(--text-tertiary)]">{provider}</p>
         </div>
       </div>
 
       <div className="flex items-center gap-2 mb-3">
         {comingSoon ? (
-          <span className="text-xs text-slate-600 italic">Voice coming soon</span>
+          <span className="text-xs text-[var(--text-tertiary)] italic">Voice coming soon</span>
         ) : connected ? (
           <>
-            <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="text-xs font-medium text-emerald-400">Connected</span>
+            <CheckCircle className="w-3.5 h-3.5 text-[var(--success)]" />
+            <span className="text-xs font-medium text-[var(--success)]">Connected</span>
           </>
         ) : (
           <>
-            <Circle className="w-3.5 h-3.5 text-slate-600" />
-            <span className="text-xs text-slate-500">Not Connected</span>
+            <Circle className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+            <span className="text-xs text-[var(--text-tertiary)]">Not Connected</span>
           </>
         )}
       </div>
 
       {detail && (
-        <p className="text-xs text-slate-400 font-mono truncate mb-3">{detail}</p>
+        <p className="text-xs text-[var(--text-secondary)] font-mono truncate mb-3">{detail}</p>
       )}
 
       {!comingSoon && actionLabel && onAction && (
@@ -188,8 +188,8 @@ function ChannelCard({ icon, label, provider, connected, comingSoon, detail, act
           className={cn(
             'w-full py-2 rounded-lg text-xs font-medium transition-all duration-200',
             connected
-              ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20'
-              : 'bg-[var(--brand-blue)] text-white hover:bg-[var(--brand-blue-hover)]'
+              ? 'bg-[var(--success)]/10 text-[var(--success)] hover:bg-[var(--success)]/20 border border-[var(--success)]/20'
+              : 'bg-[var(--brand-blue)] text-[var(--text-primary)] hover:bg-[var(--brand-blue-hover)]'
           )}
         >
           {actionLabel}
@@ -205,13 +205,13 @@ function ChannelCard({ icon, label, provider, connected, comingSoon, detail, act
 
 function InlineError({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-red-500/20 bg-red-500/5">
-      <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-      <p className="text-sm text-red-300 flex-1">{message}</p>
+    <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-[var(--danger)]/20 bg-[var(--danger)]/5">
+      <AlertCircle className="w-4 h-4 text-[var(--danger)] shrink-0" />
+      <p className="text-sm text-[var(--danger)] flex-1">{message}</p>
       {onRetry && (
         <button
           onClick={onRetry}
-          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-red-300 hover:text-white bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-colors"
+          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--danger)] hover:text-[var(--text-primary)] bg-[var(--danger)]/10 hover:bg-[var(--danger)]/20 border border-[var(--danger)]/20 transition-colors"
         >
           <RotateCcw className="w-3 h-3" />
           Retry
@@ -227,16 +227,16 @@ function InlineError({ message, onRetry }: { message: string; onRetry?: () => vo
 
 function ChannelCardSkeleton() {
   return (
-    <div className="flex-1 min-w-[200px] rounded-xl border border-white/5 bg-white/[0.02] p-5 animate-pulse">
+    <div className="flex-1 min-w-[200px] rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/10 p-5 animate-pulse">
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-10 h-10 rounded-lg bg-white/5" />
+        <div className="w-10 h-10 rounded-lg bg-[var(--bg-elevated)]/30" />
         <div className="space-y-1.5">
-          <div className="h-3.5 w-16 rounded bg-white/5" />
-          <div className="h-2.5 w-12 rounded bg-white/[0.03]" />
+          <div className="h-3.5 w-16 rounded bg-[var(--bg-elevated)]/30" />
+          <div className="h-2.5 w-12 rounded bg-[var(--bg-elevated)]/15" />
         </div>
       </div>
-      <div className="h-3 w-24 rounded bg-white/5 mb-3" />
-      <div className="h-8 w-full rounded-lg bg-white/5" />
+      <div className="h-3 w-24 rounded bg-[var(--bg-elevated)]/30 mb-3" />
+      <div className="h-8 w-full rounded-lg bg-[var(--bg-elevated)]/30" />
     </div>
   )
 }
@@ -246,10 +246,10 @@ function ActivityFeedSkeleton() {
     <div className="space-y-1 animate-pulse">
       {[1, 2, 3, 4, 5].map((i) => (
         <div key={i} className="flex items-start gap-3 px-3 py-2.5">
-          <div className="w-4 h-4 rounded bg-white/5 mt-0.5 shrink-0" />
+          <div className="w-4 h-4 rounded bg-[var(--bg-elevated)]/30 mt-0.5 shrink-0" />
           <div className="flex-1 space-y-1.5">
-            <div className="h-3.5 rounded bg-white/5" style={{ width: `${70 - i * 8}%` }} />
-            <div className="h-2.5 w-24 rounded bg-white/[0.03]" />
+            <div className="h-3.5 rounded bg-[var(--bg-elevated)]/30" style={{ width: `${70 - i * 8}%` }} />
+            <div className="h-2.5 w-24 rounded bg-[var(--bg-elevated)]/15" />
           </div>
         </div>
       ))}
@@ -268,8 +268,8 @@ function RecentActivityFeed({ messages }: { messages: ThreadMessage[] }) {
         <div className="w-16 h-16 rounded-full bg-[var(--brand-blue)]/10 flex items-center justify-center mb-4">
           <MessageCircle className="w-7 h-7 text-[var(--brand-blue)]/50" />
         </div>
-        <p className="text-sm text-slate-400 font-medium">Evelyn is ready.</p>
-        <p className="text-xs text-slate-600 mt-1">Send her first message.</p>
+        <p className="text-sm text-[var(--text-secondary)] font-medium">Evelyn is ready.</p>
+        <p className="text-xs text-[var(--text-tertiary)] mt-1">Send her first message.</p>
       </div>
     )
   }
@@ -284,15 +284,15 @@ function RecentActivityFeed({ messages }: { messages: ThreadMessage[] }) {
         return (
           <div
             key={msg.id}
-            className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/[0.03] transition-colors"
+            className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-[var(--bg-elevated)]/15 transition-colors"
           >
             <ChannelIcon
               channel={msg.channel || 'dashboard'}
-              className="w-4 h-4 text-slate-500 mt-0.5 shrink-0"
+              className="w-4 h-4 text-[var(--text-tertiary)] mt-0.5 shrink-0"
             />
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-slate-300 truncate">{msg.content}</p>
-              <p className="text-[10px] text-slate-600 mt-0.5">
+              <p className="text-sm text-[var(--text-secondary)] truncate">{msg.content}</p>
+              <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5">
                 {msg.role === 'assistant' ? 'Evelyn' : 'You'} &middot; {dateStr} {timeStr}
               </p>
             </div>
@@ -321,21 +321,21 @@ function QuickActions({ onCompose, onAsk, onAudit, actionLoading }: QuickActions
       label: 'Send Email',
       icon: <Mail className="w-4 h-4" />,
       onClick: () => onCompose('email'),
-      color: 'bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] text-white',
+      color: 'bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] text-[var(--text-primary)]',
     },
     {
       id: 'whatsapp',
       label: 'Send WhatsApp',
       icon: <MessageCircle className="w-4 h-4" />,
       onClick: () => onCompose('whatsapp'),
-      color: 'bg-emerald-600 hover:bg-emerald-500 text-white',
+      color: 'bg-[var(--success)] hover:bg-[var(--success)] text-[var(--text-primary)]',
     },
     {
       id: 'ask',
       label: 'Ask Evelyn',
       icon: <Send className="w-4 h-4" />,
       onClick: onAsk,
-      color: 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/20',
+      color: 'bg-[var(--warning)]/15 hover:bg-[var(--warning)]/25 text-[var(--warning)] border border-[var(--warning)]/20',
     },
   ]
 
@@ -366,7 +366,7 @@ function QuickActions({ onCompose, onAsk, onAudit, actionLoading }: QuickActions
         onClick={onAudit}
         disabled={actionLoading !== null}
         className={cn(
-          'w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-all duration-200 group',
+          'w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]/50 transition-all duration-200 group',
           actionLoading !== null && 'opacity-50 cursor-not-allowed'
         )}
       >
@@ -521,13 +521,13 @@ export default function AgentPage() {
       <div className="min-h-screen bg-[var(--bg-primary)]">
         <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
           {/* Identity skeleton */}
-          <div className="rounded-2xl border border-white/10 bg-[var(--bg-secondary)] p-8 animate-pulse">
+          <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-8 animate-pulse">
             <div className="flex items-center gap-6">
-              <div className="w-20 h-20 rounded-full bg-white/5" />
+              <div className="w-20 h-20 rounded-full bg-[var(--bg-elevated)]/30" />
               <div className="space-y-2 flex-1">
-                <div className="h-6 w-48 rounded bg-white/5" />
-                <div className="h-3.5 w-32 rounded bg-white/[0.03]" />
-                <div className="h-3 w-64 rounded bg-white/[0.03]" />
+                <div className="h-6 w-48 rounded bg-[var(--bg-elevated)]/30" />
+                <div className="h-3.5 w-32 rounded bg-[var(--bg-elevated)]/15" />
+                <div className="h-3 w-64 rounded bg-[var(--bg-elevated)]/15" />
               </div>
             </div>
           </div>
@@ -539,18 +539,18 @@ export default function AgentPage() {
           </div>
           {/* Feed + actions skeleton */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            <div className="lg:col-span-3 rounded-2xl border border-white/10 bg-[var(--bg-secondary)] overflow-hidden">
-              <div className="px-5 py-4 border-b border-white/5">
-                <div className="h-4 w-32 rounded bg-white/5 animate-pulse" />
+            <div className="lg:col-span-3 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] overflow-hidden">
+              <div className="px-5 py-4 border-b border-[var(--border-subtle)]">
+                <div className="h-4 w-32 rounded bg-[var(--bg-elevated)]/30 animate-pulse" />
               </div>
               <div className="p-3">
                 <ActivityFeedSkeleton />
               </div>
             </div>
-            <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-[var(--bg-secondary)] p-4 animate-pulse">
+            <div className="lg:col-span-2 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 animate-pulse">
               <div className="space-y-2">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="h-11 rounded-xl bg-white/5" />
+                  <div key={i} className="h-11 rounded-xl bg-[var(--bg-elevated)]/30" />
                 ))}
               </div>
             </div>
@@ -564,17 +564,17 @@ export default function AgentPage() {
   if (personaNotFound) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-[var(--bg-primary)] text-center px-6">
-        <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6">
-          <Clock className="w-8 h-8 text-slate-600" />
+        <div className="w-20 h-20 rounded-full bg-[var(--bg-elevated)]/30 flex items-center justify-center mb-6">
+          <Clock className="w-8 h-8 text-[var(--text-tertiary)]" />
         </div>
-        <h2 className="text-lg font-semibold text-white mb-2">Agent not found</h2>
-        <p className="text-sm text-slate-500 max-w-sm">
+        <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Agent not found</h2>
+        <p className="text-sm text-[var(--text-tertiary)] max-w-sm">
           This agent doesn&apos;t exist or hasn&apos;t been configured yet.
         </p>
         <div className="flex items-center gap-3 mt-6">
           <button
             onClick={() => router.push('/dashboard')}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-blue)] text-white text-sm font-medium hover:bg-[var(--brand-blue-hover)] transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-blue)] text-[var(--text-primary)] text-sm font-medium hover:bg-[var(--brand-blue-hover)] transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to dashboard
@@ -588,24 +588,24 @@ export default function AgentPage() {
   if (personaError) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-[var(--bg-primary)] text-center px-6">
-        <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center mb-6">
-          <AlertCircle className="w-8 h-8 text-red-400" />
+        <div className="w-20 h-20 rounded-full bg-[var(--danger)]/10 flex items-center justify-center mb-6">
+          <AlertCircle className="w-8 h-8 text-[var(--danger)]" />
         </div>
-        <h2 className="text-lg font-semibold text-white mb-2">Unable to load agent profile</h2>
-        <p className="text-sm text-slate-500 max-w-sm">
+        <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Unable to load agent profile</h2>
+        <p className="text-sm text-[var(--text-tertiary)] max-w-sm">
           Check your connection and try again.
         </p>
         <div className="flex items-center gap-3 mt-6">
           <button
             onClick={loadPersona}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-blue)] text-white text-sm font-medium hover:bg-[var(--brand-blue-hover)] transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-blue)] text-[var(--text-primary)] text-sm font-medium hover:bg-[var(--brand-blue-hover)] transition-colors"
           >
             <RotateCcw className="w-4 h-4" />
             Try again
           </button>
           <button
             onClick={() => router.push('/dashboard')}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/10 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-[var(--border-default)] text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]/50 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to dashboard
@@ -636,23 +636,23 @@ export default function AgentPage() {
           {emailLoading ? (
             <ChannelCardSkeleton />
           ) : emailError ? (
-            <div className="flex-1 min-w-[200px] rounded-xl border border-red-500/20 bg-red-500/5 p-5">
+            <div className="flex-1 min-w-[200px] rounded-xl border border-[var(--danger)]/20 bg-[var(--danger)]/5 p-5">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center">
-                  <Mail className="w-5 h-5 text-red-400" />
+                <div className="w-10 h-10 rounded-lg bg-[var(--danger)]/10 flex items-center justify-center">
+                  <Mail className="w-5 h-5 text-[var(--danger)]" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-white">Email</p>
-                  <p className="text-xs text-slate-500">Gmail</p>
+                  <p className="text-sm font-semibold text-[var(--text-primary)]">Email</p>
+                  <p className="text-xs text-[var(--text-tertiary)]">Gmail</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 mb-3">
-                <AlertCircle className="w-3.5 h-3.5 text-red-400" />
-                <span className="text-xs text-red-300">{emailError}</span>
+                <AlertCircle className="w-3.5 h-3.5 text-[var(--danger)]" />
+                <span className="text-xs text-[var(--danger)]">{emailError}</span>
               </div>
               <button
                 onClick={loadEmail}
-                className="w-full py-2 rounded-lg text-xs font-medium bg-red-500/10 text-red-300 hover:bg-red-500/20 border border-red-500/20 transition-colors inline-flex items-center justify-center gap-1.5"
+                className="w-full py-2 rounded-lg text-xs font-medium bg-[var(--danger)]/10 text-[var(--danger)] hover:bg-[var(--danger)]/20 border border-[var(--danger)]/20 transition-colors inline-flex items-center justify-center gap-1.5"
               >
                 <RotateCcw className="w-3 h-3" />
                 Retry
@@ -693,10 +693,10 @@ export default function AgentPage() {
           transition={{ delay: 0.35, duration: 0.4 }}
         >
           {/* Left: Recent Activity Feed */}
-          <div className="lg:col-span-3 rounded-2xl border border-white/10 bg-[var(--bg-secondary)] overflow-hidden">
-            <div className="px-5 py-4 border-b border-white/5 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-slate-500" />
-              <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
+          <div className="lg:col-span-3 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] overflow-hidden">
+            <div className="px-5 py-4 border-b border-[var(--border-subtle)] flex items-center gap-2">
+              <Clock className="w-4 h-4 text-[var(--text-tertiary)]" />
+              <h2 className="text-sm font-semibold text-[var(--text-primary)] uppercase tracking-wider">
                 Recent Activity
               </h2>
             </div>
@@ -714,10 +714,10 @@ export default function AgentPage() {
           </div>
 
           {/* Right: Quick Actions */}
-          <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-[var(--bg-secondary)] overflow-hidden">
-            <div className="px-5 py-4 border-b border-white/5 flex items-center gap-2">
-              <Send className="w-4 h-4 text-slate-500" />
-              <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
+          <div className="lg:col-span-2 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] overflow-hidden">
+            <div className="px-5 py-4 border-b border-[var(--border-subtle)] flex items-center gap-2">
+              <Send className="w-4 h-4 text-[var(--text-tertiary)]" />
+              <h2 className="text-sm font-semibold text-[var(--text-primary)] uppercase tracking-wider">
                 Quick Actions
               </h2>
             </div>
