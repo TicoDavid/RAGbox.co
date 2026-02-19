@@ -105,10 +105,12 @@ export const useWhatsAppStore = create<WhatsAppState>()(
         const res = await apiFetch(`/api/whatsapp/conversations/${conversationId}/messages`)
         if (res.ok) {
           const json = await res.json()
+          const raw = json.data ?? json
+          const msgs = Array.isArray(raw) ? raw : raw.messages || raw.data || []
           set((state) => ({
             messages: {
               ...state.messages,
-              [conversationId]: json.data || [],
+              [conversationId]: msgs,
             },
           }))
         }

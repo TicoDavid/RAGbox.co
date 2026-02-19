@@ -222,7 +222,38 @@ function WhatsAppThread({
   const toggleAutoReply = useWhatsAppStore((s) => s.toggleAutoReply)
 
   const conversation = conversations.find((c) => c.id === conversationId)
-  const contactName = conversation?.contact.displayName || conversation?.contact.phoneNumber || 'Unknown'
+  const contactName = conversation?.contact?.displayName || conversation?.contact?.phoneNumber || 'Unknown'
+
+  // Guard: conversation may have been deleted/archived while this thread was open
+  if (!conversation) {
+    return (
+      <>
+        <div className="shrink-0 px-3 py-2.5 border-b border-[var(--border-subtle)] flex items-center gap-3">
+          <button
+            onClick={onBack}
+            className="w-8 h-8 flex items-center justify-center rounded-lg
+                       text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-colors"
+            aria-label="Back to conversations"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <p className="text-sm text-[var(--text-tertiary)]">Conversation not found</p>
+        </div>
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="text-center">
+            <AlertCircle className="w-10 h-10 text-[var(--warning)]/30 mx-auto mb-2" />
+            <p className="text-sm text-[var(--text-tertiary)]">This conversation is no longer available.</p>
+            <button
+              onClick={onBack}
+              className="mt-3 px-4 py-2 text-xs rounded-lg bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              Back to conversations
+            </button>
+          </div>
+        </div>
+      </>
+    )
+  }
 
   return (
     <>
@@ -246,7 +277,7 @@ function WhatsAppThread({
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-[var(--text-primary)] truncate">{contactName}</p>
           <p className="text-[10px] text-[var(--text-tertiary)]">
-            {conversation?.contact.phoneNumber}
+            {conversation.contact?.phoneNumber}
           </p>
         </div>
 
@@ -254,13 +285,13 @@ function WhatsAppThread({
         <button
           onClick={() => toggleAutoReply(conversationId)}
           className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-colors
-            ${conversation?.autoReply
+            ${conversation.autoReply
               ? 'bg-[var(--success)]/15 text-[var(--success)] border border-[var(--success)]/30'
               : 'bg-[var(--bg-secondary)] text-[var(--text-tertiary)] border border-[var(--border-subtle)]'
             }`}
-          title={conversation?.autoReply ? 'Auto-reply ON' : 'Auto-reply OFF'}
+          title={conversation.autoReply ? 'Auto-reply ON' : 'Auto-reply OFF'}
         >
-          {conversation?.autoReply ? (
+          {conversation.autoReply ? (
             <ToggleRight className="w-3 h-3" />
           ) : (
             <ToggleLeft className="w-3 h-3" />
