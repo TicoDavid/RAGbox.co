@@ -69,6 +69,11 @@ func (s *GeneratorService) SetPromptLoader(pl SystemPromptBuilder) {
 	s.promptLoader = pl
 }
 
+// PromptLoader returns the current SystemPromptBuilder (may be nil).
+func (s *GeneratorService) PromptLoader() SystemPromptBuilder {
+	return s.promptLoader
+}
+
 // Generate produces a cited answer for a query using retrieved chunks as context.
 func (s *GeneratorService) Generate(ctx context.Context, query string, chunks []RankedChunk, opts GenerateOpts) (*GenerationResult, error) {
 	if query == "" {

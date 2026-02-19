@@ -24,6 +24,11 @@ type ChatRequest struct {
 	Mode          string `json:"mode"` // "concise", "detailed", "risk-analysis"
 	Persona       string `json:"persona"`
 	StrictMode    bool   `json:"strictMode"`
+	// BYOLLM fields (optional — absent means use AEGIS/Vertex AI)
+	LLMProvider string `json:"llmProvider,omitempty"`
+	LLMModel    string `json:"llmModel,omitempty"`
+	LLMApiKey   string `json:"llmApiKey,omitempty"`
+	LLMBaseUrl  string `json:"llmBaseUrl,omitempty"`
 }
 
 // PersonaFetcher loads persona from the database.
@@ -115,6 +120,28 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 				respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "persona must be one of: default, cfo, legal"})
 				return
 			}
+		}
+
+		// BYOLLM routing: per-request generator when external LLM fields are present.
+		// The API key is NEVER logged — only provider and model are safe to log.
+		generator := deps.Generator
+		selfRAG := deps.SelfRAG
+		var byollmActive bool
+
+		if req.LLMProvider != "" && req.LLMApiKey != "" {
+			byollmClient := gcpclient.NewBYOLLMClient(req.LLMApiKey, req.LLMBaseUrl, req.LLMModel)
+			byollmGen := service.NewGeneratorService(byollmClient, req.LLMModel)
+			if gs, ok := deps.Generator.(*service.GeneratorService); ok {
+				byollmGen.SetPromptLoader(gs.PromptLoader())
+			}
+			generator = byollmGen
+			selfRAG = service.NewSelfRAGService(byollmGen, 3, 0.85)
+			byollmActive = true
+			slog.Info("[DEBUG-CHAT] BYOLLM active",
+				"user_id", userID,
+				"provider", req.LLMProvider,
+				"model", req.LLMModel,
+			)
 		}
 
 		// Set SSE headers
@@ -233,7 +260,18 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			Instructions:   cortexInstructions,
 		}
 
-		initial, err := deps.Generator.Generate(ctx, req.Query, retrieval.Chunks, opts)
+		initial, err := generator.Generate(ctx, req.Query, retrieval.Chunks, opts)
+		if err != nil && byollmActive {
+			slog.Warn("BYOLLM generation failed, falling back to AEGIS",
+				"user_id", userID,
+				"provider", req.LLMProvider,
+				"error", err,
+			)
+			generator = deps.Generator
+			selfRAG = deps.SelfRAG
+			byollmActive = false
+			initial, err = generator.Generate(ctx, req.Query, retrieval.Chunks, opts)
+		}
 		if err != nil {
 			slog.Error("chat generation failed", "user_id", userID, "stage", "generation", "error", err)
 			sendEvent(w, flusher, "error", fmt.Sprintf(`{"message":%q}`, rateLimitMessage(err)))
@@ -242,7 +280,7 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 		}
 
 		// Step 3: Self-RAG Reflection
-		result, err := deps.SelfRAG.Reflect(ctx, req.Query, retrieval.Chunks, initial)
+		result, err := selfRAG.Reflect(ctx, req.Query, retrieval.Chunks, initial)
 		if err != nil {
 			slog.Error("chat self-rag reflection failed", "user_id", userID, "stage", "reflection", "error", err)
 			sendEvent(w, flusher, "error", fmt.Sprintf(`{"message":%q}`, rateLimitMessage(err)))
@@ -276,9 +314,16 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			citationsJSON, _ := json.Marshal(result.Citations)
 			sendEvent(w, flusher, "citations", string(citationsJSON))
 
+			providerName := "aegis"
+			if byollmActive {
+				providerName = req.LLMProvider
+			}
 			confidenceJSON, _ := json.Marshal(map[string]interface{}{
 				"score":      result.FinalConfidence,
 				"iterations": result.Iterations,
+				"modelUsed":  initial.ModelUsed,
+				"provider":   providerName,
+				"latencyMs":  initial.LatencyMs,
 			})
 			sendEvent(w, flusher, "confidence", string(confidenceJSON))
 
