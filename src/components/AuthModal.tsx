@@ -29,7 +29,17 @@ export function AuthModal({ isOpen, onClose, context = 'signin', errorMessage }:
   const [devOtp, setDevOtp] = useState(''); // For dev mode display
   const [betaCode, setBetaCode] = useState('');
   const [codeError, setCodeError] = useState('');
+  const [isReturningUser, setIsReturningUser] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Check if this is a returning user (previously authenticated on this browser)
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && localStorage.getItem('ragbox_user_verified')) {
+        setIsReturningUser(true);
+      }
+    } catch { /* private browsing */ }
+  }, []);
 
   // Reset state when modal opens/closes
   useEffect(() => {
@@ -172,12 +182,12 @@ export function AuthModal({ isOpen, onClose, context = 'signin', errorMessage }:
 
   // 5. Google Sign In
   const handleGoogleSignIn = () => {
-    if (!betaCode.trim()) {
+    if (!isReturningUser && !betaCode.trim()) {
       setCodeError('Please enter your access code');
       return;
     }
     setCodeError('');
-    storeBetaCode();
+    if (betaCode.trim()) storeBetaCode();
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('ragbox_auth_initiated', '1');
     }
@@ -186,12 +196,12 @@ export function AuthModal({ isOpen, onClose, context = 'signin', errorMessage }:
 
   // 6. Microsoft Sign In (Azure AD)
   const handleMicrosoftSignIn = () => {
-    if (!betaCode.trim()) {
+    if (!isReturningUser && !betaCode.trim()) {
       setCodeError('Please enter your access code');
       return;
     }
     setCodeError('');
-    storeBetaCode();
+    if (betaCode.trim()) storeBetaCode();
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('ragbox_auth_initiated', '1');
     }
@@ -240,8 +250,8 @@ export function AuthModal({ isOpen, onClose, context = 'signin', errorMessage }:
             </p>
           </div>
 
-          {/* Beta Access Code (above OAuth buttons) */}
-          {step === 'email' && (
+          {/* Beta Access Code — hidden for returning users */}
+          {step === 'email' && !isReturningUser && (
             <div className="mb-4">
               <div className="flex items-center gap-2 mb-2">
                 <KeyRound className="w-4 h-4 text-blue-500" />
