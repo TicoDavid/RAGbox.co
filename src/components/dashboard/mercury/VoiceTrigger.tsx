@@ -126,44 +126,44 @@ export function VoiceTrigger({
       case 'listening':
         return {
           icon: null, // Use waveform instead
-          bg: 'bg-amber-500/20',
-          text: 'text-amber-400',
-          ring: 'ring-amber-500/50',
+          bg: 'bg-[var(--warning)]/20',
+          text: 'text-[var(--warning)]',
+          ring: 'ring-[var(--warning)]/50',
           glow: 'shadow-[0_0_20px_rgba(245,158,11,0.5)]',
           pulse: true,
         }
       case 'speaking':
         return {
           icon: <Waves className="w-5 h-5" />,
-          bg: 'bg-emerald-500/20',
-          text: 'text-emerald-400',
-          ring: 'ring-emerald-500/50',
+          bg: 'bg-[var(--success)]/20',
+          text: 'text-[var(--success)]',
+          ring: 'ring-[var(--success)]/50',
           glow: 'shadow-[0_0_20px_rgba(16,185,129,0.5)]',
           pulse: true,
         }
       case 'processing':
         return {
           icon: <Loader2 className="w-5 h-5 animate-spin" />,
-          bg: 'bg-amber-500/20',
-          text: 'text-amber-400',
-          ring: 'ring-amber-500/30',
+          bg: 'bg-[var(--warning)]/20',
+          text: 'text-[var(--warning)]',
+          ring: 'ring-[var(--warning)]/30',
           glow: '',
           pulse: false,
         }
       case 'error':
         return {
           icon: <MicOff className="w-5 h-5" />,
-          bg: 'bg-red-500/10',
-          text: 'text-red-400',
-          ring: 'ring-red-500/30',
+          bg: 'bg-[var(--danger)]/10',
+          text: 'text-[var(--danger)]',
+          ring: 'ring-[var(--danger)]/30',
           glow: '',
           pulse: false,
         }
       default: // idle
         return {
           icon: <Mic className="w-5 h-5" />,
-          bg: 'hover:bg-amber-500/10',
-          text: 'text-gray-400 hover:text-amber-400',
+          bg: 'hover:bg-[var(--warning)]/10',
+          text: 'text-[var(--text-secondary)] hover:text-[var(--warning)]',
           ring: '',
           glow: '',
           pulse: false,
@@ -176,7 +176,7 @@ export function VoiceTrigger({
   // Inline variant has more subtle styling
   const inlineClasses = isInline
     ? 'hover:bg-transparent'
-    : 'hover:bg-white/5'
+    : 'hover:bg-[var(--bg-elevated)]/50'
 
   return (
     <div className={`relative ${className}`}>
@@ -221,7 +221,7 @@ export function VoiceTrigger({
             initial={{ opacity: 0 }}
             animate={{ opacity: [0.3, 0.6, 0.3] }}
             transition={{ duration: 2, repeat: Infinity }}
-            className="absolute inset-1 rounded-full bg-gradient-radial from-amber-400/30 to-transparent"
+            className="absolute inset-1 rounded-full bg-gradient-radial from-[var(--warning)]/30 to-transparent"
           />
         )}
       </motion.button>
@@ -234,13 +234,13 @@ export function VoiceTrigger({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2
-                       px-3 py-2 bg-[#0A192F]/95 backdrop-blur-xl
-                       border border-amber-500/30 rounded-lg shadow-xl
+                       px-3 py-2 bg-[var(--bg-primary)]/95 backdrop-blur-xl
+                       border border-[var(--warning)]/30 rounded-lg shadow-xl
                        max-w-xs whitespace-nowrap overflow-hidden text-ellipsis"
           >
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-              <span className="text-xs text-amber-400 font-medium truncate">
+              <span className="w-2 h-2 rounded-full bg-[var(--warning)] animate-pulse" />
+              <span className="text-xs text-[var(--warning)] font-medium truncate">
                 {transcript}
               </span>
             </div>
@@ -256,11 +256,11 @@ export function VoiceTrigger({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2
-                       px-3 py-2 bg-red-900/90 backdrop-blur-xl
-                       border border-red-500/30 rounded-lg shadow-xl
+                       px-3 py-2 bg-[var(--danger)]/90 backdrop-blur-xl
+                       border border-[var(--danger)]/30 rounded-lg shadow-xl
                        whitespace-nowrap"
           >
-            <span className="text-xs text-red-300">{error}</span>
+            <span className="text-xs text-[var(--danger)]">{error}</span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -271,7 +271,7 @@ export function VoiceTrigger({
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full
-                     bg-amber-400 border-2 border-[var(--bg-secondary)]"
+                     bg-[var(--warning)] border-2 border-[var(--bg-secondary)]"
         />
       )}
     </div>
