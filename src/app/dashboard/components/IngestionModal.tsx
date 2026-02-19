@@ -299,20 +299,20 @@ const IngestionModal: React.FC<IngestionModalProps> = ({
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 20 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="relative w-full max-w-[800px] h-[560px] bg-[#060a12] border border-white/10 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden flex flex-col"
+          className="relative w-full max-w-[800px] h-[560px] bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-2xl shadow-2xl shadow-black/50 overflow-hidden flex flex-col"
         >
           {/* Top Edge Light */}
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent" />
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--brand-blue)]/40 to-transparent" />
 
           {/* Header */}
-          <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-white/10">
+          <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-[var(--border-default)]">
             <div>
-              <h2 className="text-xl font-bold text-white tracking-tight">Data Airlock</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Inspect cargo before ingestion</p>
+              <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">Data Airlock</h2>
+              <p className="text-xs text-[var(--text-tertiary)] mt-0.5">Inspect cargo before ingestion</p>
             </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+              className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-all"
               aria-label="Close data airlock"
             >
               <CloseIcon />
@@ -323,9 +323,9 @@ const IngestionModal: React.FC<IngestionModalProps> = ({
           <div className="flex-1 grid grid-cols-[220px_1fr] min-h-0 overflow-hidden">
 
             {/* ========== LEFT PANEL: Source Menu - Dark Midnight ========== */}
-            <nav className="bg-[#030508] border-r border-white/5 py-4 overflow-y-auto" aria-label="Data source selection">
+            <nav className="bg-[var(--bg-primary)] border-r border-[var(--border-subtle)] py-4 overflow-y-auto" aria-label="Data source selection">
               <div className="px-4 mb-3">
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Select Source</p>
+                <p className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-widest">Select Source</p>
               </div>
               <div className="space-y-1 px-2">
                 {SOURCES.map((source) => {
@@ -338,19 +338,19 @@ const IngestionModal: React.FC<IngestionModalProps> = ({
                       className={`
                         w-full flex items-start gap-3 px-3 py-3 rounded-lg text-left transition-all duration-200
                         ${isActive
-                          ? 'bg-white/5 border-l-4 border-[#2463EB]'
-                          : 'border-l-4 border-transparent hover:bg-white/5'
+                          ? 'bg-[var(--bg-elevated)]/30 border-l-4 border-[var(--brand-blue)]'
+                          : 'border-l-4 border-transparent hover:bg-[var(--bg-elevated)]/50'
                         }
                       `}
                     >
-                      <div className={`mt-0.5 ${isActive ? 'text-[#60A5FA]' : 'text-slate-500'}`}>
+                      <div className={`mt-0.5 ${isActive ? 'text-[var(--brand-blue-hover)]' : 'text-[var(--text-tertiary)]'}`}>
                         <Icon />
                       </div>
                       <div>
-                        <p className={`text-sm font-medium ${isActive ? 'text-white' : 'text-slate-300'}`}>
+                        <p className={`text-sm font-medium ${isActive ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
                           {source.label}
                         </p>
-                        <p className="text-xs text-slate-500 mt-0.5">{source.subtext}</p>
+                        <p className="text-xs text-[var(--text-tertiary)] mt-0.5">{source.subtext}</p>
                       </div>
                     </button>
                   );
@@ -364,8 +364,8 @@ const IngestionModal: React.FC<IngestionModalProps> = ({
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_center,_rgba(212,175,55,0.08)_0%,_transparent_60%)]" />
 
               {/* Stage Header */}
-              <div className="relative shrink-0 px-5 py-3 border-b border-white/5">
-                <h3 className="text-sm font-semibold text-white">
+              <div className="relative shrink-0 px-5 py-3 border-b border-[var(--border-subtle)]">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)]">
                   {activeSource === 'local' && 'Upload Local Files'}
                   {activeSource === 'web' && 'Web Scraper Configuration'}
                   {activeSource === 'cloud' && 'Cloud Drive Connection'}
@@ -386,23 +386,23 @@ const IngestionModal: React.FC<IngestionModalProps> = ({
                     className={`
                       flex flex-col items-center justify-center gap-4 p-8 rounded-xl border-2 border-dashed cursor-pointer transition-all duration-300 min-h-[200px]
                       ${isDragOver
-                        ? 'border-[#2463EB] bg-[#2463EB]/10 shadow-[0_0_40px_-10px_rgba(36,99,235,0.5)]'
-                        : 'border-slate-700/50 hover:border-[#2463EB]/50 hover:bg-[#2463EB]/5'
+                        ? 'border-[var(--brand-blue)] bg-[var(--brand-blue)]/10 shadow-[0_0_40px_-10px_rgba(36,99,235,0.5)]'
+                        : 'border-[var(--border-default)]/50 hover:border-[var(--brand-blue)]/50 hover:bg-[var(--brand-blue)]/5'
                       }
                     `}
                   >
-                    <div className={`transition-all ${isDragOver ? 'text-[#60A5FA] scale-110' : 'text-slate-600'}`}>
+                    <div className={`transition-all ${isDragOver ? 'text-[var(--brand-blue-hover)] scale-110' : 'text-[var(--text-muted)]'}`}>
                       <DocumentIcon />
                     </div>
                     <div className="text-center">
-                      <p className={`font-semibold ${isDragOver ? 'text-[#60A5FA]' : 'text-slate-400'}`}>
+                      <p className={`font-semibold ${isDragOver ? 'text-[var(--brand-blue-hover)]' : 'text-[var(--text-secondary)]'}`}>
                         {isDragOver ? 'Release to stage' : 'Drag & drop files here'}
                       </p>
-                      <p className="text-sm text-slate-500 mt-1">
-                        or <span className="text-[#60A5FA]">click to browse</span>
+                      <p className="text-sm text-[var(--text-tertiary)] mt-1">
+                        or <span className="text-[var(--brand-blue-hover)]">click to browse</span>
                       </p>
                     </div>
-                    <p className="text-xs text-slate-600">PDF, DOCX, TXT, MD, CSV, XLSX</p>
+                    <p className="text-xs text-[var(--text-muted)]">PDF, DOCX, TXT, MD, CSV, XLSX</p>
                   </div>
                 )}
 
@@ -417,13 +417,13 @@ const IngestionModal: React.FC<IngestionModalProps> = ({
                         onKeyDown={(e) => e.key === 'Enter' && handleAddUrl()}
                         placeholder="Enter URL to capture..."
                         aria-label="URL to capture"
-                        className="flex-1 h-12 px-4 bg-slate-900/50 border border-slate-700/50 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-[#2463EB] focus:ring-1 focus:ring-[#2463EB]"
+                        className="flex-1 h-12 px-4 bg-[var(--bg-primary)]/50 border border-[var(--border-default)]/50 rounded-lg text-[var(--text-primary)] placeholder-[var(--text-placeholder)] focus:outline-none focus:border-[var(--brand-blue)] focus:ring-1 focus:ring-[var(--brand-blue)]"
                       />
                       <button
                         onClick={handleAddUrl}
                         disabled={!urlInput.trim()}
                         aria-label="Capture URL"
-                        className="px-4 h-12 bg-[#2463EB] hover:bg-[#3b7aff] disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-all flex items-center gap-2"
+                        className="px-4 h-12 bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-[var(--text-primary)] font-medium rounded-lg transition-all flex items-center gap-2"
                       >
                         <FetchIcon />
                         Capture
@@ -431,31 +431,31 @@ const IngestionModal: React.FC<IngestionModalProps> = ({
                     </div>
 
                     {/* Capture Options */}
-                    <div className="p-4 rounded-lg bg-white/5 border border-white/10 space-y-3">
-                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Capture Options</p>
+                    <div className="p-4 rounded-lg bg-[var(--bg-elevated)]/30 border border-[var(--border-default)] space-y-3">
+                      <p className="text-xs font-bold text-[var(--text-tertiary)] uppercase tracking-wider">Capture Options</p>
                       <label className="flex items-center gap-3 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={!captureAsPdf}
                           onChange={() => setCaptureAsPdf(false)}
-                          className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-[#2463EB] focus:ring-[#2463EB]"
+                          className="w-4 h-4 rounded border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--brand-blue)] focus:ring-[var(--brand-blue)]"
                         />
                         <div>
-                          <p className="text-sm text-white">Extract Text Only</p>
-                          <p className="text-xs text-slate-500">RAG optimized for AI queries</p>
+                          <p className="text-sm text-[var(--text-primary)]">Extract Text Only</p>
+                          <p className="text-xs text-[var(--text-tertiary)]">RAG optimized for AI queries</p>
                         </div>
-                        <span className="ml-auto px-2 py-0.5 text-[10px] font-medium bg-emerald-500/20 text-emerald-400 rounded">Recommended</span>
+                        <span className="ml-auto px-2 py-0.5 text-[10px] font-medium bg-[var(--success)]/20 text-[var(--success)] rounded">Recommended</span>
                       </label>
                       <label className="flex items-center gap-3 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={captureAsPdf}
                           onChange={() => setCaptureAsPdf(true)}
-                          className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-[#2463EB] focus:ring-[#2463EB]"
+                          className="w-4 h-4 rounded border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--brand-blue)] focus:ring-[var(--brand-blue)]"
                         />
                         <div>
-                          <p className="text-sm text-white">Capture as PDF</p>
-                          <p className="text-xs text-slate-500">Visual snapshot with layout</p>
+                          <p className="text-sm text-[var(--text-primary)]">Capture as PDF</p>
+                          <p className="text-xs text-[var(--text-tertiary)]">Visual snapshot with layout</p>
                         </div>
                       </label>
                     </div>
@@ -464,16 +464,16 @@ const IngestionModal: React.FC<IngestionModalProps> = ({
 
                 {/* CLOUD: Connect Account (Mocked) */}
                 {activeSource === 'cloud' && (
-                  <div className="flex flex-col items-center justify-center min-h-[200px] p-8 rounded-xl border border-dashed border-slate-700/50">
+                  <div className="flex flex-col items-center justify-center min-h-[200px] p-8 rounded-xl border border-dashed border-[var(--border-default)]/50">
                     <CloudIcon />
-                    <p className="text-slate-400 font-medium mt-4">Connect Cloud Storage</p>
-                    <p className="text-sm text-slate-500 mt-1 text-center max-w-xs">
+                    <p className="text-[var(--text-secondary)] font-medium mt-4">Connect Cloud Storage</p>
+                    <p className="text-sm text-[var(--text-tertiary)] mt-1 text-center max-w-xs">
                       Link your SharePoint or OneDrive account to browse and import documents.
                     </p>
-                    <button className="mt-4 px-6 py-2.5 bg-[#2463EB] hover:bg-[#3b7aff] text-white font-medium rounded-lg transition-all" aria-label="Connect cloud storage account">
+                    <button className="mt-4 px-6 py-2.5 bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] text-[var(--text-primary)] font-medium rounded-lg transition-all" aria-label="Connect cloud storage account">
                       Connect Account
                     </button>
-                    <p className="text-xs text-slate-600 mt-3">Coming Soon</p>
+                    <p className="text-xs text-[var(--text-muted)] mt-3">Coming Soon</p>
                   </div>
                 )}
 
@@ -485,12 +485,12 @@ const IngestionModal: React.FC<IngestionModalProps> = ({
                       onChange={(e) => setTextInput(e.target.value)}
                       placeholder="Paste your text content here..."
                       aria-label="Paste text content"
-                      className="w-full h-40 p-4 bg-slate-900/50 border border-slate-700/50 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-[#2463EB] focus:ring-1 focus:ring-[#2463EB] resize-none"
+                      className="w-full h-40 p-4 bg-[var(--bg-primary)]/50 border border-[var(--border-default)]/50 rounded-lg text-[var(--text-primary)] placeholder-[var(--text-placeholder)] focus:outline-none focus:border-[var(--brand-blue)] focus:ring-1 focus:ring-[var(--brand-blue)] resize-none"
                     />
                     <button
                       onClick={handleAddText}
                       disabled={!textInput.trim()}
-                      className="px-6 py-2.5 bg-[#2463EB] hover:bg-[#3b7aff] disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-all"
+                      className="px-6 py-2.5 bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-[var(--text-primary)] font-medium rounded-lg transition-all"
                     >
                       Add to Staging
                     </button>
@@ -510,12 +510,12 @@ const IngestionModal: React.FC<IngestionModalProps> = ({
               </div>
 
               {/* ========== STAGING AREA (Manifest) ========== */}
-              <div className="relative shrink-0 border-t border-white/5 bg-[#050810]">
-                <div className="px-5 py-2 border-b border-white/5 flex items-center justify-between">
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              <div className="relative shrink-0 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)]">
+                <div className="px-5 py-2 border-b border-[var(--border-subtle)] flex items-center justify-between">
+                  <p className="text-xs font-bold text-[var(--text-tertiary)] uppercase tracking-wider">
                     Staging Manifest
                   </p>
-                  <p className="text-xs text-slate-600">
+                  <p className="text-xs text-[var(--text-muted)]">
                     {stagedItems.length} item{stagedItems.length !== 1 ? 's' : ''} ready
                   </p>
                 </div>
@@ -523,29 +523,29 @@ const IngestionModal: React.FC<IngestionModalProps> = ({
                 <div className="max-h-[120px] overflow-y-auto">
                   {stagedItems.length === 0 ? (
                     <div className="px-5 py-4 text-center">
-                      <p className="text-sm text-slate-600">No items staged for ingestion</p>
+                      <p className="text-sm text-[var(--text-muted)]">No items staged for ingestion</p>
                     </div>
                   ) : (
-                    <div className="divide-y divide-white/5">
+                    <div className="divide-y divide-[var(--border-subtle)]">
                       {stagedItems.map((item) => (
-                        <div key={item.id} className="px-5 py-2 flex items-center gap-3 hover:bg-white/5">
-                          <div className="text-slate-500">
+                        <div key={item.id} className="px-5 py-2 flex items-center gap-3 hover:bg-[var(--bg-elevated)]/50">
+                          <div className="text-[var(--text-tertiary)]">
                             {item.type === 'file' && <FileIcon />}
                             {item.type === 'url' && <LinkIcon />}
                             {item.type === 'text' && <TextIcon />}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-white truncate">{item.name}</p>
+                            <p className="text-sm text-[var(--text-primary)] truncate">{item.name}</p>
                           </div>
                           {item.size && (
-                            <p className="text-xs text-slate-500">{formatFileSize(item.size)}</p>
+                            <p className="text-xs text-[var(--text-tertiary)]">{formatFileSize(item.size)}</p>
                           )}
-                          <span className="px-2 py-0.5 text-[10px] font-medium bg-emerald-500/20 text-emerald-400 rounded">
+                          <span className="px-2 py-0.5 text-[10px] font-medium bg-[var(--success)]/20 text-[var(--success)] rounded">
                             Ready
                           </span>
                           <button
                             onClick={() => handleRemoveItem(item.id)}
-                            className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-all"
+                            className="p-1.5 text-[var(--text-tertiary)] hover:text-[var(--danger)] hover:bg-[var(--danger)]/10 rounded transition-all"
                             aria-label={`Remove ${item.name}`}
                           >
                             <TrashIcon />
@@ -560,8 +560,8 @@ const IngestionModal: React.FC<IngestionModalProps> = ({
           </div>
 
           {/* ========== FOOTER: Ingest Action ========== */}
-          <div className="shrink-0 px-6 py-4 bg-[#030508] border-t border-white/5 flex items-center justify-between">
-            <p className="text-xs text-slate-600">
+          <div className="shrink-0 px-6 py-4 bg-[var(--bg-primary)] border-t border-[var(--border-subtle)] flex items-center justify-between">
+            <p className="text-xs text-[var(--text-muted)]">
               End-to-end encrypted • Sovereign copy retained
             </p>
             <button
@@ -572,7 +572,7 @@ const IngestionModal: React.FC<IngestionModalProps> = ({
                 px-8 py-3 font-bold text-sm rounded-lg transition-all duration-300 flex items-center gap-2
                 ${stagedItems.length > 0
                   ? 'bg-[#D4AF37] hover:bg-[#E5C04B] text-black shadow-[0_0_30px_-5px_rgba(212,175,55,0.6)]'
-                  : 'bg-slate-800/50 text-slate-600 cursor-not-allowed'
+                  : 'bg-[var(--bg-secondary)]/50 text-[var(--text-muted)] cursor-not-allowed'
                 }
               `}
             >
