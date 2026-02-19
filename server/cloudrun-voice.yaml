@@ -1,0 +1,75 @@
+# Cloud Run Service Definition — mercury-voice
+# Deploy with: gcloud run services replace server/cloudrun-voice.yaml --region=us-east4
+#
+# ADAM: Before deploying, build and push the image:
+#   cd RAGbox.co
+#   gcloud builds submit --tag gcr.io/ragbox-sovereign-prod/mercury-voice:latest \
+#     --project=ragbox-sovereign-prod \
+#     -f server/Dockerfile .
+#
+# NOTE: The Dockerfile COPY paths are relative to the build context (repo root).
+# That's why we use `-f server/Dockerfile .` (context = root, dockerfile = server/).
+
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: mercury-voice
+  labels:
+    cloud.googleapis.com/location: us-east4
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/launch-stage: GA
+spec:
+  template:
+    metadata:
+      annotations:
+        # WebSocket requires session affinity
+        run.googleapis.com/sessionAffinity: "true"
+        # 1-hour timeout for long-lived WebSocket connections
+        run.googleapis.com/request-timeout: "3600"
+        # Scale: min 0 (cold start OK), max 10
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "10"
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 3600
+      containers:
+        - image: gcr.io/ragbox-sovereign-prod/mercury-voice:latest
+          ports:
+            - name: http1
+              containerPort: 3003
+          resources:
+            limits:
+              memory: 1Gi
+              cpu: "1"
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: VOICE_SERVER_PORT
+              value: "3003"
+            - name: VOICE_SERVER_HOST
+              value: 0.0.0.0
+            - name: ALLOWED_ORIGINS
+              value: "https://app.ragbox.co"
+            - name: INWORLD_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: ragbox-inworld-api-key
+            - name: DEEPGRAM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: deepgram-api-key
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 3003
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3003
+            periodSeconds: 30
