@@ -1,7 +1,0 @@
-node_modules
-client
-.git
-*.md
-LICENSE*
-server/.env
-server/node_modules
