@@ -18,8 +18,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy root package files (voice server shares the monorepo deps)
 COPY package.json package-lock.json ./
 
+# Copy Prisma schema (needed for prisma generate)
+COPY prisma/ ./prisma/
+
 # Install production dependencies only
 RUN npm ci --omit=dev --ignore-scripts
+
+# Generate Prisma client
+RUN npx prisma generate
 
 # Rebuild native modules for linux
 RUN npm rebuild
