@@ -134,7 +134,7 @@ export const useMercuryStore = create<MercuryState>()(
     abortController: null,
     attachments: [],
     selectedLlm: { provider: 'aegis', model: 'aegis-core' },
-    activePersona: 'cpo',
+    activePersona: 'ceo',
     isRefocusing: false,
     activeSessionId: null,
     sessionQueryCount: 0,

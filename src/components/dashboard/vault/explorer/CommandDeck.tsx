@@ -153,7 +153,7 @@ export function CommandDeck({
 
         {/* Action Buttons */}
         <ToolbarButton icon={<Upload className="w-4 h-4" />} label="Upload" onClick={onUpload} />
-        <ToolbarButton icon={<Brain className="w-4 h-4" />} label={isVectorizing ? 'Vectorizing...' : 'Vectorize'} onClick={onVectorize} disabled={isVectorizing} />
+        <ToolbarButton icon={<Brain className="w-4 h-4" />} label={isVectorizing ? 'Indexing...' : 'Index Document'} onClick={onVectorize} disabled={isVectorizing} />
         <ToolbarButton icon={<ArrowRight className="w-4 h-4" />} label="Move To" onClick={onMoveTo} />
         <ToolbarButton icon={<Shield className="w-4 h-4" />} label="Security" onClick={onSecurity} />
 
