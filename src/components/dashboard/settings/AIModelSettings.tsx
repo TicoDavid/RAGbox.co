@@ -436,6 +436,7 @@ export function AIModelSettings() {
                 </button>
               </div>
             )}
+            <p className="text-[var(--text-tertiary)] text-xs mt-1">Your key is encrypted with AES-256-GCM. We never see or store it in plaintext.</p>
           </div>
 
           {/* Model Selector */}
@@ -505,6 +506,11 @@ export function AIModelSettings() {
                 )}
               </button>
             </div>
+          )}
+
+          {/* Test button help text — shown when action buttons are visible */}
+          {(!isConfigured || isEditing) && apiKeyInput.length > 5 && (
+            <p className="text-[var(--text-tertiary)] text-xs">Tests connectivity and fetches available models from your provider.</p>
           )}
 
           {/* Connection Status */}
@@ -579,6 +585,7 @@ export function AIModelSettings() {
               </div>
             </label>
           ))}
+          <p className="text-[var(--text-tertiary)] text-xs pt-1">AEGIS Only = built-in AI. Private LLM Only = your provider. User&apos;s Choice = switch per message.</p>
         </motion.div>
       </div>
     </div>
