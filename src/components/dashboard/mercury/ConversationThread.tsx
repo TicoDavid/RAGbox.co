@@ -10,11 +10,11 @@ import { EmptyState } from './EmptyState'
 import { ChevronDown } from 'lucide-react'
 
 const CHANNEL_FILTERS: { value: MercuryChannel | 'all'; label: string; color: string }[] = [
-  { value: 'all', label: 'All', color: 'text-white bg-white/10' },
-  { value: 'dashboard', label: 'Dashboard', color: 'text-blue-400 bg-blue-500/10' },
-  { value: 'whatsapp', label: 'WhatsApp', color: 'text-emerald-400 bg-emerald-500/10' },
-  { value: 'voice', label: 'Voice', color: 'text-purple-400 bg-purple-500/10' },
-  { value: 'roam', label: 'ROAM', color: 'text-orange-400 bg-orange-500/10' },
+  { value: 'all', label: 'All', color: 'text-[var(--text-primary)] bg-[var(--bg-elevated)]' },
+  { value: 'dashboard', label: 'Dashboard', color: 'text-[var(--brand-blue)] bg-[var(--brand-blue)]/10' },
+  { value: 'whatsapp', label: 'WhatsApp', color: 'text-[var(--success)] bg-[var(--success)]/10' },
+  { value: 'voice', label: 'Voice', color: 'text-[var(--text-accent)] bg-[var(--text-accent)]/10' },
+  { value: 'roam', label: 'ROAM', color: 'text-[var(--warning)] bg-[var(--warning)]/10' },
 ]
 
 export function ConversationThread() {
@@ -128,7 +128,7 @@ export function ConversationThread() {
               className={`px-3 py-1 rounded-full text-[11px] font-medium transition-all duration-200 border ${
                 channelFilter === f.value
                   ? `${f.color} border-current`
-                  : 'text-[var(--text-tertiary)] bg-transparent border-transparent hover:bg-white/5'
+                  : 'text-[var(--text-tertiary)] bg-transparent border-transparent hover:bg-[var(--bg-elevated)]/50'
               }`}
               aria-pressed={channelFilter === f.value}
             >
@@ -184,7 +184,7 @@ export function ConversationThread() {
           }}
           className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20
                      flex items-center gap-1.5 px-4 py-2 rounded-full
-                     bg-[var(--brand-blue)] text-white text-xs font-medium
+                     bg-[var(--brand-blue)] text-[var(--text-primary)] text-xs font-medium
                      shadow-lg hover:bg-[var(--brand-blue-hover)] transition-colors"
         >
           <ChevronDown className="w-3.5 h-3.5" />
