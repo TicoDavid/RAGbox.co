@@ -130,8 +130,7 @@ async function listDocuments(authHeaders: HeadersInit): Promise<ToolResult> {
   }
 
   const json = await res.json()
-  const docs: Array<{ originalName: string; fileType: string; sizeBytes: number; indexStatus: string; createdAt: string }> =
-    json.data || json.documents || []
+  const docs = extractArray(json) as Array<{ originalName: string; fileType: string; sizeBytes: number; indexStatus: string; createdAt: string }>
 
   if (docs.length === 0) {
     return { success: true, data: [], display: 'Your vault is empty. Upload documents to get started.' }
@@ -210,8 +209,7 @@ async function getDocumentStats(authHeaders: HeadersInit): Promise<ToolResult> {
   }
 
   const json = await res.json()
-  const docs: Array<{ fileType: string; sizeBytes: number; indexStatus: string; createdAt: string }> =
-    json.data || json.documents || []
+  const docs = extractArray(json) as Array<{ fileType: string; sizeBytes: number; indexStatus: string; createdAt: string }>
 
   const totalSize = docs.reduce((sum, d) => sum + d.sizeBytes, 0)
   const byType: Record<string, number> = {}
@@ -340,8 +338,7 @@ async function getDocumentStatus(query: string, authHeaders: HeadersInit): Promi
   }
 
   const json = await res.json()
-  const docs: Array<{ id: string; originalName: string; indexStatus: string; sizeBytes: number; createdAt: string }> =
-    json.data || json.documents || []
+  const docs = extractArray(json) as Array<{ id: string; originalName: string; indexStatus: string; sizeBytes: number; createdAt: string }>
 
   if (query) {
     const q = query.toLowerCase()
@@ -373,8 +370,7 @@ async function getUploadStatus(authHeaders: HeadersInit): Promise<ToolResult> {
   }
 
   const json = await res.json()
-  const docs: Array<{ originalName: string; indexStatus: string; createdAt: string }> =
-    json.data || json.documents || []
+  const docs = extractArray(json) as Array<{ originalName: string; indexStatus: string; createdAt: string }>
 
   const pending = docs.filter((d) => ['Uploading', 'Pending', 'Processing', 'Parsing', 'Embedding'].includes(d.indexStatus))
 
@@ -467,6 +463,18 @@ function showHelp(): ToolResult {
     data: null,
     display: helpText,
   }
+}
+
+/** Safely extract an array from API responses like { data: { documents: [...] } } */
+function extractArray(json: Record<string, unknown>): unknown[] {
+  const r = json.data ?? json
+  if (Array.isArray(r)) return r
+  if (r && typeof r === 'object') {
+    const obj = r as Record<string, unknown>
+    if (Array.isArray(obj.documents)) return obj.documents
+    if (Array.isArray(obj.data)) return obj.data
+  }
+  return []
 }
 
 function formatSize(bytes: number): string {
