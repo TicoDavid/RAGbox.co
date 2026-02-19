@@ -64,14 +64,11 @@ const CHANNEL_BADGE: Record<MercuryChannel, { label: string; color: string }> = 
 }
 
 function ChannelBadge({ channel, isUser }: { channel?: MercuryChannel; isUser?: boolean }) {
-  if (!channel) return null
+  // Hide badge on user messages — user always sends from current channel, badge is redundant and has poor contrast on blue bg
+  if (!channel || isUser) return null
   const badge = CHANNEL_BADGE[channel]
-  // On user messages (blue bg), use white/translucent styling for contrast
-  const colorClass = isUser
-    ? 'bg-white/20 text-white/90 border-white/30'
-    : badge.color
   return (
-    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider border ${colorClass}`}>
+    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider border ${badge.color}`}>
       {badge.label}
     </span>
   )
