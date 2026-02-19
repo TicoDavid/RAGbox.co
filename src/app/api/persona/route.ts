@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
+import { authorizeAgentAccessJWT } from '@/lib/agent/authorization'
 
 const DEFAULT_TENANT = 'default'
 
@@ -57,6 +58,18 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
   const auth = await getAuth(request)
   if (!auth) {
     return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 })
+  }
+
+  // Verify the persona exists and belongs to user's tenant
+  const existingPersona = await prisma.mercuryPersona.findUnique({
+    where: { tenantId: auth.tenantId },
+    select: { id: true },
+  })
+  if (existingPersona) {
+    const agentAuth = await authorizeAgentAccessJWT(request, existingPersona.id)
+    if (!agentAuth.authorized) {
+      return NextResponse.json({ success: false, error: agentAuth.error }, { status: agentAuth.status })
+    }
   }
 
   let body: {

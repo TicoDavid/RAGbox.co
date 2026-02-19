@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
 import { getValidAccessToken } from '@/lib/gmail/token'
+import { authorizeAgentAccessJWT } from '@/lib/agent/authorization'
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || ''
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || ''
@@ -51,7 +52,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     let fromEmail: string
 
     if (agentId) {
-      // === NEW: Agent credential mode ===
+      // === Agent credential mode — verify tenant authorization ===
+      const agentAuth = await authorizeAgentAccessJWT(request, agentId)
+      if (!agentAuth.authorized) {
+        return NextResponse.json(
+          { success: false, error: agentAuth.error },
+          { status: agentAuth.status }
+        )
+      }
+
       try {
         accessToken = await getValidAccessToken(agentId)
       } catch (error) {
