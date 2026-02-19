@@ -1,8 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { RefreshCw } from 'lucide-react'
+import { Plus } from 'lucide-react'
+import { toast } from 'sonner'
 import { useMercuryStore } from '@/stores/mercuryStore'
+import { RecentThreadsDropdown } from './RecentThreadsDropdown'
 
 function VoiceStatusDot() {
   const [status, setStatus] = useState<'unknown' | 'healthy' | 'down'>('unknown')
@@ -35,9 +37,14 @@ function VoiceStatusDot() {
 }
 
 export function ContextBar() {
-  const clearConversation = useMercuryStore((s) => s.clearConversation)
+  const startNewThread = useMercuryStore((s) => s.startNewThread)
   const sessionQueryCount = useMercuryStore((s) => s.sessionQueryCount)
   const sessionTopics = useMercuryStore((s) => s.sessionTopics)
+
+  const handleNewChat = async () => {
+    await startNewThread()
+    toast.success('New chat started')
+  }
 
   return (
     <div className="shrink-0 flex items-center gap-3 px-4 py-2 border-b border-[var(--border-default)] border-t border-t-[var(--border-default)] bg-[var(--bg-secondary)]">
@@ -68,15 +75,18 @@ export function ContextBar() {
         </div>
       )}
 
-      {/* Refresh / Clear Chat */}
-      <button
-        onClick={clearConversation}
-        className="p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
-        title="Clear Chat"
-        aria-label="Clear conversation"
-      >
-        <RefreshCw className="w-4 h-4" />
-      </button>
+      {/* New Chat + Recent Threads */}
+      <div className="flex items-center gap-1 shrink-0">
+        <button
+          onClick={handleNewChat}
+          className="p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+          title="New Chat"
+          aria-label="Start new chat"
+        >
+          <Plus className="w-4 h-4" />
+        </button>
+        <RecentThreadsDropdown />
+      </div>
     </div>
   )
 }

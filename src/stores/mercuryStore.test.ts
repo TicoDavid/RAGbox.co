@@ -304,4 +304,128 @@ describe('mercuryStore', () => {
       expect(state).not.toHaveProperty('setOpenVaults')
     })
   })
+
+  describe('startNewThread', () => {
+    test('creates thread and resets state', async () => {
+      const newThread = { id: 'thread-new', title: 'New Chat', createdAt: '2025-01-01', updatedAt: '2025-01-01' }
+
+      ;(global.fetch as jest.Mock).mockImplementation((url: string, opts?: RequestInit) => {
+        if (url === '/api/mercury/thread' && opts?.method === 'POST') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ success: true, data: newThread }),
+          })
+        }
+        return Promise.resolve(defaultFetchResponse)
+      })
+
+      // Pre-populate state to verify reset
+      useMercuryStore.setState({
+        threadId: 'old-thread',
+        messages: [{ id: '1', role: 'user', content: 'old', timestamp: new Date() }],
+        sessionQueryCount: 5,
+        sessionTopics: ['topic1'],
+        titlePatched: true,
+      })
+
+      await useMercuryStore.getState().startNewThread()
+
+      const state = useMercuryStore.getState()
+      expect(state.threadId).toBe('thread-new')
+      expect(state.messages).toEqual([])
+      expect(state.sessionQueryCount).toBe(0)
+      expect(state.sessionTopics).toEqual([])
+      expect(state.titlePatched).toBe(false)
+      expect(state.threadLoaded).toBe(true)
+    })
+  })
+
+  describe('switchThread', () => {
+    test('loads messages for target thread', async () => {
+      const targetMessages = [
+        { id: 'msg-1', role: 'user', channel: 'dashboard', content: 'hello', createdAt: '2025-01-01T00:00:00Z' },
+        { id: 'msg-2', role: 'assistant', channel: 'dashboard', content: 'hi', createdAt: '2025-01-01T00:01:00Z' },
+      ]
+
+      ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+        if (url.startsWith('/api/mercury/thread/messages?threadId=thread-target')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ success: true, data: { messages: targetMessages } }),
+          })
+        }
+        return Promise.resolve(defaultFetchResponse)
+      })
+
+      useMercuryStore.setState({ threadId: 'thread-current' })
+
+      await useMercuryStore.getState().switchThread('thread-target')
+
+      const state = useMercuryStore.getState()
+      expect(state.threadId).toBe('thread-target')
+      expect(state.messages).toHaveLength(2)
+      expect(state.messages[0].content).toBe('hello')
+      expect(state.messages[1].content).toBe('hi')
+      expect(state.titlePatched).toBe(true)
+      expect(state.sessionQueryCount).toBe(0)
+    })
+
+    test('is no-op for active threadId', async () => {
+      useMercuryStore.setState({ threadId: 'same-thread' })
+
+      await useMercuryStore.getState().switchThread('same-thread')
+
+      // fetch should not have been called (beyond default mock setup)
+      const fetchCalls = (global.fetch as jest.Mock).mock.calls.filter(
+        (c: unknown[]) => typeof c[0] === 'string' && (c[0] as string).includes('thread/messages?threadId=same-thread'),
+      )
+      expect(fetchCalls).toHaveLength(0)
+    })
+  })
+
+  describe('patchThreadTitle', () => {
+    test('fires PATCH request and sets titlePatched', () => {
+      useMercuryStore.setState({ threadId: 'thread-123', titlePatched: false })
+
+      useMercuryStore.getState().patchThreadTitle('My First Chat')
+
+      expect(useMercuryStore.getState().titlePatched).toBe(true)
+
+      const patchCall = (global.fetch as jest.Mock).mock.calls.find(
+        (c: unknown[]) => c[0] === '/api/mercury/thread' && (c[1] as RequestInit)?.method === 'PATCH',
+      )
+      expect(patchCall).toBeDefined()
+
+      const body = JSON.parse((patchCall[1] as RequestInit).body as string)
+      expect(body.threadId).toBe('thread-123')
+      expect(body.title).toBe('My First Chat')
+    })
+
+    test('truncates title to 50 characters', () => {
+      useMercuryStore.setState({ threadId: 'thread-123' })
+      const longTitle = 'A'.repeat(80)
+
+      useMercuryStore.getState().patchThreadTitle(longTitle)
+
+      const patchCall = (global.fetch as jest.Mock).mock.calls.find(
+        (c: unknown[]) => c[0] === '/api/mercury/thread' && (c[1] as RequestInit)?.method === 'PATCH',
+      )
+      const body = JSON.parse((patchCall[1] as RequestInit).body as string)
+      expect(body.title).toHaveLength(50)
+    })
+
+    test('does nothing when threadId is null', () => {
+      useMercuryStore.setState({ threadId: null, titlePatched: false })
+
+      useMercuryStore.getState().patchThreadTitle('test')
+
+      // titlePatched should remain false
+      expect(useMercuryStore.getState().titlePatched).toBe(false)
+      // No PATCH call should have been made
+      const patchCalls = (global.fetch as jest.Mock).mock.calls.filter(
+        (c: unknown[]) => (c[1] as RequestInit)?.method === 'PATCH',
+      )
+      expect(patchCalls).toHaveLength(0)
+    })
+  })
 })
