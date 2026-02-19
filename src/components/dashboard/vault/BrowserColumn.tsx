@@ -61,37 +61,37 @@ export function BrowserColumn({
             aria-label={`Open folder: ${folder.name}`}
             className={`w-[calc(100%-16px)] mx-2 mb-1 flex items-center gap-3 px-3 py-3 min-h-[56px] text-left rounded-lg transition-all duration-200 ${
               selectedId === folder.id
-                ? 'bg-[var(--brand-blue)] text-white shadow-lg shadow-[var(--brand-blue)]/20'
-                : 'text-[var(--text-primary)] hover:bg-white/5'
+                ? 'bg-[var(--brand-blue)] text-[var(--text-primary)] shadow-lg shadow-[var(--brand-blue)]/20'
+                : 'text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]/50'
             }`}
           >
             {/* Large Folder Icon */}
             <div className={`shrink-0 p-2 rounded-lg ${
               selectedId === folder.id
-                ? 'bg-white/20'
-                : 'bg-amber-500/10'
+                ? 'bg-[var(--bg-elevated)]'
+                : 'bg-[var(--warning)]/10'
             }`}>
               <Folder className={`w-5 h-5 ${
-                selectedId === folder.id ? 'text-white' : 'text-amber-400'
+                selectedId === folder.id ? 'text-[var(--text-primary)]' : 'text-[var(--warning)]'
               }`} />
             </div>
 
             {/* Folder Info */}
             <div className="flex-1 min-w-0">
               <p className={`text-sm font-medium leading-tight ${
-                selectedId === folder.id ? 'text-white' : 'text-[var(--text-primary)]'
+                selectedId === folder.id ? 'text-[var(--text-primary)]' : 'text-[var(--text-primary)]'
               }`}>
                 {folder.name}
               </p>
               <p className={`text-xs mt-0.5 ${
-                selectedId === folder.id ? 'text-white/70' : 'text-[var(--text-tertiary)]'
+                selectedId === folder.id ? 'text-[var(--text-primary)]/70' : 'text-[var(--text-tertiary)]'
               }`}>
                 {folder.documents?.length || 0} items
               </p>
             </div>
 
             <ChevronRight className={`w-4 h-4 shrink-0 ${
-              selectedId === folder.id ? 'text-white/70' : 'text-[var(--text-tertiary)]'
+              selectedId === folder.id ? 'text-[var(--text-primary)]/70' : 'text-[var(--text-tertiary)]'
             }`} />
           </button>
         ))}
@@ -104,19 +104,19 @@ export function BrowserColumn({
             aria-label={`Select document: ${doc.name}`}
             className={`w-[calc(100%-16px)] mx-2 mb-1 flex items-start gap-3 px-3 py-3 min-h-[56px] text-left rounded-lg transition-all duration-200 ${
               selectedId === doc.id
-                ? 'bg-[var(--brand-blue)] text-white shadow-lg shadow-[var(--brand-blue)]/20'
-                : 'text-[var(--text-primary)] hover:bg-white/5'
+                ? 'bg-[var(--brand-blue)] text-[var(--text-primary)] shadow-lg shadow-[var(--brand-blue)]/20'
+                : 'text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]/50'
             }`}
           >
             {/* Large File Icon with Status */}
             <div className="shrink-0 relative">
               <div className={`p-2 rounded-lg ${
                 selectedId === doc.id
-                  ? 'bg-white/20'
+                  ? 'bg-[var(--bg-elevated)]'
                   : 'bg-[var(--brand-blue)]/10'
               }`}>
                 <FileText className={`w-5 h-5 ${
-                  selectedId === doc.id ? 'text-white' : 'text-[var(--brand-blue)]'
+                  selectedId === doc.id ? 'text-[var(--text-primary)]' : 'text-[var(--brand-blue)]'
                 }`} />
               </div>
               {/* Status Dot */}
@@ -127,13 +127,13 @@ export function BrowserColumn({
             <div className="flex-1 min-w-0 pt-0.5">
               {/* Line 1: File Name - Allow 2 lines */}
               <p className={`text-sm font-medium leading-snug line-clamp-2 ${
-                selectedId === doc.id ? 'text-white' : 'text-[var(--text-primary)]'
+                selectedId === doc.id ? 'text-[var(--text-primary)]' : 'text-[var(--text-primary)]'
               }`}>
                 {doc.name}
               </p>
               {/* Line 2: Meta - Date • Size */}
               <p className={`text-xs mt-1 ${
-                selectedId === doc.id ? 'text-white/70' : 'text-[var(--text-tertiary)]'
+                selectedId === doc.id ? 'text-[var(--text-primary)]/70' : 'text-[var(--text-tertiary)]'
               }`}>
                 {formatDate(doc.updatedAt)} • {formatSize(doc.size)}
               </p>

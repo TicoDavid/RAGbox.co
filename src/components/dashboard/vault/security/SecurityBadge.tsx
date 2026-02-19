@@ -21,12 +21,12 @@ export function SecurityBadge({ security, size = 'normal', showPulse = true }: S
         ${isSovereign && config.glow ? config.glow : ''}
       `}>
         {isSovereign && showPulse && (
-          <div className="absolute inset-0 rounded-lg bg-red-500/20 animate-pulse" />
+          <div className="absolute inset-0 rounded-lg bg-[var(--danger)]/20 animate-pulse" />
         )}
         <Icon className={`relative w-5 h-5 ${config.color}`} />
         <div className="relative">
           <span className={`text-sm font-semibold ${config.color}`}>{config.label}</span>
-          <p className="text-[10px] text-slate-500 mt-0.5">{config.description}</p>
+          <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5">{config.description}</p>
         </div>
       </div>
     )
@@ -39,7 +39,7 @@ export function SecurityBadge({ security, size = 'normal', showPulse = true }: S
       ${isSovereign && config.glow ? config.glow : ''}
     `}>
       {isSovereign && showPulse && (
-        <span className="absolute inset-0 rounded-md bg-red-500/20 animate-pulse" />
+        <span className="absolute inset-0 rounded-md bg-[var(--danger)]/20 animate-pulse" />
       )}
       <Icon className="relative w-3.5 h-3.5" />
       <span className="relative">{config.label}</span>

@@ -48,22 +48,22 @@ export function SovereignCertificate({ document, userName = 'Sovereign User' }: 
   const getIntelligenceStatus = () => {
     switch (document.status) {
       case 'ready':
-        return { text: 'Vectorized (v3)', color: 'text-[#00F0FF]' } // Brand Blue
+        return { text: 'Vectorized (v3)', color: 'text-[var(--brand-blue)]' }
       case 'processing':
-        return { text: 'Processing...', color: 'text-amber-400' }
+        return { text: 'Processing...', color: 'text-[var(--warning)]' }
       case 'pending':
-        return { text: 'Awaiting Vector', color: 'text-slate-400' }
+        return { text: 'Awaiting Vector', color: 'text-[var(--text-secondary)]' }
       case 'error':
-        return { text: 'Vector Failed', color: 'text-red-400' }
+        return { text: 'Vector Failed', color: 'text-[var(--danger)]' }
       default:
-        return { text: 'Unknown', color: 'text-slate-500' }
+        return { text: 'Unknown', color: 'text-[var(--text-tertiary)]' }
     }
   }
 
   const intelligenceStatus = getIntelligenceStatus()
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-amber-500/20 bg-[#020408] p-4 shadow-[0_0_30px_-15px_rgba(245,158,11,0.15)]">
+    <div className="relative overflow-hidden rounded-xl border border-[var(--privilege-border)]/20 bg-[var(--bg-primary)] p-4 shadow-[0_0_30px_-15px_rgba(245,158,11,0.15)]">
       {/* RAGbox Logo Watermark - Large, Faint Background */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.06]">
         <img
@@ -82,7 +82,7 @@ export function SovereignCertificate({ document, userName = 'Sovereign User' }: 
             animate={{ top: '100%' }}
             exit={{ opacity: 0 }}
             transition={{ duration: 1.5, ease: 'easeInOut' }}
-            className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent z-10"
+            className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[var(--success)] to-transparent z-10"
             style={{ boxShadow: '0 0 20px rgba(16,185,129,0.6)' }}
           />
         )}
@@ -90,10 +90,10 @@ export function SovereignCertificate({ document, userName = 'Sovereign User' }: 
 
       {/* Certificate Header - CHAIN OF CUSTODY */}
       <div className="relative flex items-center justify-between mb-4">
-        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-500/80">
+        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--privilege-color)]/80">
           Chain of Custody
         </span>
-        <Shield className="w-4 h-4 text-amber-500/60" />
+        <Shield className="w-4 h-4 text-[var(--privilege-color)]/60" />
       </div>
 
       {/* The Official Record - Data Grid */}
@@ -101,7 +101,7 @@ export function SovereignCertificate({ document, userName = 'Sovereign User' }: 
         {/* Row 1: Custodian */}
         <CertificateRow
           icon={<User className="w-3.5 h-3.5" />}
-          iconColor="text-slate-400"
+          iconColor="text-[var(--text-secondary)]"
           label="Custodian"
           value={`${userName} (Verified)`}
         />
@@ -109,25 +109,25 @@ export function SovereignCertificate({ document, userName = 'Sovereign User' }: 
         {/* Row 2: Encryption - Green/Emerald */}
         <CertificateRow
           icon={<Lock className="w-3.5 h-3.5" />}
-          iconColor="text-emerald-500"
+          iconColor="text-[var(--success)]"
           label="Encryption"
           value="AES-256-GCM"
-          valueClassName="text-emerald-400 font-mono"
+          valueClassName="text-[var(--success)] font-mono"
         />
 
         {/* Row 3: SHA-256 Hash - Monospace Gray */}
         <CertificateRow
           icon={<Fingerprint className="w-3.5 h-3.5" />}
-          iconColor="text-slate-500"
+          iconColor="text-[var(--text-tertiary)]"
           label="SHA-256"
           value={truncatedHash}
-          valueClassName="font-mono text-slate-500"
+          valueClassName="font-mono text-[var(--text-tertiary)]"
         />
 
         {/* Row 4: Intelligence - Brand Blue */}
         <CertificateRow
           icon={<Brain className="w-3.5 h-3.5" />}
-          iconColor="text-[#00F0FF]"
+          iconColor="text-[var(--brand-blue)]"
           label="Intelligence"
           value={intelligenceStatus.text}
           valueClassName={intelligenceStatus.color}
@@ -135,7 +135,7 @@ export function SovereignCertificate({ document, userName = 'Sovereign User' }: 
       </div>
 
       {/* Divider */}
-      <div className="my-4 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <div className="my-4 h-px bg-gradient-to-r from-transparent via-[var(--border-default)] to-transparent" />
 
       {/* Verify Integrity Button */}
       <button
@@ -145,10 +145,10 @@ export function SovereignCertificate({ document, userName = 'Sovereign User' }: 
           relative w-full py-3 rounded-lg text-xs font-semibold uppercase tracking-wider
           transition-all duration-300 overflow-hidden
           ${verificationState === 'verified'
-            ? 'bg-emerald-900/30 border border-emerald-500/40 text-emerald-400 font-bold cursor-default'
+            ? 'bg-[var(--success)]/10 border border-[var(--success)]/40 text-[var(--success)] font-bold cursor-default'
             : verificationState === 'scanning'
-              ? 'bg-slate-900/50 border border-white/10 text-slate-400 cursor-wait'
-              : 'bg-transparent border border-white/10 text-slate-500 hover:text-white hover:border-white/20 hover:bg-white/5'
+              ? 'bg-[var(--bg-primary)]/50 border border-[var(--border-default)] text-[var(--text-secondary)] cursor-wait'
+              : 'bg-transparent border border-[var(--border-default)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)]/50'
           }
         `}
       >
@@ -172,7 +172,7 @@ export function SovereignCertificate({ document, userName = 'Sovereign User' }: 
       </button>
 
       {/* Holographic Edge Effect - Golden Shimmer */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--privilege-color)]/30 to-transparent" />
     </div>
   )
 }
@@ -197,10 +197,10 @@ function CertificateRow({
     <div className="flex items-center gap-3">
       <div className={`shrink-0 ${iconColor}`}>{icon}</div>
       <div className="flex-1 min-w-0">
-        <div className="text-[9px] uppercase tracking-widest text-slate-600 mb-0.5">
+        <div className="text-[9px] uppercase tracking-widest text-[var(--text-muted)] mb-0.5">
           {label}
         </div>
-        <div className={`text-xs text-slate-300 truncate ${valueClassName}`}>
+        <div className={`text-xs text-[var(--text-secondary)] truncate ${valueClassName}`}>
           {value}
         </div>
       </div>

@@ -13,18 +13,18 @@ export function RagIndexToggle({ enabled, onChange }: RagIndexToggleProps) {
     <div className={`
       p-4 rounded-xl border transition-all
       ${enabled
-        ? 'bg-blue-500/5 border-blue-500/20'
-        : 'bg-red-500/5 border-red-500/20'
+        ? 'bg-[var(--brand-blue)]/5 border-[var(--brand-blue)]/20'
+        : 'bg-[var(--danger)]/5 border-[var(--danger)]/20'
       }
     `}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           {enabled ? (
-            <Brain className="w-5 h-5 text-blue-400" />
+            <Brain className="w-5 h-5 text-[var(--brand-blue)]" />
           ) : (
-            <BrainCog className="w-5 h-5 text-red-400" />
+            <BrainCog className="w-5 h-5 text-[var(--danger)]" />
           )}
-          <span className={`text-sm font-semibold ${enabled ? 'text-blue-400' : 'text-red-400'}`}>
+          <span className={`text-sm font-semibold ${enabled ? 'text-[var(--brand-blue)]' : 'text-[var(--danger)]'}`}>
             {enabled ? 'Indexed for RAG' : 'RAG Disabled'}
           </span>
         </div>
@@ -33,7 +33,7 @@ export function RagIndexToggle({ enabled, onChange }: RagIndexToggleProps) {
           onClick={() => onChange(!enabled)}
           className={`
             relative w-12 h-6 rounded-full transition-colors
-            ${enabled ? 'bg-blue-500' : 'bg-slate-700'}
+            ${enabled ? 'bg-[var(--brand-blue)]' : 'bg-[var(--bg-tertiary)]'}
           `}
         >
           <motion.div
@@ -44,7 +44,7 @@ export function RagIndexToggle({ enabled, onChange }: RagIndexToggleProps) {
         </button>
       </div>
 
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-[var(--text-tertiary)]">
         {enabled
           ? 'AI can see and cite this document in responses.'
           : 'Document is stored but AI cannot access or cite it.'
@@ -52,7 +52,7 @@ export function RagIndexToggle({ enabled, onChange }: RagIndexToggleProps) {
       </p>
 
       {!enabled && (
-        <div className="mt-2 flex items-center gap-1.5 text-[10px] text-red-400 uppercase tracking-wider font-semibold">
+        <div className="mt-2 flex items-center gap-1.5 text-[10px] text-[var(--danger)] uppercase tracking-wider font-semibold">
           <ShieldAlert className="w-3 h-3" />
           Vector Database Excluded
         </div>

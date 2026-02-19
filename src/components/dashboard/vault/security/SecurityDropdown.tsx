@@ -30,7 +30,7 @@ export function SecurityDropdown({ value, onChange }: SecurityDropdownProps) {
           <Icon className={`w-5 h-5 ${config.color}`} />
           <div className="text-left">
             <span className={`text-sm font-semibold ${config.color}`}>{config.label}</span>
-            <p className="text-[10px] text-slate-500">{config.description}</p>
+            <p className="text-[10px] text-[var(--text-tertiary)]">{config.description}</p>
           </div>
         </div>
         <ChevronDown className={`w-4 h-4 ${config.color} transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -43,7 +43,7 @@ export function SecurityDropdown({ value, onChange }: SecurityDropdownProps) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             className="absolute top-full mt-2 left-0 right-0 z-50
-                       bg-[#0A192F]/95 backdrop-blur-xl border border-white/10
+                       bg-[var(--bg-primary)]/95 backdrop-blur-xl border border-[var(--border-default)]
                        rounded-xl overflow-hidden shadow-xl"
           >
             {(Object.entries(SECURITY_TIERS) as [SecurityTier, typeof SECURITY_TIERS[SecurityTier]][]).map(([key, tier]) => {
@@ -55,13 +55,13 @@ export function SecurityDropdown({ value, onChange }: SecurityDropdownProps) {
                   onClick={() => { onChange(key); setIsOpen(false) }}
                   className={`
                     w-full flex items-center gap-3 px-4 py-3 text-left transition-all
-                    ${isSelected ? tier.bg : 'hover:bg-white/5'}
+                    ${isSelected ? tier.bg : 'hover:bg-[var(--bg-elevated)]/50'}
                   `}
                 >
                   <TierIcon className={`w-5 h-5 ${tier.color}`} />
                   <div className="flex-1">
                     <span className={`text-sm font-medium ${tier.color}`}>{tier.label}</span>
-                    <p className="text-[10px] text-slate-500">{tier.description}</p>
+                    <p className="text-[10px] text-[var(--text-tertiary)]">{tier.description}</p>
                   </div>
                   {isSelected && <Check className={`w-4 h-4 ${tier.color}`} />}
                 </button>

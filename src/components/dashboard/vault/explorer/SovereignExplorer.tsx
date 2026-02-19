@@ -395,7 +395,7 @@ export function SovereignExplorer({ onClose }: SovereignExplorerProps) {
   // ── Render ────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-full flex flex-col bg-[#0A192F] text-white overflow-hidden">
+    <div className="h-full flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)] overflow-hidden">
       <CommandDeck
         currentPath={currentPath}
         folders={folders}
