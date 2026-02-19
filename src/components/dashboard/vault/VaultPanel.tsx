@@ -148,7 +148,7 @@ export function VaultPanel() {
   const fetchFolders = useVaultStore((s) => s.fetchFolders)
   const isLoading = useVaultStore((s) => s.isLoading)
   const documents = useVaultStore((s) => s.documents)
-  const uploadDocument = useVaultStore((s) => s.uploadDocument)
+  const uploadDocuments = useVaultStore((s) => s.uploadDocuments)
   const currentPath = useVaultStore((s) => s.currentPath)
   const selectedItemId = useVaultStore((s) => s.selectedItemId)
   const hasFetched = useRef(false)
@@ -162,9 +162,7 @@ export function VaultPanel() {
 
   const handleIngestionUpload = async (files: File[]) => {
     const folderId = currentPath[currentPath.length - 1]
-    for (const file of files) {
-      await uploadDocument(file, folderId)
-    }
+    await uploadDocuments(files, folderId)
     setIsIngestionOpen(false)
   }
 

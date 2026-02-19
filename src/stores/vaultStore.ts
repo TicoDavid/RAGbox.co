@@ -35,6 +35,7 @@ interface VaultState {
   fetchDocuments: () => Promise<void>
   fetchFolders: () => Promise<void>
   uploadDocument: (file: File, folderId?: string) => Promise<void>
+  uploadDocuments: (files: File[], folderId?: string) => Promise<void>
   deleteDocument: (id: string) => Promise<void>
   updateDocument: (id: string, updates: Partial<VaultItem>) => Promise<void>
   togglePrivilege: (id: string) => Promise<void>
@@ -209,11 +210,19 @@ export const useVaultStore = create<VaultState>()(
 
           // Document record was created by the extract endpoint — refresh list
           await get().fetchDocuments()
+        },
 
-          // Notify Mercury about the new document
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('vault:document-uploaded', {
-              detail: { filename: file.name, size: file.size },
+        uploadDocuments: async (files, folderId) => {
+          const uploaded: Array<{ filename: string; size: number }> = []
+          for (const file of files) {
+            await get().uploadDocument(file, folderId)
+            uploaded.push({ filename: file.name, size: file.size })
+          }
+
+          // Notify Mercury once for the entire batch
+          if (typeof window !== 'undefined' && uploaded.length > 0) {
+            window.dispatchEvent(new CustomEvent('vault:documents-uploaded', {
+              detail: { files: uploaded },
             }))
           }
         },

@@ -38,7 +38,7 @@ export function SovereignExplorer({ onClose }: SovereignExplorerProps) {
   const createFolder = useVaultStore((s) => s.createFolder)
   const deleteDocument = useVaultStore((s) => s.deleteDocument)
   const selectAndChat = useVaultStore((s) => s.selectAndChat)
-  const uploadDocument = useVaultStore((s) => s.uploadDocument)
+  const uploadDocuments = useVaultStore((s) => s.uploadDocuments)
   const navigate = useVaultStore((s) => s.navigate)
   const toggleStar = useVaultStore((s) => s.toggleStar)
 
@@ -292,11 +292,9 @@ export function SovereignExplorer({ onClose }: SovereignExplorerProps) {
   }, [toggleStar])
 
   const handleIngestionUpload = useCallback(async (files: File[]) => {
-    for (const file of files) {
-      await uploadDocument(file, selectedFolderId || undefined)
-    }
+    await uploadDocuments(files, selectedFolderId || undefined)
     setIsIngestionOpen(false)
-  }, [uploadDocument, selectedFolderId])
+  }, [uploadDocuments, selectedFolderId])
 
   const handleChat = useCallback(() => {
     if (selectedId) selectAndChat(selectedId)

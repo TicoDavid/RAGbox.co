@@ -456,7 +456,7 @@ export function VaultExplorer() {
   const folders = useVaultStore((s) => s.folders)
   const exitExplorerMode = useVaultStore((s) => s.exitExplorerMode)
   const selectAndChat = useVaultStore((s) => s.selectAndChat)
-  const uploadDocument = useVaultStore((s) => s.uploadDocument)
+  const uploadDocuments = useVaultStore((s) => s.uploadDocuments)
   const deleteDocument = useVaultStore((s) => s.deleteDocument)
   const currentPath = useVaultStore((s) => s.currentPath)
   const navigate = useVaultStore((s) => s.navigate)
@@ -627,9 +627,7 @@ export function VaultExplorer() {
   }
 
   const handleIngestionUpload = async (files: File[]) => {
-    for (const file of files) {
-      await uploadDocument(file, selectedFolderId || undefined)
-    }
+    await uploadDocuments(files, selectedFolderId || undefined)
     setIsIngestionOpen(false)
   }
 

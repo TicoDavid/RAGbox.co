@@ -298,7 +298,7 @@ export function DashboardLayout() {
   const fetchPrivilege = usePrivilegeStore((s) => s.fetch)
   const gapSummary = useContentIntelligenceStore((s) => s.gapSummary)
   const fetchGapSummary = useContentIntelligenceStore((s) => s.fetchGapSummary)
-  const uploadDocument = useVaultStore((s) => s.uploadDocument)
+  const uploadDocuments = useVaultStore((s) => s.uploadDocuments)
   const totalUnread = useWhatsAppStore((s) => s.totalUnread)
 
   // Rail state
@@ -384,9 +384,7 @@ export function DashboardLayout() {
   }, [handleRightTabClick])
 
   const handleIngestionUpload = async (files: File[]) => {
-    for (const file of files) {
-      await uploadDocument(file)
-    }
+    await uploadDocuments(files)
     setIsIngestionOpen(false)
   }
 

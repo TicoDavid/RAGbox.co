@@ -608,7 +608,7 @@ export function SovereignStudio() {
 
   // Upload modal state
   const [showIngestion, setShowIngestion] = useState(false)
-  const uploadDocument = useVaultStore((s) => s.uploadDocument)
+  const uploadDocuments = useVaultStore((s) => s.uploadDocuments)
 
   // Handlers
   const handleArtifactClick = (type: ArtifactType) => {
@@ -793,9 +793,7 @@ export function SovereignStudio() {
                   className="hidden"
                   onChange={async (e) => {
                     const files = Array.from(e.target.files || [])
-                    for (const file of files) {
-                      await uploadDocument(file)
-                    }
+                    await uploadDocuments(files)
                     setShowIngestion(false)
                   }}
                 />

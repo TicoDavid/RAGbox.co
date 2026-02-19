@@ -156,21 +156,15 @@ export function MercuryPanel() {
     clearPendingAction()
   }, [pendingAction, clearPendingAction, togglePrivilege])
 
-  // Listen for vault upload events — debounce into a single summary notification.
-  // Collects uploads within a 2-second window, then posts one message.
+  // Listen for batch upload event — one notification per upload batch.
   useEffect(() => {
-    let pending: Array<{ filename: string; size: number }> = []
-    let timer: ReturnType<typeof setTimeout> | null = null
+    const handler = (e: Event) => {
+      const { files } = (e as CustomEvent).detail as { files: Array<{ filename: string; size: number }> }
+      if (!files || files.length === 0) return
 
-    const flush = () => {
-      if (pending.length === 0) return
-      const items = [...pending]
-      pending = []
-      timer = null
-
-      const content = items.length === 1
-        ? `**Document uploaded:** ${items[0].filename} (${formatFileSize(items[0].size)}) is now being indexed.`
-        : `**${items.length} documents uploaded** and being indexed:\n${items.map((d) => `- ${d.filename} (${formatFileSize(d.size)})`).join('\n')}`
+      const content = files.length === 1
+        ? `**Document uploaded:** ${files[0].filename} (${formatFileSize(files[0].size)}) is now being indexed.`
+        : `**${files.length} documents uploaded** and being indexed:\n${files.map((d) => `- ${d.filename} (${formatFileSize(d.size)})`).join('\n')}`
 
       const notification: ChatMessage = {
         id: `notify-${Date.now()}`,
@@ -184,19 +178,8 @@ export function MercuryPanel() {
       }))
     }
 
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { filename: string; size: number }
-      pending.push(detail)
-      if (timer) clearTimeout(timer)
-      timer = setTimeout(flush, 2000)
-    }
-
-    window.addEventListener('vault:document-uploaded', handler)
-    return () => {
-      window.removeEventListener('vault:document-uploaded', handler)
-      if (timer) clearTimeout(timer)
-      flush() // flush any remaining on unmount
-    }
+    window.addEventListener('vault:documents-uploaded', handler)
+    return () => window.removeEventListener('vault:documents-uploaded', handler)
   }, [])
 
   // Sync voice transcript to Mercury chat history
