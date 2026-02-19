@@ -63,6 +63,7 @@ interface MercuryState {
   // Unified Thread
   threadId: string | null
   threadLoaded: boolean
+  titlePatched: boolean
   channelFilter: MercuryChannel | 'all'
 
   // Actions
@@ -93,6 +94,9 @@ interface MercuryState {
 
   // Unified Thread Actions
   loadThread: () => Promise<void>
+  startNewThread: () => Promise<void>
+  switchThread: (threadId: string) => Promise<void>
+  patchThreadTitle: (title: string) => void
   setChannelFilter: (channel: MercuryChannel | 'all') => void
   filteredMessages: () => ChatMessage[]
 }
@@ -140,6 +144,7 @@ export const useMercuryStore = create<MercuryState>()(
     pendingConfirmation: null,
     threadId: null,
     threadLoaded: false,
+    titlePatched: false,
     channelFilter: 'all',
 
     setInputValue: (value) => set({ inputValue: value }),
@@ -169,6 +174,11 @@ export const useMercuryStore = create<MercuryState>()(
 
       // Persist user message to thread (fire-and-forget)
       persistToThread(get().threadId, 'user', 'dashboard', inputValue)
+
+      // Auto-title: use first message as thread title
+      if (!get().titlePatched) {
+        get().patchThreadTitle(inputValue.trim())
+      }
 
       try {
         // Tool routing: check if message matches a tool pattern before hitting the backend
@@ -434,9 +444,27 @@ export const useMercuryStore = create<MercuryState>()(
     },
 
     clearConversation: () => {
-      set({ messages: [], streamingContent: '', attachments: [], sessionQueryCount: 0, sessionTopics: [] })
-      // Delete persisted messages from server (best-effort)
-      fetch('/api/mercury/thread/messages', { method: 'DELETE' }).catch(() => {})
+      const { threadId } = get()
+      set({
+        messages: [],
+        streamingContent: '',
+        attachments: [],
+        sessionQueryCount: 0,
+        sessionTopics: [],
+        threadLoaded: false,
+        titlePatched: false,
+      })
+      // Delete persisted messages from server, targeting current thread
+      fetch('/api/mercury/thread/messages', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ threadId }),
+      }).then(() => {
+        // Re-arm loadThread so next mount fetches fresh (empty) state
+        set({ threadLoaded: true })
+      }).catch(() => {
+        set({ threadLoaded: true })
+      })
     },
 
     setTemperaturePreset: (preset) => set({ temperaturePreset: preset }),
@@ -629,6 +657,81 @@ export const useMercuryStore = create<MercuryState>()(
         console.warn('[MercuryStore] Failed to load thread:', error)
         set({ threadLoaded: true })
       }
+    },
+
+    startNewThread: async () => {
+      try {
+        const res = await fetch('/api/mercury/thread', { method: 'POST' })
+        if (!res.ok) throw new Error('Failed to create thread')
+        const data = await res.json()
+        const newId = data.data?.id
+        if (!newId) throw new Error('No thread ID returned')
+
+        set({
+          threadId: newId,
+          messages: [],
+          attachments: [],
+          sessionQueryCount: 0,
+          sessionTopics: [],
+          titlePatched: false,
+          threadLoaded: true,
+        })
+      } catch (error) {
+        console.warn('[MercuryStore] Failed to create new thread:', error)
+      }
+    },
+
+    switchThread: async (targetThreadId) => {
+      if (get().threadId === targetThreadId) return
+
+      try {
+        const res = await fetch(
+          `/api/mercury/thread/messages?threadId=${targetThreadId}&limit=100`,
+        )
+        if (!res.ok) throw new Error('Failed to load thread messages')
+        const data = await res.json()
+
+        const serverMessages: ChatMessage[] = (data.data?.messages || []).map(
+          (m: { id: string; role: string; channel: string; content: string; confidence?: number; citations?: unknown; metadata?: Record<string, unknown>; createdAt: string }) => ({
+            id: m.id,
+            role: m.role as 'user' | 'assistant',
+            content: m.content,
+            timestamp: new Date(m.createdAt),
+            confidence: m.confidence ?? undefined,
+            citations: m.citations as Citation[] | undefined,
+            channel: m.channel as MercuryChannel,
+            metadata: m.metadata ?? undefined,
+          }),
+        )
+
+        set({
+          threadId: targetThreadId,
+          messages: serverMessages,
+          attachments: [],
+          sessionQueryCount: 0,
+          sessionTopics: [],
+          titlePatched: true,
+          threadLoaded: true,
+        })
+      } catch (error) {
+        console.warn('[MercuryStore] Failed to switch thread:', error)
+      }
+    },
+
+    patchThreadTitle: (title) => {
+      const { threadId } = get()
+      if (!threadId) return
+
+      set({ titlePatched: true })
+
+      // Fire-and-forget PATCH
+      fetch('/api/mercury/thread', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ threadId, title: title.slice(0, 50) }),
+      }).catch((err) => {
+        console.warn('[MercuryStore] Thread title patch failed:', err)
+      })
     },
 
     setChannelFilter: (channel) => set({ channelFilter: channel }),

@@ -221,24 +221,44 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ success: false, error: 'Unable to determine user identity' }, { status: 401 })
     }
 
-    // Find the user's most recent thread
-    const thread = await prisma.mercuryThread.findFirst({
-      where: { userId },
-      orderBy: { updatedAt: 'desc' },
-      select: { id: true },
-    })
+    // Accept explicit threadId from request body, fall back to most recent
+    let targetThreadId: string | null = null
+    try {
+      const body = await request.json()
+      targetThreadId = body.threadId || null
+    } catch {
+      // No body — fall back to most recent thread
+    }
 
-    if (!thread) {
+    if (targetThreadId) {
+      // Verify ownership
+      const owned = await prisma.mercuryThread.findFirst({
+        where: { id: targetThreadId, userId },
+        select: { id: true },
+      })
+      if (!owned) targetThreadId = null
+    }
+
+    if (!targetThreadId) {
+      const thread = await prisma.mercuryThread.findFirst({
+        where: { userId },
+        orderBy: { updatedAt: 'desc' },
+        select: { id: true },
+      })
+      targetThreadId = thread?.id || null
+    }
+
+    if (!targetThreadId) {
       return NextResponse.json({ success: true, data: { deleted: 0 } })
     }
 
     // Delete all messages in the thread
     const result = await prisma.mercuryThreadMessage.deleteMany({
-      where: { threadId: thread.id },
+      where: { threadId: targetThreadId },
     })
 
     // Audit log
-    writeAuditEntry(userId, 'mercury.clear', thread.id, {
+    writeAuditEntry(userId, 'mercury.clear', targetThreadId, {
       deletedCount: result.count,
     }).catch(() => {})
 
