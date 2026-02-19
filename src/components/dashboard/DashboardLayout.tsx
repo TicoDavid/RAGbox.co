@@ -553,7 +553,7 @@ export function DashboardLayout() {
                 activeTab={isDesktop && rightExpanded ? rightTab : null}
                 onTabClick={handleRightTabClick}
                 onCollapse={() => setRightExpanded(false)}
-                intelligenceBadge={gapSummary?.openGaps}
+                intelligenceBadge={undefined}
                 whatsappBadge={totalUnread}
               />
             </div>

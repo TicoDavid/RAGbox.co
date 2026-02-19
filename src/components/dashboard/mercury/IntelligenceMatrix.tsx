@@ -477,14 +477,14 @@ export function IntelligenceBadge({ onClick }: IntelligenceBadgeProps) {
         flex items-center gap-2 px-3 py-1.5 rounded-lg
         transition-all duration-500 ease-out group
         ${isAegisActive
-          ? 'bg-[var(--warning)]/[0.06] border border-[var(--warning)]/25 shadow-[0_0_20px_-5px_rgba(245,158,11,0.2)]'
-          : 'bg-[var(--bg-elevated)]/10 border border-[var(--border-subtle)] shadow-lg shadow-black/20'
+          ? 'bg-[var(--brand-blue)]/[0.06] border border-[var(--brand-blue)]/25 shadow-[0_0_20px_-5px_rgba(36,99,235,0.2)]'
+          : 'bg-[var(--warning)]/[0.06] border border-[var(--warning)]/25 shadow-[0_0_20px_-5px_rgba(245,158,11,0.2)]'
         }
-        hover:bg-[var(--bg-elevated)]/20 hover:border-[var(--warning)]/20
+        hover:bg-[var(--bg-elevated)]/20 hover:border-[var(--border-default)]
       `}
     >
       {/* Icon */}
-      <div className={isAegisActive ? 'text-[var(--warning)]/80' : 'text-[var(--text-secondary)]'}>
+      <div className={isAegisActive ? 'text-[var(--brand-blue)]' : 'text-[var(--warning)]'}>
         {isAegisActive ? (
           <ShieldCheck className="w-3.5 h-3.5" />
         ) : (
@@ -493,8 +493,8 @@ export function IntelligenceBadge({ onClick }: IntelligenceBadgeProps) {
       </div>
 
       {/* Name */}
-      <span className="text-[11px] font-medium text-[var(--text-secondary)] tracking-wide">
-        {activeIntelligence.displayName}
+      <span className={`text-[11px] font-medium tracking-wide ${isAegisActive ? 'text-[var(--brand-blue)]' : 'text-[var(--warning)]'}`}>
+        {isAegisActive ? 'AEGIS' : activeIntelligence.displayName}
       </span>
 
       {/* Provider hint */}
