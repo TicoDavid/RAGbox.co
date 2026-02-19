@@ -69,25 +69,25 @@ const CLEARANCE_LEVELS: Record<ClearanceLevel, {
     label: 'Analyst',
     description: 'Chat + View Source Documents',
     icon: <Eye className="w-4 h-4" />,
-    color: 'text-emerald-400',
-    bgColor: 'bg-emerald-500/10',
-    borderColor: 'border-emerald-500/30',
+    color: 'text-[var(--success)]',
+    bgColor: 'bg-[var(--success)]/10',
+    borderColor: 'border-[var(--success)]/30',
   },
   blind_agent: {
     label: 'Blind Agent',
     description: 'Chat ONLY — Sources Redacted',
     icon: <EyeOff className="w-4 h-4" />,
-    color: 'text-amber-400',
-    bgColor: 'bg-amber-500/10',
-    borderColor: 'border-amber-500/30',
+    color: 'text-[var(--warning)]',
+    bgColor: 'bg-[var(--warning)]/10',
+    borderColor: 'border-[var(--warning)]/30',
   },
   custodian: {
     label: 'Custodian',
     description: 'Full Edit/Delete Rights',
     icon: <Shield className="w-4 h-4" />,
-    color: 'text-blue-400',
-    bgColor: 'bg-blue-500/10',
-    borderColor: 'border-blue-500/30',
+    color: 'text-[var(--brand-blue)]',
+    bgColor: 'bg-[var(--brand-blue)]/10',
+    borderColor: 'border-[var(--brand-blue)]/30',
   },
 };
 
@@ -192,32 +192,32 @@ export function VaultAccessModal({
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           className="relative w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-2xl
-                     bg-[#0A192F]/95 backdrop-blur-xl
-                     border border-white/10 border-t-white/20
+                     bg-[var(--bg-primary)]/95 backdrop-blur-xl
+                     border border-[var(--border-default)] border-t-[var(--border-strong)]
                      shadow-[0_0_60px_-10px_rgba(0,100,255,0.3)]"
         >
           {/* ================================================================= */}
           {/* HEADER */}
           {/* ================================================================= */}
-          <div className="px-6 py-5 border-b border-white/10 bg-gradient-to-r from-blue-500/5 to-transparent">
+          <div className="px-6 py-5 border-b border-[var(--border-default)] bg-gradient-to-r from-[var(--brand-blue)]/5 to-transparent">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/30
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)]/20 border border-[var(--brand-blue)]/30
                                flex items-center justify-center">
-                  <Shield className="w-5 h-5 text-blue-400" />
+                  <Shield className="w-5 h-5 text-[var(--brand-blue)]" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white tracking-tight">
+                  <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">
                     Grant Vault Clearance
                   </h2>
-                  <p className="text-sm text-slate-400 mt-0.5">
-                    Configure access permissions for <span className="text-blue-400 font-medium">{vaultName}</span>
+                  <p className="text-sm text-[var(--text-secondary)] mt-0.5">
+                    Configure access permissions for <span className="text-[var(--brand-blue)] font-medium">{vaultName}</span>
                   </p>
                 </div>
               </div>
               <button
                 onClick={onClose}
-                className="p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-colors"
+                className="p-2 rounded-lg hover:bg-[var(--bg-elevated)]/50 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -229,8 +229,8 @@ export function VaultAccessModal({
             {/* ================================================================= */}
             {/* USER INPUT SECTION */}
             {/* ================================================================= */}
-            <div className="px-6 py-5 border-b border-white/5">
-              <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">
+            <div className="px-6 py-5 border-b border-[var(--border-subtle)]">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider mb-3">
                 Issue New Clearance
               </label>
 
@@ -243,9 +243,9 @@ export function VaultAccessModal({
                     onChange={(e) => setInviteEmail(e.target.value)}
                     placeholder="Add Secure ID or Email..."
                     className="w-full h-11 px-4 rounded-xl
-                             bg-black/40 border border-white/10
-                             text-white placeholder-slate-500
-                             focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30
+                             bg-black/40 border border-[var(--border-default)]
+                             text-[var(--text-primary)] placeholder-[var(--text-placeholder)]
+                             focus:outline-none focus:border-[var(--brand-blue)]/50 focus:ring-1 focus:ring-[var(--brand-blue)]/30
                              transition-all"
                   />
                 </div>
@@ -272,7 +272,7 @@ export function VaultAccessModal({
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
                         className="absolute top-full mt-2 right-0 w-72 rounded-xl
-                                 bg-[#0A192F] border border-white/10
+                                 bg-[var(--bg-primary)] border border-[var(--border-default)]
                                  shadow-xl z-50 overflow-hidden"
                       >
                         {(Object.entries(CLEARANCE_LEVELS) as [ClearanceLevel, typeof CLEARANCE_LEVELS[ClearanceLevel]][]).map(([key, level]) => (
@@ -283,8 +283,8 @@ export function VaultAccessModal({
                               setShowClearanceDropdown(false);
                             }}
                             className={`w-full px-4 py-3 flex items-start gap-3 text-left
-                                      hover:bg-white/5 transition-colors
-                                      ${selectedClearance === key ? 'bg-white/5' : ''}`}
+                                      hover:bg-[var(--bg-elevated)]/50 transition-colors
+                                      ${selectedClearance === key ? 'bg-[var(--bg-elevated)]/30' : ''}`}
                           >
                             <div className={`mt-0.5 ${level.color}`}>
                               {level.icon}
@@ -293,12 +293,12 @@ export function VaultAccessModal({
                               <div className={`font-medium ${level.color} flex items-center gap-2`}>
                                 {level.label}
                                 {key === 'blind_agent' && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-bold uppercase">
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--warning)]/20 text-[var(--warning)] font-bold uppercase">
                                     Featured
                                   </span>
                                 )}
                               </div>
-                              <div className="text-xs text-slate-500 mt-0.5">
+                              <div className="text-xs text-[var(--text-tertiary)] mt-0.5">
                                 {level.description}
                               </div>
                             </div>
@@ -313,8 +313,8 @@ export function VaultAccessModal({
                 <button
                   onClick={handleGrantAccess}
                   disabled={!inviteEmail.trim() || isGranting}
-                  className="h-11 px-5 rounded-xl bg-blue-600 hover:bg-blue-500
-                           text-white font-medium flex items-center gap-2
+                  className="h-11 px-5 rounded-xl bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)]
+                           text-[var(--text-primary)] font-medium flex items-center gap-2
                            disabled:opacity-50 disabled:cursor-not-allowed
                            transition-colors"
                 >
@@ -328,15 +328,15 @@ export function VaultAccessModal({
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
-                  className="mt-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20"
+                  className="mt-3 p-3 rounded-xl bg-[var(--warning)]/10 border border-[var(--warning)]/20"
                 >
                   <div className="flex items-start gap-2">
-                    <EyeOff className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                    <EyeOff className="w-4 h-4 text-[var(--warning)] mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="text-sm text-amber-200 font-medium">Blind Agent Mode</p>
-                      <p className="text-xs text-amber-200/70 mt-1">
+                      <p className="text-sm text-[var(--warning)] font-medium">Blind Agent Mode</p>
+                      <p className="text-xs text-[var(--warning)]/70 mt-1">
                         This user can query the AI and receive answers, but all source document citations
-                        will display as <span className="font-mono text-amber-400">[REDACTED]</span>.
+                        will display as <span className="font-mono text-[var(--warning)]">[REDACTED]</span>.
                         Perfect for consultants who need insights without file access.
                       </p>
                     </div>
@@ -348,19 +348,19 @@ export function VaultAccessModal({
             {/* ================================================================= */}
             {/* CHAIN OF CUSTODY */}
             {/* ================================================================= */}
-            <div className="px-6 py-5 border-b border-white/5">
+            <div className="px-6 py-5 border-b border-[var(--border-subtle)]">
               <div className="flex items-center justify-between mb-4">
-                <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+                <label className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider">
                   Chain of Custody
                 </label>
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-[var(--text-tertiary)]">
                   {currentMembers.length} cleared personnel
                 </span>
               </div>
 
               <div className="space-y-2">
                 {currentMembers.length === 0 ? (
-                  <div className="text-center py-8 text-slate-500">
+                  <div className="text-center py-8 text-[var(--text-tertiary)]">
                     <Lock className="w-8 h-8 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">No external clearances granted</p>
                     <p className="text-xs mt-1">Only you have access to this vault</p>
@@ -384,33 +384,33 @@ export function VaultAccessModal({
             {/* ================================================================= */}
             {/* SECURITY CONTROLS */}
             {/* ================================================================= */}
-            <div className="px-6 py-5 border-b border-white/5">
-              <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-4">
+            <div className="px-6 py-5 border-b border-[var(--border-subtle)]">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider mb-4">
                 Compliance & Restrictions
               </label>
 
               <div className="space-y-3">
                 {/* Audit Toggle */}
-                <div className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/5">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-[var(--border-subtle)]">
                   <div className="flex items-center gap-3">
-                    <FileText className="w-4 h-4 text-blue-400" />
+                    <FileText className="w-4 h-4 text-[var(--brand-blue)]" />
                     <div>
-                      <p className="text-sm text-white font-medium">Enforce Audit Logging</p>
-                      <p className="text-xs text-slate-500">All user actions are tracked and timestamped</p>
+                      <p className="text-sm text-[var(--text-primary)] font-medium">Enforce Audit Logging</p>
+                      <p className="text-xs text-[var(--text-tertiary)]">All user actions are tracked and timestamped</p>
                     </div>
                   </div>
                   <ToggleSwitch checked={enforceAudit} onChange={setEnforceAudit} />
                 </div>
 
                 {/* Export Toggle */}
-                <div className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/5">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-[var(--border-subtle)]">
                   <div className="flex items-center gap-3">
-                    <AlertTriangle className={`w-4 h-4 ${allowExport ? 'text-red-400' : 'text-slate-500'}`} />
+                    <AlertTriangle className={`w-4 h-4 ${allowExport ? 'text-[var(--danger)]' : 'text-[var(--text-tertiary)]'}`} />
                     <div>
-                      <p className="text-sm text-white font-medium">Allow File Export</p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-sm text-[var(--text-primary)] font-medium">Allow File Export</p>
+                      <p className="text-xs text-[var(--text-tertiary)]">
                         {allowExport
-                          ? <span className="text-red-400">Warning: Users can download source files</span>
+                          ? <span className="text-[var(--danger)]">Warning: Users can download source files</span>
                           : 'Users cannot download original documents'
                         }
                       </p>
@@ -425,7 +425,7 @@ export function VaultAccessModal({
             {/* LINK SETTINGS */}
             {/* ================================================================= */}
             <div className="px-6 py-5">
-              <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-4">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider mb-4">
                 Secure Link Protocol
               </label>
 
@@ -436,8 +436,8 @@ export function VaultAccessModal({
                     onClick={() => setLinkVisibility('restricted')}
                     className={`flex-1 p-3 rounded-xl border transition-all flex items-center gap-3
                               ${linkVisibility === 'restricted'
-                                ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
-                                : 'bg-black/20 border-white/5 text-slate-400 hover:border-white/10'
+                                ? 'bg-[var(--brand-blue)]/10 border-[var(--brand-blue)]/30 text-[var(--brand-blue)]'
+                                : 'bg-black/20 border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border-default)]'
                               }`}
                   >
                     <Lock className="w-4 h-4" />
@@ -451,8 +451,8 @@ export function VaultAccessModal({
                     onClick={() => setLinkVisibility('public')}
                     className={`flex-1 p-3 rounded-xl border transition-all flex items-center gap-3
                               ${linkVisibility === 'public'
-                                ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-                                : 'bg-black/20 border-white/5 text-slate-400 hover:border-white/10'
+                                ? 'bg-[var(--warning)]/10 border-[var(--warning)]/30 text-[var(--warning)]'
+                                : 'bg-black/20 border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border-default)]'
                               }`}
                   >
                     <Globe className="w-4 h-4" />
@@ -472,10 +472,10 @@ export function VaultAccessModal({
                       exit={{ opacity: 0, height: 0 }}
                       className="overflow-hidden"
                     >
-                      <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/20">
+                      <div className="p-4 rounded-xl bg-[var(--warning)]/5 border border-[var(--warning)]/20">
                         <div className="flex items-center gap-2 mb-3">
-                          <Clock className="w-4 h-4 text-amber-400" />
-                          <span className="text-sm font-medium text-amber-400">Expiration Protocol</span>
+                          <Clock className="w-4 h-4 text-[var(--warning)]" />
+                          <span className="text-sm font-medium text-[var(--warning)]">Expiration Protocol</span>
                         </div>
 
                         <div className="grid grid-cols-2 gap-2">
@@ -485,8 +485,8 @@ export function VaultAccessModal({
                               onClick={() => setLinkExpiration(key)}
                               className={`p-2 rounded-lg border text-left transition-all
                                         ${linkExpiration === key
-                                          ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
-                                          : 'bg-black/20 border-white/5 text-slate-400 hover:border-amber-500/20'
+                                          ? 'bg-[var(--warning)]/20 border-[var(--warning)]/40 text-[var(--warning)]'
+                                          : 'bg-black/20 border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--warning)]/20'
                                         }`}
                             >
                               <p className="text-sm font-medium">{option.label}</p>
@@ -508,13 +508,13 @@ export function VaultAccessModal({
                           type="text"
                           value={generatedLink}
                           readOnly
-                          className="flex-1 h-11 px-4 rounded-xl bg-black/40 border border-white/10
-                                   text-slate-300 font-mono text-sm"
+                          className="flex-1 h-11 px-4 rounded-xl bg-black/40 border border-[var(--border-default)]
+                                   text-[var(--text-secondary)] font-mono text-sm"
                         />
                         <button
                           onClick={handleCopyLink}
-                          className="h-11 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500
-                                   text-white font-medium flex items-center gap-2 transition-colors"
+                          className="h-11 px-5 rounded-xl bg-[var(--success)] hover:bg-[var(--success)]
+                                   text-[var(--text-primary)] font-medium flex items-center gap-2 transition-colors"
                         >
                           {linkCopied ? (
                             <>
@@ -533,8 +533,8 @@ export function VaultAccessModal({
                       <button
                         onClick={handleGenerateLink}
                         disabled={isGeneratingLink}
-                        className="w-full h-11 px-5 rounded-xl bg-amber-600 hover:bg-amber-500
-                                 text-white font-medium flex items-center justify-center gap-2
+                        className="w-full h-11 px-5 rounded-xl bg-[var(--warning)] hover:bg-[var(--warning)]
+                                 text-[var(--text-primary)] font-medium flex items-center justify-center gap-2
                                  disabled:opacity-50 transition-colors"
                       >
                         <Link2 className="w-4 h-4" />
@@ -550,15 +550,15 @@ export function VaultAccessModal({
           {/* ================================================================= */}
           {/* FOOTER */}
           {/* ================================================================= */}
-          <div className="px-6 py-4 border-t border-white/10 bg-black/20 flex items-center justify-between">
-            <p className="text-xs text-slate-500 flex items-center gap-1.5">
+          <div className="px-6 py-4 border-t border-[var(--border-default)] bg-black/20 flex items-center justify-between">
+            <p className="text-xs text-[var(--text-tertiary)] flex items-center gap-1.5">
               <Shield className="w-3.5 h-3.5" />
               All access changes are logged to the audit trail
             </p>
             <button
               onClick={onClose}
-              className="px-5 py-2 rounded-xl bg-white/5 hover:bg-white/10
-                       text-white font-medium transition-colors"
+              className="px-5 py-2 rounded-xl bg-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)]
+                       text-[var(--text-primary)] font-medium transition-colors"
             >
               Done
             </button>
@@ -588,7 +588,7 @@ function MemberAvatar({ name, avatar }: { name: string; avatar?: string }) {
 
   if (avatar && !imgFailed) {
     return (
-      <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white font-medium overflow-hidden">
+      <div className="w-10 h-10 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center text-[var(--text-primary)] font-medium overflow-hidden">
         <img
           src={avatar}
           alt={name}
@@ -600,7 +600,7 @@ function MemberAvatar({ name, avatar }: { name: string; avatar?: string }) {
   }
 
   return (
-    <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white font-medium">
+    <div className="w-10 h-10 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center text-[var(--text-primary)] font-medium">
       {initial}
     </div>
   );
@@ -610,14 +610,14 @@ function MemberRow({ member, isEditing, onEdit, onCancelEdit, onUpdateClearance,
   const level = CLEARANCE_LEVELS[member.clearance];
 
   return (
-    <div className="flex items-center gap-3 p-3 rounded-xl bg-black/20 border border-white/5 hover:border-white/10 transition-colors">
+    <div className="flex items-center gap-3 p-3 rounded-xl bg-black/20 border border-[var(--border-subtle)] hover:border-[var(--border-default)] transition-colors">
       {/* Avatar with fallback to initials */}
       <MemberAvatar name={member.name} avatar={member.avatar} />
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-white truncate">{member.name}</p>
-        <p className="text-xs text-slate-500 truncate">{member.email}</p>
+        <p className="text-sm font-medium text-[var(--text-primary)] truncate">{member.name}</p>
+        <p className="text-xs text-[var(--text-tertiary)] truncate">{member.email}</p>
       </div>
 
       {/* Clearance Badge / Editor */}
@@ -630,7 +630,7 @@ function MemberRow({ member, isEditing, onEdit, onCancelEdit, onUpdateClearance,
               className={`p-2 rounded-lg border transition-all
                         ${member.clearance === key
                           ? `${lvl.bgColor} ${lvl.borderColor} ${lvl.color}`
-                          : 'bg-black/20 border-white/10 text-slate-500 hover:border-white/20'
+                          : 'bg-black/20 border-[var(--border-default)] text-[var(--text-tertiary)] hover:border-[var(--border-default)]'
                         }`}
               title={lvl.label}
             >
@@ -639,7 +639,7 @@ function MemberRow({ member, isEditing, onEdit, onCancelEdit, onUpdateClearance,
           ))}
           <button
             onClick={onCancelEdit}
-            className="p-2 rounded-lg bg-black/20 border border-white/10 text-slate-500 hover:text-white transition-colors"
+            className="p-2 rounded-lg bg-black/20 border border-[var(--border-default)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -658,7 +658,7 @@ function MemberRow({ member, isEditing, onEdit, onCancelEdit, onUpdateClearance,
 
           <button
             onClick={onRevoke}
-            className="p-2 rounded-lg hover:bg-red-500/10 text-slate-500 hover:text-red-400 transition-colors"
+            className="p-2 rounded-lg hover:bg-[var(--danger)]/10 text-[var(--text-tertiary)] hover:text-[var(--danger)] transition-colors"
             title="Revoke Clearance"
           >
             <Trash2 className="w-4 h-4" />
@@ -676,13 +676,13 @@ interface ToggleSwitchProps {
 }
 
 function ToggleSwitch({ checked, onChange, variant = 'default' }: ToggleSwitchProps) {
-  const activeColor = variant === 'danger' ? 'bg-red-500' : 'bg-blue-500';
+  const activeColor = variant === 'danger' ? 'bg-[var(--danger)]' : 'bg-[var(--brand-blue)]';
 
   return (
     <button
       onClick={() => onChange(!checked)}
       className={`relative w-12 h-6 rounded-full transition-colors
-                ${checked ? activeColor : 'bg-slate-700'}`}
+                ${checked ? activeColor : 'bg-[var(--bg-elevated)]'}`}
     >
       <motion.div
         className="absolute top-1 w-4 h-4 rounded-full bg-white shadow-md"
