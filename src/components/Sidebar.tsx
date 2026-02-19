@@ -14,20 +14,25 @@ interface NavItem {
   label: string
   subtitle?: string
   id: string
-  href: string
+  href?: string       // Only for route-based items (My Agent)
   statusDot?: boolean
+}
+
+export interface SidebarProps {
+  /** Called when a panel item is clicked (box, audit, settings) */
+  onNavigate?: (itemId: string) => void
+  /** Currently active panel id for highlighting */
+  activePanelId?: string | null
 }
 
 /**
  * Sidebar Component - Left Navigation
  *
- * Features:
- * - RAGbox.co logo at top
- * - Vertical navigation with icons + labels
- * - My Agent link with live persona name + status dot
- * - User profile pill with theme toggle at bottom
+ * Panel items (The Box, Truth & Audit, Settings) call onNavigate
+ * to toggle DashboardLayout panels. My Agent keeps href navigation
+ * since the agent page is a real route.
  */
-export function Sidebar() {
+export function Sidebar({ onNavigate, activePanelId }: SidebarProps) {
   const pathname = usePathname()
   const { setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
@@ -63,7 +68,7 @@ export function Sidebar() {
   const isDark = resolvedTheme === 'dark'
 
   const navItems: NavItem[] = [
-    { icon: <Box className="w-5 h-5" strokeWidth={2.5} />, label: 'The Box', id: 'box', href: '/dashboard' },
+    { icon: <Box className="w-5 h-5" strokeWidth={2.5} />, label: 'The Box', id: 'box' },
     {
       icon: <UserCircle className="w-5 h-5" strokeWidth={2.5} />,
       label: 'My Agent',
@@ -72,19 +77,56 @@ export function Sidebar() {
       href: agentId ? `/dashboard/agents/${agentId}` : '/dashboard/agents',
       statusDot: agentActive,
     },
-    { icon: <Scale className="w-5 h-5" strokeWidth={2.5} />, label: 'Truth & Audit', id: 'audit', href: '/dashboard/audit' },
-    { icon: <Settings className="w-5 h-5" strokeWidth={2.5} />, label: 'Settings', id: 'settings', href: '/dashboard/settings' },
+    { icon: <Scale className="w-5 h-5" strokeWidth={2.5} />, label: 'Truth & Audit', id: 'audit' },
+    { icon: <Settings className="w-5 h-5" strokeWidth={2.5} />, label: 'Settings', id: 'settings' },
   ]
 
-  // Determine active item based on current pathname
-  const getActiveItem = () => {
-    if (pathname === '/dashboard') return 'box'
-    if (pathname.startsWith('/dashboard/agents')) return 'agent'
-    if (pathname.startsWith('/dashboard/audit')) return 'audit'
-    if (pathname.startsWith('/dashboard/settings')) return 'settings'
-    return 'box'
+  // Active state: route items use pathname, panel items use activePanelId prop
+  const isItemActive = (item: NavItem) => {
+    if (item.href) {
+      return pathname.startsWith('/dashboard/agents')
+    }
+    return activePanelId === item.id
   }
-  const activeItem = getActiveItem()
+
+  // Shared classes for nav items
+  const getItemClasses = (item: NavItem) =>
+    cn(
+      'w-full flex items-center gap-3 px-4 py-3 rounded-2xl',
+      'transition-all duration-200',
+      'text-left',
+      isItemActive(item)
+        ? cn(
+            'dark:bg-electric-600/20 bg-electric-100',
+            'dark:text-electric-400 text-electric-600',
+            'shadow-glow-sm'
+          )
+        : cn(
+            'dark:text-white/60 text-black/60',
+            'dark:hover:bg-white/5 hover:bg-black/5',
+            'dark:hover:text-white hover:text-black'
+          )
+    )
+
+  // Shared inner content for nav items
+  const renderItemContent = (item: NavItem) => (
+    <>
+      <div className="relative">
+        {item.icon}
+        {item.statusDot && (
+          <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[var(--bg-primary)] animate-pulse" />
+        )}
+      </div>
+      <div className="flex flex-col">
+        <span className="font-bold">{item.label}</span>
+        {item.subtitle && (
+          <span className="text-xs dark:text-white/40 text-black/40 -mt-0.5">
+            {item.subtitle}
+          </span>
+        )}
+      </div>
+    </>
+  )
 
   return (
     <motion.aside
@@ -124,40 +166,18 @@ export function Sidebar() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 + index * 0.05 }}
             >
-              <Link
-                href={item.href}
-                className={cn(
-                  'w-full flex items-center gap-3 px-4 py-3 rounded-2xl',
-                  'transition-all duration-200',
-                  'text-left',
-                  activeItem === item.id
-                    ? cn(
-                        'dark:bg-electric-600/20 bg-electric-100',
-                        'dark:text-electric-400 text-electric-600',
-                        'shadow-glow-sm'
-                      )
-                    : cn(
-                        'dark:text-white/60 text-black/60',
-                        'dark:hover:bg-white/5 hover:bg-black/5',
-                        'dark:hover:text-white hover:text-black'
-                      )
-                )}
-              >
-                <div className="relative">
-                  {item.icon}
-                  {item.statusDot && (
-                    <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[var(--bg-primary)] animate-pulse" />
-                  )}
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-bold">{item.label}</span>
-                  {item.subtitle && (
-                    <span className="text-xs dark:text-white/40 text-black/40 -mt-0.5">
-                      {item.subtitle}
-                    </span>
-                  )}
-                </div>
-              </Link>
+              {item.href ? (
+                <Link href={item.href} className={getItemClasses(item)}>
+                  {renderItemContent(item)}
+                </Link>
+              ) : (
+                <button
+                  onClick={() => onNavigate?.(item.id)}
+                  className={getItemClasses(item)}
+                >
+                  {renderItemContent(item)}
+                </button>
+              )}
             </motion.li>
           ))}
         </ul>

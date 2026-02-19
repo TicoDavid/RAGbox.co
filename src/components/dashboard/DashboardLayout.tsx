@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useVaultStore } from '@/stores/vaultStore'
 import { usePrivilegeStore } from '@/stores/privilegeStore'
@@ -285,6 +286,8 @@ function MobileToolbar({ onLeftOpen, onRightOpen }: MobileToolbarProps) {
 // ============================================================================
 
 export function DashboardLayout() {
+  const pathname = usePathname()
+
   // Responsive breakpoints
   const isDesktop = useIsDesktop()   // >= 1024px
   const isTablet = useIsTablet()     // >= 768px
@@ -388,6 +391,43 @@ export function DashboardLayout() {
     setIsIngestionOpen(false)
   }
 
+  // Sidebar navigation — maps sidebar item clicks to panel toggles
+  const handleSidebarNavigate = useCallback((itemId: string) => {
+    if (isMobile) {
+      setMobileLeftOpen(false)
+    }
+
+    switch (itemId) {
+      case 'box':
+        handleLeftTabClick('vault')
+        break
+      case 'audit':
+        if (isMobile) {
+          setRightTab('audit')
+          setMobileRightOpen(true)
+        } else {
+          handleRightTabClick('audit')
+        }
+        break
+      case 'settings':
+        if (isMobile) {
+          setRightTab('studio')
+          setMobileRightOpen(true)
+        } else {
+          handleRightTabClick('studio')
+        }
+        break
+    }
+  }, [isMobile, handleLeftTabClick, handleRightTabClick])
+
+  // Active panel for Sidebar highlight
+  const sidebarActivePanel = useMemo(() => {
+    if (pathname.startsWith('/dashboard/agents')) return null // agent uses pathname
+    if (rightExpanded && rightTab === 'audit') return 'audit'
+    if (rightExpanded && rightTab === 'studio') return 'settings'
+    return 'box'
+  }, [pathname, rightExpanded, rightTab])
+
   // Widths
   const RAIL_WIDTH = 64
   const LEFT_PANEL_WIDTH = 420
@@ -453,11 +493,27 @@ export function DashboardLayout() {
 
       <div className="flex-1 flex overflow-hidden">
         {/* ============================================ */}
-        {/* LEFT SIDE: Rail + Panel (hidden on mobile) */}
+        {/* LEFT SIDE: Sidebar + Vault Panel (hidden on mobile) */}
         {/* ============================================ */}
         {isTablet && (
-          <div className="shrink-0">
-            <Sidebar />
+          <div className="flex shrink-0">
+            <Sidebar
+              onNavigate={handleSidebarNavigate}
+              activePanelId={sidebarActivePanel}
+            />
+            {/* Expandable vault panel (desktop only) */}
+            {isDesktop && (
+              <motion.div
+                initial={false}
+                animate={{ width: leftExpanded ? LEFT_PANEL_WIDTH : 0 }}
+                transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                className="overflow-hidden border-r border-white/5"
+              >
+                <div style={{ width: LEFT_PANEL_WIDTH }} className="h-full bg-[var(--bg-secondary)]">
+                  {renderLeftContent()}
+                </div>
+              </motion.div>
+            )}
           </div>
         )}
 
@@ -506,13 +562,16 @@ export function DashboardLayout() {
       {/* MOBILE OVERLAYS */}
       {/* ============================================ */}
 
-      {/* Left overlay: Vault navigation + panel content */}
+      {/* Left overlay: Sidebar navigation + panel content */}
       <MobileOverlay
         isOpen={mobileLeftOpen}
         onClose={() => setMobileLeftOpen(false)}
         side="left"
       >
-        <Sidebar />
+        <Sidebar
+          onNavigate={handleSidebarNavigate}
+          activePanelId={sidebarActivePanel}
+        />
       </MobileOverlay>
 
       {/* Right overlay: Tools navigation + panel content */}
