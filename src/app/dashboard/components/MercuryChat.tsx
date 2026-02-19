@@ -203,7 +203,9 @@ const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ message, onInsightAct
       <div className="chat-message mercury">
         <span className="chat-label mercury">MERCURY</span>
         <div className="mercury-withheld">
-          {message.text.replace('MERCURY', '').trim()}
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+            {message.text.replace('MERCURY', '').trim()}
+          </ReactMarkdown>
         </div>
       </div>
     );
