@@ -1,10 +1,11 @@
 /**
- * POST /api/voice/synthesize
+ * POST /api/voice/synthesize-stream
  *
- * Server-side TTS synthesis via Inworld AI.
- * Accepts text (with optional emotion tags), returns raw audio bytes.
+ * Streaming TTS synthesis via Inworld AI.
+ * Returns chunked audio as a ReadableStream (LINEAR16, 48 kHz, mono).
  *
- * Replaces the previous Deepgram Aura implementation.
+ * The client can pipe this directly into an AudioWorklet or
+ * buffer chunks for sequential playback.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -12,7 +13,6 @@ import { InworldTTSClient } from '@/lib/voice/inworld-client';
 
 export const runtime = 'nodejs';
 
-// Emotion tags prepended by prepareTextForTTS — strip before sending to Inworld
 const EMOTION_TAG_RE = /^\[(?:warm|confident|thoughtful|serious|concerned|apologetic|neutral)\]\s*/i;
 
 export async function POST(req: NextRequest) {
@@ -40,13 +40,31 @@ export async function POST(req: NextRequest) {
       ...(modelId ? { modelId } : {}),
     });
 
-    const audioBuffer = await client.synthesize(cleanText, voiceId || undefined);
-    const bytes = new Uint8Array(audioBuffer);
+    const generator = client.synthesizeStream(cleanText, voiceId || undefined);
 
-    return new NextResponse(bytes, {
+    const stream = new ReadableStream({
+      async pull(controller) {
+        try {
+          const { done, value } = await generator.next();
+          if (done) {
+            controller.close();
+            return;
+          }
+          controller.enqueue(new Uint8Array(value));
+        } catch (error) {
+          controller.error(error);
+        }
+      },
+      cancel() {
+        generator.return(undefined as unknown as Buffer);
+      },
+    });
+
+    return new Response(stream, {
       headers: {
-        'Content-Type': 'audio/mpeg',
-        'Content-Length': bytes.byteLength.toString(),
+        'Content-Type': 'audio/L16;rate=48000;channels=1',
+        'Transfer-Encoding': 'chunked',
+        'Cache-Control': 'no-cache',
       },
     });
   } catch (error) {
@@ -60,7 +78,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'TTS synthesis failed' },
+      { error: 'TTS streaming failed' },
       { status: 500 }
     );
   }

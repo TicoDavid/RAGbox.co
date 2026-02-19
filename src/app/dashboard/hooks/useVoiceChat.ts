@@ -6,7 +6,7 @@ import { apiFetch } from '@/lib/api';
 import { DeepgramClient } from '@/lib/voice/deepgram-client';
 import { AudioCapture } from '@/lib/voice/audio-capture';
 import { AudioPlayback } from '@/lib/voice/audio-playback';
-import { InworldClient } from '@/lib/voice/inworld-client';
+import { prepareTextForTTS } from '@/lib/voice/inworld-client';
 import { sanitizeForTTS } from '@/lib/voice/sanitizeForTTS';
 import type { ResponseContext } from '@/lib/voice/types';
 
@@ -57,6 +57,24 @@ const SILENCE_TIMEOUT_MS = 2000;
 const WELCOME_MESSAGE = "Hi! I'm Mercury, your document intelligence assistant. I can search your vault, analyze documents, check knowledge base health, and walk you through anything on screen. Just ask!";
 
 /**
+ * Synthesize text via /api/voice/synthesize (Inworld TTS).
+ * Returns the audio as an ArrayBuffer ready for AudioPlayback.
+ */
+async function synthesizeTTS(text: string): Promise<ArrayBuffer> {
+  const response = await apiFetch('/api/voice/synthesize', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`TTS synthesis failed: ${response.status}`);
+  }
+
+  return response.arrayBuffer();
+}
+
+/**
  * Voice chat hook — Three-state continuous-listening model
  *
  * States:
@@ -71,6 +89,8 @@ const WELCOME_MESSAGE = "Hi! I'm Mercury, your document intelligence assistant. 
  *   Deepgram WebSocket stays open. User speaks -> silence detected (2s)
  *   -> transcript sent to /api/chat -> TTS plays response
  *   -> mic auto-resumes listening. No manual clicks between utterances.
+ *
+ * TTS chain: Inworld TTS (primary) -> Google Cloud TTS (fallback)
  */
 export function useVoiceChat(
   onTranscript?: (userText: string, aiResponse: string) => void,
@@ -92,14 +112,12 @@ export function useVoiceChat(
   const deepgramRef = useRef<DeepgramClient | null>(null);
   const captureRef = useRef<AudioCapture | null>(null);
   const playbackRef = useRef<AudioPlayback | null>(null);
-  const inworldRef = useRef<InworldClient | null>(null);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const accumulatedTranscriptRef = useRef('');
 
-  // Initialize playback + inworld clients once
+  // Initialize playback once
   useEffect(() => {
     playbackRef.current = new AudioPlayback();
-    inworldRef.current = new InworldClient();
 
     return () => {
       playbackRef.current?.dispose();
@@ -137,6 +155,46 @@ export function useVoiceChat(
     });
 
   }, []);
+
+  // --- Helpers: play audio and auto-resume listening ---
+
+  const resumeListeningIfOn = useCallback(() => {
+    if (modeRef.current === 'on') {
+      startCapture().catch(() => {});
+    }
+  }, [startCapture]);
+
+  const playViaAudioElement = useCallback(
+    (audioData: ArrayBuffer, mimeType: string): Promise<boolean> => {
+      return new Promise((resolve) => {
+        const blob = new Blob([audioData], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+
+        if (modeRef.current === 'off') {
+          URL.revokeObjectURL(url);
+          resolve(false);
+          return;
+        }
+
+        audio.onended = () => {
+          URL.revokeObjectURL(url);
+          setState(prev => ({ ...prev, isSpeaking: false }));
+          resumeListeningIfOn();
+          resolve(true);
+        };
+        audio.onerror = () => {
+          URL.revokeObjectURL(url);
+          setState(prev => ({ ...prev, isSpeaking: false }));
+          resumeListeningIfOn();
+          resolve(false);
+        };
+
+        audio.play().then(() => { /* playing */ }).catch(() => resolve(false));
+      });
+    },
+    [resumeListeningIfOn]
+  );
 
   // --- Process transcript and auto-resume ---
 
@@ -200,7 +258,7 @@ export function useVoiceChat(
       setState(prev => ({ ...prev, isProcessing: false }));
 
       // 3. Synthesize + play TTS response
-      if (modeRef.current !== 'off' && inworldRef.current && playbackRef.current) {
+      if (modeRef.current !== 'off' && playbackRef.current) {
         const responseContext: ResponseContext = {
           confidence,
           isGreeting: /^(hi|hello|hey|good morning|good afternoon)/i.test(text),
@@ -210,95 +268,56 @@ export function useVoiceChat(
         };
 
         const spokenText = sanitizeForTTS(aiResponse);
-        const preparedText = inworldRef.current.prepareTextForTTS(spokenText, responseContext);
+        const preparedText = prepareTextForTTS(spokenText, responseContext);
 
         setState(prev => ({ ...prev, isSpeaking: true }));
 
         try {
-          const audioData = await inworldRef.current.synthesize({ text: preparedText });
+          // Primary: Inworld TTS via /api/voice/synthesize
+          const audioData = await synthesizeTTS(preparedText);
 
           const currentMode = modeRef.current as VoiceMode;
           if (currentMode !== 'off') {
             await playbackRef.current.play(audioData, () => {
               setState(prev => ({ ...prev, isSpeaking: false }));
-
-              // 4. Auto-restart AudioCapture if still in ON mode
-              if (modeRef.current === 'on') {
-                startCapture().catch(() => {
-                });
-              }
+              resumeListeningIfOn();
             });
           } else {
             setState(prev => ({ ...prev, isSpeaking: false }));
           }
         } catch {
-          // Fallback 1: Deepgram Aura TTS (fast, low cost)
+          // Fallback: Google Cloud TTS
           let played = false;
           try {
-            const auraRes = await apiFetch('/api/voice/synthesize', {
+            const gcpRes = await apiFetch('/api/tts', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ text: spokenText }),
+              body: JSON.stringify({ text: spokenText, voice: state.voice, speakingRate: 1.1 }),
             });
-            if (auraRes.ok) {
-              const blob = await auraRes.blob();
-              const url = URL.createObjectURL(blob);
-              const audio = new Audio(url);
-              const auraMode = modeRef.current as VoiceMode;
-              if (auraMode !== 'off') {
+            if (gcpRes.ok) {
+              const gcpData = await gcpRes.json();
+              const gcpMode = modeRef.current as VoiceMode;
+              if (gcpData.audio && gcpMode !== 'off') {
+                const audio = new Audio(`data:audio/mp3;base64,${gcpData.audio}`);
                 audio.onended = () => {
-                  URL.revokeObjectURL(url);
                   setState(prev => ({ ...prev, isSpeaking: false }));
-                  if (modeRef.current === 'on') startCapture().catch(() => {});
+                  resumeListeningIfOn();
                 };
                 audio.onerror = () => {
-                  URL.revokeObjectURL(url);
                   setState(prev => ({ ...prev, isSpeaking: false }));
-                  if (modeRef.current === 'on') startCapture().catch(() => {});
+                  resumeListeningIfOn();
                 };
                 await audio.play();
                 played = true;
               }
             }
           } catch {
-            // Deepgram Aura unavailable, try Google Cloud TTS
-          }
-
-          // Fallback 2: Google Cloud TTS
-          if (!played) {
-            try {
-              const gcpRes = await apiFetch('/api/tts', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: spokenText, voice: state.voice, speakingRate: 1.1 }),
-              });
-              if (gcpRes.ok) {
-                const gcpData = await gcpRes.json();
-                const gcpMode = modeRef.current as VoiceMode;
-                if (gcpData.audio && gcpMode !== 'off') {
-                  const audio = new Audio(`data:audio/mp3;base64,${gcpData.audio}`);
-                  audio.onended = () => {
-                    setState(prev => ({ ...prev, isSpeaking: false }));
-                    if (modeRef.current === 'on') startCapture().catch(() => {});
-                  };
-                  audio.onerror = () => {
-                    setState(prev => ({ ...prev, isSpeaking: false }));
-                    if (modeRef.current === 'on') startCapture().catch(() => {});
-                  };
-                  await audio.play();
-                  played = true;
-                }
-              }
-            } catch {
-              // Both fallbacks failed
-            }
+            // Google Cloud TTS unavailable
           }
 
           if (!played) {
             setState(prev => ({ ...prev, isSpeaking: false }));
-            if (modeRef.current === 'on') {
-              await startCapture();
-            }
+            resumeListeningIfOn();
           }
         }
       } else {
@@ -316,12 +335,12 @@ export function useVoiceChat(
       if (modeRef.current === 'on') {
         try {
           await startCapture();
-        } catch (err) {
+        } catch {
           // ignored
         }
       }
     }
-  }, [onTranscript, getContext, getChatHistory, getSystemPrompt, getPageContext, state.voice, stopCapture, startCapture, clearSilenceTimer]);
+  }, [onTranscript, getContext, getChatHistory, getSystemPrompt, getPageContext, state.voice, stopCapture, startCapture, clearSilenceTimer, resumeListeningIfOn]);
 
   // --- Connect Deepgram with transcript handlers ---
 
@@ -376,43 +395,40 @@ export function useVoiceChat(
   // --- Play welcome TTS ---
 
   const playWelcome = useCallback(async () => {
-    if (!inworldRef.current || !playbackRef.current) return;
+    if (!playbackRef.current) return;
 
     try {
       setState(prev => ({ ...prev, isSpeaking: true }));
 
-      const welcomeText = inworldRef.current.prepareTextForTTS(
+      const welcomeText = prepareTextForTTS(
         WELCOME_MESSAGE,
         { confidence: 1.0, isGreeting: true }
       );
-      const audioData = await inworldRef.current.synthesize({ text: welcomeText });
+      const audioData = await synthesizeTTS(welcomeText);
 
       if (modeRef.current !== 'off') {
         await playbackRef.current.play(audioData, () => {
           setState(prev => ({ ...prev, isSpeaking: false }));
 
           // After welcome finishes, start listening if still ON
-          if (modeRef.current === 'on') {
-            startCapture().catch(() => {
-            });
-          }
+          resumeListeningIfOn();
         });
       } else {
         setState(prev => ({ ...prev, isSpeaking: false }));
       }
-    } catch (e) {
+    } catch {
       setState(prev => ({ ...prev, isSpeaking: false }));
 
       // Start listening anyway even if welcome TTS fails
       if (modeRef.current === 'on') {
         try {
           await startCapture();
-        } catch (err) {
+        } catch {
           // ignored
         }
       }
     }
-  }, [startCapture]);
+  }, [startCapture, resumeListeningIfOn]);
 
   // === Public API ===
 
@@ -504,11 +520,8 @@ export function useVoiceChat(
     setState(prev => ({ ...prev, isSpeaking: false }));
 
     // Resume listening after interruption if in ON mode
-    if (modeRef.current === 'on') {
-      startCapture().catch(() => {
-      });
-    }
-  }, [startCapture]);
+    resumeListeningIfOn();
+  }, [resumeListeningIfOn]);
 
   // Set voice
   const setVoice = useCallback((voice: TTSVoice) => {
