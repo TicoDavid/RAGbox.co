@@ -258,6 +258,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "audit_entries_user_id_idx" ON "audit_entries"("user_id")`)
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "audit_entries_action_idx" ON "audit_entries"("action")`)
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "audit_entries_created_at_idx" ON "audit_entries"("created_at")`)
+    // Add severity + user_agent columns (may already exist from Prisma migration)
+    await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "audit_entries" ADD COLUMN "severity" TEXT NOT NULL DEFAULT 'INFO'; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
+    await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "audit_entries" ADD COLUMN "user_agent" TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
     results.push('audit_entries: OK')
 
     await prisma.$executeRawUnsafe(`
