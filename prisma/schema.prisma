@@ -785,6 +785,27 @@ enum knowledge_event_status {
 }
 
 // ============================================
+// LLM Config (BYOLLM — Tenant-Scoped)
+// ============================================
+
+model LLMConfig {
+  id              String    @id @default(cuid())
+  tenantId        String    @unique @map("tenant_id")
+  provider        String    @default("openrouter")
+  apiKeyEncrypted String    @map("api_key_encrypted") @db.Text
+  baseUrl         String?   @map("base_url")
+  defaultModel    String?   @map("default_model")
+  policy          String    @default("choice")
+  lastTestedAt    DateTime? @map("last_tested_at")
+  lastTestResult  String?   @map("last_test_result")
+  lastTestLatency Int?      @map("last_test_latency")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("llm_configs")
+}
+
+// ============================================
 // Agent Email Credential (Per-Agent Gmail OAuth)
 // ============================================
 
