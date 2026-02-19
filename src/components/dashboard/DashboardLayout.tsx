@@ -48,12 +48,12 @@ function RecentFilesPanel() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="shrink-0 px-4 py-3 border-b border-white/5">
-        <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Recent Files</h3>
+      <div className="shrink-0 px-4 py-3 border-b border-[var(--border-subtle)]">
+        <h3 className="text-sm font-semibold text-[var(--text-primary)] uppercase tracking-wider">Recent Files</h3>
       </div>
       <div className="flex-1 overflow-y-auto p-2">
         {recentDocs.length === 0 ? (
-          <div className="p-4 text-center text-slate-500 text-sm">
+          <div className="p-4 text-center text-[var(--text-tertiary)] text-sm">
             No recent files
           </div>
         ) : (
@@ -62,7 +62,7 @@ function RecentFilesPanel() {
               <button
                 key={doc.id}
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-lg
-                         text-left text-sm text-slate-300 hover:bg-white/5 transition-colors"
+                         text-left text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]/50 transition-colors"
               >
                 <FileText className="w-4 h-4 text-[var(--brand-blue)] shrink-0" />
                 <span className="truncate">{doc.name}</span>
@@ -78,14 +78,14 @@ function RecentFilesPanel() {
 function StarredPanel() {
   return (
     <div className="h-full flex flex-col">
-      <div className="shrink-0 px-4 py-3 border-b border-white/5">
-        <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Starred</h3>
+      <div className="shrink-0 px-4 py-3 border-b border-[var(--border-subtle)]">
+        <h3 className="text-sm font-semibold text-[var(--text-primary)] uppercase tracking-wider">Starred</h3>
       </div>
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="text-center">
-          <Star className="w-12 h-12 text-amber-400/30 mx-auto mb-3" />
-          <p className="text-sm text-slate-500">No starred documents</p>
-          <p className="text-xs text-slate-600 mt-1">Star important files for quick access</p>
+          <Star className="w-12 h-12 text-[var(--warning)]/30 mx-auto mb-3" />
+          <p className="text-sm text-[var(--text-tertiary)]">No starred documents</p>
+          <p className="text-xs text-[var(--text-muted)] mt-1">Star important files for quick access</p>
         </div>
       </div>
     </div>
@@ -125,25 +125,25 @@ function AuditPanel() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="shrink-0 px-4 py-3 border-b border-white/5">
-        <h3 className="text-sm font-semibold text-white uppercase tracking-wider flex items-center gap-2">
-          <Shield className="w-4 h-4 text-emerald-400" />
+      <div className="shrink-0 px-4 py-3 border-b border-[var(--border-subtle)]">
+        <h3 className="text-sm font-semibold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
+          <Shield className="w-4 h-4 text-[var(--success)]" />
           Audit Log
         </h3>
       </div>
       <div className="flex-1 overflow-y-auto p-4">
         <div className="space-y-2">
           {entries.length === 0 ? (
-            <p className="text-sm text-slate-500 text-center py-4">No audit entries yet</p>
+            <p className="text-sm text-[var(--text-tertiary)] text-center py-4">No audit entries yet</p>
           ) : (
             entries.map((entry) => (
-              <div key={entry.id} className="p-3 rounded-lg bg-slate-900/50 border border-white/5">
+              <div key={entry.id} className="p-3 rounded-lg bg-[var(--bg-primary)]/50 border border-[var(--border-subtle)]">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-emerald-400">{formatAction(entry.action)}</span>
-                  <span className="text-[10px] text-slate-600">{formatTime(entry.createdAt)}</span>
+                  <span className="text-xs text-[var(--success)]">{formatAction(entry.action)}</span>
+                  <span className="text-[10px] text-[var(--text-muted)]">{formatTime(entry.createdAt)}</span>
                 </div>
                 {entry.resourceId && (
-                  <p className="text-xs text-slate-400 truncate">{entry.resourceId}</p>
+                  <p className="text-xs text-[var(--text-secondary)] truncate">{entry.resourceId}</p>
                 )}
               </div>
             ))
@@ -157,8 +157,8 @@ function AuditPanel() {
 function ExportPanel() {
   return (
     <div className="h-full flex flex-col">
-      <div className="shrink-0 px-4 py-3 border-b border-white/5">
-        <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Export</h3>
+      <div className="shrink-0 px-4 py-3 border-b border-[var(--border-subtle)]">
+        <h3 className="text-sm font-semibold text-[var(--text-primary)] uppercase tracking-wider">Export</h3>
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {[
@@ -170,13 +170,13 @@ function ExportPanel() {
             key={item.label}
             onClick={() => toast.info('Export coming soon')}
             className="w-full flex items-center gap-3 p-3 rounded-xl
-                     bg-[var(--bg-primary)]/50 border border-white/5 hover:border-blue-500/30
-                     hover:bg-blue-500/5 transition-all text-left"
+                     bg-[var(--bg-primary)]/50 border border-[var(--border-subtle)] hover:border-[var(--brand-blue)]/30
+                     hover:bg-[var(--brand-blue)]/5 transition-all text-left"
           >
-            <Download className="w-5 h-5 text-blue-400" />
+            <Download className="w-5 h-5 text-[var(--brand-blue)]" />
             <div>
-              <p className="text-sm font-medium text-white">{item.label}</p>
-              <p className="text-xs text-slate-500">{item.desc}</p>
+              <p className="text-sm font-medium text-[var(--text-primary)]">{item.label}</p>
+              <p className="text-xs text-[var(--text-tertiary)]">{item.desc}</p>
             </div>
           </button>
         ))}
@@ -219,7 +219,7 @@ function MobileOverlay({ isOpen, onClose, side, children }: MobileOverlayProps) 
             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
             className={`fixed top-0 bottom-0 z-50 w-[85vw] max-w-[400px]
               bg-[var(--bg-secondary)] shadow-2xl
-              ${side === 'left' ? 'left-0 border-r' : 'right-0 border-l'} border-white/10`}
+              ${side === 'left' ? 'left-0 border-r' : 'right-0 border-l'} border-[var(--border-default)]`}
           >
             {/* Close button */}
             <div className={`absolute top-3 z-10 ${side === 'left' ? 'right-3' : 'left-3'}`}>
@@ -227,7 +227,7 @@ function MobileOverlay({ isOpen, onClose, side, children }: MobileOverlayProps) 
                 onClick={onClose}
                 aria-label="Close panel"
                 className="w-9 h-9 flex items-center justify-center rounded-lg
-                           text-slate-400 hover:text-white hover:bg-white/10
+                           text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]
                            transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -256,18 +256,18 @@ interface MobileToolbarProps {
 function MobileToolbar({ onLeftOpen, onRightOpen }: MobileToolbarProps) {
   return (
     <div className="flex md:hidden items-center justify-between px-3 py-2
-                    bg-[var(--bg-secondary)] border-b border-white/5">
+                    bg-[var(--bg-secondary)] border-b border-[var(--border-subtle)]">
       <button
         onClick={onLeftOpen}
         aria-label="Open vault menu"
         className="w-10 h-10 flex items-center justify-center rounded-xl
-                   text-slate-400 hover:text-white hover:bg-white/10
+                   text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]
                    transition-colors"
       >
         <Menu className="w-5 h-5" />
       </button>
 
-      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+      <span className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">
         Mercury
       </span>
 
@@ -275,7 +275,7 @@ function MobileToolbar({ onLeftOpen, onRightOpen }: MobileToolbarProps) {
         onClick={onRightOpen}
         aria-label="Open tools menu"
         className="w-10 h-10 flex items-center justify-center rounded-xl
-                   text-slate-400 hover:text-white hover:bg-white/10
+                   text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]
                    transition-colors"
       >
         <Wrench className="w-5 h-5" />
@@ -510,7 +510,7 @@ export function DashboardLayout() {
                 initial={false}
                 animate={{ width: leftExpanded ? LEFT_PANEL_WIDTH : 0 }}
                 transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                className="overflow-hidden border-r border-white/5"
+                className="overflow-hidden border-r border-[var(--border-subtle)]"
               >
                 <div style={{ width: LEFT_PANEL_WIDTH }} className="h-full bg-[var(--bg-secondary)]">
                   {renderLeftContent()}
@@ -538,7 +538,7 @@ export function DashboardLayout() {
                 initial={false}
                 animate={{ width: rightExpanded ? RIGHT_PANEL_WIDTH : 0 }}
                 transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                className="overflow-hidden border-l border-white/5"
+                className="overflow-hidden border-l border-[var(--border-subtle)]"
               >
                 <div style={{ width: RIGHT_PANEL_WIDTH }} className="h-full bg-[var(--bg-secondary)]">
                   {renderRightContent()}
