@@ -507,6 +507,22 @@ describe('conversational catch-all patterns', () => {
     expect(result!.tool).toBe('search_documents')
     expect(result!.args.query).toBe('employment law')
   })
+
+  test('edge: "Hey Mercury, what files do we have?" → list_documents', () => {
+    const result = detectToolIntent('Hey Mercury, what files do we have?')
+    expect(result).not.toBeNull()
+    expect(result!.tool).toBe('list_documents')
+  })
+
+  test('edge: "I need to see all my documents please" → list_documents', () => {
+    const result = detectToolIntent('I need to see all my documents please')
+    expect(result).not.toBeNull()
+    expect(result!.tool).toBe('list_documents')
+  })
+
+  test('edge: "Tell me about the insurance policy" → null (RAG path)', () => {
+    expect(detectToolIntent('Tell me about the insurance policy')).toBeNull()
+  })
 })
 
 // ── RAG fallthrough (null) — should NOT match tool patterns ─

@@ -93,6 +93,8 @@ const TOOL_PATTERNS: PatternDef[] = [
     tool: 'list_documents', argMap: () => ({}) },
   { pattern: /(?:files?|documents?)\s+.*(?:work with|have|available)/i,
     tool: 'list_documents', argMap: () => ({}) },
+  { pattern: /(?:see|view)\s+(?:all\s+)?(?:my\s+)?(?:files?|documents?|docs?)/i,
+    tool: 'list_documents', argMap: () => ({}) },
 
   // Help command
   { pattern: /^\/help\s*$/i, tool: 'show_help', argMap: () => ({}) },
