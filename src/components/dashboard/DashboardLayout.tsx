@@ -16,11 +16,11 @@ import { WhatsAppPanel } from './whatsapp/WhatsAppPanel'
 import { useContentIntelligenceStore } from '@/stores/contentIntelligenceStore'
 import { useWhatsAppStore } from '@/stores/whatsappStore'
 import {
-  LeftStealthRail,
   RightStealthRail,
   type LeftRailTab,
   type RightRailTab,
 } from './StealthRails'
+import { Sidebar } from '@/components/Sidebar'
 import {
   Star,
   Shield,
@@ -456,35 +456,8 @@ export function DashboardLayout() {
         {/* LEFT SIDE: Rail + Panel (hidden on mobile) */}
         {/* ============================================ */}
         {isTablet && (
-          <div className="flex shrink-0">
-            {/* Icon Rail */}
-            <div style={{ width: RAIL_WIDTH }} className="shrink-0">
-              <LeftStealthRail
-                isExpanded={isDesktop && leftExpanded}
-                activeTab={isDesktop && leftExpanded ? leftTab : null}
-                onTabClick={handleLeftTabClick}
-                onAddClick={() => setIsIngestionOpen(true)}
-                onCollapse={() => {
-                  setLeftExpanded(false)
-                  setVaultCollapsed(true)
-                }}
-                onExpandVault={toggleExplorerMode}
-              />
-            </div>
-
-            {/* Expandable Panel (only on desktop) */}
-            {isDesktop && (
-              <motion.div
-                initial={false}
-                animate={{ width: leftExpanded ? LEFT_PANEL_WIDTH : 0 }}
-                transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                className="overflow-hidden border-r border-white/5"
-              >
-                <div style={{ width: LEFT_PANEL_WIDTH }} className="h-full bg-[var(--bg-secondary)]">
-                  {renderLeftContent()}
-                </div>
-              </motion.div>
-            )}
+          <div className="shrink-0">
+            <Sidebar />
           </div>
         )}
 
@@ -539,32 +512,7 @@ export function DashboardLayout() {
         onClose={() => setMobileLeftOpen(false)}
         side="left"
       >
-        <div className="flex h-full">
-          {/* Rail icons */}
-          <div style={{ width: RAIL_WIDTH }} className="shrink-0">
-            <LeftStealthRail
-              isExpanded={true}
-              activeTab={leftTab}
-              onTabClick={(tab) => {
-                setLeftTab(tab)
-              }}
-              onAddClick={() => {
-                setMobileLeftOpen(false)
-                setIsIngestionOpen(true)
-              }}
-              onCollapse={() => setMobileLeftOpen(false)}
-              onExpandVault={() => {
-                setMobileLeftOpen(false)
-                toggleExplorerMode()
-              }}
-            />
-          </div>
-
-          {/* Panel content */}
-          <div className="flex-1 min-w-0 bg-[var(--bg-secondary)]">
-            {renderLeftContent()}
-          </div>
-        </div>
+        <Sidebar />
       </MobileOverlay>
 
       {/* Right overlay: Tools navigation + panel content */}

@@ -89,7 +89,7 @@ export function Sidebar() {
   return (
     <motion.aside
       className={cn(
-        'h-screen w-64 flex flex-col',
+        'h-full w-64 flex flex-col',
         'border-r',
         'dark:bg-void dark:border-white/10',
         'bg-ceramic border-black/5'
