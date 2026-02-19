@@ -117,6 +117,7 @@ describe('mercuryStore', () => {
         privilegeMode: true,
         maxTier: 3,
         history: [],
+        personaId: 'cpo',
       })
     })
 

@@ -9,7 +9,7 @@ import { useIsDesktop, useIsTablet } from '@/hooks/useMediaQuery'
 import { GlobalHeader } from './GlobalHeader'
 import { VaultPanel } from './vault/VaultPanel'
 import { SovereignExplorer } from './vault/explorer'
-import { MercuryPanel } from './mercury/MercuryPanel'
+import { MercuryWindow } from './mercury/MercuryWindow'
 import { MercuryVoicePanel } from './mercury/MercuryVoicePanel'
 import { SovereignStudio } from './studio'
 import { toast } from 'sonner'
@@ -484,7 +484,7 @@ export function DashboardLayout() {
         {/* CENTER: Mercury (Chat) — always visible */}
         {/* ============================================ */}
         <div className="flex-1 min-w-0 overflow-hidden">
-          <MercuryPanel />
+          <MercuryWindow />
         </div>
 
         {/* ============================================ */}
