@@ -102,6 +102,9 @@ export interface NotificationSettings {
 // Intelligence tier types
 export type IntelligenceTier = 'native' | 'managed' | 'universe' | 'private'
 
+// LLM Policy — controls AEGIS vs Private LLM availability
+export type LlmPolicy = 'choice' | 'byollm_only' | 'aegis_only'
+
 export interface ActiveIntelligence {
   id: string           // e.g., 'aegis-core' or 'anthropic/claude-3.5-sonnet'
   displayName: string  // e.g., 'Aegis' or 'Claude 3.5 Sonnet'
@@ -119,6 +122,7 @@ interface SettingsState {
   voice: VoiceSettings
   subscription: SubscriptionInfo
   activeIntelligence: ActiveIntelligence
+  llmPolicy: LlmPolicy
 }
 
 // Context value
@@ -134,6 +138,7 @@ interface SettingsContextValue extends SettingsState {
   setConnectionModel: (connectionId: string, modelId: string) => void
   updateVoice: (updates: Partial<VoiceSettings>) => void
   setActiveIntelligence: (intel: ActiveIntelligence) => void
+  setLlmPolicy: (policy: LlmPolicy) => void
   isVerifying: string | null // ID of connection being verified
   hasVerifiedConnection: boolean // For UI badges like "Enhanced OCR"
   // Active model info for header display (legacy - use activeIntelligence instead)
@@ -169,6 +174,7 @@ const defaultSettings: SettingsState = {
     renewalDate: '2025-02-15',
   },
   activeIntelligence: AEGIS_DEFAULT,
+  llmPolicy: 'choice',
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null)
@@ -383,6 +389,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }))
   }, [])
 
+  const setLlmPolicy = useCallback((policy: LlmPolicy) => {
+    setSettings((prev) => ({ ...prev, llmPolicy: policy }))
+  }, [])
+
   // Check if any connection is verified (for UI badges)
   const hasVerifiedConnection = settings.connections.some((c) => c.verified)
 
@@ -407,6 +417,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     setConnectionModel,
     updateVoice,
     setActiveIntelligence,
+    setLlmPolicy,
     isVerifying,
     hasVerifiedConnection,
     activeModel,

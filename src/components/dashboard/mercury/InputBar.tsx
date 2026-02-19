@@ -18,6 +18,7 @@ import {
 import { VoiceTrigger } from './VoiceTrigger'
 import { PERSONAS } from './personaData'
 import { IntelligenceMatrix, IntelligenceBadge } from './IntelligenceMatrix'
+import { ChatModelPicker } from './ChatModelPicker'
 import { useSettings } from '@/contexts/SettingsContext'
 
 export { PERSONAS, type Persona, type PersonaCategory } from './personaData'
@@ -180,6 +181,8 @@ export function InputBar() {
           <IntelligenceBadge onClick={() => setIsMatrixOpen(true)} />
           <IntelligenceMatrix isOpen={isMatrixOpen} onClose={() => setIsMatrixOpen(false)} />
         </div>
+
+        <ChatModelPicker />
 
         <div className={`flex items-center gap-2 px-5 py-3.5 rounded-full bg-[#050505] transition-all duration-500 ease-out ${isAegisActive ? 'border border-amber-500/40 shadow-[0_0_40px_-10px_rgba(245,158,11,0.25),0_0_80px_-20px_rgba(245,158,11,0.10)] animate-[aegisBreathe_4s_ease-in-out_infinite]' : 'border border-amber-900/30 border-t-amber-800/40 shadow-2xl shadow-black/80 focus-within:border-amber-500/50 focus-within:shadow-[0_8px_32px_-8px_rgba(217,119,6,0.15)]'}`}>
           <div className="relative shrink-0">

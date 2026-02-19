@@ -19,6 +19,12 @@ export interface SessionAttachment {
   status: 'pending' | 'processing' | 'ready' | 'error'
 }
 
+// LLM selection for BYOLLM
+export interface SelectedLlm {
+  provider: 'aegis' | 'byollm'
+  model: string // e.g., 'aegis-core' or 'openai/gpt-4o'
+}
+
 // Persona/Lens for Neural Shift
 export type PersonaId = 'ceo' | 'cfo' | 'coo' | 'cpo' | 'cmo' | 'cto' | 'legal' | 'compliance' | 'auditor' | 'whistleblower'
 
@@ -41,6 +47,9 @@ interface MercuryState {
   activeSessionId: string | null
   sessionQueryCount: number
   sessionTopics: string[]
+
+  // BYOLLM selection
+  selectedLlm: SelectedLlm
 
   // Context
   temperaturePreset: TemperaturePreset
@@ -69,6 +78,9 @@ interface MercuryState {
   removeAttachment: (id: string) => void
   updateAttachment: (id: string, updates: Partial<SessionAttachment>) => void
   clearAttachments: () => void
+
+  // BYOLLM Actions
+  setSelectedLlm: (llm: SelectedLlm) => void
 
   // Neural Shift Actions
   setPersona: (persona: PersonaId) => void
@@ -117,6 +129,7 @@ export const useMercuryStore = create<MercuryState>()(
     streamingContent: '',
     abortController: null,
     attachments: [],
+    selectedLlm: { provider: 'aegis', model: 'aegis-core' },
     activePersona: 'cpo',
     isRefocusing: false,
     activeSessionId: null,
@@ -200,17 +213,25 @@ export const useMercuryStore = create<MercuryState>()(
           return
         }
 
+        // Build request body with optional BYOLLM routing
+        const { selectedLlm } = get()
+        const chatBody: Record<string, unknown> = {
+          query: inputValue,
+          stream: true,
+          useVectorPipeline: true,
+          privilegeMode,
+          maxTier: 3,
+          history: messages.map(m => ({ role: m.role, content: m.content })),
+        }
+        if (selectedLlm.provider === 'byollm') {
+          chatBody.llmProvider = 'byollm'
+          chatBody.llmModel = selectedLlm.model
+        }
+
         const res = await apiFetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            query: inputValue,
-            stream: true,
-            useVectorPipeline: true,
-            privilegeMode,
-            maxTier: 3,
-            history: messages.map(m => ({ role: m.role, content: m.content })),
-          }),
+          body: JSON.stringify(chatBody),
           signal: abortController.signal,
         })
 
@@ -433,6 +454,9 @@ export const useMercuryStore = create<MercuryState>()(
     },
 
     clearAttachments: () => set({ attachments: [] }),
+
+    // BYOLLM Actions
+    setSelectedLlm: (llm) => set({ selectedLlm: llm }),
 
     // Neural Shift Actions
     setPersona: (persona) => {

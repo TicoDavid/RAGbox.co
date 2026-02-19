@@ -415,7 +415,7 @@ export function useSovereignAgentVoice(
     wsUrl = process.env.NEXT_PUBLIC_VOICE_WS_URL
       || (typeof window !== 'undefined' && window.location.hostname === 'localhost'
         ? `ws://localhost:4000/agent/ws`
-        : 'wss://mercury-voice-4rvm4ohelq-uk.a.run.app/agent/ws'),
+        : 'wss://app.ragbox.co/agent/ws'),
     userId = 'anonymous',
     role = 'User',
     privilegeMode = false,

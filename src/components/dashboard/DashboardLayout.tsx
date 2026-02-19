@@ -14,6 +14,7 @@ import { MercuryVoicePanel } from './mercury/MercuryVoicePanel'
 import { SovereignStudio } from './studio'
 import { IntelligencePanel } from './intelligence'
 import { WhatsAppPanel } from './whatsapp/WhatsAppPanel'
+import { AIModelSettings } from './settings/AIModelSettings'
 import { useContentIntelligenceStore } from '@/stores/contentIntelligenceStore'
 import { useWhatsAppStore } from '@/stores/whatsappStore'
 import {
@@ -411,10 +412,10 @@ export function DashboardLayout() {
         break
       case 'settings':
         if (isMobile) {
-          setRightTab('studio')
+          setRightTab('aimodel')
           setMobileRightOpen(true)
         } else {
-          handleRightTabClick('studio')
+          handleRightTabClick('aimodel')
         }
         break
     }
@@ -424,7 +425,7 @@ export function DashboardLayout() {
   const sidebarActivePanel = useMemo(() => {
     if (pathname.startsWith('/dashboard/agents')) return null // agent uses pathname
     if (rightExpanded && rightTab === 'audit') return 'audit'
-    if (rightExpanded && rightTab === 'studio') return 'settings'
+    if (rightExpanded && (rightTab === 'studio' || rightTab === 'aimodel')) return 'settings'
     return 'box'
   }, [pathname, rightExpanded, rightTab])
 
@@ -476,6 +477,8 @@ export function DashboardLayout() {
         return <IntelligencePanel />
       case 'whatsapp':
         return <WhatsAppPanel />
+      case 'aimodel':
+        return <AIModelSettings />
       default:
         return null
     }
