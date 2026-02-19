@@ -215,11 +215,11 @@ func TestReflect_CritiqueHistory(t *testing.T) {
 
 func TestReflect_DefaultParameters(t *testing.T) {
 	svc := NewSelfRAGService(&mockGenerator{}, 0, -1)
-	if svc.maxIter != defaultMaxIterations {
-		t.Errorf("maxIter = %d, want %d", svc.maxIter, defaultMaxIterations)
+	if svc.maxIter != 1 {
+		t.Errorf("maxIter = %d, want 1 (defaultMaxIterations)", svc.maxIter)
 	}
-	if svc.threshold != defaultConfidenceThreshold {
-		t.Errorf("threshold = %f, want %f", svc.threshold, defaultConfidenceThreshold)
+	if svc.threshold != 0.60 {
+		t.Errorf("threshold = %f, want 0.60 (defaultConfidenceThreshold)", svc.threshold)
 	}
 }
 

@@ -13,7 +13,7 @@ func clearEnv(t *testing.T) {
 		"VERTEX_AI_MODEL", "VERTEX_AI_EMBEDDING_MODEL", "EMBEDDING_DIMENSIONS",
 		"GCS_BUCKET_NAME", "GCS_SIGNED_URL_EXPIRY", "DOCUMENT_AI_PROCESSOR_ID",
 		"DOCUMENT_AI_LOCATION", "BIGQUERY_DATASET", "BIGQUERY_TABLE",
-		"FIREBASE_PROJECT_ID", "FRONTEND_URL", "CONFIDENCE_THRESHOLD",
+		"FIREBASE_PROJECT_ID", "FRONTEND_URL", "SILENCE_THRESHOLD",
 		"SELF_RAG_MAX_ITERATIONS", "CHUNK_SIZE_TOKENS", "CHUNK_OVERLAP_PERCENT",
 		"PROMPTS_DIR", "DEFAULT_PERSONA", "KMS_KEY_RING", "KMS_KEY_NAME",
 		"INTERNAL_AUTH_SECRET",
@@ -63,11 +63,11 @@ func TestLoad_Defaults(t *testing.T) {
 	if cfg.Environment != "development" {
 		t.Errorf("Environment = %q, want %q", cfg.Environment, "development")
 	}
-	if cfg.ConfidenceThreshold != 0.85 {
-		t.Errorf("ConfidenceThreshold = %f, want 0.85", cfg.ConfidenceThreshold)
+	if cfg.ConfidenceThreshold != 0.60 {
+		t.Errorf("ConfidenceThreshold = %f, want 0.60", cfg.ConfidenceThreshold)
 	}
-	if cfg.SelfRAGMaxIter != 3 {
-		t.Errorf("SelfRAGMaxIter = %d, want 3", cfg.SelfRAGMaxIter)
+	if cfg.SelfRAGMaxIter != 1 {
+		t.Errorf("SelfRAGMaxIter = %d, want 1", cfg.SelfRAGMaxIter)
 	}
 	if cfg.ChunkSizeTokens != 768 {
 		t.Errorf("ChunkSizeTokens = %d, want 768", cfg.ChunkSizeTokens)
@@ -98,7 +98,7 @@ func TestLoad_CustomValues(t *testing.T) {
 	t.Setenv("PORT", "9090")
 	t.Setenv("ENVIRONMENT", "production")
 	t.Setenv("INTERNAL_AUTH_SECRET", "test-secret-for-production")
-	t.Setenv("CONFIDENCE_THRESHOLD", "0.90")
+	t.Setenv("SILENCE_THRESHOLD", "0.90")
 	t.Setenv("SELF_RAG_MAX_ITERATIONS", "5")
 	t.Setenv("FRONTEND_URL", "https://ragbox.co")
 
@@ -142,15 +142,15 @@ func TestLoad_InvalidIntFallsBack(t *testing.T) {
 func TestLoad_InvalidFloatFallsBack(t *testing.T) {
 	clearEnv(t)
 	setRequired(t)
-	t.Setenv("CONFIDENCE_THRESHOLD", "bad")
+	t.Setenv("SILENCE_THRESHOLD", "bad")
 
 	cfg, err := Load()
 	if err != nil {
 		t.Fatalf("Load() error: %v", err)
 	}
 
-	if cfg.ConfidenceThreshold != 0.85 {
-		t.Errorf("ConfidenceThreshold = %f, want 0.85 (fallback)", cfg.ConfidenceThreshold)
+	if cfg.ConfidenceThreshold != 0.60 {
+		t.Errorf("ConfidenceThreshold = %f, want 0.60 (fallback)", cfg.ConfidenceThreshold)
 	}
 }
 

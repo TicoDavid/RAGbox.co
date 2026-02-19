@@ -288,8 +288,10 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			return
 		}
 
-		// Step 4: Stream result
-		if result.SilenceTriggered {
+		// Step 4: Stream result — tiered by confidence
+		tier := service.ClassifyConfidence(result.FinalConfidence)
+
+		if tier == "silence" {
 			if deps.Metrics != nil {
 				deps.Metrics.IncrementSilenceTrigger()
 			}
@@ -327,6 +329,16 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			})
 			sendEvent(w, flusher, "confidence", string(confidenceJSON))
 
+			// Emit amber low-confidence flag for marginal answers (0.40-0.59)
+			if tier == "low_confidence" {
+				flag := service.BuildLowConfidenceFlag(result.FinalConfidence)
+				flagJSON, _ := json.Marshal(flag)
+				sendEvent(w, flusher, "low_confidence", string(flagJSON))
+				if deps.ContentGapSvc != nil {
+					go deps.ContentGapSvc.LogGap(context.Background(), userID, req.Query, result.FinalConfidence)
+				}
+			}
+
 			// Record query in learning session
 			if deps.SessionSvc != nil {
 				docIDs := make([]string, 0, len(retrieval.Chunks))
@@ -340,7 +352,7 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 		sendEvent(w, flusher, "done", `{}`)
 
 		// Auto-capture: store query + response in cortex for future context
-		if deps.CortexSvc != nil && !result.SilenceTriggered {
+		if deps.CortexSvc != nil && tier != "silence" {
 			go func() {
 				bgCtx, bgCancel := context.WithTimeout(context.Background(), 30*time.Second)
 				defer bgCancel()

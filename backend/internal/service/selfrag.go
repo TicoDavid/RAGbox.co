@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	defaultMaxIterations      = 3
-	defaultConfidenceThreshold = 0.85
+	defaultMaxIterations      = 1
+	defaultConfidenceThreshold = 0.60
 	citationRelevanceMin       = 0.7
 )
 

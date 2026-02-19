@@ -258,7 +258,7 @@ KMS_KEY_NAME=document-key
 
 # App
 NEXT_PUBLIC_APP_URL=https://ragbox.co
-CONFIDENCE_THRESHOLD=0.85
+SILENCE_THRESHOLD=0.60
 ```
 
 ## API Routes

@@ -56,3 +56,37 @@ func TestBuildSilenceResponse_NeverEmpty(t *testing.T) {
 		t.Errorf("protocol should always be SILENCE_PROTOCOL, got %q", resp.Protocol)
 	}
 }
+
+func TestClassifyConfidence_Normal(t *testing.T) {
+	for _, c := range []float64{0.60, 0.75, 0.90, 1.0} {
+		if tier := ClassifyConfidence(c); tier != "normal" {
+			t.Errorf("ClassifyConfidence(%f) = %q, want %q", c, tier, "normal")
+		}
+	}
+}
+
+func TestClassifyConfidence_LowConfidence(t *testing.T) {
+	for _, c := range []float64{0.40, 0.45, 0.50, 0.59} {
+		if tier := ClassifyConfidence(c); tier != "low_confidence" {
+			t.Errorf("ClassifyConfidence(%f) = %q, want %q", c, tier, "low_confidence")
+		}
+	}
+}
+
+func TestClassifyConfidence_Silence(t *testing.T) {
+	for _, c := range []float64{0.0, 0.10, 0.30, 0.39} {
+		if tier := ClassifyConfidence(c); tier != "silence" {
+			t.Errorf("ClassifyConfidence(%f) = %q, want %q", c, tier, "silence")
+		}
+	}
+}
+
+func TestBuildLowConfidenceFlag(t *testing.T) {
+	flag := BuildLowConfidenceFlag(0.48)
+	if flag.Confidence != 0.48 {
+		t.Errorf("Confidence = %f, want 0.48", flag.Confidence)
+	}
+	if flag.Warning == "" {
+		t.Error("expected non-empty warning")
+	}
+}
