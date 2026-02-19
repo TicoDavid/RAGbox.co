@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useVaultStore } from '@/stores/vaultStore'
@@ -428,6 +428,20 @@ export function DashboardLayout() {
     return 'box'
   }, [pathname, rightExpanded, rightTab])
 
+  // Auto-open panel from URL query param (e.g., /dashboard?panel=audit)
+  const didAutoOpenPanel = useRef(false)
+  useEffect(() => {
+    if (didAutoOpenPanel.current) return
+    const params = new URLSearchParams(window.location.search)
+    const panel = params.get('panel')
+    if (panel) {
+      didAutoOpenPanel.current = true
+      if (panel === 'audit') handleRightTabClick('audit')
+      else if (panel === 'settings') handleRightTabClick('studio')
+      window.history.replaceState({}, '', '/dashboard')
+    }
+  }, [handleRightTabClick])
+
   // Widths
   const RAIL_WIDTH = 64
   const LEFT_PANEL_WIDTH = 420
@@ -562,16 +576,24 @@ export function DashboardLayout() {
       {/* MOBILE OVERLAYS */}
       {/* ============================================ */}
 
-      {/* Left overlay: Sidebar navigation + panel content */}
+      {/* Left overlay: navigation + panel content */}
       <MobileOverlay
         isOpen={mobileLeftOpen}
         onClose={() => setMobileLeftOpen(false)}
         side="left"
       >
-        <Sidebar
-          onNavigate={handleSidebarNavigate}
-          activePanelId={sidebarActivePanel}
-        />
+        {isMobile ? (
+          /* Mobile: show Sidebar navigation (not visible inline) */
+          <Sidebar
+            onNavigate={handleSidebarNavigate}
+            activePanelId={sidebarActivePanel}
+          />
+        ) : (
+          /* Tablet: Sidebar is visible inline, show vault panel content */
+          <div className="h-full bg-[var(--bg-secondary)]">
+            {renderLeftContent()}
+          </div>
+        )}
       </MobileOverlay>
 
       {/* Right overlay: Tools navigation + panel content */}
