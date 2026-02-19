@@ -486,42 +486,28 @@ export function GlobalHeader() {
                   </div>
                 </div>
 
-                {/* Profile Switcher */}
+                {/* Menu Items */}
                 <div className="py-2">
-                  <div className="px-4 py-1.5 text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">
-                    Switch Profile
-                  </div>
-                  {PROFILES.map((profile) => (
-                    <button
-                      key={profile.id}
-                      onClick={() => handleProfileSwitch(profile.id)}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[var(--bg-elevated)]/30 transition-colors ${
-                        profile.id === activeProfile ? 'bg-[var(--bg-elevated)]/30' : ''
-                      }`}
-                    >
-                      <div className={`p-2 rounded-lg ${
-                        profile.type === 'work' ? 'bg-[var(--brand-blue)]/10 text-[var(--brand-blue)]' :
-                        profile.type === 'personal' ? 'bg-[var(--success)]/15 text-[var(--success)]' :
-                        'bg-[var(--text-accent)]/10 text-[var(--text-accent)]'
-                      }`}>
-                        {profile.icon}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium ${profile.id === activeProfile ? profile.color : 'text-[var(--text-secondary)]'}`}>
-                          {profile.name}
-                        </p>
-                      </div>
-                      {profile.id === activeProfile && (
-                        <Check className={`w-4 h-4 ${profile.color}`} />
-                      )}
-                    </button>
-                  ))}
+                  <button
+                    onClick={() => { setProfileMenuOpen(false); setSettingsOpen(true) }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]/30 transition-colors"
+                  >
+                    <User className="w-4 h-4" />
+                    <span className="text-sm">Profile</span>
+                  </button>
+                  <button
+                    onClick={() => { setProfileMenuOpen(false); setSettingsOpen(true) }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]/30 transition-colors"
+                  >
+                    <CreditCard className="w-4 h-4" />
+                    <span className="text-sm">Plan & Usage</span>
+                  </button>
                 </div>
 
                 {/* Divider */}
                 <div className="border-t border-[var(--border-subtle)]" />
 
-                {/* Quick Actions */}
+                {/* Sign Out */}
                 <div className="py-2">
                   <button
                     onClick={() => signOut()}
