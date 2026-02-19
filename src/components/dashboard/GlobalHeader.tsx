@@ -54,9 +54,9 @@ interface Profile {
 }
 
 const PROFILES: Profile[] = [
-  { id: 'work', name: 'Work Profile', type: 'work', icon: <Briefcase className="w-4 h-4" />, color: 'text-blue-400' },
+  { id: 'work', name: 'Work Profile', type: 'work', icon: <Briefcase className="w-4 h-4" />, color: 'text-[var(--brand-blue)]' },
   { id: 'personal', name: 'Personal Vault', type: 'personal', icon: <User className="w-4 h-4" />, color: 'text-[var(--success)]' },
-  { id: 'consultant', name: 'Consultant Mode', type: 'consultant', icon: <Users className="w-4 h-4" />, color: 'text-purple-400' },
+  { id: 'consultant', name: 'Consultant Mode', type: 'consultant', icon: <Users className="w-4 h-4" />, color: 'text-[var(--text-accent)]' },
 ]
 
 export function GlobalHeader() {
@@ -181,7 +181,7 @@ export function GlobalHeader() {
   return (
     <>
       <header
-        className={`shrink-0 relative flex items-center justify-between px-4 border-b border-[var(--border-default)] border-t border-t-white/10 bg-[var(--bg-secondary)] transition-opacity duration-300 ${
+        className={`shrink-0 relative flex items-center justify-between px-4 border-b border-[var(--border-default)] border-t border-t-[var(--border-default)] bg-[var(--bg-secondary)] transition-opacity duration-300 ${
           isSwitching ? 'opacity-50' : 'opacity-100'
         }`}
         style={{ height: 'var(--header-height)' }}
@@ -271,7 +271,7 @@ export function GlobalHeader() {
               className={`
                 flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300
                 ${isWhistleblowerMode
-                  ? 'bg-amber-900/30 border border-amber-500/50 text-[var(--warning)] hover:bg-amber-900/50 shadow-[0_0_15px_rgba(245,158,11,0.3)]'
+                  ? 'bg-[var(--warning)]/10 border border-[var(--warning)]/50 text-[var(--warning)] hover:bg-[var(--warning)]/20 shadow-[0_0_15px_rgba(245,158,11,0.3)]'
                   : 'bg-[var(--bg-elevated)]/30 border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]/50 hover:border-[var(--border-default)]'
                 }
               `}
@@ -360,7 +360,7 @@ export function GlobalHeader() {
                       className={`w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[var(--bg-elevated)]/30 transition-colors ${
                         isSelected
                           ? persona.isWhistleblower
-                            ? 'bg-amber-900/20'
+                            ? 'bg-[var(--warning)]/10'
                             : 'bg-[var(--brand-blue)]/10'
                           : ''
                       }`}
@@ -376,10 +376,10 @@ export function GlobalHeader() {
                             {persona.label}
                           </span>
                           {persona.isWhistleblower && (
-                            <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                            <AlertTriangle className="w-3.5 h-3.5 text-[var(--warning)]" />
                           )}
                         </div>
-                        <div className={`text-xs truncate ${persona.isWhistleblower ? 'text-amber-500/60' : 'text-[var(--text-tertiary)]'}`}>
+                        <div className={`text-xs truncate ${persona.isWhistleblower ? 'text-[var(--warning)]/60' : 'text-[var(--text-tertiary)]'}`}>
                           {persona.description}
                         </div>
                       </div>
@@ -401,7 +401,7 @@ export function GlobalHeader() {
               aria-pressed={privilegeMode}
               className={`p-2 rounded-md transition-all duration-300 ${
                 privilegeMode
-                  ? 'text-[var(--warning)] bg-amber-900/30 shadow-[0_0_15px_rgba(255,171,0,0.4)] animate-[pulse-glow_2s_ease-in-out_infinite]'
+                  ? 'text-[var(--warning)] bg-[var(--warning)]/10 shadow-[0_0_15px_rgba(255,171,0,0.4)] animate-[pulse-glow_2s_ease-in-out_infinite]'
                   : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
               }`}
             >
@@ -457,9 +457,9 @@ export function GlobalHeader() {
               }`}
             >
               <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-semibold transition-all ${
-                currentProfile.type === 'work' ? 'bg-blue-900/50 border-blue-500/50 text-blue-300' :
-                currentProfile.type === 'personal' ? 'bg-emerald-900/50 border-emerald-500/50 text-emerald-300' :
-                'bg-purple-900/50 border-purple-500/50 text-purple-300'
+                currentProfile.type === 'work' ? 'bg-[var(--brand-blue)]/15 border-[var(--brand-blue)]/50 text-[var(--brand-blue-hover)]' :
+                currentProfile.type === 'personal' ? 'bg-[var(--success)]/15 border-[var(--success)]/50 text-[var(--success)]' :
+                'bg-[var(--text-accent)]/15 border-[var(--text-accent)]/50 text-[var(--text-accent)]'
               }`}>
                 {userInitials}
               </div>
@@ -473,9 +473,9 @@ export function GlobalHeader() {
                 <div className="px-4 py-3 border-b border-[var(--border-subtle)]">
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-sm font-semibold ${
-                      currentProfile.type === 'work' ? 'bg-blue-900/50 border-blue-500/50 text-blue-300' :
-                      currentProfile.type === 'personal' ? 'bg-emerald-900/50 border-emerald-500/50 text-emerald-300' :
-                      'bg-purple-900/50 border-purple-500/50 text-purple-300'
+                      currentProfile.type === 'work' ? 'bg-[var(--brand-blue)]/15 border-[var(--brand-blue)]/50 text-[var(--brand-blue-hover)]' :
+                      currentProfile.type === 'personal' ? 'bg-[var(--success)]/15 border-[var(--success)]/50 text-[var(--success)]' :
+                      'bg-[var(--text-accent)]/15 border-[var(--text-accent)]/50 text-[var(--text-accent)]'
                     }`}>
                       {userInitials}
                     </div>
@@ -500,9 +500,9 @@ export function GlobalHeader() {
                       }`}
                     >
                       <div className={`p-2 rounded-lg ${
-                        profile.type === 'work' ? 'bg-blue-900/30 text-blue-400' :
+                        profile.type === 'work' ? 'bg-[var(--brand-blue)]/10 text-[var(--brand-blue)]' :
                         profile.type === 'personal' ? 'bg-[var(--success)]/15 text-[var(--success)]' :
-                        'bg-purple-900/30 text-purple-400'
+                        'bg-[var(--text-accent)]/10 text-[var(--text-accent)]'
                       }`}>
                         {profile.icon}
                       </div>
@@ -733,7 +733,7 @@ function ProfileSettings() {
             <p className="text-lg font-semibold text-[var(--text-primary)]">{session?.user?.name || 'Sovereign User'}</p>
             <p className="text-sm text-[var(--text-secondary)]">{session?.user?.email || 'user@example.com'}</p>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-[10px] px-2 py-0.5 bg-amber-500/20 text-[var(--warning)] rounded-full font-medium">
+              <span className="text-[10px] px-2 py-0.5 bg-[var(--warning)]/20 text-[var(--warning)] rounded-full font-medium">
                 ADMINISTRATOR
               </span>
             </div>
@@ -839,7 +839,7 @@ function BillingSettings() {
           </div>
           <div className="h-2 bg-[var(--bg-tertiary)]rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all"
+              className="h-full bg-gradient-to-r from-[var(--brand-blue)] to-[var(--brand-blue-dim)] rounded-full transition-all"
               style={{ width: `${Math.min(usagePercent, 100)}%` }}
             />
           </div>
@@ -1021,7 +1021,7 @@ function SecuritySettings() {
               <p className="text-sm font-medium text-[var(--text-secondary)]">MacBook Pro</p>
               <p className="text-xs text-[var(--text-tertiary)]">macOS · Safari · Last active yesterday</p>
             </div>
-            <button className="text-xs text-[var(--danger)] hover:text-red-300 transition-colors" aria-label="Revoke session">
+            <button className="text-xs text-[var(--danger)] hover:text-[var(--danger)] transition-colors" aria-label="Revoke session">
               Revoke
             </button>
           </div>
@@ -1244,8 +1244,8 @@ function ActiveModelBadge() {
     <div className={`
       flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-colors
       ${isNative
-        ? 'bg-gradient-to-r from-amber-900/30 to-orange-900/30 border border-amber-500/30'
-        : 'bg-gradient-to-r from-cyan-900/30 to-blue-900/30 border border-[var(--brand-blue)]/30'
+        ? 'bg-gradient-to-r from-[var(--warning)]/10 to-[var(--warning)]/5 border border-[var(--warning)]/30'
+        : 'bg-gradient-to-r from-[var(--brand-blue)]/10 to-[var(--brand-blue-dim)]/10 border border-[var(--brand-blue)]/30'
       }
     `}>
       {isNative ? (
@@ -1524,7 +1524,7 @@ function APIKeysSettings() {
                           {conn.type === 'openrouter' ? `${conn.availableModels?.length || 0} models` : 'Verified'}
                         </span>
                       ) : (
-                        <span className="text-xs px-2 py-0.5 bg-amber-900/30 text-[var(--warning)] rounded-full">Unverified</span>
+                        <span className="text-xs px-2 py-0.5 bg-[var(--warning)]/10 text-[var(--warning)] rounded-full">Unverified</span>
                       )}
                     </div>
                     <p className="text-xs text-[var(--text-tertiary)] truncate">{truncateUrl(conn.endpoint)}</p>
