@@ -470,7 +470,7 @@ Handler (HTTP) → Service (Business Logic) → Repository (Database)
 | Cloud Run | `mercury-voice` service |
 | Timeout | 3600s (WebSocket long-lived) |
 | Session affinity | Enabled |
-| Production URL | `wss://mercury-voice-4rvm4ohelq-uk.a.run.app/agent/ws` |
+| Production URL | `wss://app.ragbox.co/agent/ws` |
 
 **Components:**
 - `RAGboxNode` — Custom graph node: tool detection + Go backend `/api/chat` SSE + markdown stripping
@@ -932,7 +932,7 @@ Referrer-Policy: strict-origin-when-cross-origin
 |---------|-----|
 | Frontend | `https://ragbox-app-4rvm4ohelq-uk.a.run.app` |
 | Backend | `https://ragbox-backend-100739220279.us-east4.run.app` |
-| Voice WS | `wss://mercury-voice-4rvm4ohelq-uk.a.run.app/agent/ws` |
+| Voice WS | `wss://app.ragbox.co/agent/ws` |
 
 ### Recent Bug Fixes (Feb 17)
 

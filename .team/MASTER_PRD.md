@@ -557,7 +557,7 @@ curl -s https://ragbox-app-4rvm4ohelq-uk.a.run.app/api/health
 |---------|-----|
 | Frontend | https://ragbox-app-4rvm4ohelq-uk.a.run.app |
 | Backend | https://ragbox-backend-100739220279.us-east4.run.app |
-| Voice WS | wss://mercury-voice-4rvm4ohelq-uk.a.run.app/agent/ws |
+| Voice WS | wss://app.ragbox.co/agent/ws |
 | Custom Domain | ragbox.co (NOT YET MAPPED) |
 
 ---
