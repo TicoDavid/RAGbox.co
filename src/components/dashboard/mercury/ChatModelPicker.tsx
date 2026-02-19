@@ -68,10 +68,10 @@ export function ChatModelPicker() {
 
   return (
     <div className="flex items-center justify-center mb-2">
-      <div className="inline-flex items-center rounded-full bg-[var(--bg-primary)]/80 border border-white/10 p-0.5 relative">
+      <div className="inline-flex items-center rounded-full bg-[var(--bg-primary)]/80 border border-[var(--border-default)] p-0.5 relative">
         {/* Sliding background */}
         <motion.div
-          className="absolute top-0.5 bottom-0.5 rounded-full bg-white/10"
+          className="absolute top-0.5 bottom-0.5 rounded-full bg-[var(--bg-elevated)]"
           animate={{ left: isAegis ? '2px' : '50%', width: '50%' }}
           transition={{ type: 'spring', stiffness: 400, damping: 30 }}
           style={{ marginLeft: isAegis ? 0 : '-2px', marginRight: isAegis ? '-2px' : 0 }}
@@ -81,7 +81,7 @@ export function ChatModelPicker() {
         <button
           onClick={() => handleToggle(true)}
           className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors
-            ${isAegis ? 'text-amber-400' : 'text-slate-500 hover:text-slate-300'}`}
+            ${isAegis ? 'text-[var(--warning)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'}`}
         >
           <ShieldCheck className="w-3.5 h-3.5" />
           AEGIS
@@ -91,11 +91,11 @@ export function ChatModelPicker() {
         <button
           onClick={() => handleToggle(false)}
           className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors
-            ${!isAegis ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
+            ${!isAegis ? 'text-[var(--brand-blue)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'}`}
         >
           <Key className="w-3.5 h-3.5" />
           <span className="max-w-[100px] truncate">{modelName}</span>
-          <span className="text-[9px] text-slate-600 uppercase">{providerLabel}</span>
+          <span className="text-[9px] text-[var(--text-muted)] uppercase">{providerLabel}</span>
         </button>
       </div>
     </div>
