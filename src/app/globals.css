@@ -54,6 +54,19 @@
     box-shadow: 0 0 50px rgba(37, 99, 235, 0.6);
   }
 
+  /* Rail icon glow — shared by left + right rails */
+  .rail-icon-glow {
+    transition: box-shadow 0.2s ease, filter 0.2s ease;
+  }
+  .rail-icon-glow:hover,
+  .rail-icon-glow.rail-active {
+    box-shadow: 0 0 20px rgba(var(--brand-blue-rgb), 0.4);
+  }
+  .rail-icon-glow:hover svg,
+  .rail-icon-glow.rail-active svg {
+    filter: drop-shadow(0 0 6px rgba(var(--brand-blue-rgb), 0.6));
+  }
+
   /* Privilege glow */
   .privilege-glow {
     box-shadow: 0 0 20px rgba(220, 38, 38, 0.4);

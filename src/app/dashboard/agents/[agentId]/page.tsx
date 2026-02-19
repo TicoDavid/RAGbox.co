@@ -623,6 +623,15 @@ export default function AgentPage() {
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]">
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
+        {/* Back button */}
+        <button
+          onClick={() => router.back()}
+          className="inline-flex items-center gap-2 mb-4 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </button>
+
         {/* TOP — Agent Identity Card */}
         <AgentIdentityCard persona={persona} />
 

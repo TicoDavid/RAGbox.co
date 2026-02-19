@@ -8,6 +8,7 @@
   --brand-blue: #2463EB;
   --brand-blue-hover: #60A5FA;
   --brand-blue-dim: #1d4ed8;
+  --brand-blue-rgb: 36, 99, 235;
 
   /* ===== Status Colors ===== */
   --success: #10b981;
@@ -99,6 +100,7 @@
 
   --brand-blue: #2463EB;
   --brand-blue-hover: #60A5FA;
+  --brand-blue-rgb: 36, 99, 235;
 
   --text-accent: var(--brand-blue);
   --text-success: var(--success);
@@ -127,6 +129,7 @@
 
   --brand-blue: #00F0FF;
   --brand-blue-hover: #00D4E0;
+  --brand-blue-rgb: 0, 240, 255;
 
   --privilege-color: #FF3D00;
   --privilege-confidential: #FF3D00;
@@ -160,6 +163,7 @@
 
   --brand-blue: #10b981;
   --brand-blue-hover: #34d399;
+  --brand-blue-rgb: 16, 185, 129;
 
   --privilege-color: #fbbf24;
   --privilege-confidential: #fbbf24;
@@ -198,6 +202,7 @@
   --brand-blue: #D97706;
   --brand-blue-hover: #F59E0B;
   --brand-blue-dim: #B45309;
+  --brand-blue-rgb: 217, 119, 6;
 
   /* Privilege accents */
   --privilege-color: #FBBF24;

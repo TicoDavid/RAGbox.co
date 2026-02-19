@@ -25,22 +25,13 @@ export function Sidebar({ onNavigate, activePanelId }: SidebarProps) {
       role="navigation"
       aria-label="Main navigation"
     >
-      {/* Logo */}
-      <div className="flex items-center justify-center py-4">
-        <img
-          src="https://storage.googleapis.com/connexusai-assets/BabyBlue_RAGb%C3%B6x.png"
-          alt="RAGbox"
-          className="w-8 h-8 object-contain"
-        />
-      </div>
-
       {/* Icon Stack */}
-      <nav className="flex-1 flex flex-col items-center gap-2 py-2">
+      <nav className="flex-1 flex flex-col items-center gap-2 py-4">
         {navItems.map((item) => {
           const Icon = item.icon
           const active = activePanelId === item.id
           return (
-            <div key={item.id} className="relative group">
+            <div key={item.id} className={`relative group rail-icon-glow rounded-xl ${active ? 'rail-active' : ''}`}>
               <button
                 onClick={() => onNavigate?.(item.id)}
                 aria-label={item.label}
@@ -48,15 +39,15 @@ export function Sidebar({ onNavigate, activePanelId }: SidebarProps) {
                   relative w-11 h-11 flex items-center justify-center rounded-xl
                   transition-all duration-200
                   ${active
-                    ? 'bg-[var(--brand-blue)]/15 text-[var(--brand-blue)] shadow-[0_0_20px_rgba(36,99,235,0.4)]'
+                    ? 'bg-[var(--brand-blue)]/15 text-[var(--brand-blue)]'
                     : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]/50'
                   }
                 `}
               >
                 {active && (
-                  <div className="absolute top-1 bottom-1 left-0 w-0.5 bg-[var(--brand-blue)] rounded-full shadow-[0_0_8px_rgba(36,99,235,0.8)]" />
+                  <div className="absolute top-1 bottom-1 left-0 w-0.5 bg-[var(--brand-blue)] rounded-full" />
                 )}
-                <Icon className={`w-5 h-5 ${active ? 'drop-shadow-[0_0_6px_rgba(36,99,235,0.6)]' : ''}`} />
+                <Icon className="w-5 h-5" />
               </button>
 
               {/* Tooltip — right side */}

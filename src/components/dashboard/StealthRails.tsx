@@ -14,9 +14,6 @@ import {
   ChevronRight,
   Mic,
   Maximize2,
-  Lightbulb,
-  MessageCircle,
-  UserCircle,
 } from 'lucide-react'
 
 // ============================================================================
@@ -24,7 +21,7 @@ import {
 // ============================================================================
 
 export type LeftRailTab = 'vault' | 'recent' | 'starred'
-export type RightRailTab = 'mercury' | 'studio' | 'audit' | 'export' | 'intelligence' | 'whatsapp' | 'agent'
+export type RightRailTab = 'mercury' | 'studio' | 'audit' | 'export'
 
 interface RailIconProps {
   icon: React.ElementType
@@ -41,7 +38,7 @@ interface RailIconProps {
 
 function RailIcon({ icon: Icon, label, isActive, onClick, side, badge }: RailIconProps) {
   return (
-    <div className="relative group">
+    <div className={`relative group rail-icon-glow rounded-xl ${isActive ? 'rail-active' : ''}`}>
       <button
         onClick={onClick}
         aria-label={label}
@@ -49,7 +46,7 @@ function RailIcon({ icon: Icon, label, isActive, onClick, side, badge }: RailIco
           relative w-11 h-11 flex items-center justify-center rounded-xl
           transition-all duration-200
           ${isActive
-            ? 'bg-[var(--brand-blue)]/15 text-[var(--brand-blue)] shadow-[0_0_20px_rgba(36,99,235,0.4)]'
+            ? 'bg-[var(--brand-blue)]/15 text-[var(--brand-blue)]'
             : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]/50'
           }
         `}
@@ -57,12 +54,12 @@ function RailIcon({ icon: Icon, label, isActive, onClick, side, badge }: RailIco
         {/* Power Line indicator - active state */}
         {isActive && (
           <div
-            className={`absolute top-1 bottom-1 w-0.5 bg-[var(--brand-blue)] rounded-full shadow-[0_0_8px_rgba(36,99,235,0.8)]
+            className={`absolute top-1 bottom-1 w-0.5 bg-[var(--brand-blue)] rounded-full
               ${side === 'left' ? 'left-0' : 'right-0'}
             `}
           />
         )}
-        <Icon className={`w-5 h-5 ${isActive ? 'drop-shadow-[0_0_6px_rgba(36,99,235,0.6)]' : ''}`} />
+        <Icon className="w-5 h-5" />
         {badge != null && badge > 0 && (
           <span className="absolute -top-1 -right-1 min-w-[16px] h-4 flex items-center justify-center bg-[var(--danger)] text-[var(--text-primary)] text-[10px] font-bold rounded-full px-1">
             {badge > 99 ? '99+' : badge}
@@ -222,8 +219,6 @@ interface RightRailProps {
   activeTab: RightRailTab | null
   onTabClick: (tab: RightRailTab) => void
   onCollapse: () => void
-  intelligenceBadge?: number
-  whatsappBadge?: number
 }
 
 export function RightStealthRail({
@@ -231,8 +226,6 @@ export function RightStealthRail({
   activeTab,
   onTabClick,
   onCollapse,
-  intelligenceBadge,
-  whatsappBadge,
 }: RightRailProps) {
   return (
     <div className="h-full flex flex-col bg-[var(--bg-primary)] border-l border-[var(--border-default)]" role="navigation" aria-label="Tools navigation">
@@ -256,15 +249,6 @@ export function RightStealthRail({
           side="right"
         />
 
-        {/* My Agent */}
-        <RailIcon
-          icon={UserCircle}
-          label="My Agent"
-          isActive={isExpanded && activeTab === 'agent'}
-          onClick={() => onTabClick('agent')}
-          side="right"
-        />
-
         {/* Truth & Audit */}
         <RailIcon
           icon={Scale}
@@ -281,26 +265,6 @@ export function RightStealthRail({
           isActive={isExpanded && activeTab === 'export'}
           onClick={() => onTabClick('export')}
           side="right"
-        />
-
-        {/* Intelligence */}
-        <RailIcon
-          icon={Lightbulb}
-          label="Intelligence"
-          isActive={isExpanded && activeTab === 'intelligence'}
-          onClick={() => onTabClick('intelligence')}
-          side="right"
-          badge={intelligenceBadge}
-        />
-
-        {/* WhatsApp */}
-        <RailIcon
-          icon={MessageCircle}
-          label="WhatsApp"
-          isActive={isExpanded && activeTab === 'whatsapp'}
-          onClick={() => onTabClick('whatsapp')}
-          side="right"
-          badge={whatsappBadge}
         />
       </div>
 
