@@ -24,12 +24,13 @@ func NewSessionRepo(pool *pgxpool.Pool) *SessionRepo {
 func (r *SessionRepo) Create(ctx context.Context, session *model.LearningSession) error {
 	now := time.Now().UTC()
 	err := r.pool.QueryRow(ctx, `
-		INSERT INTO learning_sessions (id, user_id, vault_id, status, topics_covered, documents_queried, query_count, total_duration_ms, created_at, updated_at)
-		VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9)
+		INSERT INTO learning_sessions (id, user_id, vault_id, status, topics_covered, documents_queried, query_count, total_duration_ms, last_provider, last_model_used, created_at, updated_at)
+		VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		RETURNING id, created_at`,
 		session.UserID, session.VaultID, string(session.Status),
 		session.TopicsCovered, session.DocumentsQueried,
-		session.QueryCount, session.TotalDurationMs, now, now,
+		session.QueryCount, session.TotalDurationMs,
+		session.LastProvider, session.LastModelUsed, now, now,
 	).Scan(&session.ID, &session.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("repository.Session.Create: %w", err)
@@ -42,10 +43,10 @@ func (r *SessionRepo) GetByID(ctx context.Context, id string) (*model.LearningSe
 	s := &model.LearningSession{}
 	var statusStr string
 	err := r.pool.QueryRow(ctx, `
-		SELECT id, user_id, vault_id, status, topics_covered, documents_queried, query_count, total_duration_ms, created_at, updated_at
+		SELECT id, user_id, vault_id, status, topics_covered, documents_queried, query_count, total_duration_ms, last_provider, last_model_used, created_at, updated_at
 		FROM learning_sessions WHERE id = $1`, id,
 	).Scan(&s.ID, &s.UserID, &s.VaultID, &statusStr, &s.TopicsCovered, &s.DocumentsQueried,
-		&s.QueryCount, &s.TotalDurationMs, &s.CreatedAt, &s.UpdatedAt)
+		&s.QueryCount, &s.TotalDurationMs, &s.LastProvider, &s.LastModelUsed, &s.CreatedAt, &s.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("repository.Session.GetByID: %w", err)
 	}
@@ -57,11 +58,11 @@ func (r *SessionRepo) GetActive(ctx context.Context, userID string) (*model.Lear
 	s := &model.LearningSession{}
 	var statusStr string
 	err := r.pool.QueryRow(ctx, `
-		SELECT id, user_id, vault_id, status, topics_covered, documents_queried, query_count, total_duration_ms, created_at, updated_at
+		SELECT id, user_id, vault_id, status, topics_covered, documents_queried, query_count, total_duration_ms, last_provider, last_model_used, created_at, updated_at
 		FROM learning_sessions WHERE user_id = $1 AND status = 'active'
 		ORDER BY created_at DESC LIMIT 1`, userID,
 	).Scan(&s.ID, &s.UserID, &s.VaultID, &statusStr, &s.TopicsCovered, &s.DocumentsQueried,
-		&s.QueryCount, &s.TotalDurationMs, &s.CreatedAt, &s.UpdatedAt)
+		&s.QueryCount, &s.TotalDurationMs, &s.LastProvider, &s.LastModelUsed, &s.CreatedAt, &s.UpdatedAt)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, nil
@@ -76,10 +77,10 @@ func (r *SessionRepo) Update(ctx context.Context, session *model.LearningSession
 	now := time.Now().UTC()
 	_, err := r.pool.Exec(ctx, `
 		UPDATE learning_sessions
-		SET status = $1, topics_covered = $2, documents_queried = $3, query_count = $4, total_duration_ms = $5, updated_at = $6
-		WHERE id = $7`,
+		SET status = $1, topics_covered = $2, documents_queried = $3, query_count = $4, total_duration_ms = $5, last_provider = $6, last_model_used = $7, updated_at = $8
+		WHERE id = $9`,
 		string(session.Status), session.TopicsCovered, session.DocumentsQueried,
-		session.QueryCount, session.TotalDurationMs, now, session.ID,
+		session.QueryCount, session.TotalDurationMs, session.LastProvider, session.LastModelUsed, now, session.ID,
 	)
 	if err != nil {
 		return fmt.Errorf("repository.Session.Update: %w", err)

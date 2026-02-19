@@ -56,7 +56,7 @@ func (s *SessionService) GetOrCreateActive(ctx context.Context, userID, vaultID 
 }
 
 // RecordQuery updates the active session with data from a completed query.
-func (s *SessionService) RecordQuery(ctx context.Context, userID, query string, documentIDs []string, durationMs int64) error {
+func (s *SessionService) RecordQuery(ctx context.Context, userID, query string, documentIDs []string, durationMs int64, provider, modelUsed string) error {
 	active, err := s.repo.GetActive(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("session.RecordQuery: get active: %w", err)
@@ -80,6 +80,10 @@ func (s *SessionService) RecordQuery(ctx context.Context, userID, query string, 
 	existingDocs := decodeStringSlice(active.DocumentsQueried)
 	existingDocs = appendUnique(existingDocs, documentIDs)
 	active.DocumentsQueried, _ = json.Marshal(existingDocs)
+
+	// Track which provider/model served the most recent query
+	active.LastProvider = provider
+	active.LastModelUsed = modelUsed
 
 	if err := s.repo.Update(ctx, active); err != nil {
 		return fmt.Errorf("session.RecordQuery: update: %w", err)

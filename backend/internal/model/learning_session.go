@@ -23,6 +23,8 @@ type LearningSession struct {
 	DocumentsQueried json.RawMessage `json:"documentsQueried"`
 	QueryCount       int             `json:"queryCount"`
 	TotalDurationMs  int64           `json:"totalDurationMs"`
+	LastProvider     string          `json:"lastProvider"`
+	LastModelUsed    string          `json:"lastModelUsed"`
 	CreatedAt        time.Time       `json:"createdAt"`
 	UpdatedAt        time.Time       `json:"updatedAt"`
 }

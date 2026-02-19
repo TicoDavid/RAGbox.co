@@ -333,7 +333,7 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 				for _, c := range retrieval.Chunks {
 					docIDs = append(docIDs, c.Document.ID)
 				}
-				go deps.SessionSvc.RecordQuery(context.Background(), userID, req.Query, docIDs, time.Since(startTime).Milliseconds())
+				go deps.SessionSvc.RecordQuery(context.Background(), userID, req.Query, docIDs, time.Since(startTime).Milliseconds(), providerName, initial.ModelUsed)
 			}
 		}
 

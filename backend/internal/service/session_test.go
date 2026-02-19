@@ -108,7 +108,7 @@ func TestSessionService_RecordQuery(t *testing.T) {
 	repo := &mockSessionRepo{active: existing}
 	svc := NewSessionService(repo)
 
-	err := svc.RecordQuery(context.Background(), "user-1", "What about compliance regulations?", []string{"doc-1", "doc-2"}, 500)
+	err := svc.RecordQuery(context.Background(), "user-1", "What about compliance regulations?", []string{"doc-1", "doc-2"}, 500, "openrouter", "openai/gpt-4o")
 	if err != nil {
 		t.Fatalf("RecordQuery() error: %v", err)
 	}
@@ -118,6 +118,14 @@ func TestSessionService_RecordQuery(t *testing.T) {
 	}
 	if existing.TotalDurationMs != 1500 {
 		t.Errorf("TotalDurationMs = %d, want 1500", existing.TotalDurationMs)
+	}
+
+	// Check provider/model recorded
+	if existing.LastProvider != "openrouter" {
+		t.Errorf("LastProvider = %q, want %q", existing.LastProvider, "openrouter")
+	}
+	if existing.LastModelUsed != "openai/gpt-4o" {
+		t.Errorf("LastModelUsed = %q, want %q", existing.LastModelUsed, "openai/gpt-4o")
 	}
 
 	// Check topics were appended (deduplicated)
@@ -140,7 +148,7 @@ func TestSessionService_RecordQuery_NoActiveSession(t *testing.T) {
 	svc := NewSessionService(repo)
 
 	// Should not error when no active session exists
-	err := svc.RecordQuery(context.Background(), "user-1", "test query", []string{"doc-1"}, 100)
+	err := svc.RecordQuery(context.Background(), "user-1", "test query", []string{"doc-1"}, 100, "aegis", "gemini-1.5-pro")
 	if err != nil {
 		t.Fatalf("RecordQuery() should not error with no active session: %v", err)
 	}
