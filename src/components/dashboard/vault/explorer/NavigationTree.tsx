@@ -35,7 +35,7 @@ function TreeNode({ name, depth, isExpanded, isSelected, hasChildren, onToggle, 
       className={`flex items-center gap-1 px-2 py-1.5 cursor-pointer rounded-md transition-all ${
         isSelected
           ? 'bg-[var(--brand-blue)]/20 border-l-2 border-[var(--brand-blue)]'
-          : 'hover:bg-white/5'
+          : 'hover:bg-[var(--bg-elevated)]/50'
       }`}
       style={{ paddingLeft: `${depth * 16 + 8}px` }}
       onClick={onSelect}
@@ -43,23 +43,23 @@ function TreeNode({ name, depth, isExpanded, isSelected, hasChildren, onToggle, 
       {hasChildren ? (
         <button
           onClick={(e) => { e.stopPropagation(); onToggle() }}
-          className="p-0.5 hover:bg-white/10 rounded"
+          className="p-0.5 hover:bg-[var(--bg-elevated)] rounded"
         >
           {isExpanded ? (
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+            <ChevronDown className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
           ) : (
-            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+            <ChevronRight className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
           )}
         </button>
       ) : (
         <div className="w-4" />
       )}
       {isExpanded ? (
-        <FolderOpen className="w-4 h-4 text-amber-400 shrink-0" />
+        <FolderOpen className="w-4 h-4 text-[var(--warning)] shrink-0" />
       ) : (
-        <Folder className="w-4 h-4 text-amber-400 shrink-0" />
+        <Folder className="w-4 h-4 text-[var(--warning)] shrink-0" />
       )}
-      <span className={`text-sm truncate ${isSelected ? 'text-white font-medium' : 'text-slate-300'}`}>
+      <span className={`text-sm truncate ${isSelected ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-secondary)]'}`}>
         {name}
       </span>
     </div>
@@ -85,7 +85,7 @@ function TreeSection({
     <div className="mb-2">
       <button
         onClick={onToggle}
-        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider hover:text-white transition-colors"
+        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-[var(--text-tertiary)] uppercase tracking-wider hover:text-[var(--text-primary)] transition-colors"
       >
         <motion.span animate={{ rotate: expanded ? 90 : 0 }} transition={{ duration: 0.2 }}>
           <ChevronRight className="w-3.5 h-3.5" />
@@ -185,7 +185,7 @@ export function NavigationTree({ folders, selectedFolderId, activeFilter, starre
   }
 
   return (
-    <nav className="w-60 shrink-0 bg-[#0D1F3C] border-r border-white/10 overflow-y-auto py-3 flex flex-col h-full">
+    <nav className="w-60 shrink-0 bg-[var(--bg-secondary)] border-r border-[var(--border-default)] overflow-y-auto py-3 flex flex-col h-full">
       {/* Quick Access */}
       <TreeSection
         label="Quick Access"
@@ -198,13 +198,13 @@ export function NavigationTree({ folders, selectedFolderId, activeFilter, starre
             onClick={() => onQuickAccessFilter(activeFilter === id ? null : id)}
             className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all ${
               activeFilter === id
-                ? 'bg-[var(--brand-blue)]/20 text-white font-medium'
-                : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                ? 'bg-[var(--brand-blue)]/20 text-[var(--text-primary)] font-medium'
+                : 'text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]/50 hover:text-[var(--text-primary)]'
             }`}
           >
-            <Icon className={`w-4 h-4 ${id === 'starred' && activeFilter === 'starred' ? 'text-amber-400 fill-amber-400' : ''}`} />
+            <Icon className={`w-4 h-4 ${id === 'starred' && activeFilter === 'starred' ? 'text-[var(--warning)] fill-[var(--warning)]' : ''}`} />
             <span className="flex-1 text-left">{label}</span>
-            <span className="text-xs text-slate-500">{count}</span>
+            <span className="text-xs text-[var(--text-tertiary)]">{count}</span>
           </button>
         ))}
       </TreeSection>
@@ -218,14 +218,14 @@ export function NavigationTree({ folders, selectedFolderId, activeFilter, starre
         {DRIVES.map((drive) => (
           <button
             key={drive.id}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white rounded-lg transition-all"
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]/50 hover:text-[var(--text-primary)] rounded-lg transition-all"
           >
             <Cloud className="w-3.5 h-3.5" />
             <span className="flex-1 text-left">{drive.label}</span>
             {drive.connected ? (
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span className="w-2 h-2 rounded-full bg-[var(--success)]" />
             ) : (
-              <span className="text-[10px] text-slate-500">Connect</span>
+              <span className="text-[10px] text-[var(--text-tertiary)]">Connect</span>
             )}
           </button>
         ))}
@@ -241,12 +241,12 @@ export function NavigationTree({ folders, selectedFolderId, activeFilter, starre
         <div
           className={`flex items-center gap-2 px-3 py-2 cursor-pointer rounded-lg mx-1 transition-all ${
             selectedFolderId === null
-              ? 'bg-[var(--brand-blue)]/20 text-white font-medium'
-              : 'text-slate-300 hover:bg-white/5'
+              ? 'bg-[var(--brand-blue)]/20 text-[var(--text-primary)] font-medium'
+              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]/50'
           }`}
           onClick={() => onSelectFolder(null)}
         >
-          <Home className="w-4 h-4 text-slate-400" />
+          <Home className="w-4 h-4 text-[var(--text-secondary)]" />
           <span className="text-sm">All Files</span>
         </div>
 

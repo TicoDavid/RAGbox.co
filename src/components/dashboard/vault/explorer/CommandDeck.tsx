@@ -54,13 +54,13 @@ export function CommandDeck({
   const [showNewMenu, setShowNewMenu] = useState(false)
 
   return (
-    <div className="shrink-0 bg-[#0A192F] border-b border-white/10">
+    <div className="shrink-0 bg-[var(--bg-primary)] border-b border-[var(--border-default)]">
       {/* Breadcrumbs Row */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-white/5">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--border-subtle)]">
         <div className="flex items-center gap-1 text-sm">
           <button
             onClick={() => onNavigate(null)}
-            className="px-2 py-1 text-slate-400 hover:text-white hover:bg-white/10 rounded transition-colors"
+            className="px-2 py-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] rounded transition-colors"
           >
             Vault
           </button>
@@ -69,13 +69,13 @@ export function CommandDeck({
             if (!folder) return null
             return (
               <React.Fragment key={folderId}>
-                <ChevronRight className="w-4 h-4 text-slate-600" />
+                <ChevronRight className="w-4 h-4 text-[var(--text-muted)]" />
                 <button
                   onClick={() => onNavigate(folderId)}
                   className={`px-2 py-1 rounded transition-colors ${
                     index === currentPath.length - 1
-                      ? 'text-white font-medium'
-                      : 'text-slate-400 hover:text-white hover:bg-white/10'
+                      ? 'text-[var(--text-primary)] font-medium'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]'
                   }`}
                 >
                   {folder.name}
@@ -88,7 +88,7 @@ export function CommandDeck({
         <div className="flex items-center gap-2">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)]" />
             <input
               id="vault-search"
               name="vault-search"
@@ -96,14 +96,14 @@ export function CommandDeck({
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search vault..."
-              className="w-64 h-8 pl-9 pr-3 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
+              className="w-64 h-8 pl-9 pr-3 bg-[var(--bg-elevated)]/20 border border-[var(--border-default)] rounded-lg text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--brand-blue)]/50"
             />
           </div>
 
           {onClose && (
             <button
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+              className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] rounded-lg transition-all"
             >
               <X className="w-4 h-4" />
             </button>
@@ -117,7 +117,7 @@ export function CommandDeck({
         <div className="relative">
           <button
             onClick={() => setShowNewMenu(!showNewMenu)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-[#2463EB] hover:bg-[#3b7aff] text-white text-sm font-medium rounded-lg transition-all"
+            className="flex items-center gap-2 px-3 py-1.5 bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] text-[var(--text-primary)] text-sm font-medium rounded-lg transition-all"
           >
             <Plus className="w-4 h-4" />
             New
@@ -128,18 +128,18 @@ export function CommandDeck({
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
-                className="absolute top-full mt-1 left-0 z-50 w-44 bg-[#0A192F]/95 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden shadow-xl"
+                className="absolute top-full mt-1 left-0 z-50 w-44 bg-[var(--bg-primary)]/95 backdrop-blur-xl border border-[var(--border-default)] rounded-xl overflow-hidden shadow-xl"
               >
                 <button
                   onClick={() => { onNewFolder(); setShowNewMenu(false) }}
-                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition-all"
+                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]/50 hover:text-[var(--text-primary)] transition-all"
                 >
                   <FolderPlus className="w-4 h-4" />
                   New Folder
                 </button>
                 <button
                   onClick={() => { onUpload(); setShowNewMenu(false) }}
-                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition-all"
+                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]/50 hover:text-[var(--text-primary)] transition-all"
                 >
                   <Upload className="w-4 h-4" />
                   Upload Files
@@ -149,7 +149,7 @@ export function CommandDeck({
           </AnimatePresence>
         </div>
 
-        <div className="w-px h-6 bg-white/10" />
+        <div className="w-px h-6 bg-[var(--bg-elevated)]" />
 
         {/* Action Buttons */}
         <ToolbarButton icon={<Upload className="w-4 h-4" />} label="Upload" onClick={onUpload} />
@@ -160,16 +160,16 @@ export function CommandDeck({
         <div className="flex-1" />
 
         {/* View Toggle */}
-        <div className="flex items-center bg-white/5 rounded-lg p-0.5">
+        <div className="flex items-center bg-[var(--bg-elevated)]/50 rounded-lg p-0.5">
           <button
             onClick={() => onViewModeChange('list')}
-            className={`p-1.5 rounded transition-all ${viewMode === 'list' ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-white'}`}
+            className={`p-1.5 rounded transition-all ${viewMode === 'list' ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'}`}
           >
             <LayoutList className="w-4 h-4" />
           </button>
           <button
             onClick={() => onViewModeChange('grid')}
-            className={`p-1.5 rounded transition-all ${viewMode === 'grid' ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-white'}`}
+            className={`p-1.5 rounded transition-all ${viewMode === 'grid' ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'}`}
           >
             <LayoutGrid className="w-4 h-4" />
           </button>
@@ -186,8 +186,8 @@ function ToolbarButton({ icon, label, onClick, disabled }: { icon: React.ReactNo
       disabled={disabled}
       className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-all ${
         disabled
-          ? 'text-slate-600 cursor-not-allowed'
-          : 'text-slate-400 hover:text-white hover:bg-white/10'
+          ? 'text-[var(--text-muted)] cursor-not-allowed'
+          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]'
       }`}
     >
       {icon}
