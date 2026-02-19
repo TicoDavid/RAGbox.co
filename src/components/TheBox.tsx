@@ -53,7 +53,7 @@ export function TheBox() {
 
         // Wait for absorb animation, then redirect
         setTimeout(() => {
-          router.push('/login')
+          router.push('/')
         }, 800)
       }
     },
@@ -64,7 +64,7 @@ export function TheBox() {
     // Also trigger on click for demo purposes
     setIsAbsorbing(true)
     setTimeout(() => {
-      router.push('/login')
+      router.push('/')
     }, 800)
   }, [router])
 
