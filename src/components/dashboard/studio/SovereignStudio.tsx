@@ -252,8 +252,8 @@ function ArtifactCard({
       aria-label={`Generate ${artifact.label}: ${artifact.desc}`}
       className={`
         w-full p-3 rounded-xl text-left transition-all duration-200
-        bg-[#112240] hover:bg-[#1e3a8a]/60
-        border border-white/5 hover:${colors.border}
+        bg-[#112240] hover:bg-[#1e3a8a]/80
+        border border-white/10 hover:${colors.border}
         hover:shadow-lg hover:${colors.glow}
         disabled:opacity-50 disabled:cursor-not-allowed
         group
@@ -265,7 +265,7 @@ function ArtifactCard({
         </div>
         <div className="min-w-0">
           <p className="text-sm font-medium text-white truncate">{artifact.label}</p>
-          <p className="text-[10px] text-slate-500 truncate">{artifact.desc}</p>
+          <p className="text-[10px] text-slate-400 truncate">{artifact.desc}</p>
         </div>
       </div>
     </motion.button>
@@ -425,7 +425,7 @@ function FileSelectorModal({
                 px-5 py-2 rounded-lg text-sm font-bold transition-all
                 ${selected.length > 0
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-black hover:from-amber-400 hover:to-orange-400 shadow-lg shadow-amber-500/25'
-                  : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                  : 'bg-slate-700 text-slate-400 cursor-not-allowed'
                 }
               `}
             >
@@ -525,7 +525,7 @@ function GenerationError({
 
       <button
         onClick={onDismiss}
-        className="w-full px-4 py-2 rounded-lg text-sm text-slate-300 bg-slate-800/50 hover:bg-slate-800 transition-colors"
+        className="w-full px-4 py-2 rounded-lg text-sm text-slate-300 bg-slate-700/50 hover:bg-slate-700 transition-colors"
         aria-label="Try generating again"
       >
         Try Again
