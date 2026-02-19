@@ -24,8 +24,8 @@ COPY prisma/ ./prisma/
 # Install production dependencies only
 RUN npm ci --omit=dev --ignore-scripts
 
-# Generate Prisma client
-RUN npx prisma generate
+# Install Prisma CLI (devDep) just for generate, then remove it
+RUN npm install --no-save prisma && npx prisma generate && npm rm prisma
 
 # Rebuild native modules for linux
 RUN npm rebuild
