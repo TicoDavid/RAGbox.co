@@ -8,23 +8,23 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-gray-200">
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-secondary)]">
       <div className="mx-auto max-w-3xl px-6 py-16">
         <Link
           href="/"
-          className="mb-8 inline-block text-sm text-blue-400 hover:text-blue-300 transition-colors"
+          className="mb-8 inline-block text-sm text-[var(--brand-blue-hover)] hover:text-[var(--brand-blue)] transition-colors"
         >
           &larr; Back to RAGbox
         </Link>
 
-        <h1 className="font-[family-name:var(--font-space)] text-4xl font-bold text-white mb-2">
+        <h1 className="font-[family-name:var(--font-space)] text-4xl font-bold text-[var(--text-primary)] mb-2">
           RAGbox.co Privacy Policy
         </h1>
-        <p className="text-gray-400 mb-12">Last Updated: February 2026</p>
+        <p className="text-[var(--text-tertiary)] mb-12">Last Updated: February 2026</p>
 
         <section className="mb-10">
-          <h2 className="text-xl font-semibold text-white mb-4">What We Collect</h2>
-          <ul className="list-disc list-inside space-y-2 text-gray-300">
+          <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-4">What We Collect</h2>
+          <ul className="list-disc list-inside space-y-2 text-[var(--text-secondary)]">
             <li>Account information (name, email via Google OAuth)</li>
             <li>Documents uploaded to your sovereign vault</li>
             <li>
@@ -37,18 +37,18 @@ export default function PrivacyPage() {
         </section>
 
         <section className="mb-10">
-          <h2 className="text-xl font-semibold text-white mb-4">How We Use Gmail Access</h2>
-          <ul className="list-disc list-inside space-y-2 text-gray-300">
+          <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-4">How We Use Gmail Access</h2>
+          <ul className="list-disc list-inside space-y-2 text-[var(--text-secondary)]">
             <li>
-              <strong className="text-white">Read emails:</strong> To enable AI agent email
+              <strong className="text-[var(--text-primary)]">Read emails:</strong> To enable AI agent email
               monitoring and response
             </li>
             <li>
-              <strong className="text-white">Send emails:</strong> To send AI-generated replies on
+              <strong className="text-[var(--text-primary)]">Send emails:</strong> To send AI-generated replies on
               behalf of your configured agent
             </li>
             <li>
-              <strong className="text-white">Manage labels:</strong> To organize processed vs.
+              <strong className="text-[var(--text-primary)]">Manage labels:</strong> To organize processed vs.
               unprocessed emails
             </li>
             <li>We NEVER share email content with third parties</li>
@@ -60,28 +60,28 @@ export default function PrivacyPage() {
         </section>
 
         <section className="mb-10">
-          <h2 className="text-xl font-semibold text-white mb-4">Data Retention</h2>
-          <ul className="list-disc list-inside space-y-2 text-gray-300">
+          <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-4">Data Retention</h2>
+          <ul className="list-disc list-inside space-y-2 text-[var(--text-secondary)]">
             <li>
-              <strong className="text-white">Documents:</strong> Retained until you delete them
+              <strong className="text-[var(--text-primary)]">Documents:</strong> Retained until you delete them
             </li>
             <li>
-              <strong className="text-white">Conversation history:</strong> Retained for 90 days
+              <strong className="text-[var(--text-primary)]">Conversation history:</strong> Retained for 90 days
               (configurable)
             </li>
             <li>
-              <strong className="text-white">Audit logs:</strong> 7 years (SEC 17a-4 compliance)
+              <strong className="text-[var(--text-primary)]">Audit logs:</strong> 7 years (SEC 17a-4 compliance)
             </li>
             <li>
-              <strong className="text-white">Email credentials:</strong> Encrypted, deleted on
+              <strong className="text-[var(--text-primary)]">Email credentials:</strong> Encrypted, deleted on
               disconnect
             </li>
           </ul>
         </section>
 
         <section className="mb-10">
-          <h2 className="text-xl font-semibold text-white mb-4">Data Security</h2>
-          <ul className="list-disc list-inside space-y-2 text-gray-300">
+          <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-4">Data Security</h2>
+          <ul className="list-disc list-inside space-y-2 text-[var(--text-secondary)]">
             <li>SOC 2 Type II + HIPAA compliant infrastructure</li>
             <li>
               All data encrypted at rest (Google Cloud KMS) and in transit (TLS 1.3)
@@ -92,8 +92,8 @@ export default function PrivacyPage() {
         </section>
 
         <section className="mb-10">
-          <h2 className="text-xl font-semibold text-white mb-4">Your Rights</h2>
-          <ul className="list-disc list-inside space-y-2 text-gray-300">
+          <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-4">Your Rights</h2>
+          <ul className="list-disc list-inside space-y-2 text-[var(--text-secondary)]">
             <li>Access, export, or delete your data at any time</li>
             <li>
               Revoke Gmail access via Google Account settings or RAGbox dashboard
@@ -102,7 +102,7 @@ export default function PrivacyPage() {
               Request complete data deletion:{' '}
               <a
                 href="mailto:theconnexusai@gmail.com"
-                className="text-blue-400 hover:text-blue-300"
+                className="text-[var(--brand-blue-hover)] hover:text-[var(--brand-blue)]"
               >
                 theconnexusai@gmail.com
               </a>
@@ -111,13 +111,13 @@ export default function PrivacyPage() {
         </section>
 
         <section className="mb-10">
-          <h2 className="text-xl font-semibold text-white mb-4">Contact</h2>
-          <p className="text-gray-300">ConnexUS AI Inc.</p>
-          <p className="text-gray-300">
+          <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-4">Contact</h2>
+          <p className="text-[var(--text-secondary)]">ConnexUS AI Inc.</p>
+          <p className="text-[var(--text-secondary)]">
             Email:{' '}
             <a
               href="mailto:theconnexusai@gmail.com"
-              className="text-blue-400 hover:text-blue-300"
+              className="text-[var(--brand-blue-hover)] hover:text-[var(--brand-blue)]"
             >
               theconnexusai@gmail.com
             </a>

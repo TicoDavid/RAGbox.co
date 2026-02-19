@@ -45,13 +45,13 @@ export default function TemplatePreview({ template, fieldValues, onFieldChange }
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <FileText size={16} className="text-[#00F0FF]" />
-          <span className="text-sm font-medium text-white">{template.name}</span>
+          <FileText size={16} className="text-[var(--brand-blue)]" />
+          <span className="text-sm font-medium text-[var(--text-primary)]">{template.name}</span>
         </div>
-        <div className="text-[10px] text-[#666]">
+        <div className="text-[10px] text-[var(--text-tertiary)]">
           {filledCount}/{template.fields.length} fields filled
           {requiredCount > 0 && (
-            <span className={requiredFilled === requiredCount ? 'text-green-500' : 'text-[#FFAB00]'}>
+            <span className={requiredFilled === requiredCount ? 'text-[var(--success)]' : 'text-[var(--warning)]'}>
               {' '}({requiredFilled}/{requiredCount} required)
             </span>
           )}
@@ -60,16 +60,16 @@ export default function TemplatePreview({ template, fieldValues, onFieldChange }
 
       {/* Confidence */}
       <div className="flex items-center gap-2">
-        <div className="flex-1 h-1.5 bg-[#222] rounded-full overflow-hidden">
+        <div className="flex-1 h-1.5 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
           <div
             className="h-full rounded-full transition-all"
             style={{
               width: `${template.confidence * 100}%`,
-              backgroundColor: template.confidence >= 0.7 ? '#00F0FF' : '#FFAB00',
+              backgroundColor: template.confidence >= 0.7 ? 'var(--brand-blue)' : 'var(--warning)',
             }}
           />
         </div>
-        <span className="text-[10px] text-[#666]">
+        <span className="text-[10px] text-[var(--text-tertiary)]">
           {Math.round(template.confidence * 100)}% confidence
         </span>
       </div>
@@ -77,20 +77,20 @@ export default function TemplatePreview({ template, fieldValues, onFieldChange }
       {/* Sections */}
       <div className="space-y-2">
         {template.sections.map((section, i) => (
-          <div key={i} className="rounded-lg border border-[#222] bg-[#0a0a0a]">
+          <div key={i} className="rounded-lg border border-[var(--bg-tertiary)] bg-[var(--bg-primary)]">
             <button
               onClick={() => toggleSection(i)}
               className="w-full flex items-center gap-2 px-3 py-2 text-left"
             >
               {expandedSections.has(i) ? (
-                <ChevronDown size={14} className="text-[#666]" />
+                <ChevronDown size={14} className="text-[var(--text-tertiary)]" />
               ) : (
-                <ChevronRight size={14} className="text-[#666]" />
+                <ChevronRight size={14} className="text-[var(--text-tertiary)]" />
               )}
-              <span className="text-xs font-medium text-white">{section.name}</span>
+              <span className="text-xs font-medium text-[var(--text-primary)]">{section.name}</span>
             </button>
             {expandedSections.has(i) && (
-              <div className="px-3 pb-3 text-[10px] text-[#888]">
+              <div className="px-3 pb-3 text-[10px] text-[var(--text-secondary)]">
                 {section.content}
               </div>
             )}
@@ -100,23 +100,23 @@ export default function TemplatePreview({ template, fieldValues, onFieldChange }
 
       {/* Fields */}
       <div className="space-y-3">
-        <div className="text-xs font-medium text-white">Fields</div>
+        <div className="text-xs font-medium text-[var(--text-primary)]">Fields</div>
         {template.fields.map(field => (
           <div key={field.name} className="space-y-1">
             <label className="flex items-center gap-1.5 text-[10px]">
               {fieldValues[field.name]?.trim() ? (
-                <CheckCircle2 size={12} className="text-green-500" />
+                <CheckCircle2 size={12} className="text-[var(--success)]" />
               ) : (
-                <Circle size={12} className={field.required ? 'text-[#FFAB00]' : 'text-[#444]'} />
+                <Circle size={12} className={field.required ? 'text-[var(--warning)]' : 'text-[var(--border-default)]'} />
               )}
-              <span className="text-white">
+              <span className="text-[var(--text-primary)]">
                 {field.name}
-                {field.required && <span className="text-[#FFAB00] ml-0.5">*</span>}
+                {field.required && <span className="text-[var(--warning)] ml-0.5">*</span>}
               </span>
-              <span className="text-[#555]">({field.type})</span>
+              <span className="text-[var(--text-tertiary)]">({field.type})</span>
             </label>
             {field.description && (
-              <div className="text-[10px] text-[#555] ml-5">{field.description}</div>
+              <div className="text-[10px] text-[var(--text-tertiary)] ml-5">{field.description}</div>
             )}
             {field.type === 'checkbox' ? (
               <input
@@ -131,7 +131,7 @@ export default function TemplatePreview({ template, fieldValues, onFieldChange }
                 value={fieldValues[field.name] || ''}
                 onChange={e => onFieldChange(field.name, e.target.value)}
                 placeholder={field.placeholder || field.defaultValue || `Enter ${field.name}`}
-                className="w-full ml-5 px-2 py-1.5 rounded bg-[#111] border border-[#333] text-xs text-white placeholder-[#555] focus:outline-none focus:border-[#00F0FF] transition-colors"
+                className="w-full ml-5 px-2 py-1.5 rounded bg-[var(--bg-primary)] border border-[var(--bg-elevated)] text-xs text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--brand-blue)] transition-colors"
                 style={{ width: 'calc(100% - 20px)' }}
               />
             )}

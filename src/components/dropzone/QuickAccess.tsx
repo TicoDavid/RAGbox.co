@@ -25,7 +25,7 @@ export default function QuickAccess({
 
   return (
     <div className="px-2 py-1.5">
-      <span className="text-[10px] font-semibold text-[#888] uppercase tracking-wider px-1">
+      <span className="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider px-1">
         Quick Access
       </span>
       <div className="mt-1 space-y-0.5">
@@ -35,13 +35,13 @@ export default function QuickAccess({
             onClick={() => onSelect(activeSection === id ? null : id)}
             className={`w-full flex items-center gap-2 px-3 py-1.5 rounded text-xs transition-colors ${
               activeSection === id
-                ? 'bg-[#00F0FF]/10 text-[#00F0FF]'
-                : 'text-[#888] hover:text-white hover:bg-[#111]'
+                ? 'bg-[var(--brand-blue)]/10 text-[var(--brand-blue)]'
+                : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)]'
             }`}
           >
             <Icon size={14} />
             <span className="flex-1 text-left">{label}</span>
-            <span className="text-[10px] text-[#555]">{count}</span>
+            <span className="text-[10px] text-[var(--text-tertiary)]">{count}</span>
           </button>
         ))}
       </div>

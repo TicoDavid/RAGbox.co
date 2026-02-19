@@ -51,12 +51,12 @@ export default function ExportSettings() {
 
   return (
     <div className="max-w-lg">
-      <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-        <Download size={16} className="text-[#00F0FF]" />
+      <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+        <Download size={16} className="text-[var(--brand-blue)]" />
         Export Data
       </h3>
 
-      <p className="text-xs text-[#888] mb-4">
+      <p className="text-xs text-[var(--text-tertiary)] mb-4">
         Download your data in various formats. No lock-in - your data is always yours.
       </p>
 
@@ -68,14 +68,14 @@ export default function ExportSettings() {
             onClick={() => setSelectedFormat(id)}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg border text-left transition-all ${
               selectedFormat === id
-                ? 'border-[#00F0FF] bg-[#00F0FF]/10'
-                : 'border-[#222] bg-[#0a0a0a] hover:border-[#444]'
+                ? 'border-[var(--brand-blue)] bg-[var(--brand-blue)]/10'
+                : 'border-[var(--bg-tertiary)] bg-[var(--bg-primary)] hover:border-[var(--border-default)]'
             }`}
           >
-            <Icon size={18} className={selectedFormat === id ? 'text-[#00F0FF]' : 'text-[#666]'} />
+            <Icon size={18} className={selectedFormat === id ? 'text-[var(--brand-blue)]' : 'text-[var(--text-tertiary)]'} />
             <div>
-              <div className="text-xs font-medium text-white">{label}</div>
-              <div className="text-[10px] text-[#666]">{description}</div>
+              <div className="text-xs font-medium text-[var(--text-primary)]">{label}</div>
+              <div className="text-[10px] text-[var(--text-tertiary)]">{description}</div>
             </div>
           </button>
         ))}
@@ -85,7 +85,7 @@ export default function ExportSettings() {
       <button
         onClick={handleExport}
         disabled={isExporting}
-        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-medium text-black bg-[#00F0FF] hover:bg-[#00D4E0] disabled:opacity-50 transition-colors"
+        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-medium text-black bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] disabled:opacity-50 transition-colors"
       >
         {isExporting ? (
           <>
@@ -103,7 +103,7 @@ export default function ExportSettings() {
       {/* Status */}
       {exportStatus !== 'idle' && (
         <div className={`mt-3 flex items-center gap-2 text-xs ${
-          exportStatus === 'success' ? 'text-green-500' : 'text-red-500'
+          exportStatus === 'success' ? 'text-[var(--success)]' : 'text-[var(--danger)]'
         }`}>
           {exportStatus === 'success' ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
           {exportMessage}

@@ -267,7 +267,7 @@ const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ message, onInsightAct
         {/* Structured Citations */}
         {message.citations && message.citations.length > 0 && (
           <div className="mt-2">
-            <div className="text-[10px] text-[#666] mb-1">Sources</div>
+            <div className="text-[10px] text-[var(--text-tertiary)] mb-1">Sources</div>
             <div className="flex flex-wrap gap-1">
               {message.citations.map(citation => (
                 <CitationChip

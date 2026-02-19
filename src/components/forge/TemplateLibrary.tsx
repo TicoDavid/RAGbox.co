@@ -82,19 +82,19 @@ export default function TemplateLibrary({ onSelect, selectedTemplateId, onUpload
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Library size={16} className="text-[#00F0FF]" />
-          <span className="text-sm font-medium text-white">Template Library</span>
-          <span className="text-[10px] text-[#666]">({templates.length})</span>
+          <Library size={16} className="text-[var(--brand-blue)]" />
+          <span className="text-sm font-medium text-[var(--text-primary)]">Template Library</span>
+          <span className="text-[10px] text-[var(--text-tertiary)]">({templates.length})</span>
         </div>
         <button
           onClick={onUploadClick}
-          className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium text-[#666] border border-[#333] cursor-not-allowed opacity-60"
+          className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium text-[var(--text-tertiary)] border border-[var(--bg-elevated)] cursor-not-allowed opacity-60"
           title="Custom template upload coming soon"
           disabled
         >
           <Plus size={12} />
           Upload
-          <span className="ml-1 text-[8px] text-[#555]">Soon</span>
+          <span className="ml-1 text-[8px] text-[var(--text-tertiary)]">Soon</span>
         </button>
       </div>
 
@@ -107,8 +107,8 @@ export default function TemplateLibrary({ onSelect, selectedTemplateId, onUpload
               onClick={() => setFilter(cat)}
               className={`px-2 py-0.5 rounded text-[10px] transition-colors ${
                 filter === cat
-                  ? 'bg-[#00F0FF]/15 text-[#00F0FF] border border-[#00F0FF]/30'
-                  : 'bg-[#111] text-[#666] border border-[#222] hover:border-[#444]'
+                  ? 'bg-[var(--brand-blue)]/15 text-[var(--brand-blue)] border border-[var(--brand-blue)]/30'
+                  : 'bg-[var(--bg-primary)] text-[var(--text-tertiary)] border border-[var(--bg-tertiary)] hover:border-[var(--border-default)]'
               }`}
             >
               {cat}

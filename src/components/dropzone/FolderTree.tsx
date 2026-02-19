@@ -44,11 +44,11 @@ export default function FolderTree({
   return (
     <div className="w-full">
       <div className="flex items-center justify-between px-2 py-1.5 mb-1">
-        <span className="text-[10px] font-semibold text-[#888] uppercase tracking-wider">Folders</span>
+        <span className="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">Folders</span>
         <button
           onClick={() => setShowNewFolder(!showNewFolder)}
           aria-label="Create new folder"
-          className="text-[10px] text-[#00F0FF] hover:text-[#00D4E0]"
+          className="text-[10px] text-[var(--brand-blue)] hover:text-[var(--brand-blue-hover)]"
         >
           + New
         </button>
@@ -63,12 +63,12 @@ export default function FolderTree({
             onKeyDown={e => e.key === 'Enter' && handleCreate()}
             placeholder="Folder name"
             aria-label="New folder name"
-            className="flex-1 text-xs px-2 py-1 rounded bg-[#111] border border-[#333] text-white placeholder:text-[#555] focus:border-[#00F0FF] focus:outline-none"
+            className="flex-1 text-xs px-2 py-1 rounded bg-[var(--bg-primary)] border border-[var(--bg-elevated)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--brand-blue)] focus:outline-none"
             autoFocus
           />
           <button
             onClick={handleCreate}
-            className="text-xs px-2 py-1 rounded bg-[#00F0FF]/20 text-[#00F0FF] hover:bg-[#00F0FF]/30"
+            className="text-xs px-2 py-1 rounded bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] hover:bg-[var(--brand-blue)]/30"
           >
             Add
           </button>
@@ -78,7 +78,7 @@ export default function FolderTree({
       <button
         onClick={() => onSelectFolder(null)}
         className={`w-full text-left px-3 py-1.5 text-xs rounded transition-colors ${
-          selectedFolderId === null ? 'bg-[#00F0FF]/10 text-[#00F0FF]' : 'text-[#888] hover:text-white hover:bg-[#111]'
+          selectedFolderId === null ? 'bg-[var(--brand-blue)]/10 text-[var(--brand-blue)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)]'
         }`}
       >
         All Documents

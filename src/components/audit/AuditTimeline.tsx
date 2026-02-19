@@ -334,7 +334,7 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
             Showing {logs.length} of {total} entries
           </span>
           <div className="flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-green-500" />
+            <CheckCircle className="w-4 h-4 text-[var(--success)]" />
             <span>All entries verified</span>
           </div>
         </div>
@@ -456,8 +456,8 @@ function LoadingState() {
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-16">
-      <div className="w-12 h-12 rounded-xl dark:bg-red-500/20 bg-red-100 flex items-center justify-center mb-4">
-        <X className="w-6 h-6 text-red-500" />
+      <div className="w-12 h-12 rounded-xl bg-[var(--danger)]/20 flex items-center justify-center mb-4">
+        <X className="w-6 h-6 text-[var(--danger)]" />
       </div>
       <p className="text-sm dark:text-white/60 text-black/60 mb-4">{message}</p>
       <button

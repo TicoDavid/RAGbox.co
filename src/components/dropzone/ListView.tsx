@@ -48,54 +48,54 @@ export default function ListView({
 }: ListViewProps) {
   const SortIndicator = ({ field }: { field: string }) => {
     if (sortField !== field) return null
-    return <span className="ml-1 text-[#00F0FF]">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+    return <span className="ml-1 text-[var(--brand-blue)]">{sortOrder === 'asc' ? '↑' : '↓'}</span>
   }
 
   return (
     <div className="w-full">
-      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-[#222] text-[10px] text-[#666] uppercase tracking-wider">
-        <button onClick={() => onSort('name')} aria-label="Sort by name" className="flex-1 text-left hover:text-[#888]">
+      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-[var(--border-default)] text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">
+        <button onClick={() => onSort('name')} aria-label="Sort by name" className="flex-1 text-left hover:text-[var(--text-secondary)]">
           Name <SortIndicator field="name" />
         </button>
         <span className="w-12 text-center">Tier</span>
-        <button onClick={() => onSort('size')} aria-label="Sort by size" className="w-16 text-right hover:text-[#888]">
+        <button onClick={() => onSort('size')} aria-label="Sort by size" className="w-16 text-right hover:text-[var(--text-secondary)]">
           Size <SortIndicator field="size" />
         </button>
-        <button onClick={() => onSort('date')} aria-label="Sort by date" className="w-24 text-right hover:text-[#888]">
+        <button onClick={() => onSort('date')} aria-label="Sort by date" className="w-24 text-right hover:text-[var(--text-secondary)]">
           Date <SortIndicator field="date" />
         </button>
         <span className="w-8" />
       </div>
 
-      <div className="divide-y divide-[#111]">
+      <div className="divide-y divide-[var(--bg-primary)]">
         {documents.map(doc => (
           <div
             key={doc.id}
             onClick={() => onSelect(doc.id)}
             className={`flex items-center gap-2 px-3 py-2 cursor-pointer group transition-colors ${
-              selectedId === doc.id ? 'bg-[#00F0FF]/5' : 'hover:bg-[#111]'
+              selectedId === doc.id ? 'bg-[var(--brand-blue)]/5' : 'hover:bg-[var(--bg-primary)]'
             }`}
           >
-            <FileText size={14} className="text-[#555] flex-shrink-0" />
+            <FileText size={14} className="text-[var(--text-tertiary)] flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-white truncate">{doc.name}</span>
-                {doc.isPrivileged && <Lock size={10} className="text-red-500 flex-shrink-0" />}
+                <span className="text-xs text-[var(--text-primary)] truncate">{doc.name}</span>
+                {doc.isPrivileged && <Lock size={10} className="text-[var(--danger)] flex-shrink-0" />}
               </div>
             </div>
             <div className="w-12 flex justify-center">
               <TierBadge tier={doc.securityTier} size="sm" showLabel={false} />
             </div>
-            <span className="w-16 text-right text-[10px] text-[#666] tabular-nums">
+            <span className="w-16 text-right text-[10px] text-[var(--text-tertiary)] tabular-nums">
               {formatBytes(doc.size)}
             </span>
-            <span className="w-24 text-right text-[10px] text-[#666]">
+            <span className="w-24 text-right text-[10px] text-[var(--text-tertiary)]">
               {formatDate(doc.uploadedAt)}
             </span>
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(doc.id) }}
               aria-label={`Delete ${doc.name}`}
-              className="w-8 flex justify-center opacity-0 group-hover:opacity-100 text-[#666] hover:text-red-500 transition-all"
+              className="w-8 flex justify-center opacity-0 group-hover:opacity-100 text-[var(--text-tertiary)] hover:text-[var(--danger)] transition-all"
             >
               <Trash2 size={12} />
             </button>
@@ -104,7 +104,7 @@ export default function ListView({
       </div>
 
       {documents.length === 0 && (
-        <div className="py-8 text-center text-xs text-[#666]">No documents found</div>
+        <div className="py-8 text-center text-xs text-[var(--text-tertiary)]">No documents found</div>
       )}
     </div>
   )

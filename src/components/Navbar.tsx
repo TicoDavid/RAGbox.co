@@ -1,3 +1,4 @@
+// THEME-EXEMPT: Public landing page, locked to Cobalt palette
 'use client'
 
 import { useTheme } from 'next-themes'

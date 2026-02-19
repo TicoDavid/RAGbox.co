@@ -372,13 +372,13 @@ export function AuditEntryDetailModal({ event, isOpen, onClose }: AuditEntryDeta
               </div>
 
               {/* Hash verification */}
-              <div className="flex items-center gap-3 p-4 rounded-xl dark:bg-green-500/10 bg-green-100">
-                <CheckCircle className="w-5 h-5 text-green-500" />
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-[var(--success)]/10">
+                <CheckCircle className="w-5 h-5 text-[var(--success)]" />
                 <div>
-                  <p className="text-sm font-medium dark:text-green-400 text-green-600">
+                  <p className="text-sm font-medium text-[var(--success)]">
                     Integrity Verified
                   </p>
-                  <p className="text-xs font-mono dark:text-green-400/60 text-green-600/60 truncate max-w-md">
+                  <p className="text-xs font-mono text-[var(--success)]/60 truncate max-w-md">
                     SHA-256: {event.detailsHash}
                   </p>
                 </div>

@@ -39,7 +39,7 @@ export default function FolderNode({
     <div>
       <div
         className={`flex items-center gap-1 px-2 py-1 rounded cursor-pointer group transition-colors ${
-          isSelected ? 'bg-[#00F0FF]/10 text-[#00F0FF]' : 'text-[#888] hover:text-white hover:bg-[#111]'
+          isSelected ? 'bg-[var(--brand-blue)]/10 text-[var(--brand-blue)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)]'
         }`}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
         onClick={() => onSelect(folder.id)}
@@ -57,7 +57,7 @@ export default function FolderNode({
         )}
 
         {isSelected || expanded ? (
-          <FolderOpen size={14} className="text-[#00F0FF] flex-shrink-0" />
+          <FolderOpen size={14} className="text-[var(--brand-blue)] flex-shrink-0" />
         ) : (
           <Folder size={14} className="flex-shrink-0" />
         )}
@@ -69,7 +69,7 @@ export default function FolderNode({
             onBlur={handleRename}
             onKeyDown={e => e.key === 'Enter' && handleRename()}
             aria-label="Rename folder"
-            className="flex-1 text-xs bg-transparent border-b border-[#00F0FF] text-white focus:outline-none"
+            className="flex-1 text-xs bg-transparent border-b border-[var(--brand-blue)] text-[var(--text-primary)] focus:outline-none"
             autoFocus
             onClick={e => e.stopPropagation()}
           />
@@ -82,12 +82,12 @@ export default function FolderNode({
           </span>
         )}
 
-        <span className="text-[10px] text-[#555]">{folder.documentCount}</span>
+        <span className="text-[10px] text-[var(--text-tertiary)]">{folder.documentCount}</span>
 
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(folder.id) }}
           aria-label={`Delete folder ${folder.name}`}
-          className="opacity-0 group-hover:opacity-100 p-0.5 text-[#666] hover:text-red-500 transition-all"
+          className="opacity-0 group-hover:opacity-100 p-0.5 text-[var(--text-tertiary)] hover:text-[var(--danger)] transition-all"
         >
           <Trash2 size={12} />
         </button>

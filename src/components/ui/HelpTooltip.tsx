@@ -35,10 +35,10 @@ export function HelpTooltip({ content, position = 'top', className = '' }: HelpT
 
   return (
     <span className={`relative inline-flex ${className}`} onMouseEnter={show} onMouseLeave={hide}>
-      <HelpCircle className="w-3.5 h-3.5 text-slate-500 hover:text-slate-300 transition-colors cursor-help" />
+      <HelpCircle className="w-3.5 h-3.5 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-help" />
       {visible && (
         <span
-          className={`absolute z-50 px-3 py-2 rounded-lg bg-[#1a1a2e] border border-[var(--border-default)] text-xs text-slate-300 whitespace-normal max-w-[220px] shadow-xl ${positionClasses[position]}`}
+          className={`absolute z-50 px-3 py-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-xs text-[var(--text-primary)] whitespace-normal max-w-[220px] shadow-xl ${positionClasses[position]}`}
           role="tooltip"
         >
           {content}

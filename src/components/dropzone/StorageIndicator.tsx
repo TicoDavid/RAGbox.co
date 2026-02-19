@@ -18,23 +18,23 @@ export default function StorageIndicator({ usedBytes, maxBytes }: StorageIndicat
   const isWarning = percentage > 80
   const isCritical = percentage > 95
 
-  const barColor = isCritical ? '#FF3D00' : isWarning ? '#FFAB00' : '#00F0FF'
+  const barColor = isCritical ? 'var(--danger)' : isWarning ? 'var(--warning)' : 'var(--brand-blue)'
 
   return (
     <div className="px-3 py-2">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[10px] text-[#888]">Storage</span>
-        <span className="text-[10px] text-[#666]">
+        <span className="text-[10px] text-[var(--text-tertiary)]">Storage</span>
+        <span className="text-[10px] text-[var(--text-tertiary)]">
           {formatBytes(usedBytes)} / {formatBytes(maxBytes)}
         </span>
       </div>
-      <div className="w-full h-1.5 bg-[#222] rounded-full overflow-hidden" role="progressbar" aria-valuenow={Math.round(percentage)} aria-valuemin={0} aria-valuemax={100} aria-label="Storage usage">
+      <div className="w-full h-1.5 bg-[var(--bg-tertiary)] rounded-full overflow-hidden" role="progressbar" aria-valuenow={Math.round(percentage)} aria-valuemin={0} aria-valuemax={100} aria-label="Storage usage">
         <div
           className="h-full rounded-full transition-all duration-300"
           style={{
             width: `${percentage}%`,
             backgroundColor: barColor,
-            boxShadow: `0 0 6px ${barColor}40`,
+            boxShadow: `0 0 6px ${barColor}`,
           }}
         />
       </div>

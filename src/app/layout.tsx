@@ -49,7 +49,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrains.variable} ${jakarta.variable} font-sans bg-white dark:bg-oled text-gray-800 dark:text-gray-200 antialiased overflow-x-hidden overflow-y-auto transition-colors duration-300`}>
+      <body className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrains.variable} ${jakarta.variable} font-sans bg-[var(--bg-primary)] text-[var(--text-primary)] antialiased overflow-x-hidden overflow-y-auto transition-colors duration-300`}>
         <AuthProvider>
           <SettingsProvider>
             <ThemeProvider

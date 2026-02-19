@@ -39,20 +39,20 @@ export default function TierPromotionDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-xl border border-[#333] bg-[#0a0a0a] p-6 shadow-2xl">
+      <div className="w-full max-w-md rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Shield size={18} className="text-[#00F0FF]" />
-            <h3 className="text-sm font-semibold text-white">Change Security Tier</h3>
+            <Shield size={18} className="text-[var(--brand-blue)]" />
+            <h3 className="text-sm font-semibold text-[var(--text-primary)]">Change Security Tier</h3>
           </div>
-          <button onClick={onClose} className="text-[#666] hover:text-white">
+          <button onClick={onClose} className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
             <X size={16} />
           </button>
         </div>
 
         <div className="mb-4">
-          <p className="text-xs text-[#888] mb-2">Document: <span className="text-white">{documentName}</span></p>
-          <p className="text-xs text-[#888]">
+          <p className="text-xs text-[var(--text-tertiary)] mb-2">Document: <span className="text-[var(--text-primary)]">{documentName}</span></p>
+          <p className="text-xs text-[var(--text-tertiary)]">
             Current tier: <TierBadge tier={currentTier} size="md" />
           </p>
         </div>
@@ -68,26 +68,26 @@ export default function TierPromotionDialog({
                 onClick={() => setSelectedTier(tier)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-all ${
                   selectedTier === tier
-                    ? 'border-[#00F0FF] bg-[#00F0FF]/10'
-                    : 'border-[#222] bg-[#111] hover:border-[#444]'
+                    ? 'border-[var(--brand-blue)] bg-[var(--brand-blue)]/10'
+                    : 'border-[var(--bg-tertiary)] bg-[var(--bg-primary)] hover:border-[var(--border-default)]'
                 }`}
               >
                 {isPromotion ? (
-                  <ArrowUp size={14} className="text-green-500" />
+                  <ArrowUp size={14} className="text-[var(--success)]" />
                 ) : (
-                  <ArrowDown size={14} className="text-amber-500" />
+                  <ArrowDown size={14} className="text-[var(--warning)]" />
                 )}
                 <TierBadge tier={tier} size="md" />
                 <div className="flex-1">
-                  <div className="text-xs text-white">{config.label}</div>
-                  <div className="text-[10px] text-[#666]">{config.description}</div>
+                  <div className="text-xs text-[var(--text-primary)]">{config.label}</div>
+                  <div className="text-[10px] text-[var(--text-tertiary)]">{config.description}</div>
                 </div>
               </button>
             )
           })}
 
           {promotionOptions.length === 0 && (
-            <p className="text-xs text-[#666] text-center py-4">
+            <p className="text-xs text-[var(--text-tertiary)] text-center py-4">
               No tier changes available for this document.
             </p>
           )}
@@ -96,14 +96,14 @@ export default function TierPromotionDialog({
         <div className="flex gap-2">
           <button
             onClick={onClose}
-            className="flex-1 px-3 py-2 rounded-lg text-xs text-[#888] border border-[#333] hover:border-[#555] transition-colors"
+            className="flex-1 px-3 py-2 rounded-lg text-xs text-[var(--text-tertiary)] border border-[var(--border-default)] hover:border-[var(--border-strong)] transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleConfirm}
             disabled={selectedTier === null || confirming}
-            className="flex-1 px-3 py-2 rounded-lg text-xs font-medium text-black bg-[#00F0FF] hover:bg-[#00D4E0] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 px-3 py-2 rounded-lg text-xs font-medium text-black bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {confirming ? 'Updating...' : 'Confirm'}
           </button>

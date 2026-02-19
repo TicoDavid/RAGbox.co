@@ -17,18 +17,18 @@ export default function TemplateUpload({ onAnalysisComplete: _onAnalysisComplete
   return (
     <div className="space-y-3">
       <div
-        className="relative border-2 border-dashed rounded-lg p-6 text-center border-[#222] bg-[#0a0a0a] opacity-60"
+        className="relative border-2 border-dashed rounded-lg p-6 text-center border-[var(--bg-tertiary)] bg-[var(--bg-primary)] opacity-60"
       >
         <div className="flex flex-col items-center gap-2">
           <div className="relative">
-            <Upload size={24} className="text-[#444]" />
-            <Lock size={10} className="absolute -bottom-1 -right-1 text-[#555]" />
+            <Upload size={24} className="text-[var(--border-default)]" />
+            <Lock size={10} className="absolute -bottom-1 -right-1 text-[var(--text-tertiary)]" />
           </div>
-          <div className="text-xs text-[#666]">Custom template upload</div>
-          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#1a1a1a] border border-[#333]">
-            <span className="text-[10px] text-[#888] font-medium">Coming Soon</span>
+          <div className="text-xs text-[var(--text-tertiary)]">Custom template upload</div>
+          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--bg-secondary)] border border-[var(--bg-elevated)]">
+            <span className="text-[10px] text-[var(--text-secondary)] font-medium">Coming Soon</span>
           </div>
-          <div className="text-[10px] text-[#444]">
+          <div className="text-[10px] text-[var(--border-default)]">
             Use one of the built-in templates for now
           </div>
         </div>

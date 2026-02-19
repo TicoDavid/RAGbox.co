@@ -50,15 +50,15 @@ export default function AdvancedChat() {
   };
 
   return (
-    <div className="flex flex-col h-full relative bg-slate-50 dark:bg-[#050505] transition-colors duration-300">
+    <div className="flex flex-col h-full relative bg-slate-50 dark:bg-[var(--bg-primary)] transition-colors duration-300">
 
       {/* 1. TOP BAR: MODE SELECTOR */}
-      <div className="p-4 border-b border-slate-200 dark:border-white/10 bg-white/80 dark:bg-[#0A0A0A]/80 backdrop-blur-md z-20 sticky top-0">
+      <div className="p-4 border-b border-slate-200 dark:border-[var(--border-default)] bg-white/80 dark:bg-[var(--bg-primary)]/80 backdrop-blur-md z-20 sticky top-0">
         <div className="flex justify-between items-center mb-3">
             <label className="text-[10px] uppercase tracking-widest text-slate-500 font-bold block">Response Mode</label>
             <div className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] text-emerald-500 font-mono">ONLINE</span>
+                <div className="w-1.5 h-1.5 rounded-full bg-[var(--success)] animate-pulse" />
+                <span className="text-[10px] text-[var(--success)] font-mono">ONLINE</span>
             </div>
         </div>
         <div className="flex gap-2">
@@ -74,7 +74,7 @@ export default function AdvancedChat() {
                 flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border transition-all
                 ${selectedMode === mode.id
                   ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/20 dark:border-blue-500/50 dark:text-blue-400'
-                  : 'bg-white border-slate-200 text-slate-500 hover:border-blue-400 dark:bg-white/5 dark:border-white/5 dark:text-slate-400 dark:hover:bg-white/10'}
+                  : 'bg-white border-slate-200 text-slate-500 hover:border-blue-400 dark:bg-white/5 dark:border-[var(--border-subtle)] dark:text-[var(--text-secondary)] dark:hover:bg-white/10'}
               `}
             >
               <span>{mode.icon}</span>{mode.label}
@@ -91,8 +91,8 @@ export default function AdvancedChat() {
             {/* AVATAR */}
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-sm text-xs font-bold
               ${msg.role === 'user'
-                ? 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-white'
-                : 'bg-[#0000FF] text-white shadow-blue-500/20'}
+                ? 'bg-slate-200 text-slate-600 dark:bg-[var(--bg-secondary)] dark:text-[var(--text-primary)]'
+                : 'bg-[var(--brand-blue)] text-[var(--text-primary)] shadow-blue-500/20'}
             `}>
               {msg.role === 'user' ? 'YO' : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>}
             </div>
@@ -101,24 +101,24 @@ export default function AdvancedChat() {
             <div className={`
               px-5 py-3 rounded-2xl text-sm shadow-sm max-w-[85%] leading-relaxed
               ${msg.role === 'user'
-                ? 'bg-white dark:bg-[#1A1A1A] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 rounded-tr-sm'
-                : 'bg-transparent text-slate-600 dark:text-slate-300 pl-0 pt-1'}
+                ? 'bg-white dark:bg-[var(--bg-secondary)] border border-slate-200 dark:border-[var(--border-default)] text-slate-700 dark:text-[var(--text-secondary)] rounded-tr-sm'
+                : 'bg-transparent text-slate-600 dark:text-[var(--text-secondary)] pl-0 pt-1'}
             `}>
               {msg.content}
 
               {/* If AI, show artifacts */}
               {msg.role === 'ai' && idx > 0 && (
                  <div className="mt-4 space-y-3">
-                    <div className="bg-white dark:bg-white/5 p-3 rounded-lg border border-slate-200 dark:border-white/5 hover:border-blue-400 transition-colors cursor-pointer group">
+                    <div className="bg-white dark:bg-white/5 p-3 rounded-lg border border-slate-200 dark:border-[var(--border-subtle)] hover:border-blue-400 transition-colors cursor-pointer group">
                         <div className="flex justify-between mb-1">
-                            <strong className="text-xs text-slate-900 dark:text-white group-hover:text-blue-500">1. Supply Chain Volatility</strong>
+                            <strong className="text-xs text-slate-900 dark:text-[var(--text-primary)] group-hover:text-blue-500">1. Supply Chain Volatility</strong>
                             <span className="text-[10px] bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 px-2 rounded border border-blue-100 dark:border-blue-500/30">Ref 1</span>
                         </div>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400">Projected 12% variance in raw material costs.</p>
+                        <p className="text-[10px] text-slate-500 dark:text-[var(--text-secondary)]">Projected 12% variance in raw material costs.</p>
                     </div>
                     {/* Actions */}
                     <div className="flex gap-2 pt-1">
-                        <button className="text-[10px] flex items-center gap-1 px-2 py-1 rounded bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 hover:bg-white dark:hover:bg-white/10 transition-colors">
+                        <button className="text-[10px] flex items-center gap-1 px-2 py-1 rounded bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-[var(--border-subtle)] hover:bg-white dark:hover:bg-white/10 transition-colors">
                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg> Export
                         </button>
                     </div>
@@ -131,20 +131,20 @@ export default function AdvancedChat() {
         {/* THINKING STATE */}
         {isThinking && (
           <div className="flex gap-4">
-             <div className="w-8 h-8 rounded-lg bg-[#0000FF] flex items-center justify-center shrink-0 animate-pulse">
-                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+             <div className="w-8 h-8 rounded-lg bg-[var(--brand-blue)] flex items-center justify-center shrink-0 animate-pulse">
+                <svg className="w-4 h-4 text-[var(--text-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
              </div>
              <div className="flex items-center gap-1 h-8">
-                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}/>
-                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}/>
-                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}/>
+                <span className="w-1.5 h-1.5 bg-[var(--text-secondary)] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}/>
+                <span className="w-1.5 h-1.5 bg-[var(--text-secondary)] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}/>
+                <span className="w-1.5 h-1.5 bg-[var(--text-secondary)] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}/>
              </div>
           </div>
         )}
       </div>
 
       {/* 3. INPUT AREA */}
-      <div className="p-6 pt-2 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent dark:from-[#050505] dark:via-[#050505] z-10">
+      <div className="p-6 pt-2 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent dark:from-[var(--bg-primary)] dark:via-[var(--bg-primary)] z-10">
         <div className="relative group">
           <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-2xl opacity-20 group-hover:opacity-40 transition duration-500 blur"></div>
           <input
@@ -153,12 +153,12 @@ export default function AdvancedChat() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask about your vault..."
-            className="relative w-full h-14 pl-5 pr-12 rounded-xl bg-white dark:bg-[#0A0A0A] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-blue-500/50 transition-all shadow-xl"
+            className="relative w-full h-14 pl-5 pr-12 rounded-xl bg-white dark:bg-[var(--bg-primary)] border border-slate-200 dark:border-[var(--border-default)] text-slate-900 dark:text-[var(--text-primary)] placeholder-slate-400 focus:outline-none focus:border-blue-500/50 transition-all shadow-xl"
           />
           <button
             onClick={handleSend}
             disabled={isThinking}
-            className="absolute right-2 top-2 h-10 w-10 rounded-lg bg-[#0000FF] hover:bg-blue-700 text-white flex items-center justify-center transition-colors shadow-lg disabled:opacity-50"
+            className="absolute right-2 top-2 h-10 w-10 rounded-lg bg-[var(--brand-blue)] hover:bg-blue-700 text-[var(--text-primary)] flex items-center justify-center transition-colors shadow-lg disabled:opacity-50"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 12h14M12 5l7 7-7 7"></path></svg>
           </button>

@@ -30,35 +30,35 @@ export default function FileHoverModal({ document, position }: FileHoverModalPro
   return (
     <div
       role="tooltip"
-      className="fixed z-50 w-64 p-3 rounded-lg bg-[#111] border border-[#333] shadow-2xl pointer-events-none"
+      className="fixed z-50 w-64 p-3 rounded-lg bg-[var(--bg-primary)] border border-[var(--bg-elevated)] shadow-2xl pointer-events-none"
       style={{
         left: `${position.x + 16}px`,
         top: `${position.y - 8}px`,
       }}
     >
       <div className="flex items-center gap-2 mb-2">
-        <FileText size={16} className="text-[#00F0FF]" />
-        <span className="text-xs font-medium text-white truncate">{document.name}</span>
+        <FileText size={16} className="text-[var(--brand-blue)]" />
+        <span className="text-xs font-medium text-[var(--text-primary)] truncate">{document.name}</span>
       </div>
 
       <div className="space-y-1.5 text-[10px]">
-        <div className="flex items-center gap-2 text-[#888]">
+        <div className="flex items-center gap-2 text-[var(--text-tertiary)]">
           <HardDrive size={10} />
           <span>{formatBytes(document.size)}</span>
-          <span className="text-[#555]">({document.type.toUpperCase()})</span>
+          <span className="text-[var(--text-tertiary)]">({document.type.toUpperCase()})</span>
         </div>
 
-        <div className="flex items-center gap-2 text-[#888]">
+        <div className="flex items-center gap-2 text-[var(--text-tertiary)]">
           <Calendar size={10} />
           <span>{new Date(document.uploadedAt).toLocaleString()}</span>
         </div>
 
-        <div className="flex items-center gap-2 text-[#888]">
+        <div className="flex items-center gap-2 text-[var(--text-tertiary)]">
           <Shield size={10} />
           <TierBadge tier={document.securityTier} size="sm" />
         </div>
 
-        <div className="flex items-center gap-2 text-[#888]">
+        <div className="flex items-center gap-2 text-[var(--text-tertiary)]">
           <Hash size={10} />
           <span>{document.chunkCount} chunks indexed</span>
         </div>
@@ -66,12 +66,12 @@ export default function FileHoverModal({ document, position }: FileHoverModalPro
         <div className="flex items-center gap-2">
           <span
             className={`w-1.5 h-1.5 rounded-full ${
-              document.status === 'ready' ? 'bg-green-500' :
-              document.status === 'processing' ? 'bg-amber-500' :
-              document.status === 'error' ? 'bg-red-500' : 'bg-[#666]'
+              document.status === 'ready' ? 'bg-[var(--success)]' :
+              document.status === 'processing' ? 'bg-[var(--warning)]' :
+              document.status === 'error' ? 'bg-[var(--danger)]' : 'bg-[var(--text-tertiary)]'
             }`}
           />
-          <span className="text-[#888] capitalize">{document.status}</span>
+          <span className="text-[var(--text-tertiary)] capitalize">{document.status}</span>
         </div>
       </div>
     </div>

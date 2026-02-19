@@ -8,11 +8,11 @@ interface SettingItemProps {
 
 export default function SettingItem({ label, description, children }: SettingItemProps) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-[#222]">
+    <div className="flex items-center justify-between py-3 border-b border-[var(--bg-tertiary)]">
       <div>
-        <div className="text-xs font-medium text-white">{label}</div>
+        <div className="text-xs font-medium text-[var(--text-primary)]">{label}</div>
         {description && (
-          <div className="text-[10px] text-[#666] mt-0.5">{description}</div>
+          <div className="text-[10px] text-[var(--text-tertiary)] mt-0.5">{description}</div>
         )}
       </div>
       <div>{children}</div>

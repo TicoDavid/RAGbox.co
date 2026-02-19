@@ -193,14 +193,14 @@ export default function IntegrationsSettings() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 size={24} className="animate-spin text-[#00F0FF]" />
+        <Loader2 size={24} className="animate-spin text-[var(--brand-blue)]" />
       </div>
     )
   }
 
   if (!settings) {
     return (
-      <div className="text-center py-12 text-[#666] text-sm">
+      <div className="text-center py-12 text-[var(--text-tertiary)] text-sm">
         Failed to load settings. Please refresh the page.
       </div>
     )
@@ -210,12 +210,12 @@ export default function IntegrationsSettings() {
     <div className="max-w-lg">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-          <MessageCircle size={16} className="text-[#00F0FF]" />
+        <h3 className="text-sm font-semibold text-[var(--text-primary)] flex items-center gap-2">
+          <MessageCircle size={16} className="text-[var(--brand-blue)]" />
           Integration Settings
         </h3>
         {saving && (
-          <span className="text-[10px] text-[#00F0FF] flex items-center gap-1">
+          <span className="text-[10px] text-[var(--brand-blue)] flex items-center gap-1">
             <Loader2 size={10} className="animate-spin" />
             Saving...
           </span>
@@ -225,11 +225,11 @@ export default function IntegrationsSettings() {
       {/* ================================================================== */}
       {/* SECTION 1: WhatsApp Connection */}
       {/* ================================================================== */}
-      <div className="rounded-lg border border-[#222] bg-[#0a0a0a] p-4 mb-4">
+      <div className="rounded-lg border border-[var(--bg-tertiary)] bg-[var(--bg-primary)] p-4 mb-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <MessageCircle size={14} className="text-green-500" />
-            <span className="text-xs font-medium text-white">WhatsApp Connection</span>
+            <MessageCircle size={14} className="text-[var(--success)]" />
+            <span className="text-xs font-medium text-[var(--text-primary)]">WhatsApp Connection</span>
           </div>
           <Toggle
             checked={settings.whatsappEnabled}
@@ -238,14 +238,14 @@ export default function IntegrationsSettings() {
         </div>
 
         {settings.whatsappEnabled && (
-          <div className="space-y-3 mt-3 pt-3 border-t border-[#222]">
+          <div className="space-y-3 mt-3 pt-3 border-t border-[var(--bg-tertiary)]">
             {/* Provider */}
             <div>
-              <label className="text-[10px] text-[#666] block mb-1">Provider</label>
+              <label className="text-[10px] text-[var(--text-tertiary)] block mb-1">Provider</label>
               <select
                 value={settings.whatsappProvider}
                 onChange={(e) => saveField({ whatsappProvider: e.target.value })}
-                className="w-full bg-[#111] border border-[#333] rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-[#00F0FF]"
+                className="w-full bg-[var(--bg-secondary)] border border-[var(--bg-elevated)] rounded px-2 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-blue)]"
               >
                 <option value="vonage">Vonage</option>
                 <option value="meta">Meta (WhatsApp Cloud API)</option>
@@ -304,20 +304,20 @@ export default function IntegrationsSettings() {
             )}
 
             {/* Test Connection */}
-            <div className="pt-2 border-t border-[#222]">
-              <label className="text-[10px] text-[#666] block mb-1">Test Connection</label>
+            <div className="pt-2 border-t border-[var(--bg-tertiary)]">
+              <label className="text-[10px] text-[var(--text-tertiary)] block mb-1">Test Connection</label>
               <div className="flex gap-2">
                 <input
                   type="tel"
                   value={testPhone}
                   onChange={(e) => setTestPhone(e.target.value)}
                   placeholder="+1234567890"
-                  className="flex-1 bg-[#111] border border-[#333] rounded px-2 py-1.5 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#00F0FF]"
+                  className="flex-1 bg-[var(--bg-secondary)] border border-[var(--bg-elevated)] rounded px-2 py-1.5 text-xs text-[var(--text-primary)] placeholder:text-[var(--border-default)] focus:outline-none focus:border-[var(--brand-blue)]"
                 />
                 <button
                   onClick={handleTestConnection}
                   disabled={testStatus === 'sending'}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-green-600 hover:bg-green-500 disabled:opacity-50 rounded text-xs text-white transition-colors"
+                  className="flex items-center gap-1 px-3 py-1.5 bg-green-600 hover:bg-green-500 disabled:opacity-50 rounded text-xs text-[var(--text-primary)] transition-colors"
                 >
                   {testStatus === 'sending' ? (
                     <Loader2 size={12} className="animate-spin" />
@@ -339,11 +339,11 @@ export default function IntegrationsSettings() {
       {/* ================================================================== */}
       {/* SECTION 2: Mercury Voice */}
       {/* ================================================================== */}
-      <div className="rounded-lg border border-[#222] bg-[#0a0a0a] p-4 mb-4">
+      <div className="rounded-lg border border-[var(--bg-tertiary)] bg-[var(--bg-primary)] p-4 mb-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Mic size={14} className="text-[#00F0FF]" />
-            <span className="text-xs font-medium text-white">Mercury Voice</span>
+            <Mic size={14} className="text-[var(--brand-blue)]" />
+            <span className="text-xs font-medium text-[var(--text-primary)]">Mercury Voice</span>
           </div>
           <Toggle
             checked={settings.mercuryVoiceEnabled}
@@ -351,14 +351,14 @@ export default function IntegrationsSettings() {
           />
         </div>
 
-        <div className="space-y-3 mt-3 pt-3 border-t border-[#222]">
+        <div className="space-y-3 mt-3 pt-3 border-t border-[var(--bg-tertiary)]">
           {/* Voice Model */}
           <div>
-            <label className="text-[10px] text-[#666] block mb-1">Voice Model</label>
+            <label className="text-[10px] text-[var(--text-tertiary)] block mb-1">Voice Model</label>
             <select
               value={settings.mercuryVoiceModel}
               onChange={(e) => saveField({ mercuryVoiceModel: e.target.value })}
-              className="w-full bg-[#111] border border-[#333] rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-[#00F0FF]"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--bg-elevated)] rounded px-2 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-blue)]"
             >
               {VOICE_MODELS.map((m) => (
                 <option key={m.value} value={m.value}>
@@ -371,8 +371,8 @@ export default function IntegrationsSettings() {
           {/* Auto-Reply */}
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-xs text-white">Auto-Reply</div>
-              <div className="text-[10px] text-[#666]">
+              <div className="text-xs text-[var(--text-primary)]">Auto-Reply</div>
+              <div className="text-[10px] text-[var(--text-tertiary)]">
                 Automatically respond to WhatsApp messages via RAG
               </div>
             </div>
@@ -387,10 +387,10 @@ export default function IntegrationsSettings() {
       {/* ================================================================== */}
       {/* SECTION 3: Permissions */}
       {/* ================================================================== */}
-      <div className="rounded-lg border border-[#222] bg-[#0a0a0a] p-4 mb-4">
+      <div className="rounded-lg border border-[var(--bg-tertiary)] bg-[var(--bg-primary)] p-4 mb-4">
         <div className="flex items-center gap-2 mb-3">
-          <ShieldCheck size={14} className="text-amber-500" />
-          <span className="text-xs font-medium text-white">Permissions</span>
+          <ShieldCheck size={14} className="text-[var(--warning)]" />
+          <span className="text-xs font-medium text-[var(--text-primary)]">Permissions</span>
         </div>
 
         <div className="space-y-3">
@@ -411,27 +411,27 @@ export default function IntegrationsSettings() {
           />
 
           {/* Allowed Numbers */}
-          <div className="pt-2 border-t border-[#222]">
-            <label className="text-[10px] text-[#666] block mb-1">
+          <div className="pt-2 border-t border-[var(--bg-tertiary)]">
+            <label className="text-[10px] text-[var(--text-tertiary)] block mb-1">
               Allowed Phone Numbers (E.164)
             </label>
             <div className="flex flex-wrap gap-1 mb-2">
               {settings.whatsappAllowedNumbers.map((num) => (
                 <span
                   key={num}
-                  className="flex items-center gap-1 px-2 py-0.5 bg-[#1a1a1a] border border-[#333] rounded-full text-[10px] text-white"
+                  className="flex items-center gap-1 px-2 py-0.5 bg-[var(--bg-secondary)] border border-[var(--bg-elevated)] rounded-full text-[10px] text-[var(--text-primary)]"
                 >
                   {num}
                   <button
                     onClick={() => removeAllowedNumber(num)}
-                    className="text-[#666] hover:text-red-500"
+                    className="text-[var(--text-tertiary)] hover:text-[var(--danger)]"
                   >
                     <X size={10} />
                   </button>
                 </span>
               ))}
               {settings.whatsappAllowedNumbers.length === 0 && (
-                <span className="text-[10px] text-[#444]">All numbers allowed</span>
+                <span className="text-[10px] text-[var(--border-default)]">All numbers allowed</span>
               )}
             </div>
             <div className="flex gap-2">
@@ -441,11 +441,11 @@ export default function IntegrationsSettings() {
                 onChange={(e) => setNewNumber(e.target.value)}
                 placeholder="+1234567890"
                 onKeyDown={(e) => e.key === 'Enter' && addAllowedNumber()}
-                className="flex-1 bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#00F0FF]"
+                className="flex-1 bg-[var(--bg-secondary)] border border-[var(--bg-elevated)] rounded px-2 py-1 text-xs text-[var(--text-primary)] placeholder:text-[var(--border-default)] focus:outline-none focus:border-[var(--brand-blue)]"
               />
               <button
                 onClick={addAllowedNumber}
-                className="px-2 py-1 bg-[#222] hover:bg-[#333] rounded text-xs text-white transition-colors"
+                className="px-2 py-1 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-elevated)] rounded text-xs text-[var(--text-primary)] transition-colors"
               >
                 Add
               </button>
@@ -453,14 +453,14 @@ export default function IntegrationsSettings() {
           </div>
 
           {/* Default Vault */}
-          <div className="pt-2 border-t border-[#222]">
-            <label className="text-[10px] text-[#666] block mb-1">Default Vault</label>
+          <div className="pt-2 border-t border-[var(--bg-tertiary)]">
+            <label className="text-[10px] text-[var(--text-tertiary)] block mb-1">Default Vault</label>
             <select
               value={settings.defaultVaultId || ''}
               onChange={(e) =>
                 saveField({ defaultVaultId: e.target.value || null })
               }
-              className="w-full bg-[#111] border border-[#333] rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-[#00F0FF]"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--bg-elevated)] rounded px-2 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-blue)]"
             >
               <option value="">No default vault</option>
               {vaults.map((v) => (
@@ -487,11 +487,11 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
       aria-checked={checked}
       onClick={() => onChange(!checked)}
       className={`w-10 h-5 rounded-full relative transition-colors ${
-        checked ? 'bg-[#00F0FF]' : 'bg-[#333]'
+        checked ? 'bg-[var(--brand-blue)]' : 'bg-[var(--bg-elevated)]'
       }`}
     >
       <span
-        className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${
+        className={`absolute top-0.5 w-4 h-4 rounded-full bg-[var(--text-primary)] transition-all ${
           checked ? 'right-0.5' : 'left-0.5'
         }`}
       />
@@ -510,7 +510,7 @@ function ToggleRow({
 }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-xs text-white">{label}</span>
+      <span className="text-xs text-[var(--text-primary)]">{label}</span>
       <Toggle checked={checked} onChange={onChange} />
     </div>
   )
@@ -556,7 +556,7 @@ function CredentialField({
 
   return (
     <div>
-      <label className="text-[10px] text-[#666] block mb-1">{label}</label>
+      <label className="text-[10px] text-[var(--text-tertiary)] block mb-1">{label}</label>
       <input
         type={type}
         value={localValue}
@@ -564,7 +564,7 @@ function CredentialField({
         onFocus={handleFocus}
         onBlur={handleBlur}
         placeholder={placeholder}
-        className="w-full bg-[#111] border border-[#333] rounded px-2 py-1.5 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#00F0FF]"
+        className="w-full bg-[var(--bg-secondary)] border border-[var(--bg-elevated)] rounded px-2 py-1.5 text-xs text-[var(--text-primary)] placeholder:text-[var(--border-default)] focus:outline-none focus:border-[var(--brand-blue)]"
       />
     </div>
   )

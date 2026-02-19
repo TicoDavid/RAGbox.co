@@ -39,7 +39,7 @@ export function ConnectionsHelpText({ isConfigured, provider }: ConnectionsHelpT
 
       {/* Security */}
       <div className="flex gap-2">
-        <ShieldCheck size={14} className="mt-0.5 shrink-0 text-emerald-500" />
+        <ShieldCheck size={14} className="mt-0.5 shrink-0 text-[var(--success)]" />
         <div>
           <p className="font-medium text-[var(--text-secondary)]">Your key is safe</p>
           <p className="mt-0.5">

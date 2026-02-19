@@ -103,9 +103,9 @@ export function Tooltip({
           className={`
             absolute z-[100] px-2.5 py-1.5
             text-[10px] font-medium tracking-wide leading-tight
-            text-amber-300 bg-gray-900/95
-            border border-amber-500/30 rounded
-            shadow-lg shadow-amber-500/10
+            text-[var(--warning)] bg-[var(--bg-primary)]/95
+            border border-[var(--warning)]/30 rounded
+            shadow-lg shadow-[var(--warning)]/10
             backdrop-blur-sm
             animate-in fade-in duration-150
             pointer-events-none
@@ -116,7 +116,7 @@ export function Tooltip({
           {content}
           {/* Arrow */}
           <div className={`
-            absolute w-2 h-2 bg-gray-900/95 border-amber-500/30
+            absolute w-2 h-2 bg-[var(--bg-primary)]/95 border-[var(--warning)]/30
             transform rotate-45
             ${arrowClasses[actualPosition]}
           `}/>

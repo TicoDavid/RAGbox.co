@@ -23,7 +23,7 @@ export default function CitationChip({
   return (
     <span className="relative inline-block">
       <button
-        className="inline-flex items-center justify-center min-w-[24px] h-5 px-1.5 rounded-full text-[10px] font-bold bg-[#00F0FF]/15 text-[#00F0FF] border border-[#00F0FF]/30 hover:bg-[#00F0FF]/25 transition-colors cursor-pointer"
+        className="inline-flex items-center justify-center min-w-[24px] h-5 px-1.5 rounded-full text-[10px] font-bold bg-[var(--brand-blue)]/15 text-[var(--brand-blue)] border border-[var(--brand-blue)]/30 hover:bg-[var(--brand-blue)]/25 transition-colors cursor-pointer"
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
         onClick={onClick}
@@ -33,13 +33,13 @@ export default function CitationChip({
       </button>
 
       {showTooltip && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-72 p-3 rounded-lg bg-[#111] border border-[#333] shadow-xl">
-          <div className="text-xs font-medium text-[#00F0FF] mb-1 truncate">{documentName}</div>
-          <div className="text-[10px] text-[#888] line-clamp-3">{excerpt}</div>
-          <div className="text-[10px] text-[#555] mt-1">
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-72 p-3 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-default)] shadow-xl">
+          <div className="text-xs font-medium text-[var(--brand-blue)] mb-1 truncate">{documentName}</div>
+          <div className="text-[10px] text-[var(--text-tertiary)] line-clamp-3">{excerpt}</div>
+          <div className="text-[10px] text-[var(--text-tertiary)] mt-1">
             {(relevanceScore * 100).toFixed(0)}% relevance
           </div>
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 bg-[#111] border-r border-b border-[#333]" />
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 bg-[var(--bg-primary)] border-r border-b border-[var(--border-default)]" />
         </div>
       )}
     </span>

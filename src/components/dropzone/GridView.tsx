@@ -32,11 +32,11 @@ const TYPE_COLORS: Record<string, string> = {
   pdf: '#FF3D00',
   docx: '#3B82F6',
   doc: '#3B82F6',
-  txt: '#888888',
+  txt: 'var(--text-tertiary)',
   csv: '#22c55e',
   xlsx: '#22c55e',
   json: '#FFAB00',
-  md: '#888888',
+  md: 'var(--text-tertiary)',
 }
 
 export default function GridView({ documents, onSelect, selectedId }: GridViewProps) {
@@ -48,31 +48,31 @@ export default function GridView({ documents, onSelect, selectedId }: GridViewPr
           onClick={() => onSelect(doc.id)}
           className={`flex flex-col items-center gap-2 p-3 rounded-lg border transition-all text-center ${
             selectedId === doc.id
-              ? 'border-[#00F0FF] bg-[#00F0FF]/5'
-              : 'border-[#222] bg-[#0a0a0a] hover:border-[#444]'
+              ? 'border-[var(--brand-blue)] bg-[var(--brand-blue)]/5'
+              : 'border-[var(--border-default)] bg-[var(--bg-primary)] hover:border-[var(--border-default)]'
           }`}
         >
           <div className="relative">
             <FileText
               size={32}
-              style={{ color: TYPE_COLORS[doc.type] || '#666' }}
+              style={{ color: TYPE_COLORS[doc.type] || 'var(--text-tertiary)' }}
             />
             {doc.isPrivileged && (
-              <Lock size={10} className="absolute -top-1 -right-1 text-red-500" />
+              <Lock size={10} className="absolute -top-1 -right-1 text-[var(--danger)]" />
             )}
           </div>
           <div className="w-full">
-            <div className="text-[11px] text-white truncate">{doc.name}</div>
+            <div className="text-[11px] text-[var(--text-primary)] truncate">{doc.name}</div>
             <div className="flex items-center justify-center gap-1.5 mt-1">
               <TierBadge tier={doc.securityTier} size="sm" />
-              <span className="text-[10px] text-[#666]">{formatBytes(doc.size)}</span>
+              <span className="text-[10px] text-[var(--text-tertiary)]">{formatBytes(doc.size)}</span>
             </div>
           </div>
         </button>
       ))}
 
       {documents.length === 0 && (
-        <div className="col-span-full py-8 text-center text-xs text-[#666]">
+        <div className="col-span-full py-8 text-center text-xs text-[var(--text-tertiary)]">
           No documents found
         </div>
       )}

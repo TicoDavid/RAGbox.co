@@ -41,7 +41,7 @@ export function CitationCard({ block, index }: CitationCardProps) {
   const [expanded, setExpanded] = useState(false)
 
   const borderColor = BORDER_COLORS[block.confidenceColor] ?? 'border-l-slate-500'
-  const badgeColor = BADGE_COLORS[block.confidenceColor] ?? 'bg-slate-500/20 text-slate-400'
+  const badgeColor = BADGE_COLORS[block.confidenceColor] ?? 'bg-[var(--text-muted)]/20 text-[var(--text-tertiary)]'
   const label = CONFIDENCE_LABELS[block.confidenceLevel] ?? 'Unknown'
 
   return (

@@ -16,7 +16,7 @@ export default function ForgeButton({ responseText, className }: ForgeButtonProp
     <>
       <button
         onClick={() => setShowSelector(true)}
-        className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-medium text-[#00F0FF] border border-[#00F0FF]/30 hover:bg-[#00F0FF]/10 transition-colors ${className || ''}`}
+        className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-medium text-[var(--brand-blue)] border border-[var(--brand-blue)]/30 hover:bg-[var(--brand-blue)]/10 transition-colors ${className || ''}`}
         title="Forge Document from this response"
       >
         <Hammer size={12} />

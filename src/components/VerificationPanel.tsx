@@ -36,7 +36,7 @@ export default function VerificationPanel({ citation, onClear, onViewDocument }:
       <div className="flex flex-col h-full bg-carbon/20 min-w-0">
         {/* Header */}
         <div className="h-12 border-b border-border flex items-center px-4 bg-carbon/30 shrink-0">
-          <span className="font-header text-sm font-bold tracking-wider text-gray-400 uppercase">
+          <span className="font-header text-sm font-bold tracking-wider text-[var(--text-tertiary)] uppercase">
             Verification
           </span>
         </div>
@@ -44,10 +44,10 @@ export default function VerificationPanel({ citation, onClear, onViewDocument }:
         {/* Empty Content */}
         <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
           <div className="w-16 h-16 rounded-full bg-steel/50 flex items-center justify-center mb-4">
-            <Search className="w-8 h-8 text-gray-700" />
+            <Search className="w-8 h-8 text-[var(--text-muted)]" />
           </div>
-          <h3 className="font-header text-gray-500 text-lg mb-2">No Active Citation</h3>
-          <p className="font-mono text-xs text-gray-600 max-w-[200px] leading-relaxed">
+          <h3 className="font-header text-[var(--text-muted)] text-lg mb-2">No Active Citation</h3>
+          <p className="font-mono text-xs text-[var(--text-tertiary)] max-w-[200px] leading-relaxed">
             Select a claim in the interrogation stream to verify source evidence.
           </p>
         </div>
@@ -77,7 +77,7 @@ export default function VerificationPanel({ citation, onClear, onViewDocument }:
         </div>
         <button
           onClick={onClear}
-          className="p-1.5 rounded hover:bg-white/5 text-gray-500 hover:text-gray-300 transition-colors"
+          className="p-1.5 rounded hover:bg-white/5 text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
           title="Clear citation"
         >
           <X className="w-4 h-4" />
@@ -93,10 +93,10 @@ export default function VerificationPanel({ citation, onClear, onViewDocument }:
             <FileText className="w-5 h-5 text-cyan" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="font-sans text-sm text-gray-200 truncate">{citation.source}</div>
+            <div className="font-sans text-sm text-[var(--text-secondary)] truncate">{citation.source}</div>
             <div className="flex items-center gap-2 mt-1">
               {citation.page && (
-                <span className="font-mono text-[10px] text-gray-500">Page {citation.page}</span>
+                <span className="font-mono text-[10px] text-[var(--text-muted)]">Page {citation.page}</span>
               )}
               {citation.documentId && onViewDocument && (
                 <button
@@ -113,12 +113,12 @@ export default function VerificationPanel({ citation, onClear, onViewDocument }:
         {/* Source Excerpt */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-[10px] text-gray-500 uppercase tracking-wider">
+            <span className="font-mono text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
               Source Excerpt
             </span>
             <button
               onClick={handleCopy}
-              className="flex items-center gap-1 font-mono text-[10px] text-gray-500 hover:text-cyan transition-colors"
+              className="flex items-center gap-1 font-mono text-[10px] text-[var(--text-muted)] hover:text-cyan transition-colors"
             >
               {copied ? (
                 <>
@@ -136,7 +136,7 @@ export default function VerificationPanel({ citation, onClear, onViewDocument }:
           <div className="bg-oled border border-cyan/20 rounded-lg p-4 relative">
             {/* Quote marks */}
             <div className="absolute top-2 left-3 text-cyan/20 text-4xl font-serif leading-none">"</div>
-            <p className="text-sm text-gray-300 leading-relaxed font-mono pl-6 pr-2">
+            <p className="text-sm text-[var(--text-secondary)] leading-relaxed font-mono pl-6 pr-2">
               {citation.text}
             </p>
             <div className="absolute bottom-2 right-3 text-cyan/20 text-4xl font-serif leading-none">"</div>
@@ -145,13 +145,13 @@ export default function VerificationPanel({ citation, onClear, onViewDocument }:
 
         {/* Document Preview Placeholder */}
         <div className="space-y-2">
-          <span className="font-mono text-[10px] text-gray-500 uppercase tracking-wider">
+          <span className="font-mono text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
             Document Preview
           </span>
-          <div className="border border-dashed border-gray-700 rounded-lg p-8 flex flex-col items-center justify-center bg-steel/10">
-            <BookOpen className="w-10 h-10 text-gray-700 mb-3" />
-            <span className="font-mono text-xs text-gray-600">Preview Unavailable</span>
-            <span className="font-mono text-[10px] text-gray-700 mt-1">Connect Document Viewer</span>
+          <div className="border border-dashed border-[var(--border-default)] rounded-lg p-8 flex flex-col items-center justify-center bg-steel/10">
+            <BookOpen className="w-10 h-10 text-[var(--text-muted)] mb-3" />
+            <span className="font-mono text-xs text-[var(--text-tertiary)]">Preview Unavailable</span>
+            <span className="font-mono text-[10px] text-[var(--text-muted)] mt-1">Connect Document Viewer</span>
           </div>
         </div>
 
@@ -161,7 +161,7 @@ export default function VerificationPanel({ citation, onClear, onViewDocument }:
             <Check className="w-4 h-4" />
             Mark as Verified
           </button>
-          <button className="w-full flex items-center justify-center gap-2 p-3 rounded border border-gray-700 hover:border-amber hover:bg-amber/5 text-gray-500 hover:text-amber font-mono text-xs uppercase tracking-wider transition-colors">
+          <button className="w-full flex items-center justify-center gap-2 p-3 rounded border border-[var(--border-default)] hover:border-amber hover:bg-amber/5 text-[var(--text-muted)] hover:text-amber font-mono text-xs uppercase tracking-wider transition-colors">
             Flag for Review
           </button>
         </div>

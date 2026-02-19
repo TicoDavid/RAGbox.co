@@ -10,10 +10,10 @@ interface TemplateCardProps {
 }
 
 const categoryColors: Record<string, string> = {
-  legal: '#FFAB00',
-  financial: '#00F0FF',
+  legal: 'var(--warning)',
+  financial: 'var(--brand-blue)',
   medical: '#FF3D00',
-  general: '#888',
+  general: 'var(--text-tertiary)',
 }
 
 export default function TemplateCard({ template, onSelect, isSelected }: TemplateCardProps) {
@@ -24,8 +24,8 @@ export default function TemplateCard({ template, onSelect, isSelected }: Templat
       onClick={() => onSelect(template)}
       className={`w-full text-left rounded-lg border p-4 transition-all ${
         isSelected
-          ? 'border-[#00F0FF] bg-[#00F0FF]/10 shadow-[0_0_12px_rgba(0,240,255,0.15)]'
-          : 'border-[#222] bg-[#0a0a0a] hover:border-[#444]'
+          ? 'border-[var(--brand-blue)] bg-[var(--brand-blue)]/10 shadow-[0_0_12px_rgba(0,240,255,0.15)]'
+          : 'border-[var(--bg-tertiary)] bg-[var(--bg-primary)] hover:border-[var(--border-default)]'
       }`}
     >
       <div className="flex items-start gap-3">
@@ -36,7 +36,7 @@ export default function TemplateCard({ template, onSelect, isSelected }: Templat
           <FileText size={16} style={{ color }} />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-xs font-medium text-white truncate">{template.name}</div>
+          <div className="text-xs font-medium text-[var(--text-primary)] truncate">{template.name}</div>
           <div className="flex items-center gap-2 mt-1">
             <span
               className="text-[10px] px-1.5 py-0.5 rounded"
@@ -45,18 +45,18 @@ export default function TemplateCard({ template, onSelect, isSelected }: Templat
               <Tag size={8} className="inline mr-1" />
               {template.category}
             </span>
-            <span className="text-[10px] text-[#666]">
+            <span className="text-[10px] text-[var(--text-tertiary)]">
               {template.fields.length} fields
             </span>
           </div>
-          <div className="flex items-center gap-1 mt-1.5 text-[10px] text-[#555]">
+          <div className="flex items-center gap-1 mt-1.5 text-[10px] text-[var(--text-tertiary)]">
             <Calendar size={10} />
             {template.sections.length} sections
           </div>
         </div>
       </div>
       {template.confidence < 0.5 && (
-        <div className="mt-2 text-[10px] text-[#FFAB00]">
+        <div className="mt-2 text-[10px] text-[var(--warning)]">
           Low confidence analysis ({Math.round(template.confidence * 100)}%)
         </div>
       )}

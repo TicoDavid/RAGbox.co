@@ -44,14 +44,14 @@ export default function ContentArea({
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <div className="flex items-center justify-between px-3 py-2 border-b border-[#222]">
-        <span className="text-xs text-[#888]">{documents.length} documents</span>
+      <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border-default)]">
+        <span className="text-xs text-[var(--text-tertiary)]">{documents.length} documents</span>
         <div className="flex items-center gap-1">
           <button
             onClick={() => setViewMode('list')}
             aria-label="List view"
             aria-pressed={viewMode === 'list'}
-            className={`p-1 rounded ${viewMode === 'list' ? 'bg-[#00F0FF]/10 text-[#00F0FF]' : 'text-[#666] hover:text-white'}`}
+            className={`p-1 rounded ${viewMode === 'list' ? 'bg-[var(--brand-blue)]/10 text-[var(--brand-blue)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'}`}
           >
             <List size={14} />
           </button>
@@ -59,7 +59,7 @@ export default function ContentArea({
             onClick={() => setViewMode('grid')}
             aria-label="Grid view"
             aria-pressed={viewMode === 'grid'}
-            className={`p-1 rounded ${viewMode === 'grid' ? 'bg-[#00F0FF]/10 text-[#00F0FF]' : 'text-[#666] hover:text-white'}`}
+            className={`p-1 rounded ${viewMode === 'grid' ? 'bg-[var(--brand-blue)]/10 text-[var(--brand-blue)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'}`}
           >
             <Grid size={14} />
           </button>
