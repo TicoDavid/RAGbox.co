@@ -439,6 +439,35 @@ describe('RAG fallthrough — queries that should NOT trigger tools', () => {
   })
 })
 
+// ── Edge cases (Dr. Insane hardening) ──────────────────────
+
+describe('edge cases — security and robustness', () => {
+  test('empty string input → no match', () => {
+    expect(detectToolIntent('')).toBeNull()
+  })
+
+  test('single ambiguous word "files" → no match', () => {
+    expect(detectToolIntent('files')).toBeNull()
+  })
+
+  test('SQL injection attempt → no match', () => {
+    expect(detectToolIntent("'; DROP TABLE documents;--")).toBeNull()
+  })
+
+  test('very long input (500+ chars) → no match or graceful handling', () => {
+    const longInput = 'a'.repeat(600)
+    const result = detectToolIntent(longInput)
+    // Should not throw, and should not match any tool pattern
+    expect(result).toBeNull()
+  })
+
+  test('David\'s exact phrase: "what files are available in the rag box" → matches list_documents', () => {
+    const result = detectToolIntent('what files are available in the rag box')
+    expect(result).not.toBeNull()
+    expect(result!.tool).toBe('list_documents')
+  })
+})
+
 // ── Confidence ─────────────────────────────────────────────
 
 describe('confidence score', () => {
