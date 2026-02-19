@@ -449,6 +449,66 @@ describe('help patterns', () => {
   })
 })
 
+// ── Conversational catch-alls (no ^ anchor) ─────────────────
+
+describe('conversational catch-all patterns', () => {
+  test('David exact: "Can you tell me how many files I have to work with please" → get_document_stats', () => {
+    const result = detectToolIntent('Can you tell me how many files I have to work with please')
+    expect(result).not.toBeNull()
+    expect(result!.tool).toBe('get_document_stats')
+  })
+
+  test('David exact: "What files can you see in the vault?" → list_documents', () => {
+    const result = detectToolIntent('What files can you see in the vault?')
+    expect(result).not.toBeNull()
+    expect(result!.tool).toBe('list_documents')
+  })
+
+  test('could you show me what documents I have', () => {
+    const result = detectToolIntent('could you show me what documents I have')
+    expect(result).not.toBeNull()
+    expect(result!.tool).toBe('list_documents')
+  })
+
+  test('please list my files', () => {
+    const result = detectToolIntent('please list my files')
+    expect(result).not.toBeNull()
+    expect(result!.tool).toBe('list_documents')
+  })
+
+  test('I want to know how many documents are available', () => {
+    const result = detectToolIntent('I want to know how many documents are available')
+    expect(result).not.toBeNull()
+    expect(result!.tool).toBe('get_document_stats')
+  })
+
+  test('which documents do you have on file', () => {
+    const result = detectToolIntent('which documents do you have on file')
+    expect(result).not.toBeNull()
+    expect(result!.tool).toBe('list_documents')
+  })
+
+  test('files I have to work with today', () => {
+    const result = detectToolIntent('files I have to work with today')
+    expect(result).not.toBeNull()
+    expect(result!.tool).toBe('list_documents')
+  })
+
+  test('specific search still beats catch-all: "which files mention insurance"', () => {
+    const result = detectToolIntent('which files mention insurance')
+    expect(result).not.toBeNull()
+    expect(result!.tool).toBe('search_documents')
+    expect(result!.args.query).toBe('insurance')
+  })
+
+  test('specific search still beats catch-all: "show me documents about employment law"', () => {
+    const result = detectToolIntent('show me documents about employment law')
+    expect(result).not.toBeNull()
+    expect(result!.tool).toBe('search_documents')
+    expect(result!.args.query).toBe('employment law')
+  })
+})
+
 // ── RAG fallthrough (null) — should NOT match tool patterns ─
 
 describe('RAG fallthrough — queries that should NOT trigger tools', () => {

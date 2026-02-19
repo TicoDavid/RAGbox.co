@@ -82,6 +82,18 @@ const TOOL_PATTERNS: PatternDef[] = [
   { pattern: /^(?:delete|remove|trash)\s+(.+\.(?:pdf|docx|txt|doc|csv|xlsx))/i,
     tool: 'delete_document', argMap: (m) => ({ query: m[1].trim() }) },
 
+  // Conversational catch-alls (no ^ anchor — match mid-sentence polite phrasing)
+  // These fire AFTER all specific patterns above, so "which files mention X" still
+  // routes to search_documents and "delete the file X" still routes to delete_document.
+  { pattern: /(?:how many)\s+(?:files?|documents?|docs?)\b/i,
+    tool: 'get_document_stats', argMap: () => ({}) },
+  { pattern: /(?:what|which)\s+(?:files?|documents?|docs?)\b/i,
+    tool: 'list_documents', argMap: () => ({}) },
+  { pattern: /(?:can you|could you|please).*(?:files?|documents?|docs?)/i,
+    tool: 'list_documents', argMap: () => ({}) },
+  { pattern: /(?:files?|documents?)\s+.*(?:work with|have|available)/i,
+    tool: 'list_documents', argMap: () => ({}) },
+
   // Help command
   { pattern: /^\/help\s*$/i, tool: 'show_help', argMap: () => ({}) },
   { pattern: /^(?:help|what can you do|how do I|commands?)/i, tool: 'show_help', argMap: () => ({}) },
