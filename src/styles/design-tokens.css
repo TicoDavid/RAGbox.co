@@ -57,6 +57,19 @@
   --radius-lg: 12px;
   --radius-xl: 16px;
 
+  /* ===== Semantic Status Text ===== */
+  --text-accent: var(--brand-blue);
+  --text-success: var(--success);
+  --text-danger: var(--danger);
+  --text-warning: var(--warning);
+
+  /* ===== Muted Text Levels ===== */
+  --text-muted: #64748B;
+  --text-placeholder: #475569;
+
+  /* ===== Elevated/Accent Backgrounds ===== */
+  --bg-accent: var(--brand-blue);
+
   /* ===== Transitions ===== */
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
@@ -85,6 +98,14 @@
 
   --brand-blue: #2463EB;
   --brand-blue-hover: #60A5FA;
+
+  --text-accent: var(--brand-blue);
+  --text-success: var(--success);
+  --text-danger: var(--danger);
+  --text-warning: var(--warning);
+  --text-muted: #64748B;
+  --text-placeholder: #475569;
+  --bg-accent: var(--brand-blue);
 }
 
 /* ===== Theme: Cyber Noir (The Hacker Theme) ===== */
@@ -109,6 +130,14 @@
   --privilege-color: #FF3D00;
   --privilege-bg: #1A0A00;
   --privilege-border: #FF6B3D;
+
+  --text-accent: var(--brand-blue);
+  --text-success: var(--success);
+  --text-danger: var(--danger);
+  --text-warning: var(--warning);
+  --text-muted: #6B7280;
+  --text-placeholder: #4B5563;
+  --bg-accent: var(--brand-blue);
 }
 
 /* ===== Theme: Forest Dark (Military Field Ops) ===== */
@@ -133,6 +162,14 @@
   --privilege-color: #fbbf24;
   --privilege-bg: #1c1917;
   --privilege-border: #d97706;
+
+  --text-accent: var(--brand-blue);
+  --text-success: var(--success);
+  --text-danger: var(--danger);
+  --text-warning: var(--warning);
+  --text-muted: #6B8F71;
+  --text-placeholder: #4A6B4F;
+  --bg-accent: var(--brand-blue);
 }
 
 /* ===== Theme: Obsidian Gold (Executive Luxury - Midas Protocol) ===== */
@@ -167,6 +204,14 @@
   /* Gold glow colors */
   --glow-primary: rgba(217, 119, 6, 0.4);
   --glow-secondary: rgba(251, 191, 36, 0.3);
+
+  --text-accent: var(--brand-blue);
+  --text-success: var(--success);
+  --text-danger: var(--danger);
+  --text-warning: var(--warning);
+  --text-muted: #78716C;
+  --text-placeholder: #57534E;
+  --bg-accent: var(--brand-blue);
 }
 
 /* ===== Light Mode ===== */
@@ -187,6 +232,14 @@
 
   --privilege-bg: #fffbeb;
   --privilege-border: #f59e0b;
+
+  --text-accent: var(--brand-blue);
+  --text-success: var(--success);
+  --text-danger: var(--danger);
+  --text-warning: var(--warning);
+  --text-muted: #64748b;
+  --text-placeholder: #94a3b8;
+  --bg-accent: var(--brand-blue);
 }
 
 /* ===== Privilege Mode Pulse ===== */

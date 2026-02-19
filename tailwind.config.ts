@@ -41,6 +41,18 @@ const config: Config = {
           subtle: '#162C4E',
           strong: '#2D4A6F',
         },
+
+        // Theme-aware aliases (use CSS variables)
+        theme: {
+          bg: 'var(--bg-primary)',
+          'bg-secondary': 'var(--bg-secondary)',
+          'bg-elevated': 'var(--bg-elevated)',
+          text: 'var(--text-primary)',
+          'text-secondary': 'var(--text-secondary)',
+          'text-muted': 'var(--text-muted)',
+          accent: 'var(--brand-blue)',
+          border: 'var(--border-default)',
+        },
       },
       fontFamily: {
         // The Typography Trinity
