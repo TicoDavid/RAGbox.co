@@ -62,7 +62,7 @@ export function Sidebar({ onNavigate, activePanelId }: SidebarProps) {
 
   return (
     <div
-      className="h-full flex flex-col bg-[var(--bg-primary)] border-r border-white/10"
+      className="h-full flex flex-col bg-[var(--bg-primary)] border-r border-[var(--border-default)]"
       style={{ width: 64 }}
       role="navigation"
       aria-label="Main navigation"
@@ -94,7 +94,7 @@ export function Sidebar({ onNavigate, activePanelId }: SidebarProps) {
                   transition-all duration-200
                   ${active
                     ? 'bg-[var(--brand-blue)]/15 text-[var(--brand-blue)] shadow-[0_0_20px_rgba(36,99,235,0.4)]'
-                    : 'text-slate-500 hover:text-white hover:bg-white/5'
+                    : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]/50'
                   }
                 `}
               >
@@ -103,14 +103,14 @@ export function Sidebar({ onNavigate, activePanelId }: SidebarProps) {
                 )}
                 <Icon className={`w-5 h-5 ${active ? 'drop-shadow-[0_0_6px_rgba(36,99,235,0.6)]' : ''}`} />
                 {item.statusDot && (
-                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[var(--bg-primary)] animate-pulse" />
+                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[var(--success)] border-2 border-[var(--bg-primary)] animate-pulse" />
                 )}
               </button>
 
               {/* Tooltip — right side */}
               <div className="absolute top-1/2 -translate-y-1/2 left-full ml-2 px-2.5 py-1.5 rounded-lg
-                            bg-[var(--bg-primary)]/95 backdrop-blur-sm border border-white/10 shadow-xl
-                            text-xs font-medium text-white whitespace-nowrap
+                            bg-[var(--bg-primary)]/95 backdrop-blur-sm border border-[var(--border-default)] shadow-xl
+                            text-xs font-medium text-[var(--text-primary)] whitespace-nowrap
                             opacity-0 pointer-events-none group-hover:opacity-100
                             transition-opacity duration-200 z-50">
                 {item.label}
