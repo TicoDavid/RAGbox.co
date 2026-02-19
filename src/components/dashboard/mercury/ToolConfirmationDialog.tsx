@@ -32,23 +32,23 @@ interface ToolConfirmationDialogProps {
 const SEVERITY_CONFIG = {
   low: {
     icon: FileText,
-    color: 'text-blue-400',
-    bg: 'bg-blue-500/10',
-    border: 'border-blue-500/30',
+    color: 'text-[var(--brand-blue)]',
+    bg: 'bg-[var(--brand-blue)]/10',
+    border: 'border-[var(--brand-blue)]/30',
     glow: '',
   },
   medium: {
     icon: AlertTriangle,
-    color: 'text-amber-400',
-    bg: 'bg-amber-500/10',
-    border: 'border-amber-500/30',
+    color: 'text-[var(--warning)]',
+    bg: 'bg-[var(--warning)]/10',
+    border: 'border-[var(--warning)]/30',
     glow: 'shadow-[0_0_30px_rgba(245,158,11,0.2)]',
   },
   high: {
     icon: Shield,
-    color: 'text-red-400',
-    bg: 'bg-red-500/10',
-    border: 'border-red-500/30',
+    color: 'text-[var(--danger)]',
+    bg: 'bg-[var(--danger)]/10',
+    border: 'border-[var(--danger)]/30',
     glow: 'shadow-[0_0_30px_rgba(239,68,68,0.3)]',
   },
 }
@@ -75,7 +75,7 @@ function CountdownTimer({ expiresAt, onExpire }: { expiresAt: number; onExpire: 
   }, [expiresAt, onExpire])
 
   return (
-    <div className="text-xs text-gray-500">
+    <div className="text-xs text-[var(--text-tertiary)]">
       Auto-cancel in {remaining}s
     </div>
   )
@@ -111,19 +111,19 @@ function EmailConfirmationCard({
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
         className="w-full max-w-md mx-4 p-6 rounded-2xl border
-                   border-yellow-500/30 bg-[#0A0A0F]/95 backdrop-blur-xl
+                   border-[var(--warning)]/30 bg-[var(--bg-primary)]/95 backdrop-blur-xl
                    shadow-[0_0_30px_rgba(234,179,8,0.15)]"
       >
         {/* Header */}
         <div className="flex items-center gap-4 mb-4">
-          <div className="p-3 rounded-xl bg-yellow-500/10">
-            <Mail className="w-6 h-6 text-yellow-400" />
+          <div className="p-3 rounded-xl bg-[var(--warning)]/10">
+            <Mail className="w-6 h-6 text-[var(--warning)]" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-gray-100">
+            <h3 className="text-lg font-semibold text-[var(--text-primary)]">
               Send Email
             </h3>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-[var(--text-secondary)]">
               Review before sending
             </p>
           </div>
@@ -132,16 +132,16 @@ function EmailConfirmationCard({
         {/* Email Preview */}
         <div className="mb-5 space-y-3 p-4 rounded-lg bg-[var(--bg-primary)]/60 border border-[var(--border-default)]/50">
           <div className="flex items-start gap-2">
-            <span className="text-xs font-medium text-gray-500 w-14 shrink-0 pt-0.5">To</span>
-            <span className="text-sm text-gray-200 break-all">{to}</span>
+            <span className="text-xs font-medium text-[var(--text-tertiary)] w-14 shrink-0 pt-0.5">To</span>
+            <span className="text-sm text-[var(--text-primary)] break-all">{to}</span>
           </div>
           <div className="flex items-start gap-2">
-            <span className="text-xs font-medium text-gray-500 w-14 shrink-0 pt-0.5">Subject</span>
-            <span className="text-sm text-gray-200">{subject}</span>
+            <span className="text-xs font-medium text-[var(--text-tertiary)] w-14 shrink-0 pt-0.5">Subject</span>
+            <span className="text-sm text-[var(--text-primary)]">{subject}</span>
           </div>
           <div className="border-t border-[var(--border-default)]/50 pt-3">
-            <span className="text-xs font-medium text-gray-500 block mb-1">Body</span>
-            <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap max-h-40 overflow-y-auto">
+            <span className="text-xs font-medium text-[var(--text-tertiary)] block mb-1">Body</span>
+            <p className="text-sm text-[var(--text-secondary)] leading-relaxed whitespace-pre-wrap max-h-40 overflow-y-auto">
               {body.length > 300 ? `${body.slice(0, 300)}...` : body}
             </p>
           </div>
@@ -155,7 +155,7 @@ function EmailConfirmationCard({
             <button
               onClick={onDeny}
               className="px-4 py-2 rounded-lg text-sm font-medium
-                       text-gray-400 hover:text-gray-200
+                       text-[var(--text-secondary)] hover:text-[var(--text-primary)]
                        bg-[var(--bg-tertiary)] hover:bg-[var(--bg-elevated)]
                        transition-colors flex items-center gap-2"
             >
@@ -165,8 +165,8 @@ function EmailConfirmationCard({
             <button
               onClick={onConfirm}
               className="px-4 py-2 rounded-lg text-sm font-medium
-                        text-white transition-all flex items-center gap-2
-                        bg-yellow-600 hover:bg-yellow-500"
+                        text-[var(--text-primary)] transition-all flex items-center gap-2
+                        bg-[var(--warning)] hover:bg-[var(--warning)]"
             >
               <Send className="w-4 h-4" />
               Send Email
@@ -209,19 +209,19 @@ function SmsConfirmationCard({
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
         className="w-full max-w-md mx-4 p-6 rounded-2xl border
-                   border-cyan-500/30 bg-[#0A0A0F]/95 backdrop-blur-xl
+                   border-[var(--brand-blue)]/30 bg-[var(--bg-primary)]/95 backdrop-blur-xl
                    shadow-[0_0_30px_rgba(6,182,212,0.15)]"
       >
         {/* Header */}
         <div className="flex items-center gap-4 mb-4">
-          <div className="p-3 rounded-xl bg-cyan-500/10">
-            <MessageSquare className="w-6 h-6 text-cyan-400" />
+          <div className="p-3 rounded-xl bg-[var(--brand-blue)]/10">
+            <MessageSquare className="w-6 h-6 text-[var(--brand-blue)]" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-gray-100">
+            <h3 className="text-lg font-semibold text-[var(--text-primary)]">
               Send SMS
             </h3>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-[var(--text-secondary)]">
               Review before sending
             </p>
           </div>
@@ -230,20 +230,20 @@ function SmsConfirmationCard({
         {/* SMS Preview */}
         <div className="mb-5 space-y-3 p-4 rounded-lg bg-[var(--bg-primary)]/60 border border-[var(--border-default)]/50">
           <div className="flex items-start gap-2">
-            <span className="text-xs font-medium text-gray-500 w-10 shrink-0 pt-0.5">To</span>
-            <span className="text-sm text-gray-200 font-mono">{to}</span>
+            <span className="text-xs font-medium text-[var(--text-tertiary)] w-10 shrink-0 pt-0.5">To</span>
+            <span className="text-sm text-[var(--text-primary)] font-mono">{to}</span>
           </div>
           <div className="border-t border-[var(--border-default)]/50 pt-3">
-            <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
+            <p className="text-sm text-[var(--text-secondary)] leading-relaxed whitespace-pre-wrap">
               {body}
             </p>
           </div>
           <div className="flex items-center justify-between pt-1">
-            <span className={`text-xs ${isOverLimit ? 'text-amber-400' : 'text-gray-500'}`}>
+            <span className={`text-xs ${isOverLimit ? 'text-[var(--warning)]' : 'text-[var(--text-tertiary)]'}`}>
               {charCount} character{charCount !== 1 ? 's' : ''}
             </span>
             {isOverLimit && (
-              <span className="text-xs text-amber-400">
+              <span className="text-xs text-[var(--warning)]">
                 May be split into multiple messages
               </span>
             )}
@@ -258,7 +258,7 @@ function SmsConfirmationCard({
             <button
               onClick={onDeny}
               className="px-4 py-2 rounded-lg text-sm font-medium
-                       text-gray-400 hover:text-gray-200
+                       text-[var(--text-secondary)] hover:text-[var(--text-primary)]
                        bg-[var(--bg-tertiary)] hover:bg-[var(--bg-elevated)]
                        transition-colors flex items-center gap-2"
             >
@@ -268,8 +268,8 @@ function SmsConfirmationCard({
             <button
               onClick={onConfirm}
               className="px-4 py-2 rounded-lg text-sm font-medium
-                        text-white transition-all flex items-center gap-2
-                        bg-cyan-600 hover:bg-cyan-500"
+                        text-[var(--text-primary)] transition-all flex items-center gap-2
+                        bg-[var(--brand-blue)] hover:bg-[var(--brand-blue)]"
             >
               <Send className="w-4 h-4" />
               Send SMS
@@ -395,7 +395,7 @@ export function ToolConfirmationDialog({
           className={`
             w-full max-w-md mx-4 p-6 rounded-2xl
             ${config.bg} ${config.border} ${config.glow}
-            border bg-[#0A0A0F]/95 backdrop-blur-xl
+            border bg-[var(--bg-primary)]/95 backdrop-blur-xl
           `}
         >
           {/* Header */}
@@ -404,17 +404,17 @@ export function ToolConfirmationDialog({
               <Icon className={`w-6 h-6 ${config.color}`} />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-100">
+              <h3 className="text-lg font-semibold text-[var(--text-primary)]">
                 Confirm Action
               </h3>
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-[var(--text-secondary)]">
                 {request.toolName.replace(/_/g, ' ')}
               </p>
             </div>
           </div>
 
           {/* Message */}
-          <p className="text-gray-300 mb-6 leading-relaxed">
+          <p className="text-[var(--text-secondary)] mb-6 leading-relaxed">
             {request.message}
           </p>
 
@@ -424,23 +424,23 @@ export function ToolConfirmationDialog({
               <div className="flex items-center gap-2 mb-2">
                 {isListening ? (
                   <>
-                    <Mic className="w-4 h-4 text-cyan-400 animate-pulse" />
-                    <span className="text-sm text-cyan-400">Listening...</span>
+                    <Mic className="w-4 h-4 text-[var(--brand-blue)] animate-pulse" />
+                    <span className="text-sm text-[var(--brand-blue)]">Listening...</span>
                   </>
                 ) : (
                   <>
-                    <Mic className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm text-gray-500">Say &quot;confirm&quot; or &quot;cancel&quot;</span>
+                    <Mic className="w-4 h-4 text-[var(--text-tertiary)]" />
+                    <span className="text-sm text-[var(--text-tertiary)]">Say &quot;confirm&quot; or &quot;cancel&quot;</span>
                   </>
                 )}
               </div>
               {voiceText && (
-                <p className="text-xs text-gray-400 italic">&quot;{voiceText}&quot;</p>
+                <p className="text-xs text-[var(--text-secondary)] italic">&quot;{voiceText}&quot;</p>
               )}
               {!isListening && (
                 <button
                   onClick={() => setIsListening(true)}
-                  className="mt-2 text-xs text-cyan-400 hover:text-cyan-300"
+                  className="mt-2 text-xs text-[var(--brand-blue)] hover:text-[var(--brand-blue)]"
                 >
                   Click to speak
                 </button>
@@ -456,7 +456,7 @@ export function ToolConfirmationDialog({
               <button
                 onClick={() => onDeny(request.toolCallId)}
                 className="px-4 py-2 rounded-lg text-sm font-medium
-                         text-gray-400 hover:text-gray-200
+                         text-[var(--text-secondary)] hover:text-[var(--text-primary)]
                          bg-[var(--bg-tertiary)] hover:bg-[var(--bg-elevated)]
                          transition-colors flex items-center gap-2"
               >
@@ -466,12 +466,12 @@ export function ToolConfirmationDialog({
               <button
                 onClick={() => onConfirm(request.toolCallId)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium
-                          text-white transition-all flex items-center gap-2
+                          text-[var(--text-primary)] transition-all flex items-center gap-2
                           ${request.severity === 'high'
-                            ? 'bg-red-600 hover:bg-red-500'
+                            ? 'bg-[var(--danger)] hover:bg-[var(--danger)]'
                             : request.severity === 'medium'
-                            ? 'bg-amber-600 hover:bg-amber-500'
-                            : 'bg-blue-600 hover:bg-blue-500'
+                            ? 'bg-[var(--warning)] hover:bg-[var(--warning)]'
+                            : 'bg-[var(--brand-blue)] hover:bg-[var(--brand-blue)]'
                           }`}
               >
                 <Check className="w-4 h-4" />
