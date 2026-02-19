@@ -5,6 +5,10 @@
  * Uses internal auth (X-Internal-Auth + X-User-ID) instead of forwarding OAuth tokens.
  * Handles tool errors and converts them to Mercury-friendly responses.
  * Includes Redis query caching for repeated queries (5-minute TTL).
+ *
+ * BYOLLM (STORY-022): When the frontend sends llmProvider=byollm,
+ * this proxy reads the tenant's LLMConfig from the DB, decrypts the
+ * API key, and forwards provider/model/key to the Go backend.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -12,6 +16,7 @@ import { getToken } from 'next-auth/jwt'
 import { isToolError, createErrorResponse } from '@/lib/mercury/toolErrors'
 import { getCachedQuery, setCachedQuery } from '@/lib/cache/queryCache'
 import prisma from '@/lib/prisma'
+import { decryptKey } from '@/lib/utils/kms-stub'
 
 const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
@@ -81,6 +86,54 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
       }
     }
 
+    // ── BYOLLM: resolve provider routing (STORY-022) ──────────
+    const { llmProvider, llmModel } = body
+    let byollmFields: Record<string, string> = {}
+
+    if (llmProvider === 'byollm') {
+      try {
+        const llmConfig = await prisma.lLMConfig.findUnique({
+          where: { tenantId: DEFAULT_TENANT },
+        })
+
+        if (llmConfig) {
+          const policy = llmConfig.policy ?? 'choice'
+
+          // aegis_only: ignore BYOLLM even if frontend requests it
+          if (policy !== 'aegis_only') {
+            const rawKey = await decryptKey(llmConfig.apiKeyEncrypted)
+            byollmFields = {
+              llmProvider: llmConfig.provider,
+              llmModel: llmModel || llmConfig.defaultModel || '',
+              llmApiKey: rawKey,
+              ...(llmConfig.baseUrl ? { llmBaseUrl: llmConfig.baseUrl } : {}),
+            }
+          }
+        }
+      } catch {
+        // Non-fatal — fall through to AEGIS if BYOLLM lookup fails
+      }
+    } else {
+      // Check if policy forces BYOLLM even when frontend didn't request it
+      try {
+        const llmConfig = await prisma.lLMConfig.findUnique({
+          where: { tenantId: DEFAULT_TENANT },
+        })
+
+        if (llmConfig?.policy === 'byollm_only') {
+          const rawKey = await decryptKey(llmConfig.apiKeyEncrypted)
+          byollmFields = {
+            llmProvider: llmConfig.provider,
+            llmModel: llmConfig.defaultModel || '',
+            llmApiKey: rawKey,
+            ...(llmConfig.baseUrl ? { llmBaseUrl: llmConfig.baseUrl } : {}),
+          }
+        }
+      } catch {
+        // Non-fatal — fall through to AEGIS
+      }
+    }
+
     // Forward to Go backend with internal auth
     const targetUrl = `${GO_BACKEND_URL}/api/chat`
     const backendResponse = await fetch(targetUrl, {
@@ -97,6 +150,7 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
         history: history ?? [],
         maxTier: maxTier ?? 3,
         ...(personaContext ? { systemPrompt: personaContext } : {}),
+        ...byollmFields,
       }),
     })
 
