@@ -54,6 +54,12 @@ const TOOL_PATTERNS: PatternDef[] = [
   { pattern: /^(?:list|show)\s+(?:my\s+)?documents?/i, tool: 'list_documents', argMap: () => ({}) },
   { pattern: /^(?:check|show)\s+(?:my\s+)?(?:content\s+)?gaps?/i, tool: 'check_content_gaps', argMap: () => ({}) },
 
+  // Natural-language vault meta-queries (catch phrasings that bypass command verbs)
+  { pattern: /^what\s+(?:files?|documents?|docs?)\s+(?:do\s+I\s+have|are\s+(?:in|there|uploaded))/i, tool: 'list_documents', argMap: () => ({}) },
+  { pattern: /^what(?:'s|\s+is)\s+in\s+(?:my\s+)?(?:vault|box|the\s+vault|the\s+box)/i, tool: 'list_documents', argMap: () => ({}) },
+  { pattern: /^(?:vault|box)\s+contents?/i, tool: 'list_documents', argMap: () => ({}) },
+  { pattern: /^how\s+many\s+(?:files?|documents?|docs?)/i, tool: 'get_document_stats', argMap: () => ({}) },
+
   // Help command
   { pattern: /^\/help\s*$/i, tool: 'show_help', argMap: () => ({}) },
   { pattern: /^(?:help|what can you do|how do I|commands?)/i, tool: 'show_help', argMap: () => ({}) },
