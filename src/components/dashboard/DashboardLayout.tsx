@@ -411,7 +411,7 @@ export function DashboardLayout() {
 
   // Active panel for Sidebar highlight
   const sidebarActivePanel = useMemo(() => {
-    if (pathname.startsWith('/dashboard/agents')) return null // agent uses pathname
+    if (pathname?.startsWith('/dashboard/agents')) return null // agent uses pathname
     if (rightExpanded && rightTab === 'audit') return 'audit'
     return 'box'
   }, [pathname, rightExpanded, rightTab])
