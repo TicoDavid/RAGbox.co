@@ -50,7 +50,7 @@ function RailIcon({ icon: Icon, label, isActive, onClick, side, badge }: RailIco
           transition-all duration-200
           ${isActive
             ? 'bg-[var(--brand-blue)]/15 text-[var(--brand-blue)] shadow-[0_0_20px_rgba(36,99,235,0.4)]'
-            : 'text-slate-500 hover:text-white hover:bg-white/5'
+            : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]/50'
           }
         `}
       >
@@ -64,7 +64,7 @@ function RailIcon({ icon: Icon, label, isActive, onClick, side, badge }: RailIco
         )}
         <Icon className={`w-5 h-5 ${isActive ? 'drop-shadow-[0_0_6px_rgba(36,99,235,0.6)]' : ''}`} />
         {badge != null && badge > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[16px] h-4 flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1">
+          <span className="absolute -top-1 -right-1 min-w-[16px] h-4 flex items-center justify-center bg-[var(--danger)] text-[var(--text-primary)] text-[10px] font-bold rounded-full px-1">
             {badge > 99 ? '99+' : badge}
           </span>
         )}
@@ -74,8 +74,8 @@ function RailIcon({ icon: Icon, label, isActive, onClick, side, badge }: RailIco
       <div
         className={`
           absolute top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-lg
-          bg-[#0A192F]/95 backdrop-blur-sm border border-white/10 shadow-xl
-          text-xs font-medium text-white whitespace-nowrap
+          bg-[var(--bg-primary)]/95 backdrop-blur-sm border border-[var(--border-default)] shadow-xl
+          text-xs font-medium text-[var(--text-primary)] whitespace-nowrap
           opacity-0 pointer-events-none group-hover:opacity-100
           transition-opacity duration-200 z-50
           ${side === 'left' ? 'left-full ml-2' : 'right-full mr-2'}
@@ -111,7 +111,7 @@ export function LeftStealthRail({
   const isVaultActive = isExpanded && activeTab === 'vault'
 
   return (
-    <div className="h-full flex flex-col bg-[#0A192F] border-r border-white/10" role="navigation" aria-label="Vault navigation">
+    <div className="h-full flex flex-col bg-[var(--bg-primary)] border-r border-[var(--border-default)]" role="navigation" aria-label="Vault navigation">
       {/* Icon Stack */}
       <div className="flex-1 flex flex-col items-center py-4 gap-2">
         {/* Vault - with expand functionality */}
@@ -125,7 +125,7 @@ export function LeftStealthRail({
               transition-all duration-200
               ${isVaultActive
                 ? 'bg-[var(--brand-blue)]/15 text-[var(--brand-blue)] shadow-[0_0_20px_rgba(36,99,235,0.4)]'
-                : 'text-[#60A5FA] hover:text-white hover:bg-[var(--brand-blue)]/10'
+                : 'text-[var(--brand-blue-hover)] hover:text-[var(--text-primary)] hover:bg-[var(--brand-blue)]/10'
               }
             `}
           >
@@ -137,8 +137,8 @@ export function LeftStealthRail({
 
           {/* Tooltip */}
           <div className="absolute top-1/2 -translate-y-1/2 left-full ml-2 px-2.5 py-1.5 rounded-lg
-                        bg-[#0A192F]/95 backdrop-blur-sm border border-white/10 shadow-xl
-                        text-xs font-medium text-white whitespace-nowrap
+                        bg-[var(--bg-primary)]/95 backdrop-blur-sm border border-[var(--border-default)] shadow-xl
+                        text-xs font-medium text-[var(--text-primary)] whitespace-nowrap
                         opacity-0 pointer-events-none group-hover:opacity-100
                         transition-opacity duration-200 z-50">
             {isVaultActive ? 'Double-click to expand' : 'Vault'}
@@ -150,8 +150,8 @@ export function LeftStealthRail({
           <button
             onClick={onExpandVault}
             className="w-9 h-9 flex items-center justify-center rounded-lg
-                       text-cyan-400 hover:text-cyan-300 hover:bg-cyan-400/10
-                       border border-cyan-400/30 hover:border-cyan-400/50
+                       text-[var(--brand-blue)] hover:text-[var(--brand-blue-hover)] hover:bg-[var(--brand-blue)]/10
+                       border border-[var(--brand-blue)]/30 hover:border-[var(--brand-blue)]/50
                        transition-all duration-200 group relative"
             title="Expand to Sovereign Explorer"
             aria-label="Expand to Sovereign Explorer"
@@ -159,8 +159,8 @@ export function LeftStealthRail({
             <Maximize2 className="w-4 h-4" />
             {/* Tooltip */}
             <div className="absolute top-1/2 -translate-y-1/2 left-full ml-2 px-2.5 py-1.5 rounded-lg
-                          bg-[#0A192F]/95 backdrop-blur-sm border border-white/10 shadow-xl
-                          text-xs font-medium text-white whitespace-nowrap
+                          bg-[var(--bg-primary)]/95 backdrop-blur-sm border border-[var(--border-default)] shadow-xl
+                          text-xs font-medium text-[var(--text-primary)] whitespace-nowrap
                           opacity-0 pointer-events-none group-hover:opacity-100
                           transition-opacity duration-200 z-50">
               Sovereign Explorer
@@ -202,7 +202,7 @@ export function LeftStealthRail({
             onClick={onCollapse}
             aria-label="Collapse left panel"
             className="w-8 h-8 flex items-center justify-center rounded-lg
-                       text-slate-500 hover:text-white hover:bg-white/5
+                       text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]/50
                        transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -235,7 +235,7 @@ export function RightStealthRail({
   whatsappBadge,
 }: RightRailProps) {
   return (
-    <div className="h-full flex flex-col bg-[#0A192F] border-l border-white/10" role="navigation" aria-label="Tools navigation">
+    <div className="h-full flex flex-col bg-[var(--bg-primary)] border-l border-[var(--border-default)]" role="navigation" aria-label="Tools navigation">
       {/* Icon Stack */}
       <div className="flex-1 flex flex-col items-center py-4 gap-2">
         {/* Mercury Voice Agent */}
@@ -311,7 +311,7 @@ export function RightStealthRail({
             onClick={onCollapse}
             aria-label="Collapse right panel"
             className="w-8 h-8 flex items-center justify-center rounded-lg
-                       text-slate-500 hover:text-white hover:bg-white/5
+                       text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]/50
                        transition-colors"
           >
             <ChevronRight className="w-4 h-4" />
@@ -341,7 +341,7 @@ export function RailPanel({ isOpen, side, width, children }: RailPanelProps) {
       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
       className={`
         overflow-hidden bg-[var(--bg-secondary)]
-        ${side === 'left' ? 'border-r' : 'border-l'} border-white/5
+        ${side === 'left' ? 'border-r' : 'border-l'} border-[var(--border-subtle)]
       `}
     >
       <div style={{ width }} className="h-full">
