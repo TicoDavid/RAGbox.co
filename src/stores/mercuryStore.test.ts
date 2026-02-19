@@ -6,6 +6,13 @@
  * see src/app/api/documents/[id]/privilege/route.test.ts.
  */
 import { useMercuryStore } from './mercuryStore'
+import { executeTool } from '@/lib/mercury/toolExecutor'
+
+jest.mock('@/lib/mercury/toolExecutor', () => ({
+  executeTool: jest.fn(),
+}))
+
+const mockExecuteTool = executeTool as jest.MockedFunction<typeof executeTool>
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -426,6 +433,62 @@ describe('mercuryStore', () => {
         (c: unknown[]) => (c[1] as RequestInit)?.method === 'PATCH',
       )
       expect(patchCalls).toHaveLength(0)
+    })
+  })
+
+  describe('sendMessage – tool routing vs RAG dispatch (Silence Protocol bypass)', () => {
+    test('"what files are in my vault?" routes to list_documents tool, NOT /api/chat', async () => {
+      mockExecuteTool.mockResolvedValue({
+        success: true,
+        data: [],
+        display: 'You have 3 documents in your vault.',
+      })
+
+      useMercuryStore.setState({ inputValue: 'what files are in my vault?' })
+      await useMercuryStore.getState().sendMessage(false)
+
+      // Tool executor was called with list_documents
+      expect(mockExecuteTool).toHaveBeenCalledWith('list_documents', {}, expect.any(Object))
+
+      // /api/chat was NOT called (tool-routed queries skip RAG entirely)
+      const chatCalls = (global.fetch as jest.Mock).mock.calls.filter(
+        (c: unknown[]) => c[0] === '/api/chat',
+      )
+      expect(chatCalls).toHaveLength(0)
+
+      // Response is the tool result, not a RAG answer
+      const last = useMercuryStore.getState().messages.at(-1)
+      expect(last?.content).toBe('You have 3 documents in your vault.')
+      expect(last?.role).toBe('assistant')
+    })
+
+    test('"tell me about contract terms" routes to /api/chat (normal RAG path)', async () => {
+      const stream = sseStream([
+        { event: 'token', data: JSON.stringify({ text: 'The contract terms state...' }) },
+        { event: 'done', data: '{}' },
+      ])
+      ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+        if (url === '/api/chat') return Promise.resolve(mockResponse(stream))
+        return Promise.resolve(defaultFetchResponse)
+      })
+
+      mockExecuteTool.mockClear()
+
+      useMercuryStore.setState({ inputValue: 'tell me about contract terms' })
+      await useMercuryStore.getState().sendMessage(false)
+
+      // Tool executor was NOT called
+      expect(mockExecuteTool).not.toHaveBeenCalled()
+
+      // /api/chat WAS called (normal RAG pipeline)
+      const chatCalls = (global.fetch as jest.Mock).mock.calls.filter(
+        (c: unknown[]) => c[0] === '/api/chat',
+      )
+      expect(chatCalls.length).toBeGreaterThan(0)
+
+      // Response comes from the RAG pipeline
+      const last = useMercuryStore.getState().messages.at(-1)
+      expect(last?.content).toBe('The contract terms state...')
     })
   })
 })

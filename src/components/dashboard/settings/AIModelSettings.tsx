@@ -22,6 +22,7 @@ import {
   type LlmPolicy,
 } from '@/contexts/SettingsContext'
 import { apiFetch } from '@/lib/api'
+import { ConnectionsHelpText } from './ConnectionsHelpText'
 
 // ============================================================================
 // CONSTANTS
@@ -565,6 +566,19 @@ export function AIModelSettings() {
               )}
             </div>
           )}
+        </motion.div>
+
+        {/* ─── Connections Help Text ─── */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.075 }}
+          className="p-3 rounded-xl bg-[var(--bg-primary)]/50 border border-[var(--border-subtle)]"
+        >
+          <ConnectionsHelpText
+            isConfigured={isConfigured}
+            provider={PROVIDER_OPTIONS.find((p) => p.value === selectedProvider)?.label}
+          />
         </motion.div>
 
         {/* ─── Policy Selection ─── */}
