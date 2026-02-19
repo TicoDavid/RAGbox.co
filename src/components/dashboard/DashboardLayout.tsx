@@ -155,25 +155,53 @@ function AuditPanel() {
 }
 
 function ExportPanel() {
+  const [exporting, setExporting] = useState<string | null>(null)
+
+  const handleExport = async (key: string, endpoint: string, filename: string) => {
+    if (exporting) return
+    setExporting(key)
+    try {
+      const res = await apiFetch(endpoint)
+      if (!res.ok) throw new Error('Export failed')
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      toast.success('Export downloaded')
+    } catch {
+      toast.error('Export failed — try again')
+    } finally {
+      setExporting(null)
+    }
+  }
+
+  const items = [
+    { key: 'conversation', label: 'Export Conversation', desc: 'Download as PDF', endpoint: '/api/export?format=pdf', filename: `ragbox_conversation_${new Date().toISOString().split('T')[0]}.pdf` },
+    { key: 'audit', label: 'Export Audit Trail', desc: 'Compliance-ready log file', endpoint: '/api/audit/export', filename: `ragbox_audit_${new Date().toISOString().split('T')[0]}.pdf` },
+    { key: 'vault', label: 'Export Vault Data', desc: 'Full data package (GDPR)', endpoint: '/api/export?format=zip', filename: `ragbox_export_${new Date().toISOString().split('T')[0]}.zip` },
+  ]
+
   return (
     <div className="h-full flex flex-col">
       <div className="shrink-0 px-4 py-3 border-b border-[var(--border-subtle)]">
         <h3 className="text-sm font-semibold text-[var(--text-primary)] uppercase tracking-wider">Export</h3>
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {[
-          { label: 'Export Conversation', desc: 'Download as PDF or Markdown' },
-          { label: 'Export Audit Trail', desc: 'Compliance-ready log file' },
-          { label: 'Export Vault Data', desc: 'Full data package (GDPR)' },
-        ].map((item) => (
+        {items.map((item) => (
           <button
-            key={item.label}
-            onClick={() => toast.info('Export coming soon')}
+            key={item.key}
+            onClick={() => handleExport(item.key, item.endpoint, item.filename)}
+            disabled={exporting !== null}
             className="w-full flex items-center gap-3 p-3 rounded-xl
                      bg-[var(--bg-primary)]/50 border border-[var(--border-subtle)] hover:border-[var(--brand-blue)]/30
-                     hover:bg-[var(--brand-blue)]/5 transition-all text-left"
+                     hover:bg-[var(--brand-blue)]/5 transition-all text-left disabled:opacity-50"
           >
-            <Download className="w-5 h-5 text-[var(--brand-blue)]" />
+            <Download className={`w-5 h-5 text-[var(--brand-blue)] ${exporting === item.key ? 'animate-pulse' : ''}`} />
             <div>
               <p className="text-sm font-medium text-[var(--text-primary)]">{item.label}</p>
               <p className="text-xs text-[var(--text-tertiary)]">{item.desc}</p>
