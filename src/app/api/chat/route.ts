@@ -64,8 +64,8 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
           persona.personalityPrompt,
         ].filter(Boolean).join(' ')
       }
-    } catch {
-      // Non-fatal — proceed without persona context
+    } catch (err) {
+      console.error('[Chat] Persona fetch failed:', err)
     }
 
     // Check cache for non-streaming requests (or when explicitly not streaming)
@@ -110,8 +110,8 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
             }
           }
         }
-      } catch {
-        // Non-fatal — fall through to AEGIS if BYOLLM lookup fails
+      } catch (err) {
+        console.error('[Chat] BYOLLM config lookup failed (falling back to AEGIS):', err)
       }
     } else {
       // Check if policy forces BYOLLM even when frontend didn't request it
@@ -129,8 +129,8 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
             ...(llmConfig.baseUrl ? { llmBaseUrl: llmConfig.baseUrl } : {}),
           }
         }
-      } catch {
-        // Non-fatal — fall through to AEGIS
+      } catch (err) {
+        console.error('[Chat] BYOLLM policy check failed (falling back to AEGIS):', err)
       }
     }
 
@@ -208,7 +208,8 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
     }
 
     return NextResponse.json(data)
-  } catch {
+  } catch (err) {
+    console.error('[Chat] Unhandled error in POST /api/chat:', err)
     return NextResponse.json({
       success: false,
       response: 'I encountered an unexpected issue. Please try again, and if this persists, contact support.',
