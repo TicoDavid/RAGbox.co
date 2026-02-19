@@ -55,7 +55,7 @@ interface Profile {
 
 const PROFILES: Profile[] = [
   { id: 'work', name: 'Work Profile', type: 'work', icon: <Briefcase className="w-4 h-4" />, color: 'text-blue-400' },
-  { id: 'personal', name: 'Personal Vault', type: 'personal', icon: <User className="w-4 h-4" />, color: 'text-emerald-400' },
+  { id: 'personal', name: 'Personal Vault', type: 'personal', icon: <User className="w-4 h-4" />, color: 'text-[var(--success)]' },
   { id: 'consultant', name: 'Consultant Mode', type: 'consultant', icon: <Users className="w-4 h-4" />, color: 'text-purple-400' },
 ]
 
@@ -210,7 +210,7 @@ export function GlobalHeader() {
           )}
 
           {/* Active Profile Indicator */}
-          <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/5 border border-white/10 ${currentProfile.color}`}>
+          <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md bg-[var(--bg-elevated)]/30 border border-[var(--border-default)] ${currentProfile.color}`}>
             {currentProfile.icon}
             <span className="text-xs font-medium">{currentProfile.name}</span>
           </div>
@@ -271,13 +271,13 @@ export function GlobalHeader() {
               className={`
                 flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300
                 ${isWhistleblowerMode
-                  ? 'bg-amber-900/30 border border-amber-500/50 text-amber-400 hover:bg-amber-900/50 shadow-[0_0_15px_rgba(245,158,11,0.3)]'
-                  : 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 hover:border-white/20'
+                  ? 'bg-amber-900/30 border border-amber-500/50 text-[var(--warning)] hover:bg-amber-900/50 shadow-[0_0_15px_rgba(245,158,11,0.3)]'
+                  : 'bg-[var(--bg-elevated)]/30 border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]/50 hover:border-[var(--border-default)]'
                 }
               `}
             >
               {isWhistleblowerMode ? (
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                <span className="w-2 h-2 rounded-full bg-[var(--danger)] animate-ping" />
               ) : (
                 <Glasses className="w-4 h-4" />
               )}
@@ -291,21 +291,21 @@ export function GlobalHeader() {
 
             {/* Persona Dropdown */}
             {personaMenuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-80 bg-[var(--bg-primary)]/98 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-50 py-2 overflow-hidden">
+              <div className="absolute right-0 top-full mt-2 w-80 bg-[var(--bg-primary)]/98 backdrop-blur-xl border border-[var(--border-default)] rounded-xl shadow-2xl z-50 py-2 overflow-hidden">
                 {/* System Prompt Preview (on hover) */}
                 {hoveredPersona && (
-                  <div className="px-4 py-3 bg-[var(--bg-primary)]/80 border-b border-white/10">
-                    <p className="text-[10px] font-semibold text-cyan-400 uppercase tracking-wider mb-1">
+                  <div className="px-4 py-3 bg-[var(--bg-primary)]/80 border-b border-[var(--border-default)]">
+                    <p className="text-[10px] font-semibold text-[var(--brand-blue)] uppercase tracking-wider mb-1">
                       System Instruction
                     </p>
-                    <p className="text-xs text-slate-400 italic">
+                    <p className="text-xs text-[var(--text-secondary)] italic">
                       &quot;{PERSONAS.find(p => p.id === hoveredPersona)?.systemPrompt}&quot;
                     </p>
                   </div>
                 )}
 
                 {/* Executive Section */}
-                <div className="px-4 py-2 text-[10px] font-semibold text-slate-500 uppercase tracking-wider border-b border-white/5">
+                <div className="px-4 py-2 text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider border-b border-[var(--border-subtle)]">
                   Executive Leadership
                 </div>
                 {executivePersonas.map((persona) => {
@@ -317,8 +317,8 @@ export function GlobalHeader() {
                       onClick={() => { setPersona(persona.id as typeof activePersona); setPersonaMenuOpen(false); setHoveredPersona(null) }}
                       onMouseEnter={() => setHoveredPersona(persona.id)}
                       onMouseLeave={() => setHoveredPersona(null)}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-white/5 transition-colors ${
-                        isSelected ? 'bg-cyan-500/10' : ''
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[var(--bg-elevated)]/30 transition-colors ${
+                        isSelected ? 'bg-[var(--brand-blue)]/10' : ''
                       }`}
                     >
                       <Icon
@@ -326,22 +326,22 @@ export function GlobalHeader() {
                         color={isSelected ? '#22d3ee' : '#94a3b8'}
                       />
                       <div className="flex-1 min-w-0">
-                        <div className={`text-sm font-medium ${isSelected ? 'text-cyan-400' : 'text-slate-300'}`}>
+                        <div className={`text-sm font-medium ${isSelected ? 'text-[var(--brand-blue)]' : 'text-[var(--text-secondary)]'}`}>
                           {persona.label}
                         </div>
-                        <div className="text-xs text-slate-500 truncate">{persona.description}</div>
+                        <div className="text-xs text-[var(--text-tertiary)] truncate">{persona.description}</div>
                       </div>
                       {isSelected && (
-                        <Check className="w-4 h-4 text-cyan-400" />
+                        <Check className="w-4 h-4 text-[var(--brand-blue)]" />
                       )}
                     </button>
                   )
                 })}
 
-                <div className="border-t border-white/5 my-1" />
+                <div className="border-t border-[var(--border-subtle)] my-1" />
 
                 {/* Compliance Section */}
-                <div className="px-4 py-2 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                <div className="px-4 py-2 text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">
                   Compliance & Oversight
                 </div>
                 {compliancePersonas.map((persona) => {
@@ -357,11 +357,11 @@ export function GlobalHeader() {
                       onClick={() => { setPersona(persona.id as typeof activePersona); setPersonaMenuOpen(false); setHoveredPersona(null) }}
                       onMouseEnter={() => setHoveredPersona(persona.id)}
                       onMouseLeave={() => setHoveredPersona(null)}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-white/5 transition-colors ${
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[var(--bg-elevated)]/30 transition-colors ${
                         isSelected
                           ? persona.isWhistleblower
                             ? 'bg-amber-900/20'
-                            : 'bg-cyan-500/10'
+                            : 'bg-[var(--brand-blue)]/10'
                           : ''
                       }`}
                     >
@@ -370,8 +370,8 @@ export function GlobalHeader() {
                         <div className="flex items-center gap-2">
                           <span className={`text-sm font-medium ${
                             isSelected
-                              ? persona.isWhistleblower ? 'text-amber-400' : 'text-cyan-400'
-                              : persona.isWhistleblower ? 'text-amber-400/80' : 'text-slate-300'
+                              ? persona.isWhistleblower ? 'text-[var(--warning)]' : 'text-[var(--brand-blue)]'
+                              : persona.isWhistleblower ? 'text-[var(--warning)]/80' : 'text-[var(--text-secondary)]'
                           }`}>
                             {persona.label}
                           </span>
@@ -379,12 +379,12 @@ export function GlobalHeader() {
                             <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
                           )}
                         </div>
-                        <div className={`text-xs truncate ${persona.isWhistleblower ? 'text-amber-500/60' : 'text-slate-500'}`}>
+                        <div className={`text-xs truncate ${persona.isWhistleblower ? 'text-amber-500/60' : 'text-[var(--text-tertiary)]'}`}>
                           {persona.description}
                         </div>
                       </div>
                       {isSelected && (
-                        <Check className={persona.isWhistleblower ? 'w-4 h-4 text-amber-400' : 'w-4 h-4 text-cyan-400'} />
+                        <Check className={persona.isWhistleblower ? 'w-4 h-4 text-[var(--warning)]' : 'w-4 h-4 text-[var(--brand-blue)]'} />
                       )}
                     </button>
                   )
@@ -401,24 +401,24 @@ export function GlobalHeader() {
               aria-pressed={privilegeMode}
               className={`p-2 rounded-md transition-all duration-300 ${
                 privilegeMode
-                  ? 'text-amber-400 bg-amber-900/30 shadow-[0_0_15px_rgba(255,171,0,0.4)] animate-[pulse-glow_2s_ease-in-out_infinite]'
+                  ? 'text-[var(--warning)] bg-amber-900/30 shadow-[0_0_15px_rgba(255,171,0,0.4)] animate-[pulse-glow_2s_ease-in-out_infinite]'
                   : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
               }`}
             >
               <PrivilegeKeyIcon size={20} color={privilegeMode ? '#FFAB00' : '#C0C0C0'} />
             </button>
             {/* Enhanced Tooltip */}
-            <div className="absolute right-0 top-full mt-2 w-64 p-3 bg-[var(--bg-primary)]/95 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+            <div className="absolute right-0 top-full mt-2 w-64 p-3 bg-[var(--bg-primary)]/95 backdrop-blur-xl border border-[var(--border-default)] rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
               <div className="flex items-center gap-2 mb-2">
                 <PrivilegeKeyIcon size={16} color={privilegeMode ? '#FFAB00' : '#C0C0C0'} />
-                <span className={`text-sm font-semibold ${privilegeMode ? 'text-amber-400' : 'text-slate-300'}`}>
+                <span className={`text-sm font-semibold ${privilegeMode ? 'text-[var(--warning)]' : 'text-[var(--text-secondary)]'}`}>
                   {privilegeMode ? 'Privilege Mode Active' : 'Privilege Mode'}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 leading-relaxed">
+              <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                 Administrator Override: Bypass Standard Access Filters to view privileged documents.
               </p>
-              <div className="mt-2 pt-2 border-t border-white/5 text-[10px] text-slate-500">
+              <div className="mt-2 pt-2 border-t border-[var(--border-subtle)] text-[10px] text-[var(--text-tertiary)]">
                 {privilegeMode ? 'Click to disable' : 'Click to enable'}
               </div>
             </div>
@@ -463,14 +463,14 @@ export function GlobalHeader() {
               }`}>
                 {userInitials}
               </div>
-              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${profileMenuOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-3.5 h-3.5 text-[var(--text-secondary)] transition-transform ${profileMenuOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Profile Dropdown Menu */}
             {profileMenuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-72 bg-[var(--bg-primary)]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
+              <div className="absolute right-0 top-full mt-2 w-72 bg-[var(--bg-primary)]/95 backdrop-blur-xl border border-[var(--border-default)] rounded-xl shadow-2xl z-50 overflow-hidden">
                 {/* User Info Header */}
-                <div className="px-4 py-3 border-b border-white/5">
+                <div className="px-4 py-3 border-b border-[var(--border-subtle)]">
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-sm font-semibold ${
                       currentProfile.type === 'work' ? 'bg-blue-900/50 border-blue-500/50 text-blue-300' :
@@ -480,34 +480,34 @@ export function GlobalHeader() {
                       {userInitials}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white truncate">{session?.user?.name || 'User'}</p>
-                      <p className="text-xs text-slate-400 truncate">{session?.user?.email || 'user@example.com'}</p>
+                      <p className="text-sm font-medium text-[var(--text-primary)] truncate">{session?.user?.name || 'User'}</p>
+                      <p className="text-xs text-[var(--text-secondary)] truncate">{session?.user?.email || 'user@example.com'}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Profile Switcher */}
                 <div className="py-2">
-                  <div className="px-4 py-1.5 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                  <div className="px-4 py-1.5 text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">
                     Switch Profile
                   </div>
                   {PROFILES.map((profile) => (
                     <button
                       key={profile.id}
                       onClick={() => handleProfileSwitch(profile.id)}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-white/5 transition-colors ${
-                        profile.id === activeProfile ? 'bg-white/5' : ''
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[var(--bg-elevated)]/30 transition-colors ${
+                        profile.id === activeProfile ? 'bg-[var(--bg-elevated)]/30' : ''
                       }`}
                     >
                       <div className={`p-2 rounded-lg ${
                         profile.type === 'work' ? 'bg-blue-900/30 text-blue-400' :
-                        profile.type === 'personal' ? 'bg-emerald-900/30 text-emerald-400' :
+                        profile.type === 'personal' ? 'bg-[var(--success)]/15 text-[var(--success)]' :
                         'bg-purple-900/30 text-purple-400'
                       }`}>
                         {profile.icon}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium ${profile.id === activeProfile ? profile.color : 'text-slate-300'}`}>
+                        <p className={`text-sm font-medium ${profile.id === activeProfile ? profile.color : 'text-[var(--text-secondary)]'}`}>
                           {profile.name}
                         </p>
                       </div>
@@ -519,13 +519,13 @@ export function GlobalHeader() {
                 </div>
 
                 {/* Divider */}
-                <div className="border-t border-white/5" />
+                <div className="border-t border-[var(--border-subtle)]" />
 
                 {/* Quick Actions */}
                 <div className="py-2">
                   <button
                     onClick={() => signOut()}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-red-400 hover:bg-red-500/10 transition-colors"
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[var(--danger)] hover:bg-[var(--danger)]/10 transition-colors"
                   >
                     <LogOut className="w-4 h-4" />
                     <span className="text-sm">Sign Out</span>
@@ -547,7 +547,7 @@ export function GlobalHeader() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">
             <IdentityIcon size={48} color="#60A5FA" className="animate-pulse" />
-            <p className="text-white font-medium">Switching Profile...</p>
+            <p className="text-[var(--text-primary)] font-medium">Switching Profile...</p>
           </div>
         </div>
       )}
@@ -635,21 +635,21 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
 
       {/* Modal - Wide layout */}
-      <div className="relative w-full max-w-4xl mx-4 h-[80vh] max-h-[700px] bg-[var(--bg-primary)]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+      <div className="relative w-full max-w-4xl mx-4 h-[80vh] max-h-[700px] bg-[var(--bg-primary)]/95 backdrop-blur-xl border border-[var(--border-default)] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-white/10">
+        <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-[var(--border-default)]">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg">
-              <Settings className="w-5 h-5 text-cyan-400" />
+            <div className="p-2 bg-gradient-to-br from-[var(--brand-blue)]/20 to-[var(--brand-blue)]/10 rounded-lg">
+              <Settings className="w-5 h-5 text-[var(--brand-blue)]" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-white">System Control Panel</h2>
-              <p className="text-xs text-slate-500">Sovereign Configuration Engine</p>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">System Control Panel</h2>
+              <p className="text-xs text-[var(--text-tertiary)]">Sovereign Configuration Engine</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]/50 transition-colors"
             aria-label="Close settings"
           >
             <X className="w-5 h-5" />
@@ -659,10 +659,10 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
         {/* Body - Sidebar + Content */}
         <div className="flex flex-1 overflow-hidden">
           {/* Left Sidebar */}
-          <nav className="w-56 shrink-0 bg-[var(--bg-secondary)]/50 border-r border-white/10 overflow-y-auto py-4" aria-label="Settings navigation">
+          <nav className="w-56 shrink-0 bg-[var(--bg-secondary)]/50 border-r border-[var(--border-default)] overflow-y-auto py-4" aria-label="Settings navigation">
             {SIDEBAR_CATEGORIES.map((category) => (
               <div key={category.id} className="mb-4">
-                <div className="px-4 py-1.5 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                <div className="px-4 py-1.5 text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">
                   {category.label}
                 </div>
                 {category.items.map((item) => (
@@ -672,7 +672,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
                     className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-all ${
                       activeSection === item.id
                         ? 'text-[var(--brand-blue)] bg-[var(--brand-blue)]/10 border-r-2 border-[var(--brand-blue)]'
-                        : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]/30'
                     }`}
                   >
                     <span className={activeSection === item.id ? 'text-[var(--brand-blue)]' : ''}>
@@ -724,34 +724,34 @@ function ProfileSettings() {
         description="Manage your identity and organizational role"
       />
 
-      <div className="p-6 bg-white/5 border border-white/10 rounded-xl">
+      <div className="p-6 bg-[var(--bg-elevated)]/30 border border-[var(--border-default)] rounded-xl">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-cyan-500/30 to-blue-500/30 border-2 border-cyan-500/50 flex items-center justify-center text-xl font-semibold text-white">
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[var(--brand-blue)]/30 to-[var(--brand-blue)]/20 border-2 border-[var(--brand-blue)]/50 flex items-center justify-center text-xl font-semibold text-[var(--text-primary)]">
             {userInitials}
           </div>
           <div className="flex-1">
-            <p className="text-lg font-semibold text-white">{session?.user?.name || 'Sovereign User'}</p>
-            <p className="text-sm text-slate-400">{session?.user?.email || 'user@example.com'}</p>
+            <p className="text-lg font-semibold text-[var(--text-primary)]">{session?.user?.name || 'Sovereign User'}</p>
+            <p className="text-sm text-[var(--text-secondary)]">{session?.user?.email || 'user@example.com'}</p>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-[10px] px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded-full font-medium">
+              <span className="text-[10px] px-2 py-0.5 bg-amber-500/20 text-[var(--warning)] rounded-full font-medium">
                 ADMINISTRATOR
               </span>
             </div>
           </div>
-          <button className="px-4 py-2 text-sm text-slate-300 hover:text-white border border-white/20 hover:border-white/40 rounded-lg transition-colors" aria-label="Edit profile">
+          <button className="px-4 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-default)] hover:border-[var(--border-strong)] rounded-lg transition-colors" aria-label="Edit profile">
             Edit Profile
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="p-4 bg-white/5 border border-white/10 rounded-lg">
-          <p className="text-xs text-slate-500 mb-1">Organization</p>
-          <p className="text-sm font-medium text-white">RAGbox Enterprise</p>
+        <div className="p-4 bg-[var(--bg-elevated)]/30 border border-[var(--border-default)] rounded-lg">
+          <p className="text-xs text-[var(--text-tertiary)] mb-1">Organization</p>
+          <p className="text-sm font-medium text-[var(--text-primary)]">RAGbox Enterprise</p>
         </div>
-        <div className="p-4 bg-white/5 border border-white/10 rounded-lg">
-          <p className="text-xs text-slate-500 mb-1">Role</p>
-          <p className="text-sm font-medium text-white">Sovereign Administrator</p>
+        <div className="p-4 bg-[var(--bg-elevated)]/30 border border-[var(--border-default)] rounded-lg">
+          <p className="text-xs text-[var(--text-tertiary)] mb-1">Role</p>
+          <p className="text-sm font-medium text-[var(--text-primary)]">Sovereign Administrator</p>
         </div>
       </div>
     </div>
@@ -776,19 +776,19 @@ function LanguageSettings() {
             className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all ${
               language === id
                 ? 'border-[var(--brand-blue)] bg-[var(--brand-blue)]/10 shadow-[0_0_15px_-5px_var(--brand-blue)]'
-                : 'border-white/10 hover:border-white/30 hover:bg-white/5'
+                : 'border-[var(--border-default)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)]/30'
             }`}
           >
             <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg font-semibold ${
-              language === id ? 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)]' : 'bg-white/5 text-slate-400'
+              language === id ? 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)]' : 'bg-[var(--bg-elevated)]/30 text-[var(--text-secondary)]'
             }`}>
               {lang.nativeName.charAt(0)}
             </div>
             <div className="flex-1 text-left">
-              <p className={`text-sm font-medium ${language === id ? 'text-white' : 'text-slate-300'}`}>
+              <p className={`text-sm font-medium ${language === id ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
                 {lang.name}
               </p>
-              <p className="text-xs text-slate-500">{lang.nativeName}</p>
+              <p className="text-xs text-[var(--text-tertiary)]">{lang.nativeName}</p>
             </div>
             {language === id && (
               <Check className="w-5 h-5 text-[var(--brand-blue)]" />
@@ -818,22 +818,22 @@ function BillingSettings() {
       />
 
       {/* Current Plan Card */}
-      <div className="p-6 bg-gradient-to-br from-cyan-900/20 to-blue-900/20 border border-cyan-500/30 rounded-xl">
+      <div className="p-6 bg-gradient-to-br from-[var(--brand-blue)]/10 to-[var(--bg-secondary)] border border-[var(--brand-blue)]/30 rounded-xl">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <p className="text-xs text-cyan-400 font-medium mb-1">CURRENT PLAN</p>
-            <p className="text-xl font-bold text-white">{planLabels[subscription.plan]}</p>
+            <p className="text-xs text-[var(--brand-blue)] font-medium mb-1">CURRENT PLAN</p>
+            <p className="text-xl font-bold text-[var(--text-primary)]">{planLabels[subscription.plan]}</p>
           </div>
-          <div className="p-3 bg-cyan-500/20 rounded-xl">
-            <Zap className="w-6 h-6 text-cyan-400" />
+          <div className="p-3 bg-[var(--brand-blue)]/20 rounded-xl">
+            <Zap className="w-6 h-6 text-[var(--brand-blue)]" />
           </div>
         </div>
 
         {/* Token Usage */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-400">Tokens Used</span>
-            <span className="text-white font-medium">
+            <span className="text-[var(--text-secondary)]">Tokens Used</span>
+            <span className="text-[var(--text-primary)] font-medium">
               {(subscription.tokensUsed / 1000000).toFixed(2)}M / {(subscription.tokensLimit / 1000000).toFixed(0)}M
             </span>
           </div>
@@ -843,22 +843,22 @@ function BillingSettings() {
               style={{ width: `${Math.min(usagePercent, 100)}%` }}
             />
           </div>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-[var(--text-tertiary)]">
             Renews on {new Date(subscription.renewalDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
           </p>
         </div>
       </div>
 
       {/* Manage Subscription */}
-      <button className="w-full flex items-center justify-between p-4 bg-white/5 border border-white/10 hover:border-white/30 rounded-xl transition-colors group" aria-label="Manage subscription">
+      <button className="w-full flex items-center justify-between p-4 bg-[var(--bg-elevated)]/30 border border-[var(--border-default)] hover:border-[var(--border-strong)] rounded-xl transition-colors group" aria-label="Manage subscription">
         <div className="flex items-center gap-3">
-          <CreditCard className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
+          <CreditCard className="w-5 h-5 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors" />
           <div className="text-left">
-            <p className="text-sm font-medium text-white">Manage Subscription</p>
-            <p className="text-xs text-slate-500">Update payment method, view invoices</p>
+            <p className="text-sm font-medium text-[var(--text-primary)]">Manage Subscription</p>
+            <p className="text-xs text-[var(--text-tertiary)]">Update payment method, view invoices</p>
           </div>
         </div>
-        <ExternalLink className="w-4 h-4 text-slate-500 group-hover:text-white transition-colors" />
+        <ExternalLink className="w-4 h-4 text-[var(--text-tertiary)] group-hover:text-[var(--text-primary)] transition-colors" />
       </button>
     </div>
   )
@@ -894,13 +894,13 @@ function VoiceSettings() {
         />
 
         {/* Silence Threshold Slider */}
-        <div className="p-4 bg-white/5 border border-white/10 rounded-lg">
+        <div className="p-4 bg-[var(--bg-elevated)]/30 border border-[var(--border-default)] rounded-lg">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <p className="text-sm font-medium text-white">Silence Threshold</p>
-              <p className="text-xs text-slate-400">Time before auto-submit triggers</p>
+              <p className="text-sm font-medium text-[var(--text-primary)]">Silence Threshold</p>
+              <p className="text-xs text-[var(--text-secondary)]">Time before auto-submit triggers</p>
             </div>
-            <span className="text-sm font-mono text-cyan-400">{voice.silenceThreshold}ms</span>
+            <span className="text-sm font-mono text-[var(--brand-blue)]">{voice.silenceThreshold}ms</span>
           </div>
           <input
             id="silence-threshold"
@@ -912,9 +912,9 @@ function VoiceSettings() {
             value={voice.silenceThreshold}
             onChange={(e) => updateVoice({ silenceThreshold: parseInt(e.target.value) })}
             aria-label="Silence threshold"
-            className="w-full h-2 bg-slate-700 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-cyan-400"
+            className="w-full h-2 bg-[var(--bg-tertiary)] rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[var(--brand-blue)]"
           />
-          <div className="flex justify-between text-[10px] text-slate-500 mt-1">
+          <div className="flex justify-between text-[10px] text-[var(--text-tertiary)] mt-1">
             <span>1s (Fast)</span>
             <span>5s (Slow)</span>
           </div>
@@ -922,12 +922,12 @@ function VoiceSettings() {
       </div>
 
       {/* Inworld Status */}
-      <div className="p-4 bg-emerald-900/20 border border-emerald-500/30 rounded-lg">
+      <div className="p-4 bg-[var(--success)]/10 border border-[var(--success)]/30 rounded-lg">
         <div className="flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <div className="w-2 h-2 rounded-full bg-[var(--success)] animate-pulse" />
           <div>
-            <p className="text-sm font-medium text-emerald-400">Inworld AI Connected</p>
-            <p className="text-xs text-slate-500">Voice: mercury_professional</p>
+            <p className="text-sm font-medium text-[var(--success)]">Inworld AI Connected</p>
+            <p className="text-xs text-[var(--text-tertiary)]">Voice: mercury_professional</p>
           </div>
         </div>
       </div>
@@ -962,18 +962,18 @@ function DensitySettings() {
             className={`p-4 rounded-xl border-2 transition-all ${
               density === option.id
                 ? 'border-[var(--brand-blue)] bg-[var(--brand-blue)]/10 shadow-[0_0_15px_-5px_var(--brand-blue)]'
-                : 'border-white/10 hover:border-white/30 hover:bg-white/5'
+                : 'border-[var(--border-default)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)]/30'
             }`}
           >
             <div className={`w-10 h-10 rounded-lg mb-3 flex items-center justify-center ${
-              density === option.id ? 'bg-[var(--brand-blue)]/20' : 'bg-white/5'
+              density === option.id ? 'bg-[var(--brand-blue)]/20' : 'bg-[var(--bg-elevated)]/30'
             }`}>
-              <LayoutGrid className={`w-5 h-5 ${density === option.id ? 'text-[var(--brand-blue)]' : 'text-slate-400'}`} />
+              <LayoutGrid className={`w-5 h-5 ${density === option.id ? 'text-[var(--brand-blue)]' : 'text-[var(--text-secondary)]'}`} />
             </div>
-            <p className={`text-sm font-semibold mb-1 ${density === option.id ? 'text-white' : 'text-slate-300'}`}>
+            <p className={`text-sm font-semibold mb-1 ${density === option.id ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
               {option.label}
             </p>
-            <p className="text-xs text-slate-500">{option.description}</p>
+            <p className="text-xs text-[var(--text-tertiary)]">{option.description}</p>
           </button>
         ))}
       </div>
@@ -995,33 +995,33 @@ function SecuritySettings() {
 
       {/* Active Sessions */}
       <div className="space-y-3">
-        <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Active Sessions</p>
+        <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide">Active Sessions</p>
 
-        <div className="p-4 bg-white/5 border border-white/10 rounded-lg">
+        <div className="p-4 bg-[var(--bg-elevated)]/30 border border-[var(--border-default)] rounded-lg">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-emerald-500/20 rounded-lg">
-              <Monitor className="w-4 h-4 text-emerald-400" />
+            <div className="p-2 bg-[var(--success)]/20 rounded-lg">
+              <Monitor className="w-4 h-4 text-[var(--success)]" />
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <p className="text-sm font-medium text-white">Current Session</p>
-                <span className="text-[10px] px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 rounded">Active</span>
+                <p className="text-sm font-medium text-[var(--text-primary)]">Current Session</p>
+                <span className="text-[10px] px-1.5 py-0.5 bg-[var(--success)]/20 text-[var(--success)] rounded">Active</span>
               </div>
-              <p className="text-xs text-slate-500">Windows · Chrome · Started 2 hours ago</p>
+              <p className="text-xs text-[var(--text-tertiary)]">Windows · Chrome · Started 2 hours ago</p>
             </div>
           </div>
         </div>
 
-        <div className="p-4 bg-white/5 border border-white/10 rounded-lg opacity-60">
+        <div className="p-4 bg-[var(--bg-elevated)]/30 border border-[var(--border-default)] rounded-lg opacity-60">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-slate-700 rounded-lg">
-              <Monitor className="w-4 h-4 text-slate-400" />
+            <div className="p-2 bg-[var(--bg-tertiary)] rounded-lg">
+              <Monitor className="w-4 h-4 text-[var(--text-secondary)]" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-slate-300">MacBook Pro</p>
-              <p className="text-xs text-slate-500">macOS · Safari · Last active yesterday</p>
+              <p className="text-sm font-medium text-[var(--text-secondary)]">MacBook Pro</p>
+              <p className="text-xs text-[var(--text-tertiary)]">macOS · Safari · Last active yesterday</p>
             </div>
-            <button className="text-xs text-red-400 hover:text-red-300 transition-colors" aria-label="Revoke session">
+            <button className="text-xs text-[var(--danger)] hover:text-red-300 transition-colors" aria-label="Revoke session">
               Revoke
             </button>
           </div>
@@ -1030,20 +1030,20 @@ function SecuritySettings() {
 
       {/* Security Actions */}
       <div className="space-y-3">
-        <button className="w-full flex items-center justify-between p-4 bg-white/5 border border-white/10 hover:border-white/30 rounded-lg transition-colors group" aria-label="Two-factor authentication settings">
+        <button className="w-full flex items-center justify-between p-4 bg-[var(--bg-elevated)]/30 border border-[var(--border-default)] hover:border-[var(--border-strong)] rounded-lg transition-colors group" aria-label="Two-factor authentication settings">
           <div className="flex items-center gap-3">
-            <Shield className="w-4 h-4 text-slate-400" />
-            <span className="text-sm text-slate-300 group-hover:text-white">Two-Factor Authentication</span>
+            <Shield className="w-4 h-4 text-[var(--text-secondary)]" />
+            <span className="text-sm text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]">Two-Factor Authentication</span>
           </div>
-          <span className="text-xs text-emerald-400">Enabled</span>
+          <span className="text-xs text-[var(--success)]">Enabled</span>
         </button>
 
-        <button className="w-full flex items-center justify-between p-4 bg-red-500/10 border border-red-500/30 hover:border-red-500/50 rounded-lg transition-colors" aria-label="Sign out all devices">
+        <button className="w-full flex items-center justify-between p-4 bg-[var(--danger)]/10 border border-[var(--danger)]/30 hover:border-[var(--danger)]/50 rounded-lg transition-colors" aria-label="Sign out all devices">
           <div className="flex items-center gap-3">
-            <LogOut className="w-4 h-4 text-red-400" />
-            <span className="text-sm text-red-400">Sign Out All Devices</span>
+            <LogOut className="w-4 h-4 text-[var(--danger)]" />
+            <span className="text-sm text-[var(--danger)]">Sign Out All Devices</span>
           </div>
-          <ChevronRight className="w-4 h-4 text-red-400" />
+          <ChevronRight className="w-4 h-4 text-[var(--danger)]" />
         </button>
       </div>
     </div>
@@ -1100,20 +1100,20 @@ function DocumentationSettings() {
             href={doc.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-between p-4 bg-white/5 border border-white/10 hover:border-cyan-500/30 hover:bg-cyan-500/5 rounded-xl transition-all group"
+            className="flex items-center justify-between p-4 bg-[var(--bg-elevated)]/30 border border-[var(--border-default)] hover:border-[var(--brand-blue)]/30 hover:bg-[var(--brand-blue)]/5 rounded-xl transition-all group"
           >
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-[var(--bg-tertiary)]group-hover:bg-cyan-500/20 rounded-lg transition-colors">
-                <span className="text-slate-400 group-hover:text-cyan-400 transition-colors">
+              <div className="p-2 bg-[var(--bg-tertiary)]group-hover:bg-[var(--brand-blue)]/20 rounded-lg transition-colors">
+                <span className="text-[var(--text-secondary)] group-hover:text-[var(--brand-blue)] transition-colors">
                   {doc.icon}
                 </span>
               </div>
               <div>
-                <p className="text-sm font-medium text-white group-hover:text-cyan-400 transition-colors">{doc.title}</p>
-                <p className="text-xs text-slate-500">{doc.description}</p>
+                <p className="text-sm font-medium text-[var(--text-primary)] group-hover:text-[var(--brand-blue)] transition-colors">{doc.title}</p>
+                <p className="text-xs text-[var(--text-tertiary)]">{doc.description}</p>
               </div>
             </div>
-            <ExternalLink className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 transition-colors" />
+            <ExternalLink className="w-4 h-4 text-[var(--text-tertiary)] group-hover:text-[var(--brand-blue)] transition-colors" />
           </a>
         ))}
       </div>
@@ -1134,7 +1134,7 @@ function ReportIssueSettings() {
 
       {/* Issue Type */}
       <div>
-        <label className="block text-xs font-medium text-slate-400 mb-2">Issue Type</label>
+        <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">Issue Type</label>
         <div className="grid grid-cols-3 gap-2">
           {(['bug', 'feature', 'question'] as const).map((type) => (
             <button
@@ -1143,7 +1143,7 @@ function ReportIssueSettings() {
               className={`p-3 rounded-lg border text-sm font-medium capitalize transition-all ${
                 issueType === type
                   ? 'border-[var(--brand-blue)] bg-[var(--brand-blue)]/10 text-[var(--brand-blue)]'
-                  : 'border-white/10 text-slate-400 hover:border-white/30 hover:text-white'
+                  : 'border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]'
               }`}
             >
               {type}
@@ -1154,7 +1154,7 @@ function ReportIssueSettings() {
 
       {/* Description */}
       <div>
-        <label htmlFor="bug-description" className="block text-xs font-medium text-slate-400 mb-2">Description</label>
+        <label htmlFor="bug-description" className="block text-xs font-medium text-[var(--text-secondary)] mb-2">Description</label>
         <textarea
           id="bug-description"
           name="bug-description"
@@ -1162,13 +1162,13 @@ function ReportIssueSettings() {
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Describe the issue or feature request in detail..."
           rows={5}
-          className="w-full px-4 py-3 bg-[var(--bg-primary)]/50 border border-[var(--border-default)]/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[var(--brand-blue)] resize-none"
+          className="w-full px-4 py-3 bg-[var(--bg-primary)]/50 border border-[var(--border-default)]/50 rounded-lg text-sm text-[var(--text-primary)] placeholder-[var(--text-placeholder)] focus:outline-none focus:border-[var(--brand-blue)] resize-none"
         />
       </div>
 
       <button
         disabled={!description.trim()}
-        className="w-full py-3 px-4 bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+        className="w-full py-3 px-4 bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-[var(--text-primary)] text-sm font-medium rounded-lg transition-colors"
       >
         Submit Report
       </button>
@@ -1197,20 +1197,20 @@ function CommunitySettings() {
             href={link.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-4 p-4 bg-white/5 border border-white/10 hover:border-cyan-500/30 rounded-xl transition-all group"
+            className="flex items-center gap-4 p-4 bg-[var(--bg-elevated)]/30 border border-[var(--border-default)] hover:border-[var(--brand-blue)]/30 rounded-xl transition-all group"
           >
-            <div className="p-3 bg-[var(--bg-tertiary)]group-hover:bg-cyan-500/20 rounded-xl transition-colors">
-              <span className="text-slate-400 group-hover:text-cyan-400 transition-colors">
+            <div className="p-3 bg-[var(--bg-tertiary)]group-hover:bg-[var(--brand-blue)]/20 rounded-xl transition-colors">
+              <span className="text-[var(--text-secondary)] group-hover:text-[var(--brand-blue)] transition-colors">
                 {link.icon}
               </span>
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-white group-hover:text-cyan-400 transition-colors">
+              <p className="text-sm font-medium text-[var(--text-primary)] group-hover:text-[var(--brand-blue)] transition-colors">
                 {link.title}
               </p>
-              <p className="text-xs text-slate-500">{link.description}</p>
+              <p className="text-xs text-[var(--text-tertiary)]">{link.description}</p>
             </div>
-            <ExternalLink className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 transition-colors" />
+            <ExternalLink className="w-4 h-4 text-[var(--text-tertiary)] group-hover:text-[var(--brand-blue)] transition-colors" />
           </a>
         ))}
       </div>
@@ -1228,7 +1228,7 @@ function SectionHeader({ title, description }: { title: string; description: str
       <h3 className="text-lg font-semibold text-transparent bg-clip-text bg-gradient-to-r from-slate-200 to-slate-400">
         {title}
       </h3>
-      <p className="text-sm text-slate-500 mt-1">{description}</p>
+      <p className="text-sm text-[var(--text-tertiary)] mt-1">{description}</p>
     </div>
   )
 }
@@ -1245,23 +1245,23 @@ function ActiveModelBadge() {
       flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-colors
       ${isNative
         ? 'bg-gradient-to-r from-amber-900/30 to-orange-900/30 border border-amber-500/30'
-        : 'bg-gradient-to-r from-cyan-900/30 to-blue-900/30 border border-cyan-500/30'
+        : 'bg-gradient-to-r from-cyan-900/30 to-blue-900/30 border border-[var(--brand-blue)]/30'
       }
     `}>
       {isNative ? (
         // Aegis Shield Icon
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-400">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--warning)]">
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
           <path d="M9 12l2 2 4-4" />
         </svg>
       ) : (
         // Other model icon
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-cyan-400">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--brand-blue)]">
           <circle cx="12" cy="12" r="3" />
           <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
         </svg>
       )}
-      <span className={`text-xs font-medium ${isNative ? 'text-amber-400' : 'text-cyan-400'}`}>
+      <span className={`text-xs font-medium ${isNative ? 'text-[var(--warning)]' : 'text-[var(--brand-blue)]'}`}>
         M.E.R.C.U.R.Y.
       </span>
     </div>
@@ -1417,8 +1417,8 @@ function APIKeysSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-sm font-semibold text-white mb-1">Secure Uplinks</h3>
-        <p className="text-xs text-slate-400">
+        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1">Secure Uplinks</h3>
+        <p className="text-xs text-[var(--text-secondary)]">
           Configure AI model connections. OpenRouter recommended for multi-model access.
         </p>
       </div>
@@ -1426,14 +1426,14 @@ function APIKeysSettings() {
       {/* Active Connections List */}
       <div className="space-y-3">
         {connections.length === 0 && !showAddForm && (
-          <div className="p-8 border border-dashed border-slate-700 rounded-xl text-center">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto mb-3 text-slate-600">
+          <div className="p-8 border border-dashed border-[var(--border-default)] rounded-xl text-center">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto mb-3 text-[var(--text-tertiary)]">
               <path d="M12 2L2 7l10 5 10-5-10-5z"/>
               <path d="M2 17l10 5 10-5"/>
               <path d="M2 12l10 5 10-5"/>
             </svg>
-            <p className="text-sm text-slate-400 mb-1">No Sovereign Gateway Configured</p>
-            <p className="text-xs text-slate-500">Add OpenRouter to access 100+ AI models</p>
+            <p className="text-sm text-[var(--text-secondary)] mb-1">No Sovereign Gateway Configured</p>
+            <p className="text-xs text-[var(--text-tertiary)]">Add OpenRouter to access 100+ AI models</p>
           </div>
         )}
 
@@ -1442,8 +1442,8 @@ function APIKeysSettings() {
             key={conn.id}
             className={`p-4 bg-[var(--bg-tertiary)] border rounded-xl ${
               conn.type === 'openrouter' && conn.verified
-                ? 'border-cyan-500/30 shadow-[0_0_15px_-5px_rgba(0,200,255,0.2)]'
-                : 'border-white/10'
+                ? 'border-[var(--brand-blue)]/30 shadow-[0_0_15px_-5px_rgba(0,200,255,0.2)]'
+                : 'border-[var(--border-default)]'
             }`}
           >
             {editingId === conn.id ? (
@@ -1456,7 +1456,7 @@ function APIKeysSettings() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Connection Name"
-                  className="w-full px-3 py-2 bg-[var(--bg-primary)]/50 border border-[var(--border-default)]/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[var(--brand-blue)]"
+                  className="w-full px-3 py-2 bg-[var(--bg-primary)]/50 border border-[var(--border-default)]/50 rounded-lg text-sm text-[var(--text-primary)] placeholder-[var(--text-placeholder)] focus:outline-none focus:border-[var(--brand-blue)]"
                 />
                 <input
                   id="edit-conn-endpoint"
@@ -1466,7 +1466,7 @@ function APIKeysSettings() {
                   onChange={(e) => setFormData({ ...formData, endpoint: e.target.value })}
                   placeholder="Endpoint URL"
                   disabled={conn.type === 'openrouter'}
-                  className="w-full px-3 py-2 bg-[var(--bg-primary)]/50 border border-[var(--border-default)]/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[var(--brand-blue)] disabled:opacity-50"
+                  className="w-full px-3 py-2 bg-[var(--bg-primary)]/50 border border-[var(--border-default)]/50 rounded-lg text-sm text-[var(--text-primary)] placeholder-[var(--text-placeholder)] focus:outline-none focus:border-[var(--brand-blue)] disabled:opacity-50"
                 />
                 <input
                   id="edit-conn-apikey"
@@ -1475,13 +1475,13 @@ function APIKeysSettings() {
                   value={formData.apiKey}
                   onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
                   placeholder="API Key"
-                  className="w-full px-3 py-2 bg-[var(--bg-primary)]/50 border border-[var(--border-default)]/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[var(--brand-blue)]"
+                  className="w-full px-3 py-2 bg-[var(--bg-primary)]/50 border border-[var(--border-default)]/50 rounded-lg text-sm text-[var(--text-primary)] placeholder-[var(--text-placeholder)] focus:outline-none focus:border-[var(--brand-blue)]"
                 />
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleUpdateConnection(conn.id)}
                     disabled={isVerifying === conn.id || fetchingModels === conn.id}
-                    className="flex-1 px-4 py-2 bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+                    className="flex-1 px-4 py-2 bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] text-[var(--text-primary)] text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
                   >
                     {(isVerifying === conn.id || fetchingModels === conn.id) ? (
                       <>
@@ -1495,7 +1495,7 @@ function APIKeysSettings() {
                   </button>
                   <button
                     onClick={() => { setEditingId(null); setFormData({ name: '', endpoint: '', apiKey: '' }) }}
-                    className="px-4 py-2 bg-[var(--bg-tertiary)]hover:bg-[var(--bg-elevated)] text-slate-300 text-sm rounded-lg transition-colors"
+                    className="px-4 py-2 bg-[var(--bg-tertiary)]hover:bg-[var(--bg-elevated)] text-[var(--text-secondary)] text-sm rounded-lg transition-colors"
                   >
                     Cancel
                   </button>
@@ -1508,8 +1508,8 @@ function APIKeysSettings() {
                   {/* Icon */}
                   <div className={`p-2.5 rounded-lg ${
                     conn.type === 'openrouter'
-                      ? 'bg-gradient-to-br from-cyan-500/20 to-blue-500/20 text-cyan-400'
-                      : 'bg-white/5 text-slate-400'
+                      ? 'bg-gradient-to-br from-[var(--brand-blue)]/20 to-[var(--brand-blue)]/10 text-[var(--brand-blue)]'
+                      : 'bg-[var(--bg-elevated)]/30 text-[var(--text-secondary)]'
                   }`}>
                     {CONNECTION_ICONS[conn.type] || CONNECTION_ICONS.custom}
                   </div>
@@ -1517,17 +1517,17 @@ function APIKeysSettings() {
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-white truncate">{conn.name}</p>
+                      <p className="text-sm font-medium text-[var(--text-primary)] truncate">{conn.name}</p>
                       {conn.verified ? (
-                        <span className="flex items-center gap-1 text-xs px-2 py-0.5 bg-emerald-900/30 text-emerald-400 rounded-full">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        <span className="flex items-center gap-1 text-xs px-2 py-0.5 bg-[var(--success)]/15 text-[var(--success)] rounded-full">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)]" />
                           {conn.type === 'openrouter' ? `${conn.availableModels?.length || 0} models` : 'Verified'}
                         </span>
                       ) : (
-                        <span className="text-xs px-2 py-0.5 bg-amber-900/30 text-amber-400 rounded-full">Unverified</span>
+                        <span className="text-xs px-2 py-0.5 bg-amber-900/30 text-[var(--warning)] rounded-full">Unverified</span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-500 truncate">{truncateUrl(conn.endpoint)}</p>
+                    <p className="text-xs text-[var(--text-tertiary)] truncate">{truncateUrl(conn.endpoint)}</p>
                   </div>
 
                   {/* Actions */}
@@ -1535,7 +1535,7 @@ function APIKeysSettings() {
                     <button
                       onClick={() => conn.type === 'openrouter' ? handleOpenRouterVerify(conn.id, conn.apiKey) : verifyConnection(conn.id)}
                       disabled={isVerifying === conn.id || fetchingModels === conn.id}
-                      className="p-2 text-slate-400 hover:text-[var(--brand-blue)] hover:bg-white/5 rounded-lg transition-colors"
+                      className="p-2 text-[var(--text-secondary)] hover:text-[var(--brand-blue)] hover:bg-[var(--bg-elevated)]/30 rounded-lg transition-colors"
                       title={conn.type === 'openrouter' ? 'Refresh Models' : 'Verify'}
                     >
                       {(isVerifying === conn.id || fetchingModels === conn.id) ? (
@@ -1549,14 +1549,14 @@ function APIKeysSettings() {
                     </button>
                     <button
                       onClick={() => startEditing(conn)}
-                      className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                      className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]/30 rounded-lg transition-colors"
                       title="Edit"
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     </button>
                     <button
                       onClick={() => deleteConnection(conn.id)}
-                      className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                      className="p-2 text-[var(--text-secondary)] hover:text-[var(--danger)] hover:bg-[var(--danger)]/10 rounded-lg transition-colors"
                       title="Delete"
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
@@ -1566,14 +1566,14 @@ function APIKeysSettings() {
 
                 {/* Model Selector for OpenRouter */}
                 {conn.type === 'openrouter' && conn.verified && conn.availableModels && conn.availableModels.length > 0 && (
-                  <div className="pt-3 border-t border-white/5">
-                    <label className="block text-xs font-medium text-slate-400 mb-2">Active Model</label>
+                  <div className="pt-3 border-t border-[var(--border-subtle)]">
+                    <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">Active Model</label>
                     <select
                       id={`conn-model-${conn.id}`}
                       name={`conn-model-${conn.id}`}
                       value={conn.selectedModel || ''}
                       onChange={(e) => setConnectionModel(conn.id, e.target.value)}
-                      className="w-full px-3 py-2.5 bg-[var(--bg-primary)]/50 border border-[var(--border-default)]/50 rounded-lg text-sm text-white focus:outline-none focus:border-cyan-500 appearance-none cursor-pointer"
+                      className="w-full px-3 py-2.5 bg-[var(--bg-primary)]/50 border border-[var(--border-default)]/50 rounded-lg text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-blue)] appearance-none cursor-pointer"
                       style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
                     >
                       {conn.availableModels.map((model) => (
@@ -1593,11 +1593,11 @@ function APIKeysSettings() {
       {/* Add Connection Form */}
       {showAddForm ? (
         <div className="p-4 bg-[var(--bg-tertiary)] border border-[var(--brand-blue)]/30 rounded-xl space-y-4">
-          <p className="text-sm font-medium text-white">New Gateway Connection</p>
+          <p className="text-sm font-medium text-[var(--text-primary)]">New Gateway Connection</p>
 
           {/* Provider Selection */}
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-2">Provider</label>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">Provider</label>
             <div className="grid grid-cols-3 gap-2">
               {PROVIDER_PRESETS.map((preset) => (
                 <button
@@ -1606,21 +1606,21 @@ function APIKeysSettings() {
                   className={`p-3 rounded-lg border text-left transition-all ${
                     selectedProvider === preset.id
                       ? 'border-[var(--brand-blue)] bg-[var(--brand-blue)]/10 shadow-[0_0_15px_-5px_var(--brand-blue)]'
-                      : 'border-white/10 hover:border-white/30 hover:bg-white/5'
+                      : 'border-[var(--border-default)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)]/30'
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={selectedProvider === preset.id ? 'text-[var(--brand-blue)]' : 'text-slate-400'}>
+                    <span className={selectedProvider === preset.id ? 'text-[var(--brand-blue)]' : 'text-[var(--text-secondary)]'}>
                       {CONNECTION_ICONS[preset.id] || CONNECTION_ICONS.custom}
                     </span>
-                    <span className={`text-sm font-medium ${selectedProvider === preset.id ? 'text-white' : 'text-slate-300'}`}>
+                    <span className={`text-sm font-medium ${selectedProvider === preset.id ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
                       {preset.name}
                     </span>
                     {preset.recommended && (
-                      <span className="ml-auto text-[9px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-400 rounded font-medium">REC</span>
+                      <span className="ml-auto text-[9px] px-1.5 py-0.5 bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] rounded font-medium">REC</span>
                     )}
                   </div>
-                  <p className="text-[10px] text-slate-500">{preset.description}</p>
+                  <p className="text-[10px] text-[var(--text-tertiary)]">{preset.description}</p>
                 </button>
               ))}
             </div>
@@ -1635,13 +1635,13 @@ function APIKeysSettings() {
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Connection Name"
-              className="w-full px-3 py-2.5 bg-[var(--bg-primary)]/50 border border-[var(--border-default)]/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[var(--brand-blue)]"
+              className="w-full px-3 py-2.5 bg-[var(--bg-primary)]/50 border border-[var(--border-default)]/50 rounded-lg text-sm text-[var(--text-primary)] placeholder-[var(--text-placeholder)] focus:outline-none focus:border-[var(--brand-blue)]"
             />
           )}
 
           {/* Endpoint URL */}
           <div>
-            <label htmlFor="add-conn-endpoint" className="block text-xs font-medium text-slate-400 mb-1.5">Endpoint URL</label>
+            <label htmlFor="add-conn-endpoint" className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">Endpoint URL</label>
             <input
               id="add-conn-endpoint"
               name="add-conn-endpoint"
@@ -1650,10 +1650,10 @@ function APIKeysSettings() {
               onChange={(e) => setFormData({ ...formData, endpoint: e.target.value })}
               placeholder="https://api.example.com/v1"
               disabled={selectedProvider !== 'custom'}
-              className="w-full px-3 py-2.5 bg-[var(--bg-primary)]/50 border border-[var(--border-default)]/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[var(--brand-blue)] disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2.5 bg-[var(--bg-primary)]/50 border border-[var(--border-default)]/50 rounded-lg text-sm text-[var(--text-primary)] placeholder-[var(--text-placeholder)] focus:outline-none focus:border-[var(--brand-blue)] disabled:opacity-60 disabled:cursor-not-allowed"
             />
             {selectedProvider !== 'custom' && (
-              <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
+              <p className="text-[10px] text-[var(--text-tertiary)] mt-1 flex items-center gap-1">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                 Endpoint locked for {currentPreset?.name}
               </p>
@@ -1662,7 +1662,7 @@ function APIKeysSettings() {
 
           {/* API Key */}
           <div>
-            <label htmlFor="add-conn-apikey" className="block text-xs font-medium text-slate-400 mb-1.5">API Key</label>
+            <label htmlFor="add-conn-apikey" className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">API Key</label>
             <input
               id="add-conn-apikey"
               name="add-conn-apikey"
@@ -1670,13 +1670,13 @@ function APIKeysSettings() {
               value={formData.apiKey}
               onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
               placeholder={selectedProvider === 'openrouter' ? 'sk-or-v1-...' : 'sk-...'}
-              className="w-full px-3 py-2.5 bg-[var(--bg-primary)]/50 border border-[var(--border-default)]/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[var(--brand-blue)]"
+              className="w-full px-3 py-2.5 bg-[var(--bg-primary)]/50 border border-[var(--border-default)]/50 rounded-lg text-sm text-[var(--text-primary)] placeholder-[var(--text-placeholder)] focus:outline-none focus:border-[var(--brand-blue)]"
             />
           </div>
 
           {/* Error Message */}
           {modelError && (
-            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400">
+            <div className="p-3 bg-[var(--danger)]/10 border border-[var(--danger)]/30 rounded-lg text-sm text-[var(--danger)]">
               {modelError}
             </div>
           )}
@@ -1686,7 +1686,7 @@ function APIKeysSettings() {
             <button
               onClick={handleAddConnection}
               disabled={!formData.apiKey || (selectedProvider === 'custom' && !formData.endpoint) || isVerifying !== null || fetchingModels !== null}
-              className="flex-1 px-4 py-2.5 bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2.5 bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-[var(--text-primary)] text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
             >
               {(isVerifying || fetchingModels) ? (
                 <>
@@ -1705,7 +1705,7 @@ function APIKeysSettings() {
             </button>
             <button
               onClick={() => { setShowAddForm(false); setFormData({ name: '', endpoint: '', apiKey: '' }); setModelError(null) }}
-              className="px-4 py-2.5 bg-[var(--bg-tertiary)]hover:bg-[var(--bg-elevated)] text-slate-300 text-sm rounded-lg transition-colors"
+              className="px-4 py-2.5 bg-[var(--bg-tertiary)]hover:bg-[var(--bg-elevated)] text-[var(--text-secondary)] text-sm rounded-lg transition-colors"
             >
               Cancel
             </button>
@@ -1714,7 +1714,7 @@ function APIKeysSettings() {
       ) : (
         <button
           onClick={() => setShowAddForm(true)}
-          className="w-full py-3 px-4 border border-dashed border-slate-700 hover:border-cyan-500/50 text-slate-400 hover:text-cyan-400 rounded-xl transition-colors flex items-center justify-center gap-2"
+          className="w-full py-3 px-4 border border-dashed border-[var(--border-default)] hover:border-[var(--brand-blue)]/50 text-[var(--text-secondary)] hover:text-[var(--brand-blue)] rounded-xl transition-colors flex items-center justify-center gap-2"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Open New Gateway
@@ -1738,8 +1738,8 @@ function ThemeSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-sm font-semibold text-white mb-3">Theme Preferences</h3>
-        <p className="text-xs text-slate-400 mb-4">
+        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Theme Preferences</h3>
+        <p className="text-xs text-[var(--text-secondary)] mb-4">
           Select your operational environment.
         </p>
       </div>
@@ -1752,7 +1752,7 @@ function ThemeSettings() {
             className={`p-4 rounded-xl border-2 transition-all duration-300 ${
               theme === t.id
                 ? 'border-[var(--brand-blue)] bg-[var(--brand-blue)]/10 shadow-[0_0_20px_-5px_var(--brand-blue)]'
-                : 'border-white/10 hover:border-white/30 hover:bg-white/5'
+                : 'border-[var(--border-default)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)]/30'
             }`}
           >
             <div className="flex gap-1.5 mb-3">
@@ -1764,10 +1764,10 @@ function ThemeSettings() {
                 />
               ))}
             </div>
-            <p className={`text-sm font-semibold mb-1 ${theme === t.id ? 'text-[var(--brand-blue)]' : 'text-white'}`}>
+            <p className={`text-sm font-semibold mb-1 ${theme === t.id ? 'text-[var(--brand-blue)]' : 'text-[var(--text-primary)]'}`}>
               {t.name}
             </p>
-            <p className="text-[10px] text-slate-500">{t.description}</p>
+            <p className="text-[10px] text-[var(--text-tertiary)]">{t.description}</p>
           </button>
         ))}
       </div>
@@ -1782,8 +1782,8 @@ function NotificationSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-sm font-semibold text-white mb-3">Notification Preferences</h3>
-        <p className="text-xs text-slate-400 mb-4">
+        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Notification Preferences</h3>
+        <p className="text-xs text-[var(--text-secondary)] mb-4">
           Configure how you receive notifications.
         </p>
       </div>
@@ -1825,10 +1825,10 @@ function ToggleSetting({
   onToggle: () => void
 }) {
   return (
-    <div className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-lg">
+    <div className="flex items-center justify-between p-4 bg-[var(--bg-elevated)]/30 border border-[var(--border-default)] rounded-lg">
       <div>
-        <p className="text-sm font-medium text-white">{label}</p>
-        <p className="text-xs text-slate-400">{description}</p>
+        <p className="text-sm font-medium text-[var(--text-primary)]">{label}</p>
+        <p className="text-xs text-[var(--text-secondary)]">{description}</p>
       </div>
       <button
         onClick={onToggle}
@@ -1836,7 +1836,7 @@ function ToggleSetting({
         aria-checked={enabled}
         aria-label={label}
         className={`w-11 h-6 rounded-full transition-colors ${
-          enabled ? 'bg-[var(--brand-blue)]' : 'bg-slate-700'
+          enabled ? 'bg-[var(--brand-blue)]' : 'bg-[var(--bg-tertiary)]'
         }`}
       >
         <div
