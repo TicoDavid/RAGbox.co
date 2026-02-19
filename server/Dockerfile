@@ -55,8 +55,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Security: non-root user
-RUN groupadd --system --gid 1001 voice && \
-    useradd --system --uid 1001 --gid voice mercury
+RUN groupadd --system --gid 1002 voicesvc && \
+    useradd --system --uid 1002 --gid voicesvc mercury
 
 # Copy compiled output + dependencies
 COPY --from=builder /app/server/dist ./dist
@@ -64,7 +64,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package.json ./
 
 # Set ownership
-RUN chown -R mercury:voice /app
+RUN chown -R mercury:voicesvc /app
 
 USER mercury
 
