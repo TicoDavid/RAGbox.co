@@ -25,11 +25,11 @@ const mdComponents: Components = {
     if (isBlock) {
       return (
         <pre className="bg-black/30 rounded-lg p-3 my-2 overflow-x-auto">
-          <code className="text-xs font-mono text-emerald-400">{children}</code>
+          <code className="text-xs font-mono text-[var(--success)]">{children}</code>
         </pre>
       )
     }
-    return <code className="bg-black/20 px-1.5 py-0.5 rounded text-xs font-mono text-cyan-400">{children}</code>
+    return <code className="bg-black/20 px-1.5 py-0.5 rounded text-xs font-mono text-[var(--brand-blue)]">{children}</code>
   },
   blockquote: ({ children }) => (
     <blockquote className="border-l-2 border-[var(--brand-blue)]/50 pl-3 my-2 text-[var(--text-secondary)] italic">
@@ -57,10 +57,10 @@ function formatTime(date: Date): string {
 }
 
 const CHANNEL_BADGE: Record<MercuryChannel, { label: string; color: string }> = {
-  dashboard: { label: 'Dashboard', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
-  whatsapp: { label: 'WhatsApp', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
-  voice: { label: 'Voice', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' },
-  roam: { label: 'ROAM', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' },
+  dashboard: { label: 'Dashboard', color: 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border-[var(--brand-blue)]/30' },
+  whatsapp: { label: 'WhatsApp', color: 'bg-[var(--success)]/20 text-[var(--success)] border-[var(--success)]/30' },
+  voice: { label: 'Voice', color: 'bg-[var(--text-accent)]/20 text-[var(--text-accent)] border-[var(--text-accent)]/30' },
+  roam: { label: 'ROAM', color: 'bg-[var(--warning)]/20 text-[var(--warning)] border-[var(--warning)]/30' },
 }
 
 function ChannelBadge({ channel, isUser }: { channel?: MercuryChannel; isUser?: boolean }) {
@@ -86,7 +86,7 @@ function ActionButtons({ content }: { content: string }) {
     } catch { /* clipboard may not be available */ }
   }, [content])
 
-  const btnClass = 'p-1 rounded hover:bg-white/10 transition-colors text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
+  const btnClass = 'p-1 rounded hover:bg-[var(--bg-elevated)] transition-colors text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
 
   const handleShare = useCallback(async () => {
     try {
@@ -128,7 +128,7 @@ export function Message({ message }: MessageProps) {
       <div
         className={`max-w-[75%] rounded-xl px-4 py-3 ${
           isUser
-            ? 'bg-[var(--brand-blue)] text-white'
+            ? 'bg-[var(--brand-blue)] text-[var(--text-primary)]'
             : message.isError
               ? 'bg-[var(--danger)]/10 border border-[var(--danger)]/30 text-[var(--text-primary)]'
               : 'bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)]'
@@ -158,7 +158,7 @@ export function Message({ message }: MessageProps) {
 
         {/* Footer: time + channel badge + confidence */}
         <div className="flex items-center gap-2 mt-2">
-          <span className={`text-[10px] ${isUser ? 'text-white/60' : 'text-[var(--text-tertiary)]'}`}>
+          <span className={`text-[10px] ${isUser ? 'text-[var(--text-primary)]/60' : 'text-[var(--text-tertiary)]'}`}>
             {formatTime(message.timestamp)}
           </span>
           <ChannelBadge channel={message.channel} isUser={isUser} />

@@ -89,15 +89,15 @@ export function OnboardingChecklist() {
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-default)]">
             <div>
-              <h3 className="text-sm font-semibold text-white">Getting Started</h3>
-              <p className="text-xs text-slate-400 mt-0.5">{completedCount}/{steps.length} complete</p>
+              <h3 className="text-sm font-semibold text-[var(--text-primary)]">Getting Started</h3>
+              <p className="text-xs text-[var(--text-secondary)] mt-0.5">{completedCount}/{steps.length} complete</p>
             </div>
             <button
               onClick={handleDismiss}
-              className="p-1 rounded-md hover:bg-white/10 transition-colors"
+              className="p-1 rounded-md hover:bg-[var(--bg-elevated)] transition-colors"
               aria-label="Dismiss onboarding"
             >
-              <X className="w-4 h-4 text-slate-400" />
+              <X className="w-4 h-4 text-[var(--text-secondary)]" />
             </button>
           </div>
 
@@ -119,20 +119,20 @@ export function OnboardingChecklist() {
                 <div
                   key={step.id}
                   className={`flex items-start gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-                    done ? 'bg-emerald-500/5' : 'hover:bg-white/5'
+                    done ? 'bg-[var(--success)]/5' : 'hover:bg-[var(--bg-elevated)]/50'
                   }`}
                 >
                   {done ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-[var(--success)] mt-0.5 shrink-0" />
                   ) : (
-                    <Circle className="w-4 h-4 text-slate-500 mt-0.5 shrink-0" />
+                    <Circle className="w-4 h-4 text-[var(--text-tertiary)] mt-0.5 shrink-0" />
                   )}
                   <div>
-                    <p className={`text-xs font-medium ${done ? 'text-emerald-400 line-through' : 'text-white'}`}>
+                    <p className={`text-xs font-medium ${done ? 'text-[var(--success)] line-through' : 'text-[var(--text-primary)]'}`}>
                       {step.label}
                     </p>
                     {!done && (
-                      <p className="text-[10px] text-slate-500 mt-0.5">{step.description}</p>
+                      <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5">{step.description}</p>
                     )}
                   </div>
                 </div>
@@ -142,11 +142,11 @@ export function OnboardingChecklist() {
 
           {/* Completion state */}
           {allDone && (
-            <div className="px-4 py-3 bg-emerald-500/10 border-t border-emerald-500/20 text-center">
-              <p className="text-xs text-emerald-400 font-medium">You're all set! Welcome to RAGbox.</p>
+            <div className="px-4 py-3 bg-[var(--success)]/10 border-t border-[var(--success)]/20 text-center">
+              <p className="text-xs text-[var(--success)] font-medium">You're all set! Welcome to RAGbox.</p>
               <button
                 onClick={handleDismiss}
-                className="mt-1.5 text-[10px] text-emerald-400/70 underline hover:text-emerald-400"
+                className="mt-1.5 text-[10px] text-[var(--success)]/70 underline hover:text-[var(--success)]"
               >
                 Dismiss
               </button>

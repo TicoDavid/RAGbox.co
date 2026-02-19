@@ -28,7 +28,7 @@ function VoiceStatusDot() {
 
   return (
     <span
-      className={`w-2 h-2 rounded-full shrink-0 ${status === 'healthy' ? 'bg-emerald-500' : 'bg-slate-500'}`}
+      className={`w-2 h-2 rounded-full shrink-0 ${status === 'healthy' ? 'bg-[var(--success)]' : 'bg-[var(--text-tertiary)]'}`}
       title={status === 'healthy' ? 'Voice server online' : 'Voice server offline'}
     />
   )
@@ -40,7 +40,7 @@ export function ContextBar() {
   const sessionTopics = useMercuryStore((s) => s.sessionTopics)
 
   return (
-    <div className="shrink-0 flex items-center gap-3 px-4 py-2 border-b border-[var(--border-default)] border-t border-t-white/10 bg-[var(--bg-secondary)]">
+    <div className="shrink-0 flex items-center gap-3 px-4 py-2 border-b border-[var(--border-default)] border-t border-t-[var(--border-default)] bg-[var(--bg-secondary)]">
       {/* Vault tags + voice status */}
       <div className="flex items-center gap-1.5 flex-1 min-w-0">
         <VoiceStatusDot />
@@ -50,7 +50,7 @@ export function ContextBar() {
       {/* Session progress */}
       {sessionQueryCount > 0 && (
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-[var(--text-tertiary)]">
             Session: {sessionQueryCount} {sessionQueryCount === 1 ? 'query' : 'queries'}
           </span>
           {sessionTopics.length > 0 && (
