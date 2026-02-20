@@ -466,6 +466,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     `)
     results.push('llm_configs (BYOLLM): OK')
 
+    // ========================================
+    // GAP 5: Onboarding wizard — onboarding_completed on users
+    // ========================================
+    await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "users" ADD COLUMN "onboarding_completed" BOOLEAN NOT NULL DEFAULT false; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
+    results.push('users.onboarding_completed: OK')
+
     return NextResponse.json({ success: true, results })
   } catch (error) {
     return NextResponse.json({
