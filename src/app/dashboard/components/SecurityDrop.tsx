@@ -298,12 +298,12 @@ const SecurityDrop: React.FC<SecurityDropProps> = ({
       {/* Context Menu */}
       {contextMenu.visible && (
         <div
-          className="fixed z-50 rounded-lg border dark:border-[var(--bg-elevated)] border-slate-200 dark:bg-[var(--bg-secondary)] bg-white shadow-2xl py-1"
+          className="fixed z-50 rounded-lg border border-[var(--bg-elevated)] bg-[var(--bg-secondary)] shadow-2xl py-1"
           style={{ left: contextMenu.x, top: contextMenu.y }}
         >
           <button
             onClick={handleOpenTierDialog}
-            className="w-full text-left px-4 py-2 text-xs dark:text-[var(--text-secondary)] text-slate-600 dark:hover:bg-[var(--bg-tertiary)] hover:bg-slate-100 hover:text-[var(--brand-blue)] transition-colors"
+            className="w-full text-left px-4 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--brand-blue)] transition-colors"
           >
             Change Security Tier
           </button>
@@ -312,7 +312,7 @@ const SecurityDrop: React.FC<SecurityDropProps> = ({
               if (contextMenu.sourceId !== null) handleDeleteDocument(String(contextMenu.sourceId));
               handleCloseContextMenu();
             }}
-            className="w-full text-left px-4 py-2 text-xs dark:text-[var(--text-secondary)] text-slate-600 dark:hover:bg-[var(--bg-tertiary)] hover:bg-slate-100 hover:text-[var(--danger)] transition-colors"
+            className="w-full text-left px-4 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--danger)] transition-colors"
           >
             Delete
           </button>

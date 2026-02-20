@@ -95,30 +95,30 @@ function getSeverityColors(severity: AuditSeverity) {
   switch (severity) {
     case 'CRITICAL':
       return {
-        bg: 'dark:bg-red-500/20 bg-red-100',
-        text: 'dark:text-red-400 text-red-600',
-        border: 'dark:border-red-500/30 border-red-200',
+        bg: 'bg-[var(--danger)]/20',
+        text: 'text-[var(--danger)]',
+        border: 'border-[var(--danger)]/30',
         glow: 'shadow-[0_0_15px_rgba(239,68,68,0.15)]',
       }
     case 'ERROR':
       return {
-        bg: 'dark:bg-orange-500/20 bg-orange-100',
-        text: 'dark:text-orange-400 text-orange-600',
-        border: 'dark:border-orange-500/30 border-orange-200',
+        bg: 'bg-[var(--danger)]/20',
+        text: 'text-[var(--danger)]',
+        border: 'border-[var(--danger)]/30',
         glow: '',
       }
     case 'WARNING':
       return {
-        bg: 'dark:bg-amber-500/20 bg-amber-100',
-        text: 'dark:text-amber-400 text-amber-600',
-        border: 'dark:border-amber-500/30 border-amber-200',
+        bg: 'bg-[var(--warning)]/20',
+        text: 'text-[var(--warning)]',
+        border: 'border-[var(--warning)]/30',
         glow: '',
       }
     default:
       return {
-        bg: 'dark:bg-white/5 bg-black/5',
-        text: 'dark:text-white/60 text-black/60',
-        border: 'dark:border-white/10 border-black/10',
+        bg: 'bg-[var(--bg-elevated)]',
+        text: 'text-[var(--text-secondary)]',
+        border: 'border-[var(--border-default)]',
         glow: '',
       }
   }
@@ -180,16 +180,16 @@ export function AuditEntry({ event, index, onViewDetails }: AuditEntryProps) {
       transition={{ delay: index * 0.02 }}
     >
       {/* Timeline connector line */}
-      <div className="absolute left-6 top-12 bottom-0 w-px dark:bg-white/10 bg-black/10" />
+      <div className="absolute left-6 top-12 bottom-0 w-px bg-[var(--border-default)]" />
 
       {/* Entry card */}
       <div
         className={cn(
           'relative ml-12 rounded-xl border transition-all duration-200',
-          'dark:bg-void-card/50 bg-ceramic-card/50 backdrop-blur-sm',
+          'bg-[var(--bg-secondary)] backdrop-blur-sm',
           colors.border,
           colors.glow,
-          'hover:dark:bg-void-card hover:bg-ceramic-card',
+          'hover:bg-[var(--bg-tertiary)]',
           'cursor-pointer'
         )}
         onClick={() => onViewDetails(event)}
@@ -236,17 +236,17 @@ export function AuditEntry({ event, index, onViewDetails }: AuditEntryProps) {
           </div>
 
           {/* Timestamp */}
-          <div className="flex items-center gap-2 text-xs dark:text-white/40 text-black/40">
+          <div className="flex items-center gap-2 text-xs text-[var(--text-tertiary)]">
             <Clock className="w-3 h-3" />
             <span>{time}</span>
-            <span className="dark:text-white/20 text-black/20">|</span>
+            <span className="text-[var(--border-default)]">|</span>
             <span>{date}</span>
           </div>
         </div>
 
         {/* Summary */}
         <div className="px-4 pb-3">
-          <p className="text-sm dark:text-white/70 text-black/70">
+          <p className="text-sm text-[var(--text-secondary)]">
             {getDetailsSummary(event)}
           </p>
         </div>
@@ -255,8 +255,8 @@ export function AuditEntry({ event, index, onViewDetails }: AuditEntryProps) {
         <div
           className={cn(
             'px-4 py-2 border-t flex items-center justify-between text-xs',
-            'dark:border-white/5 border-black/5',
-            'dark:text-white/30 text-black/30'
+            'border-[var(--border-subtle)]',
+            'text-[var(--text-tertiary)]'
           )}
         >
           <div className="flex items-center gap-4">
@@ -310,8 +310,8 @@ export function AuditEntryDetailModal({ event, isOpen, onClose }: AuditEntryDeta
           <motion.div
             className={cn(
               'relative max-w-2xl w-full max-h-[80vh] overflow-hidden',
-              'dark:bg-void-card bg-ceramic-card',
-              'border dark:border-white/10 border-black/10',
+              'bg-[var(--bg-secondary)]',
+              'border border-[var(--border-default)]',
               'rounded-2xl shadow-2xl'
             )}
             initial={{ scale: 0.9, y: 20 }}
@@ -320,23 +320,23 @@ export function AuditEntryDetailModal({ event, isOpen, onClose }: AuditEntryDeta
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b dark:border-white/10 border-black/10">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-default)]">
               <div className="flex items-center gap-3">
                 <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', colors.bg, colors.text)}>
                   {getActionIcon(event.action)}
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold dark:text-white text-black">
+                  <h3 className="text-lg font-semibold text-[var(--text-primary)]">
                     {getActionDisplayName(event.action)}
                   </h3>
-                  <p className="text-xs dark:text-white/40 text-black/40">
+                  <p className="text-xs text-[var(--text-tertiary)]">
                     {date} at {time}
                   </p>
                 </div>
               </div>
               <button
                 onClick={onClose}
-                className="w-8 h-8 rounded-lg flex items-center justify-center dark:text-white/40 text-black/40 dark:hover:bg-white/10 hover:bg-black/10 transition-colors"
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] transition-colors"
                 aria-label="Close audit entry details"
               >
                 <X className="w-5 h-5" />
@@ -357,14 +357,14 @@ export function AuditEntryDetailModal({ event, isOpen, onClose }: AuditEntryDeta
 
               {/* Details */}
               <div>
-                <h4 className="text-sm font-semibold dark:text-white/60 text-black/60 mb-2">
+                <h4 className="text-sm font-semibold text-[var(--text-secondary)] mb-2">
                   Event Details
                 </h4>
                 <pre
                   className={cn(
                     'p-4 rounded-xl text-xs font-mono overflow-x-auto',
-                    'dark:bg-black/30 bg-black/5',
-                    'dark:text-electric-400 text-electric-600'
+                    'bg-[var(--bg-primary)]',
+                    'text-[var(--brand-blue)]'
                   )}
                 >
                   {JSON.stringify(event.details, null, 2)}
@@ -409,13 +409,13 @@ function DetailField({
 }) {
   return (
     <div>
-      <p className="text-xs dark:text-white/40 text-black/40 mb-1">{label}</p>
+      <p className="text-xs text-[var(--text-tertiary)] mb-1">{label}</p>
       {badge && badgeColors ? (
         <span className={cn('px-2 py-1 rounded text-xs font-semibold', badgeColors.bg, badgeColors.text)}>
           {value}
         </span>
       ) : (
-        <p className={cn('text-sm dark:text-white text-black truncate', mono && 'font-mono text-xs')}>
+        <p className={cn('text-sm text-[var(--text-primary)] truncate', mono && 'font-mono text-xs')}>
           {value}
         </p>
       )}

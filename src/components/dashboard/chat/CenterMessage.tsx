@@ -93,7 +93,7 @@ export function CenterMessage({ message }: { message: ChatMessage }) {
           className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${
             isUser
               ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
-              : 'bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-blue-hover)] text-white'
+              : 'bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-blue-hover)] text-white' /* THEME-EXEMPT: white on brand gradient */
           }`}
         >
           {isUser ? 'Y' : 'M'}

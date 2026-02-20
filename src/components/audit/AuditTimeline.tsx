@@ -144,7 +144,7 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
         <div className="flex items-center gap-4">
           {/* Search */}
           <div className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 dark:text-white/40 text-black/40" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)]" />
             <input
               type="text"
               placeholder="Search audit logs..."
@@ -153,10 +153,10 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
               aria-label="Search audit logs"
               className={cn(
                 'w-full pl-11 pr-4 py-3 rounded-xl',
-                'dark:bg-white/5 bg-black/5',
-                'dark:text-white text-black',
-                'border dark:border-white/10 border-black/10',
-                'placeholder:dark:text-white/30 placeholder:text-black/30',
+                'bg-[var(--bg-secondary)]',
+                'text-[var(--text-primary)]',
+                'border border-[var(--border-default)]',
+                'placeholder:text-[var(--text-tertiary)]',
                 'focus:outline-none focus:ring-2 focus:ring-electric-500/50'
               )}
             />
@@ -171,8 +171,8 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
               'flex items-center gap-2 px-4 py-3 rounded-xl',
               'border transition-all duration-200',
               showFilters || hasActiveFilters
-                ? 'dark:bg-electric-600/20 bg-electric-100 dark:text-electric-400 text-electric-600 dark:border-electric-500/30 border-electric-200'
-                : 'dark:bg-white/5 bg-black/5 dark:text-white/60 text-black/60 dark:border-white/10 border-black/10 dark:hover:bg-white/10 hover:bg-black/10'
+                ? 'bg-electric-600/20 text-electric-400 border-electric-500/30'
+                : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border-default)] hover:bg-[var(--bg-elevated)]'
             )}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -191,10 +191,10 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
             aria-label="Refresh audit logs"
             className={cn(
               'w-11 h-11 rounded-xl flex items-center justify-center',
-              'dark:bg-white/5 bg-black/5',
-              'dark:text-white/60 text-black/60',
-              'border dark:border-white/10 border-black/10',
-              'dark:hover:bg-white/10 hover:bg-black/10',
+              'bg-[var(--bg-secondary)]',
+              'text-[var(--text-secondary)]',
+              'border border-[var(--border-default)]',
+              'hover:bg-[var(--bg-elevated)]',
               'transition-all duration-200',
               isLoading && 'opacity-50 cursor-not-allowed'
             )}
@@ -217,14 +217,14 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
               <div
                 className={cn(
                   'p-4 rounded-xl space-y-4',
-                  'dark:bg-white/5 bg-black/5',
-                  'border dark:border-white/10 border-black/10'
+                  'bg-[var(--bg-secondary)]',
+                  'border border-[var(--border-default)]'
                 )}
               >
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {/* Action filter */}
                   <div>
-                    <label className="text-xs dark:text-white/40 text-black/40 mb-1 block">
+                    <label className="text-xs text-[var(--text-tertiary)] mb-1 block">
                       Action Type
                     </label>
                     <select
@@ -233,9 +233,9 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
                       aria-label="Filter by action type"
                       className={cn(
                         'w-full px-3 py-2 rounded-lg text-sm',
-                        'dark:bg-black/30 bg-white',
-                        'dark:text-white text-black',
-                        'border dark:border-white/10 border-black/10',
+                        'bg-[var(--bg-primary)]',
+                        'text-[var(--text-primary)]',
+                        'border border-[var(--border-default)]',
                         'focus:outline-none focus:ring-2 focus:ring-electric-500/50'
                       )}
                     >
@@ -249,7 +249,7 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
 
                   {/* Severity filter */}
                   <div>
-                    <label className="text-xs dark:text-white/40 text-black/40 mb-1 block">
+                    <label className="text-xs text-[var(--text-tertiary)] mb-1 block">
                       Severity
                     </label>
                     <select
@@ -258,9 +258,9 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
                       aria-label="Filter by severity"
                       className={cn(
                         'w-full px-3 py-2 rounded-lg text-sm',
-                        'dark:bg-black/30 bg-white',
-                        'dark:text-white text-black',
-                        'border dark:border-white/10 border-black/10',
+                        'bg-[var(--bg-primary)]',
+                        'text-[var(--text-primary)]',
+                        'border border-[var(--border-default)]',
                         'focus:outline-none focus:ring-2 focus:ring-electric-500/50'
                       )}
                     >
@@ -274,7 +274,7 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
 
                   {/* Start date */}
                   <div>
-                    <label className="text-xs dark:text-white/40 text-black/40 mb-1 block">
+                    <label className="text-xs text-[var(--text-tertiary)] mb-1 block">
                       Start Date
                     </label>
                     <input
@@ -284,9 +284,9 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
                       aria-label="Filter start date"
                       className={cn(
                         'w-full px-3 py-2 rounded-lg text-sm',
-                        'dark:bg-black/30 bg-white',
-                        'dark:text-white text-black',
-                        'border dark:border-white/10 border-black/10',
+                        'bg-[var(--bg-primary)]',
+                        'text-[var(--text-primary)]',
+                        'border border-[var(--border-default)]',
                         'focus:outline-none focus:ring-2 focus:ring-electric-500/50'
                       )}
                     />
@@ -294,7 +294,7 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
 
                   {/* End date */}
                   <div>
-                    <label className="text-xs dark:text-white/40 text-black/40 mb-1 block">
+                    <label className="text-xs text-[var(--text-tertiary)] mb-1 block">
                       End Date
                     </label>
                     <input
@@ -304,9 +304,9 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
                       aria-label="Filter end date"
                       className={cn(
                         'w-full px-3 py-2 rounded-lg text-sm',
-                        'dark:bg-black/30 bg-white',
-                        'dark:text-white text-black',
-                        'border dark:border-white/10 border-black/10',
+                        'bg-[var(--bg-primary)]',
+                        'text-[var(--text-primary)]',
+                        'border border-[var(--border-default)]',
                         'focus:outline-none focus:ring-2 focus:ring-electric-500/50'
                       )}
                     />
@@ -317,7 +317,7 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
                 {hasActiveFilters && (
                   <button
                     onClick={clearFilters}
-                    className="flex items-center gap-2 text-sm dark:text-electric-400 text-electric-600 hover:underline"
+                    className="flex items-center gap-2 text-sm text-electric-400 hover:underline"
                   >
                     <X className="w-3 h-3" />
                     Clear all filters
@@ -329,7 +329,7 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
         </AnimatePresence>
 
         {/* Results summary */}
-        <div className="flex items-center justify-between text-sm dark:text-white/40 text-black/40">
+        <div className="flex items-center justify-between text-sm text-[var(--text-tertiary)]">
           <span>
             Showing {logs.length} of {total} entries
           </span>
@@ -364,7 +364,7 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex-shrink-0 pt-4 border-t dark:border-white/10 border-black/10">
+        <div className="flex-shrink-0 pt-4 border-t border-[var(--border-default)]">
           <div className="flex items-center justify-between">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -374,8 +374,8 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
                 'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium',
                 'transition-all duration-200',
                 page === 1 || isLoading
-                  ? 'dark:text-white/20 text-black/20 cursor-not-allowed'
-                  : 'dark:text-white/60 text-black/60 dark:hover:bg-white/10 hover:bg-black/10'
+                  ? 'text-[var(--text-tertiary)] opacity-50 cursor-not-allowed'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
               )}
             >
               <ChevronLeft className="w-4 h-4" />
@@ -405,8 +405,8 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
                       'w-8 h-8 rounded-lg text-sm font-medium',
                       'transition-all duration-200',
                       pageNum === page
-                        ? 'dark:bg-electric-600/20 bg-electric-100 dark:text-electric-400 text-electric-600'
-                        : 'dark:text-white/60 text-black/60 dark:hover:bg-white/10 hover:bg-black/10'
+                        ? 'bg-electric-600/20 text-electric-400'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
                     )}
                   >
                     {pageNum}
@@ -423,8 +423,8 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
                 'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium',
                 'transition-all duration-200',
                 page === totalPages || isLoading
-                  ? 'dark:text-white/20 text-black/20 cursor-not-allowed'
-                  : 'dark:text-white/60 text-black/60 dark:hover:bg-white/10 hover:bg-black/10'
+                  ? 'text-[var(--text-tertiary)] opacity-50 cursor-not-allowed'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
               )}
             >
               Next
@@ -447,8 +447,8 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
 function LoadingState() {
   return (
     <div className="flex flex-col items-center justify-center py-16">
-      <RefreshCw className="w-8 h-8 dark:text-electric-400 text-electric-600 animate-spin mb-4" />
-      <p className="text-sm dark:text-white/40 text-black/40">Loading audit logs...</p>
+      <RefreshCw className="w-8 h-8 text-electric-400 animate-spin mb-4" />
+      <p className="text-sm text-[var(--text-tertiary)]">Loading audit logs...</p>
     </div>
   )
 }
@@ -459,10 +459,10 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
       <div className="w-12 h-12 rounded-xl bg-[var(--danger)]/20 flex items-center justify-center mb-4">
         <X className="w-6 h-6 text-[var(--danger)]" />
       </div>
-      <p className="text-sm dark:text-white/60 text-black/60 mb-4">{message}</p>
+      <p className="text-sm text-[var(--text-secondary)] mb-4">{message}</p>
       <button
         onClick={onRetry}
-        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium dark:bg-white/10 bg-black/10 dark:text-white text-black"
+        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-[var(--bg-elevated)] text-[var(--text-primary)]"
       >
         <RefreshCw className="w-4 h-4" />
         Try again
@@ -480,16 +480,16 @@ function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center py-16">
-      <div className="w-12 h-12 rounded-xl dark:bg-white/5 bg-black/5 flex items-center justify-center mb-4">
-        <Calendar className="w-6 h-6 dark:text-white/40 text-black/40" />
+      <div className="w-12 h-12 rounded-xl bg-[var(--bg-secondary)] flex items-center justify-center mb-4">
+        <Calendar className="w-6 h-6 text-[var(--text-tertiary)]" />
       </div>
-      <p className="text-sm dark:text-white/60 text-black/60 mb-2">
+      <p className="text-sm text-[var(--text-secondary)] mb-2">
         {hasFilters ? 'No entries match your filters' : 'No audit entries yet'}
       </p>
       {hasFilters && (
         <button
           onClick={onClearFilters}
-          className="text-sm dark:text-electric-400 text-electric-600 hover:underline"
+          className="text-sm text-electric-400 hover:underline"
         >
           Clear filters
         </button>

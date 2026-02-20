@@ -67,7 +67,7 @@ export function CenterInputBar() {
         {isStreaming ? (
           <button
             onClick={stopStreaming}
-            className="shrink-0 p-2 rounded-full bg-[var(--danger)] text-white hover:opacity-90 transition-opacity"
+            className="shrink-0 p-2 rounded-full bg-[var(--danger)] text-white hover:opacity-90 transition-opacity" /* THEME-EXEMPT: white on danger */
             title="Stop generating"
           >
             <Square className="w-[18px] h-[18px]" />
@@ -76,7 +76,7 @@ export function CenterInputBar() {
           <button
             onClick={handleSubmit}
             disabled={!inputValue.trim()}
-            className="shrink-0 p-2 rounded-full bg-[var(--brand-blue)] text-white disabled:opacity-30 hover:opacity-90 transition-opacity"
+            className="shrink-0 p-2 rounded-full bg-[var(--brand-blue)] text-white disabled:opacity-30 hover:opacity-90 transition-opacity" /* THEME-EXEMPT: white on brand */
             title="Send"
           >
             <ArrowUp className="w-[18px] h-[18px]" />

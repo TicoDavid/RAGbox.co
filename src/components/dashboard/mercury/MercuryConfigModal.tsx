@@ -217,7 +217,7 @@ export function MercuryConfigModal({ isOpen, onClose }: MercuryConfigModalProps)
                             onClick={() => applyPreset(p.key)}
                             className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                               activePreset === p.key
-                                ? 'bg-[var(--brand-blue)] text-white'
+                                ? 'bg-[var(--brand-blue)] text-white' /* THEME-EXEMPT: white on brand */
                                 : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
                             }`}
                           >
@@ -272,7 +272,7 @@ export function MercuryConfigModal({ isOpen, onClose }: MercuryConfigModalProps)
                               onClick={() => updateField('voiceGender', g)}
                               className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                                 config.voiceGender === g
-                                  ? 'bg-[var(--brand-blue)] text-white'
+                                  ? 'bg-[var(--brand-blue)] text-white' /* THEME-EXEMPT: white on brand */
                                   : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
                               }`}
                             >
@@ -308,8 +308,7 @@ export function MercuryConfigModal({ isOpen, onClose }: MercuryConfigModalProps)
                 <button
                   onClick={handleSave}
                   disabled={saving || loading}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--brand-blue)] text-white text-sm font-medium
-                             hover:bg-[var(--brand-blue-hover)] disabled:opacity-50 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--brand-blue)] text-white text-sm font-medium hover:bg-[var(--brand-blue-hover)] disabled:opacity-50 transition-colors" /* THEME-EXEMPT: white on brand */
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   Save

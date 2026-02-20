@@ -14,7 +14,7 @@ function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center">
       <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-blue-hover)] flex items-center justify-center mb-4">
-        <span className="text-2xl font-bold text-white">M</span>
+        <span className="text-2xl font-bold text-white">M</span>{/* THEME-EXEMPT: white on brand gradient */}
       </div>
       <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-2">
         Mercury is ready
@@ -35,7 +35,8 @@ function StreamingIndicator({ content }: { content: string }) {
   return (
     <div className="mb-8">
       <div className="flex items-center gap-2 mb-2">
-        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-blue-hover)] flex items-center justify-center text-xs font-semibold text-white">
+        {/* THEME-EXEMPT: white on brand gradient */}
+        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-blue-hover)] flex items-center justify-center text-xs font-semibold text-white"> {/* THEME-EXEMPT */}
           M
         </div>
         <span className="text-sm font-medium text-[var(--text-primary)]">Mercury</span>

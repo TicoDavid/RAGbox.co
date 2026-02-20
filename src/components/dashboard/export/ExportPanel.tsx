@@ -138,7 +138,7 @@ export function ExportPanel() {
                 className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-colors
                   ${
                     auditFormat === opt.value
-                      ? 'bg-[var(--brand-blue)] text-white'
+                      ? 'bg-[var(--brand-blue)] text-white' /* THEME-EXEMPT: white on brand */
                       : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                   }`}
               >
@@ -181,9 +181,7 @@ export function ExportPanel() {
           <button
             onClick={handleAuditExport}
             disabled={exporting !== null}
-            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg
-                       bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] text-white
-                       text-xs font-semibold transition-colors disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] text-white text-xs font-semibold transition-colors disabled:opacity-50" /* THEME-EXEMPT: white on brand */
           >
             <Download className="w-3.5 h-3.5" />
             Download {auditFormat.toUpperCase()}

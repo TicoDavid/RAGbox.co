@@ -1,4 +1,4 @@
-// THEME-EXEMPT: Public landing page, locked to Cobalt palette
+// THEME-AWARE: Uses CSS custom properties from design-tokens.css
 'use client'
 
 import { motion } from 'framer-motion'
@@ -87,16 +87,16 @@ export function PrivilegeCards() {
         <h2
           className={cn(
             'text-4xl md:text-5xl font-bold tracking-tight mb-6',
-            'text-slate-900 dark:text-white'
+            'text-[var(--text-primary)]'
           )}
         >
           Your Files Speak.
           <br />
-          <span className="text-slate-400 dark:text-slate-600">
+          <span className="text-[var(--text-secondary)]">
             We Make Them Testify.
           </span>
         </h2>
-        <p className="text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
+        <p className="text-[var(--text-secondary)] max-w-xl mx-auto">
           Analyze your vault like a team of experts—without the team.
           <br />
           Reliable. Repeatable. Effortless.
@@ -126,11 +126,11 @@ function PillarCardComponent({ icon, title, description, tag }: PillarCard) {
         'relative group',
         'p-8 rounded-3xl',
         'transition-all duration-300',
-        // Elevated surface: #111 in dark, slate-50 in light
-        'bg-slate-50 dark:bg-[#111111]',
+        // Elevated surface
+        'bg-[var(--bg-primary)]',
         // Subtle border for definition
-        'border border-slate-200 dark:border-white/5',
-        'hover:border-blue-500/30 dark:hover:border-blue-500/30',
+        'border border-[var(--border-default)]',
+        'hover:border-blue-500/30',
         'transition-all duration-300'
       )}
       variants={cardVariants}
@@ -144,9 +144,9 @@ function PillarCardComponent({ icon, title, description, tag }: PillarCard) {
         <div
           className={cn(
             'w-10 h-10 rounded-xl flex items-center justify-center',
-            'bg-white dark:bg-white/5',
-            'border border-slate-200 dark:border-white/10',
-            'text-blue-600 dark:text-blue-400'
+            'bg-[var(--bg-elevated)]',
+            'border border-[var(--border-default)]',
+            'text-[var(--brand-blue)]'
           )}
         >
           {icon}
@@ -155,8 +155,7 @@ function PillarCardComponent({ icon, title, description, tag }: PillarCard) {
           className={cn(
             'px-3 py-1 rounded-full',
             'text-[10px] font-bold tracking-wider uppercase',
-            'bg-slate-200 text-slate-700',
-            'dark:bg-white/10 dark:text-slate-300'
+            'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
           )}
         >
           {tag}
@@ -164,8 +163,8 @@ function PillarCardComponent({ icon, title, description, tag }: PillarCard) {
       </div>
 
       {/* Content */}
-      <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">{title}</h3>
-      <p className="text-slate-600 dark:text-gray-400 leading-relaxed text-sm">{description}</p>
+      <h3 className="text-xl font-bold text-[var(--text-primary)] mb-3">{title}</h3>
+      <p className="text-[var(--text-secondary)] leading-relaxed text-sm">{description}</p>
     </motion.div>
   )
 }

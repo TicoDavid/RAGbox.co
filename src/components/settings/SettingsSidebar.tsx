@@ -18,9 +18,9 @@ export default function SettingsSidebar() {
   const pathname = usePathname()
 
   return (
-    <nav className="w-48 border-r dark:border-[var(--bg-tertiary)] border-slate-200 py-4 space-y-1">
+    <nav className="w-48 border-r border-[var(--border-default)] py-4 space-y-1">
       <div className="px-4 mb-4">
-        <h2 className="text-sm font-semibold dark:text-[var(--text-primary)] text-slate-900">Settings</h2>
+        <h2 className="text-sm font-semibold text-[var(--text-primary)]">Settings</h2>
       </div>
       {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
         const isActive = pathname === href
@@ -31,7 +31,7 @@ export default function SettingsSidebar() {
             className={`flex items-center gap-2.5 px-4 py-2 text-xs transition-colors ${
               isActive
                 ? 'text-[var(--brand-blue)] bg-[var(--brand-blue)]/10 border-r-2 border-[var(--brand-blue)]'
-                : 'dark:text-[var(--text-tertiary)] text-slate-500 dark:hover:text-[var(--text-primary)] hover:text-slate-900 dark:hover:bg-[var(--bg-secondary)] hover:bg-slate-100'
+                : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
             }`}
           >
             <Icon size={14} />
