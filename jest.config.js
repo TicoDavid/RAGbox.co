@@ -17,6 +17,8 @@ const config = {
       roots: ['<rootDir>/src'],
       moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/src/$1',
+        '^react-markdown$': '<rootDir>/src/__mocks__/react-markdown.tsx',
+        '^remark-gfm$': '<rootDir>/src/__mocks__/remark-gfm.ts',
       },
       testMatch: ['**/*.test.tsx'],
       setupFilesAfterEnv: ['<rootDir>/src/test-setup.ts'],
