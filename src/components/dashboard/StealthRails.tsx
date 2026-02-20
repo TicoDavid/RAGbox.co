@@ -219,6 +219,8 @@ interface RightRailProps {
   activeTab: RightRailTab | null
   onTabClick: (tab: RightRailTab) => void
   onCollapse: () => void
+  isMercuryOpen?: boolean
+  onMercuryToggle?: () => void
 }
 
 export function RightStealthRail({
@@ -226,17 +228,19 @@ export function RightStealthRail({
   activeTab,
   onTabClick,
   onCollapse,
+  isMercuryOpen,
+  onMercuryToggle,
 }: RightRailProps) {
   return (
     <div className="h-full flex flex-col bg-[var(--bg-primary)] border-l border-[var(--border-default)]" role="navigation" aria-label="Tools navigation">
       {/* Icon Stack */}
       <div className="flex-1 flex flex-col items-center py-4 gap-2">
-        {/* Mercury Voice Agent */}
+        {/* Mercury — toggles persistent Mercury panel */}
         <RailIcon
           icon={Mic}
           label="Mercury"
-          isActive={isExpanded && activeTab === 'mercury'}
-          onClick={() => onTabClick('mercury')}
+          isActive={isMercuryOpen ?? (isExpanded && activeTab === 'mercury')}
+          onClick={onMercuryToggle ?? (() => onTabClick('mercury'))}
           side="right"
         />
 

@@ -10,9 +10,8 @@ import { GlobalHeader } from './GlobalHeader'
 import { VaultPanel } from './vault/VaultPanel'
 import { SovereignExplorer } from './vault/explorer'
 import { MercuryWindow } from './mercury/MercuryWindow'
-import { MercuryVoicePanel } from './mercury/MercuryVoicePanel'
+import { DocumentWorkspace } from './DocumentWorkspace'
 import { SovereignStudio } from './studio'
-import { toast } from 'sonner'
 import { useContentIntelligenceStore } from '@/stores/contentIntelligenceStore'
 import {
   RightStealthRail,
@@ -278,6 +277,7 @@ export function DashboardLayout() {
   const [leftTab, setLeftTab] = useState<LeftRailTab>('vault')
   const [rightExpanded, setRightExpanded] = useState(false)
   const [rightTab, setRightTab] = useState<RightRailTab>('studio')
+  const [mercuryOpen, setMercuryOpen] = useState(true)
   const [isIngestionOpen, setIsIngestionOpen] = useState(false)
 
   // Mobile overlay state
@@ -333,6 +333,16 @@ export function DashboardLayout() {
   }, [isTablet, isDesktop, leftExpanded, leftTab, setVaultCollapsed])
 
   const handleRightTabClick = useCallback((tab: RightRailTab) => {
+    // Mercury has its own dedicated panel on desktop — skip tool panel logic
+    if (tab === 'mercury') {
+      if (isTablet && !isDesktop) {
+        setRightTab('mercury')
+        setMobileRightOpen(true)
+      }
+      // On desktop, Mercury is handled by handleMercuryToggle
+      return
+    }
+
     // On tablet (not desktop), open as mobile overlay instead of inline expansion
     if (isTablet && !isDesktop) {
       setRightTab(tab)
@@ -395,10 +405,16 @@ export function DashboardLayout() {
     }
   }, [handleRightTabClick])
 
+  // Mercury toggle
+  const handleMercuryToggle = useCallback(() => {
+    setMercuryOpen((prev) => !prev)
+  }, [])
+
   // Widths
   const RAIL_WIDTH = 64
   const LEFT_PANEL_WIDTH = 420
   const RIGHT_PANEL_WIDTH = 380
+  const MERCURY_PANEL_WIDTH = 400
 
   // Render left panel content based on tab
   const renderLeftContent = () => {
@@ -414,11 +430,9 @@ export function DashboardLayout() {
     }
   }
 
-  // Render right panel content based on tab
-  const renderRightContent = () => {
+  // Render right tool panel content (Studio/Audit/Export — overlays center)
+  const renderToolContent = () => {
     switch (rightTab) {
-      case 'mercury':
-        return <MercuryVoicePanel />
       case 'studio':
         return <SovereignStudio />
       case 'audit':
@@ -481,27 +495,47 @@ export function DashboardLayout() {
         )}
 
         {/* ============================================ */}
-        {/* CENTER: Mercury (Chat) — always visible */}
+        {/* CENTER: Document Workspace + Tool Overlay */}
         {/* ============================================ */}
-        <div className="flex-1 min-w-0 overflow-hidden">
-          <MercuryWindow />
+        <div className="flex-1 min-w-0 overflow-hidden relative">
+          <DocumentWorkspace />
+
+          {/* Tool panel overlay (Studio/Audit/Export) slides over center */}
+          {isDesktop && (
+            <AnimatePresence>
+              {rightExpanded && (
+                <motion.div
+                  initial={{ x: '100%' }}
+                  animate={{ x: 0 }}
+                  exit={{ x: '100%' }}
+                  transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                  className="absolute top-0 right-0 bottom-0 z-20 border-l border-[var(--border-subtle)]"
+                  style={{ width: RIGHT_PANEL_WIDTH }}
+                >
+                  <div className="h-full bg-[var(--bg-secondary)]">
+                    {renderToolContent()}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          )}
         </div>
 
         {/* ============================================ */}
-        {/* RIGHT SIDE: Panel + Rail (hidden on mobile) */}
+        {/* RIGHT SIDE: Mercury Panel + Rail (hidden on mobile) */}
         {/* ============================================ */}
         {isTablet && (
           <div className="flex shrink-0">
-            {/* Expandable Panel (only on desktop) */}
+            {/* Mercury — persistent right panel (desktop) */}
             {isDesktop && (
               <motion.div
                 initial={false}
-                animate={{ width: rightExpanded ? RIGHT_PANEL_WIDTH : 0 }}
+                animate={{ width: mercuryOpen ? MERCURY_PANEL_WIDTH : 0 }}
                 transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
                 className="overflow-hidden border-l border-[var(--border-subtle)]"
               >
-                <div style={{ width: RIGHT_PANEL_WIDTH }} className="h-full bg-[var(--bg-secondary)]">
-                  {renderRightContent()}
+                <div style={{ width: MERCURY_PANEL_WIDTH }} className="h-full bg-[var(--bg-secondary)]">
+                  <MercuryWindow />
                 </div>
               </motion.div>
             )}
@@ -513,6 +547,8 @@ export function DashboardLayout() {
                 activeTab={isDesktop && rightExpanded ? rightTab : null}
                 onTabClick={handleRightTabClick}
                 onCollapse={() => setRightExpanded(false)}
+                isMercuryOpen={mercuryOpen}
+                onMercuryToggle={handleMercuryToggle}
               />
             </div>
           </div>
@@ -543,16 +579,16 @@ export function DashboardLayout() {
         )}
       </MobileOverlay>
 
-      {/* Right overlay: Tools navigation + panel content */}
+      {/* Right overlay: Mercury or tool panel (mobile/tablet) */}
       <MobileOverlay
         isOpen={mobileRightOpen}
         onClose={() => setMobileRightOpen(false)}
         side="right"
       >
         <div className="flex h-full">
-          {/* Panel content */}
+          {/* Panel content — Mercury if mercury tab, else tool panel */}
           <div className="flex-1 min-w-0 bg-[var(--bg-secondary)]">
-            {renderRightContent()}
+            {rightTab === 'mercury' ? <MercuryWindow /> : renderToolContent()}
           </div>
 
           {/* Rail icons */}
@@ -564,6 +600,8 @@ export function DashboardLayout() {
                 setRightTab(tab)
               }}
               onCollapse={() => setMobileRightOpen(false)}
+              isMercuryOpen={rightTab === 'mercury'}
+              onMercuryToggle={() => setRightTab('mercury')}
             />
           </div>
         </div>
