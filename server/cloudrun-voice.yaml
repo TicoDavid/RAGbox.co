@@ -62,6 +62,11 @@ spec:
                 secretKeyRef:
                   key: latest
                   name: ragbox-inworld-api-key
+            - name: INTERNAL_AUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: ragbox-internal-auth-secret
             - name: GO_BACKEND_URL
               value: "https://ragbox-backend-100739220279.us-east4.run.app"
             - name: DATABASE_URL
