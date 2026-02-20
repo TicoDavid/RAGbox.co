@@ -176,31 +176,37 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
         }
         answer = data.data?.answer || data.answer || ''
       } else {
-        // SSE format — parse event/data pairs, collect token events
+        // SSE format: event type on `event:` line, payload on `data:` line
+        // Example:
+        //   event: token
+        //   data: {"text":"Hello "}
+        //
+        //   event: done
+        //   data: {}
         const tokens: string[] = []
+        let currentEventType = ''
+
         for (const line of rawText.split('\n')) {
-          if (line.startsWith('data: ')) {
+          if (line.startsWith('event: ')) {
+            currentEventType = line.slice(7).trim()
+          } else if (line.startsWith('data: ')) {
             const dataStr = line.slice(6).trim()
             if (!dataStr) continue
-            try {
-              const event = JSON.parse(dataStr) as {
-                type?: string
-                token?: string
-                answer?: string
-                data?: { answer?: string }
+
+            if (currentEventType === 'token') {
+              try {
+                const payload = JSON.parse(dataStr) as { text?: string }
+                if (payload.text) tokens.push(payload.text)
+              } catch {
+                // Raw text fallback
+                if (dataStr !== '[DONE]') tokens.push(dataStr)
               }
-              if (event.type === 'token' && event.token) {
-                tokens.push(event.token)
-              } else if (event.type === 'done') {
-                // done event may contain the full answer
-                answer = event.answer || event.data?.answer || tokens.join('')
-              }
-            } catch {
-              // Raw token text (non-JSON data line)
-              if (dataStr !== '[DONE]') {
-                tokens.push(dataStr)
-              }
+            } else if (currentEventType === 'done') {
+              // done event — finalize with collected tokens
+              if (!answer) answer = tokens.join('')
             }
+            // Ignore status, citations, confidence events for voice output
+            currentEventType = ''
           }
         }
         if (!answer) answer = tokens.join('')
