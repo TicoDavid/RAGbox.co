@@ -30,6 +30,10 @@ const HOST = process.env.VOICE_SERVER_HOST || '0.0.0.0'
 const server = http.createServer((req, res) => {
   const { pathname } = parse(req.url || '', true)
 
+  // CORS headers for all responses (browser fetches from app.ragbox.co)
+  const allowedOrigins = process.env.ALLOWED_ORIGINS || '*'
+  res.setHeader('Access-Control-Allow-Origin', allowedOrigins)
+
   // Health check endpoint
   if (pathname === '/health') {
     const whatsappProvider = process.env.WHATSAPP_PROVIDER || 'vonage'
