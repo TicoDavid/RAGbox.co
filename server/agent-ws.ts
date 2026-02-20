@@ -24,7 +24,7 @@ import { URL } from 'url'
 import { executeTool, type ToolCall, type ToolResult, type ToolContext } from './tools'
 import { checkToolPermission, createConfirmationRequest, storePendingConfirmation } from './tools/permissions'
 import * as obs from './observability'
-import { createInworldSession, type InworldSession } from './inworld'
+import { createVoiceSession, type VoiceSession } from './voice-pipeline'
 import { whatsAppEventEmitter, type WhatsAppEvent } from './whatsapp/events'
 
 // ============================================================================
@@ -72,7 +72,7 @@ interface AgentSession {
   createdAt: number
   lastActivity: number
   toolContext: ToolContext
-  inworldSession?: InworldSession
+  voiceSession?: VoiceSession
   isAudioSessionActive: boolean
 }
 
@@ -89,7 +89,7 @@ setInterval(() => {
   for (const [sessionId, session] of sessions) {
     if (now - session.lastActivity > SESSION_TIMEOUT_MS) {
       console.log(`[AgentWS] Cleaning up expired session: ${sessionId}`)
-      session.inworldSession?.close()
+      session.voiceSession?.close()
       session.ws.close(1000, 'Session expired')
       sessions.delete(sessionId)
     }
@@ -207,16 +207,8 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
   sendJSON(ws, { type: 'state', state: 'connecting' })
 
   try {
-    // Get Inworld config from environment (base64 format API key)
-    const apiKey = process.env.INWORLD_API_KEY
-
-    if (!apiKey) {
-      throw new Error('Missing INWORLD_API_KEY environment variable')
-    }
-
-    // Create Inworld session with callbacks and tool context
-    const inworldSession = await createInworldSession({
-      apiKey,
+    // Create voice session (Deepgram STT + Go Backend LLM + Deepgram TTS)
+    const voiceSession = await createVoiceSession({
       toolContext,
 
       onTranscriptPartial: (text) => {
@@ -271,19 +263,19 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
       },
 
       onError: (error) => {
-        console.error(`[AgentWS] Inworld error for ${sessionId}:`, error)
+        console.error(`[AgentWS] Voice pipeline error for ${sessionId}:`, error)
         obs.incrementError(sessionId)
         sendJSON(ws, { type: 'error', message: error.message })
       },
 
       onDisconnect: () => {
-        console.log(`[AgentWS] Inworld disconnected for ${sessionId}`)
+        console.log(`[AgentWS] Voice session ended for ${sessionId}`)
         session.state = 'error'
         sendJSON(ws, { type: 'state', state: 'error' })
       },
     })
 
-    session.inworldSession = inworldSession
+    session.voiceSession = voiceSession
 
     // Ready to receive audio
     session.state = 'idle'
@@ -292,8 +284,7 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
     // Send initial greeting from Mercury
     console.log(`[AgentWS] Sending initial greeting for ${sessionId}`)
     try {
-      // Trigger the agent to greet the user with voice
-      await inworldSession.triggerGreeting()
+      await voiceSession.triggerGreeting()
     } catch (greetError) {
       console.warn('[AgentWS] Failed to send initial greeting:', greetError)
     }
@@ -304,9 +295,9 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
 
       if (isBinary) {
         // Binary = audio chunk from client microphone
-        if (session.inworldSession && session.isAudioSessionActive) {
+        if (session.voiceSession && session.isAudioSessionActive) {
           try {
-            await session.inworldSession.sendAudio(data as Buffer)
+            await session.voiceSession.sendAudio(data as Buffer)
           } catch (error) {
             console.error('[AgentWS] Error sending audio:', error)
           }
@@ -320,8 +311,8 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
 
         switch (msg.type) {
           case 'start':
-            if (session.inworldSession && !session.isAudioSessionActive) {
-              await session.inworldSession.startAudioSession()
+            if (session.voiceSession && !session.isAudioSessionActive) {
+              await session.voiceSession.startAudioSession()
               session.isAudioSessionActive = true
               session.state = 'listening'
               sendJSON(ws, { type: 'state', state: 'listening' })
@@ -330,8 +321,8 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
             break
 
           case 'stop':
-            if (session.inworldSession && session.isAudioSessionActive) {
-              await session.inworldSession.endAudioSession()
+            if (session.voiceSession && session.isAudioSessionActive) {
+              await session.voiceSession.endAudioSession()
               session.isAudioSessionActive = false
               session.state = 'processing'
               sendJSON(ws, { type: 'state', state: 'processing' })
@@ -340,8 +331,8 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
             break
 
           case 'barge_in':
-            if (session.inworldSession) {
-              await session.inworldSession.cancelResponse()
+            if (session.voiceSession) {
+              await session.voiceSession.cancelResponse()
               obs.incrementBargeIn(sessionId)
               obs.logAudioEvent(sessionId, 'barge_in')
               session.state = 'listening'
@@ -351,8 +342,8 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
 
           case 'text':
             // Allow sending text directly (for testing or accessibility)
-            if (session.inworldSession && msg.text) {
-              await session.inworldSession.sendText(msg.text)
+            if (session.voiceSession && msg.text) {
+              await session.voiceSession.sendText(msg.text)
               session.state = 'processing'
               sendJSON(ws, { type: 'state', state: 'processing' })
             }
@@ -388,7 +379,7 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
       console.log(`[AgentWS] Connection closed: ${sessionId} (${code}: ${reason.toString()})`)
       whatsAppEventEmitter.off('message', onWhatsAppEvent)
       obs.endSession(sessionId)
-      session.inworldSession?.close()
+      session.voiceSession?.close()
       sessions.delete(sessionId)
     })
 

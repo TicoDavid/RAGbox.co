@@ -52,16 +52,23 @@ spec:
               value: 0.0.0.0
             - name: ALLOWED_ORIGINS
               value: "https://app.ragbox.co"
-            - name: INWORLD_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  key: latest
-                  name: ragbox-inworld-api-key
             - name: DEEPGRAM_API_KEY
               valueFrom:
                 secretKeyRef:
                   key: latest
                   name: deepgram-api-key
+            - name: INWORLD_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: ragbox-inworld-api-key
+            - name: GO_BACKEND_URL
+              value: "https://ragbox-backend-100739220279.us-east4.run.app"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: ragbox-prod-database-url
           startupProbe:
             httpGet:
               path: /health
