@@ -25,6 +25,7 @@ import { renderDeck } from './renderers/renderDeck'
 import { renderEvidence } from './renderers/renderEvidence'
 import { renderInfographic, type InfographicData } from './renderers/renderInfographic'
 import { renderCompliance } from './renderers/renderCompliance'
+import { renderMindMap } from './renderers/renderMindMap'
 
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME || 'ragbox-documents-prod'
 
@@ -280,10 +281,10 @@ export async function generateArtifact(
     case 'mindmap': {
       const mindmap = parseAIResponse<MindMapStructure>(aiContent)
       const mermaid = generateMermaidDiagram(mindmap)
-      finalContent = JSON.stringify({ ...mindmap, mermaidCode: mermaid }, null, 2)
-      fileName = `${safeName}_MindMap_${timestamp}.json`
-      fileType = 'json'
-      mimeType = 'application/json'
+      finalContent = renderMindMap(mindmap.title || request.title || 'Mind Map', mermaid)
+      fileName = `${safeName}_MindMap_${timestamp}.html`
+      fileType = 'html'
+      mimeType = 'text/html'
       previewContent = mermaid
       break
     }
