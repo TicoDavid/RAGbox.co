@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 interface MercuryConfigModalProps {
   isOpen: boolean
   onClose: () => void
+  onSaved?: (config: { name: string; title: string }) => void
 }
 
 interface ChannelConfig {
@@ -26,10 +27,12 @@ interface ConfigState {
   channels: ChannelConfig
 }
 
+export type { ConfigState }
+
 const DEFAULT_CONFIG: ConfigState = {
-  name: 'M.E.R.C.U.R.Y.',
+  name: 'Evelyn Monroe',
   title: 'AI Assistant',
-  greeting: '',
+  greeting: 'Welcome to RAGbox. Upload documents to your vault and ask me anything.',
   personalityPrompt: '',
   voiceGender: 'female',
   silenceThreshold: 0.60,
@@ -59,7 +62,7 @@ const PRESETS = [
   { key: 'whistleblower', label: 'Whistleblower', group: 'specialist' },
 ] as const
 
-export function MercuryConfigModal({ isOpen, onClose }: MercuryConfigModalProps) {
+export function MercuryConfigModal({ isOpen, onClose, onSaved }: MercuryConfigModalProps) {
   const [config, setConfig] = useState<ConfigState>(DEFAULT_CONFIG)
   const [presets, setPresets] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
@@ -101,6 +104,7 @@ export function MercuryConfigModal({ isOpen, onClose }: MercuryConfigModalProps)
         throw new Error(json.error || 'Save failed')
       }
       toast.success('Mercury configuration saved')
+      onSaved?.({ name: config.name, title: config.title })
       onClose()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to save')
@@ -197,7 +201,7 @@ export function MercuryConfigModal({ isOpen, onClose }: MercuryConfigModalProps)
                             value={config.name}
                             onChange={(e) => updateField('name', e.target.value)}
                             className="w-full px-3 py-1.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--brand-blue)]"
-                            placeholder="M.E.R.C.U.R.Y."
+                            placeholder="Evelyn Monroe"
                           />
                         </Field>
                         <Field label="Title">

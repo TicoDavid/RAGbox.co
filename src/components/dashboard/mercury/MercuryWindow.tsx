@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   MessageSquare,
   Mic,
@@ -70,6 +70,23 @@ function WhatsAppPlaceholder() {
 export function MercuryWindow() {
   const [activeTab, setActiveTab] = useState<MercuryTab>('chat')
   const [configOpen, setConfigOpen] = useState(false)
+  const [agentName, setAgentName] = useState('Evelyn Monroe')
+  const [agentTitle, setAgentTitle] = useState('AI Assistant')
+
+  // Load agent identity from config on mount
+  const loadIdentity = useCallback(async () => {
+    try {
+      const res = await fetch('/api/mercury/config')
+      if (!res.ok) return
+      const json = await res.json()
+      if (json.success && json.data?.config) {
+        setAgentName(json.data.config.name || 'Evelyn Monroe')
+        setAgentTitle(json.data.config.title || 'AI Assistant')
+      }
+    } catch { /* use defaults */ }
+  }, [])
+
+  useEffect(() => { loadIdentity() }, [loadIdentity])
 
   return (
     <div className="flex flex-col h-full bg-[var(--bg-primary)] overflow-hidden">
@@ -78,12 +95,14 @@ export function MercuryWindow() {
         {/* Agent identity */}
         <div className="flex items-center gap-3 min-w-0">
           <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-[var(--bg-tertiary)] to-[var(--bg-primary)] border border-[var(--border-strong)] flex items-center justify-center">
-            <span className="text-xs font-bold text-[var(--warning)]/90">EM</span>
+            <span className="text-xs font-bold text-[var(--warning)]/90">
+              {agentName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+            </span>
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-semibold text-[var(--text-primary)] truncate">
-                Evelyn Monroe
+                {agentName}
               </h2>
               {/* Online indicator */}
               <span className="shrink-0 flex items-center gap-1.5">
@@ -141,7 +160,14 @@ export function MercuryWindow() {
       </div>
 
       {/* ─── Config Modal ─── */}
-      <MercuryConfigModal isOpen={configOpen} onClose={() => setConfigOpen(false)} />
+      <MercuryConfigModal
+        isOpen={configOpen}
+        onClose={() => setConfigOpen(false)}
+        onSaved={({ name, title }) => {
+          setAgentName(name || 'Evelyn Monroe')
+          setAgentTitle(title || 'AI Assistant')
+        }}
+      />
     </div>
   )
 }
