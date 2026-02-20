@@ -96,7 +96,18 @@ AEGIS is included in your RAGbox subscription at no additional per-query cost. T
 
 ---
 
-## 9. Troubleshooting
+## 9. Frequently Asked Questions
+
+| Question | Answer |
+|----------|--------|
+| **Does my API key leave RAGbox?** | No. Your key is encrypted at rest with AES-256-GCM and only decrypted in server memory for the instant a query is processed. It is never sent to any third party, logged, or exposed in any response. |
+| **What happens if my key expires or my provider goes down?** | Under "User's Choice" policy, RAGbox silently falls back to AEGIS. Under "Private LLM Only", you will see an error and must fix the key or switch policies. |
+| **Does BYOLLM work with Mercury voice?** | No. Voice queries always use the AEGIS engine. BYOLLM applies to text chat only. |
+| **How do I switch back to AEGIS?** | Open Settings > AI Model Settings and change the policy to "AEGIS Only", or simply toggle the model picker in chat back to AEGIS. You can also delete your BYOLLM configuration entirely. |
+
+---
+
+## 10. Troubleshooting
 
 | Issue | What to Do |
 |-------|-----------|
@@ -111,4 +122,5 @@ AEGIS is included in your RAGbox subscription at no additional per-query cost. T
 
 ---
 
-*Last updated: February 2026*
+*Last updated: February 20, 2026*
+

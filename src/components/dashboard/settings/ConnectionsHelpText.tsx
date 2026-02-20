@@ -69,8 +69,8 @@ export function ConnectionsHelpText({ isConfigured, provider }: ConnectionsHelpT
         <ul className="space-y-0.5 list-disc list-inside">
           <li>OpenRouter (recommended — 100+ models from one key)</li>
           <li>OpenAI (GPT-4o, o1)</li>
-          <li>Anthropic via OpenRouter (Claude Sonnet, Opus)</li>
-          <li>Any OpenAI-compatible API</li>
+          <li>Anthropic (Claude Sonnet, Opus)</li>
+          <li>Google AI Studio (Gemini 2.0 Flash, Gemini Pro)</li>
         </ul>
       </div>
 
