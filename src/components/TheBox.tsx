@@ -113,7 +113,7 @@ export function TheBox() {
             'bg-electric-600/30 blur-3xl',
             'pointer-events-none',
             // Layered bloom shadow for dark mode
-            'dark:shadow-[0_0_60px_-15px_rgba(37,99,235,0.6),0_0_100px_-20px_rgba(37,99,235,0.4)]'
+            'dark:shadow-[0_0_60px_-15px_rgba(var(--brand-blue-rgb),0.6),0_0_100px_-20px_rgba(var(--brand-blue-rgb),0.4)]'
           )}
           animate={{
             opacity: isAbsorbing ? 1 : isActive ? 0.8 : 0.5,
@@ -137,12 +137,12 @@ export function TheBox() {
             'dark:bg-white/5 dark:border-white/10 dark:shadow-black/50',
             // HOVER EFFECTS: Blue Glow (overridden by animate below for active states)
             'hover:border-electric-500/50 dark:hover:border-electric-500/50',
-            'hover:shadow-[0_0_40px_-10px_rgba(37,99,235,0.15)]',
+            'hover:shadow-[0_0_40px_-10px_rgba(var(--brand-blue-rgb),0.15)]',
             // HIGH VOLTAGE Shadow - Layered bloom in dark mode
             isAbsorbing
-              ? 'dark:shadow-[0_0_100px_-10px_rgba(37,99,235,0.8),0_0_150px_-20px_rgba(37,99,235,0.5)] shadow-glow-intense'
+              ? 'dark:shadow-[0_0_100px_-10px_rgba(var(--brand-blue-rgb),0.8),0_0_150px_-20px_rgba(var(--brand-blue-rgb),0.5)] shadow-glow-intense'
               : isActive
-                ? 'dark:shadow-[0_0_60px_-15px_rgba(37,99,235,0.6),0_0_100px_-20px_rgba(37,99,235,0.4)] shadow-glow-lg'
+                ? 'dark:shadow-[0_0_60px_-15px_rgba(var(--brand-blue-rgb),0.6),0_0_100px_-20px_rgba(var(--brand-blue-rgb),0.4)] shadow-glow-lg'
                 : ''
           )}
           animate={

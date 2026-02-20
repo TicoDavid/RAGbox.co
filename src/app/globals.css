@@ -47,11 +47,11 @@
 
   /* Electric glow effect */
   .electric-glow {
-    box-shadow: 0 0 30px rgba(37, 99, 235, 0.4);
+    box-shadow: 0 0 30px rgba(var(--brand-blue-rgb), 0.4);
   }
 
   .electric-glow-intense {
-    box-shadow: 0 0 50px rgba(37, 99, 235, 0.6);
+    box-shadow: 0 0 50px rgba(var(--brand-blue-rgb), 0.6);
   }
 
   /* Rail icon glow — shared by left + right rails */
@@ -82,14 +82,7 @@
     filter: sepia(100%) saturate(300%) hue-rotate(-20deg) contrast(120%) brightness(1.1);
   }
 
-  /* Gold Glow for Obsidian theme elements */
-  [data-theme="obsidian"] .electric-glow {
-    box-shadow: 0 0 30px rgba(217, 119, 6, 0.4);
-  }
-
-  [data-theme="obsidian"] .electric-glow-intense {
-    box-shadow: 0 0 50px rgba(251, 191, 36, 0.5);
-  }
+  /* Obsidian theme overrides no longer needed — electric-glow uses --brand-blue-rgb */
 
   /* Obsidian Gold: Action Card Hover */
   [data-theme="obsidian"] .action-card:hover {
@@ -167,7 +160,7 @@
 
   /* Focus states for accessibility */
   *:focus-visible {
-    outline: 2px solid rgb(37, 99, 235);
+    outline: 2px solid rgb(var(--brand-blue-rgb));
     outline-offset: 2px;
   }
 
@@ -179,10 +172,10 @@
   /* Border pulse animation */
   @keyframes border-pulse {
     0%, 100% {
-      border-color: rgba(37, 99, 235, 0.4);
+      border-color: rgba(var(--brand-blue-rgb), 0.4);
     }
     50% {
-      border-color: rgba(37, 99, 235, 1);
+      border-color: rgba(var(--brand-blue-rgb), 1);
     }
   }
 

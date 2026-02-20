@@ -124,7 +124,7 @@ export function DeepInspector({
           {!isFolder && (
             <button
               onClick={onChat}
-              className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] text-[var(--text-primary)] text-xs font-semibold transition-all shadow-[0_0_20px_-5px_rgba(36,99,235,0.4)]"
+              className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] text-[var(--text-primary)] text-xs font-semibold transition-all shadow-[0_0_20px_-5px_rgba(var(--brand-blue-rgb),0.4)]"
             >
               <Brain className="w-4 h-4" />
               Chat with this File

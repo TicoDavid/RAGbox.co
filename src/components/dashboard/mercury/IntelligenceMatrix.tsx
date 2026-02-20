@@ -481,7 +481,7 @@ export function IntelligenceBadge({ onClick }: IntelligenceBadgeProps) {
         flex items-center gap-2 px-3 py-1.5 rounded-lg
         transition-all duration-500 ease-out group
         ${isAegisActive
-          ? 'bg-[var(--brand-blue)]/[0.06] border border-[var(--brand-blue)]/25 shadow-[0_0_20px_-5px_rgba(36,99,235,0.2)]'
+          ? 'bg-[var(--brand-blue)]/[0.06] border border-[var(--brand-blue)]/25 shadow-[0_0_20px_-5px_rgba(var(--brand-blue-rgb),0.2)]'
           : 'bg-[var(--warning)]/[0.06] border border-[var(--warning)]/25 shadow-[0_0_20px_-5px_rgba(245,158,11,0.2)]'
         }
         hover:bg-[var(--bg-elevated)]/20 hover:border-[var(--border-default)]

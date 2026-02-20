@@ -29,7 +29,7 @@ export function IntelligenceFeed({ items, selectedId, onSelect }: IntelligenceFe
             whileTap={{ scale: 0.98 }}
             className={`shrink-0 w-48 p-3 rounded-xl border transition-all duration-150 text-left ${
               selectedId === file.id
-                ? 'bg-[var(--brand-blue)]/10 border-[var(--brand-blue)]/40 shadow-[0_0_25px_-5px_rgba(36,99,235,0.4)]'
+                ? 'bg-[var(--brand-blue)]/10 border-[var(--brand-blue)]/40 shadow-[0_0_25px_-5px_rgba(var(--brand-blue-rgb),0.4)]'
                 : 'bg-[var(--bg-elevated)]/[0.03] border-[var(--border-default)] hover:border-[var(--brand-blue)]/30 hover:bg-[var(--brand-blue)]/5'
             }`}
           >

@@ -386,7 +386,7 @@ const IngestionModal: React.FC<IngestionModalProps> = ({
                     className={`
                       flex flex-col items-center justify-center gap-4 p-8 rounded-xl border-2 border-dashed cursor-pointer transition-all duration-300 min-h-[200px]
                       ${isDragOver
-                        ? 'border-[var(--brand-blue)] bg-[var(--brand-blue)]/10 shadow-[0_0_40px_-10px_rgba(36,99,235,0.5)]'
+                        ? 'border-[var(--brand-blue)] bg-[var(--brand-blue)]/10 shadow-[0_0_40px_-10px_rgba(var(--brand-blue-rgb),0.5)]'
                         : 'border-[var(--border-default)]/50 hover:border-[var(--brand-blue)]/50 hover:bg-[var(--brand-blue)]/5'
                       }
                     `}

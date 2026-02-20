@@ -199,7 +199,7 @@ function GridView({
             className={`
               p-4 rounded-xl border text-left transition-all duration-150
               ${selectedId === file.id
-                ? 'bg-[var(--brand-blue)]/10 border-[var(--brand-blue)]/40 shadow-[0_0_30px_-10px_rgba(36,99,235,0.5),inset_0_0_0_1px_rgba(36,99,235,0.2)]'
+                ? 'bg-[var(--brand-blue)]/10 border-[var(--brand-blue)]/40 shadow-[0_0_30px_-10px_rgba(var(--brand-blue-rgb),0.5),inset_0_0_0_1px_rgba(var(--brand-blue-rgb),0.2)]'
                 : 'bg-[var(--bg-elevated)]/[0.03] border-[var(--border-default)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)]/[0.05]'
               }
             `}

@@ -76,7 +76,7 @@ export function PreviewPane() {
 
       {/* Actions - Premium Buttons */}
       <div className="mt-auto flex flex-col gap-2">
-        <button className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-[var(--brand-blue)] text-[var(--text-primary)] text-sm font-semibold hover:bg-[var(--brand-blue-hover)] transition-colors shadow-[0_0_20px_-5px_rgba(36,99,235,0.4)]" aria-label={`Download ${item.name}`}>
+        <button className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-[var(--brand-blue)] text-[var(--text-primary)] text-sm font-semibold hover:bg-[var(--brand-blue-hover)] transition-colors shadow-[0_0_20px_-5px_rgba(var(--brand-blue-rgb),0.4)]" aria-label={`Download ${item.name}`}>
           <Download className="w-4 h-4" />
           Download Asset
         </button>

@@ -83,8 +83,8 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
                 className={cn(
                   'absolute top-0.5 sm:top-1 w-5 sm:w-6 h-5 sm:h-6 rounded-full',
                   'flex items-center justify-center',
-                  'bg-[#2463EB]',
-                  'shadow-[0_0_10px_rgba(36,99,235,0.5)]'
+                  'bg-[var(--brand-blue)]',
+                  'shadow-[0_0_10px_rgba(var(--brand-blue-rgb),0.5)]'
                 )}
                 initial={false}
                 animate={{
@@ -125,9 +125,9 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
             className={cn(
               'px-3 sm:px-5 py-2 sm:py-2.5 rounded-2xl',
               'text-xs sm:text-sm font-semibold',
-              'bg-[#2463EB] hover:bg-[#3b7aff]',
+              'bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)]',
               'text-white',
-              'shadow-[0_0_10px_rgba(36,99,235,0.5)] hover:shadow-[0_0_15px_rgba(36,99,235,0.7)]',
+              'shadow-[0_0_10px_rgba(var(--brand-blue-rgb),0.5)] hover:shadow-[0_0_15px_rgba(var(--brand-blue-rgb),0.7)]',
               'transition-all duration-200'
             )}
             initial={{ opacity: 0, x: 20 }}
