@@ -5,7 +5,36 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { Components } from 'react-markdown'
 import { Copy, ThumbsUp, ThumbsDown, Check } from 'lucide-react'
-import type { ChatMessage } from '@/types/ragbox'
+import type { ChatMessage, Citation } from '@/types/ragbox'
+
+// ============================================================================
+// JSON RESPONSE PARSER — Extract answer from raw JSON responses (BUG-009)
+// ============================================================================
+
+interface ParsedResponse {
+  content: string
+  citations?: Citation[]
+  confidence?: number
+}
+
+function parseMessageContent(raw: string): ParsedResponse {
+  const trimmed = raw.trim()
+  if (!trimmed.startsWith('{')) return { content: raw }
+
+  try {
+    const json = JSON.parse(trimmed)
+    if (json.answer || json.data?.answer) {
+      return {
+        content: json.data?.answer ?? json.answer,
+        citations: json.data?.citations ?? json.citations,
+        confidence: json.data?.confidence ?? json.confidence,
+      }
+    }
+  } catch {
+    // Not valid JSON — render as-is
+  }
+  return { content: raw }
+}
 
 // ============================================================================
 // MARKDOWN COMPONENTS (Claude-style, spacious)
@@ -79,8 +108,14 @@ export function CenterMessage({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user'
   const [copied, setCopied] = useState(false)
 
+  // BUG-009: extract answer from raw JSON if the content is a JSON blob
+  const parsed = isUser ? null : parseMessageContent(message.content)
+  const displayContent = parsed?.content ?? message.content
+  const displayCitations = message.citations ?? parsed?.citations
+  const displayConfidence = message.confidence ?? parsed?.confidence
+
   const handleCopy = () => {
-    navigator.clipboard.writeText(message.content)
+    navigator.clipboard.writeText(displayContent)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -110,7 +145,7 @@ export function CenterMessage({ message }: { message: ChatMessage }) {
             <p className="text-[var(--text-primary)]">{message.content}</p>
           ) : (
             <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
-              {message.content}
+              {displayContent}
             </ReactMarkdown>
           )}
         </div>
@@ -119,16 +154,16 @@ export function CenterMessage({ message }: { message: ChatMessage }) {
         {!isUser && (
           <div className="flex flex-wrap items-center gap-3 mt-3 text-xs text-[var(--text-tertiary)]">
             <span>{formatTime(message.timestamp)}</span>
-            {message.confidence != null && <ConfidenceBadge score={message.confidence} />}
+            {displayConfidence != null && <ConfidenceBadge score={displayConfidence} />}
             {message.modelUsed && (
               <span>{message.provider ? `${message.provider}/` : ''}{message.modelUsed}</span>
             )}
             {message.latencyMs != null && (
               <span>{(message.latencyMs / 1000).toFixed(1)}s</span>
             )}
-            {message.citations && message.citations.length > 0 && (
+            {displayCitations && displayCitations.length > 0 && (
               <div className="flex gap-1 flex-wrap">
-                {message.citations.map((c, i) => (
+                {displayCitations.map((c, i) => (
                   <span
                     key={i}
                     className="px-1.5 py-0.5 rounded bg-[var(--brand-blue)]/10 text-[var(--brand-blue)] text-[10px] font-medium cursor-default"

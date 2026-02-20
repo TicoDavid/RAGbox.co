@@ -77,7 +77,7 @@ export function CenterInputBar() {
   const canSend = inputValue.trim().length > 0 && !isStreaming
 
   return (
-    <div className="rounded-2xl bg-[var(--bg-primary)] border border-[var(--border-default)] focus-within:border-[var(--brand-blue)]/50 transition-all shadow-lg shadow-black/10 overflow-hidden">
+    <div className="rounded-2xl bg-[var(--bg-primary)] border border-[var(--border-default)] focus-within:border-[var(--brand-blue)]/50 transition-all shadow-lg shadow-black/10 overflow-visible">
       {/* Textarea area */}
       <div className="px-5 pt-4 pb-2">
         <textarea
@@ -90,7 +90,7 @@ export function CenterInputBar() {
               ? 'Ask anything...'
               : 'Ask anything... or paste a URL to analyze'
           }
-          className="w-full bg-transparent text-[var(--text-primary)] placeholder-[var(--text-tertiary)] resize-none outline-none text-base leading-relaxed max-h-[200px]"
+          className="w-full bg-transparent text-[var(--text-primary)] placeholder-[var(--text-tertiary)] resize-none outline-none border-0 shadow-none focus:ring-0 text-base leading-relaxed max-h-[200px]"
           rows={2}
           aria-label="Message input"
         />
