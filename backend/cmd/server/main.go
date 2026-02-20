@@ -307,6 +307,11 @@ func run() error {
 			Pipeline: pipelineSvc,
 		},
 
+		RelatedDocsDeps: handler.RelatedDocsDeps{
+			DocRepo:  docRepo,
+			Searcher: chunkRepo,
+		},
+
 		TranscribeDeps: handler.TranscribeDeps{
 			DeepgramAPIKey: cfg.DeepgramAPIKey,
 		},

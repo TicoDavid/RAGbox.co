@@ -26,8 +26,9 @@ func NewChunkRepo(pool *pgxpool.Pool) *ChunkRepo {
 
 // Compile-time checks.
 var (
-	_ service.ChunkStore     = (*ChunkRepo)(nil)
-	_ service.VectorSearcher = (*ChunkRepo)(nil)
+	_ service.ChunkStore        = (*ChunkRepo)(nil)
+	_ service.VectorSearcher    = (*ChunkRepo)(nil)
+	_ service.RelatedDocSearcher = (*ChunkRepo)(nil)
 )
 
 // BulkInsert stores chunks with their embedding vectors using pgx batching.
@@ -153,4 +154,56 @@ func (r *ChunkRepo) CountByDocumentID(ctx context.Context, documentID string) (i
 		return 0, fmt.Errorf("repository.CountByDocumentID: %w", err)
 	}
 	return count, nil
+}
+
+// FindRelatedDocuments computes the embedding centroid of a source document
+// (average of all chunk embeddings) and finds the most similar documents
+// belonging to the same user, ordered by cosine similarity.
+func (r *ChunkRepo) FindRelatedDocuments(ctx context.Context, documentID string, userID string, limit int) ([]service.RelatedDocument, error) {
+	query := `
+		WITH source_centroid AS (
+			SELECT AVG(embedding)::vector AS centroid
+			FROM document_chunks
+			WHERE document_id = $1
+		)
+		SELECT
+			d.id, d.user_id, d.filename, d.original_name, d.mime_type, d.file_type,
+			d.is_privileged, d.security_tier, d.chunk_count, d.created_at,
+			1 - (AVG(dc.embedding)::vector <=> sc.centroid) AS similarity
+		FROM document_chunks dc
+		JOIN documents d ON dc.document_id = d.id
+		CROSS JOIN source_centroid sc
+		WHERE d.user_id = $2
+			AND d.deletion_status = 'Active'
+			AND dc.document_id != $1
+			AND sc.centroid IS NOT NULL
+		GROUP BY d.id, d.user_id, d.filename, d.original_name, d.mime_type, d.file_type,
+				 d.is_privileged, d.security_tier, d.chunk_count, d.created_at, sc.centroid
+		HAVING 1 - (AVG(dc.embedding)::vector <=> sc.centroid) > 0.1
+		ORDER BY AVG(dc.embedding)::vector <=> sc.centroid
+		LIMIT $3`
+
+	rows, err := r.pool.Query(ctx, query, documentID, userID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("repository.FindRelatedDocuments: %w", err)
+	}
+	defer rows.Close()
+
+	var results []service.RelatedDocument
+	for rows.Next() {
+		var rd service.RelatedDocument
+		err := rows.Scan(
+			&rd.Document.ID, &rd.Document.UserID, &rd.Document.Filename,
+			&rd.Document.OriginalName, &rd.Document.MimeType, &rd.Document.FileType,
+			&rd.Document.IsPrivileged, &rd.Document.SecurityTier,
+			&rd.Document.ChunkCount, &rd.Document.CreatedAt,
+			&rd.Similarity,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("repository.FindRelatedDocuments: scan: %w", err)
+		}
+		results = append(results, rd)
+	}
+
+	return results, nil
 }

@@ -75,6 +75,9 @@ type Dependencies struct {
 	// Admin migrations
 	AdminMigrateDeps handler.AdminMigrateDeps
 
+	// Related documents
+	RelatedDocsDeps handler.RelatedDocsDeps
+
 	// Voice transcription
 	TranscribeDeps handler.TranscribeDeps
 
@@ -164,6 +167,7 @@ func New(deps *Dependencies) *chi.Mux {
 		r.With(timeout30s).Get("/api/documents/{id}/download", handler.DownloadDocument(docCRUD))
 		r.With(timeout30s).Post("/api/documents/{id}/verify", handler.VerifyIntegrity(docCRUD))
 		r.With(timeout30s).Post("/api/documents/{id}/star", handler.ToggleStar(docCRUD))
+		r.With(timeout30s).Get("/api/documents/{id}/related", handler.RelatedDocuments(deps.RelatedDocsDeps))
 		// Ingest may take longer (pipeline processing)
 		r.With(middleware.Timeout(120 * time.Second)).Post("/api/documents/{id}/ingest", handler.IngestDocument(deps.IngestDeps))
 		r.With(middleware.Timeout(120 * time.Second)).Post("/api/documents/{id}/ingest-text", handler.IngestText(deps.IngestTextDeps))
