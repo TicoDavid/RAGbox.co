@@ -39,12 +39,14 @@ type mockVectorSearcher struct {
 	err                error
 	capturedTopK       int
 	capturedThreshold  float64
+	capturedUserID     string
 	capturedExcludePriv bool
 }
 
-func (m *mockVectorSearcher) SimilaritySearch(ctx context.Context, queryVec []float32, topK int, threshold float64, excludePrivileged bool) ([]VectorSearchResult, error) {
+func (m *mockVectorSearcher) SimilaritySearch(ctx context.Context, queryVec []float32, topK int, threshold float64, userID string, excludePrivileged bool) ([]VectorSearchResult, error) {
 	m.capturedTopK = topK
 	m.capturedThreshold = threshold
+	m.capturedUserID = userID
 	m.capturedExcludePriv = excludePrivileged
 	if m.err != nil {
 		return nil, m.err
@@ -79,7 +81,7 @@ func TestRetrieve_Success(t *testing.T) {
 	embedder := &mockQueryEmbedder{}
 	svc := NewRetrieverService(embedder, searcher)
 
-	result, err := svc.Retrieve(context.Background(), "test query", false)
+	result, err := svc.Retrieve(context.Background(), "test-user", "test query", false)
 	if err != nil {
 		t.Fatalf("Retrieve() error: %v", err)
 	}
@@ -98,7 +100,7 @@ func TestRetrieve_Success(t *testing.T) {
 func TestRetrieve_EmptyQuery(t *testing.T) {
 	svc := NewRetrieverService(&mockQueryEmbedder{}, &mockVectorSearcher{})
 
-	_, err := svc.Retrieve(context.Background(), "", false)
+	_, err := svc.Retrieve(context.Background(), "test-user", "", false)
 	if err == nil {
 		t.Fatal("expected error for empty query")
 	}
@@ -108,7 +110,7 @@ func TestRetrieve_EmbedError(t *testing.T) {
 	embedder := &mockQueryEmbedder{err: fmt.Errorf("embed failed")}
 	svc := NewRetrieverService(embedder, &mockVectorSearcher{})
 
-	_, err := svc.Retrieve(context.Background(), "test", false)
+	_, err := svc.Retrieve(context.Background(), "test-user", "test", false)
 	if err == nil {
 		t.Fatal("expected error when embed fails")
 	}
@@ -118,7 +120,7 @@ func TestRetrieve_SearchError(t *testing.T) {
 	searcher := &mockVectorSearcher{err: fmt.Errorf("search failed")}
 	svc := NewRetrieverService(&mockQueryEmbedder{}, searcher)
 
-	_, err := svc.Retrieve(context.Background(), "test", false)
+	_, err := svc.Retrieve(context.Background(), "test-user", "test", false)
 	if err == nil {
 		t.Fatal("expected error when search fails")
 	}
@@ -128,7 +130,7 @@ func TestRetrieve_NoCandidates(t *testing.T) {
 	searcher := &mockVectorSearcher{results: []VectorSearchResult{}}
 	svc := NewRetrieverService(&mockQueryEmbedder{}, searcher)
 
-	result, err := svc.Retrieve(context.Background(), "test", false)
+	result, err := svc.Retrieve(context.Background(), "test-user", "test", false)
 	if err != nil {
 		t.Fatalf("Retrieve() error: %v", err)
 	}
@@ -145,13 +147,13 @@ func TestRetrieve_PrivilegeModeExcludesPrivileged(t *testing.T) {
 	svc := NewRetrieverService(&mockQueryEmbedder{}, searcher)
 
 	// privilegeMode=false → excludePrivileged=true
-	svc.Retrieve(context.Background(), "test", false)
+	svc.Retrieve(context.Background(), "test-user", "test", false)
 	if !searcher.capturedExcludePriv {
 		t.Error("expected excludePrivileged=true when privilegeMode=false")
 	}
 
 	// privilegeMode=true → excludePrivileged=false
-	svc.Retrieve(context.Background(), "test", true)
+	svc.Retrieve(context.Background(), "test-user", "test", true)
 	if searcher.capturedExcludePriv {
 		t.Error("expected excludePrivileged=false when privilegeMode=true")
 	}
@@ -161,7 +163,7 @@ func TestRetrieve_SearchParameters(t *testing.T) {
 	searcher := &mockVectorSearcher{results: []VectorSearchResult{}}
 	svc := NewRetrieverService(&mockQueryEmbedder{}, searcher)
 
-	svc.Retrieve(context.Background(), "test", false)
+	svc.Retrieve(context.Background(), "test-user", "test", false)
 
 	if searcher.capturedTopK != 20 {
 		t.Errorf("topK = %d, want 20", searcher.capturedTopK)
@@ -182,7 +184,7 @@ func TestRetrieve_ReturnsMax5(t *testing.T) {
 	searcher := &mockVectorSearcher{results: results}
 	svc := NewRetrieverService(&mockQueryEmbedder{}, searcher)
 
-	result, err := svc.Retrieve(context.Background(), "test", true)
+	result, err := svc.Retrieve(context.Background(), "test-user", "test", true)
 	if err != nil {
 		t.Fatalf("Retrieve() error: %v", err)
 	}
@@ -214,7 +216,7 @@ func TestRetrieve_Deduplication(t *testing.T) {
 
 	svc := NewRetrieverService(&mockQueryEmbedder{}, searcher)
 
-	result, err := svc.Retrieve(context.Background(), "test", true)
+	result, err := svc.Retrieve(context.Background(), "test-user", "test", true)
 	if err != nil {
 		t.Fatalf("Retrieve() error: %v", err)
 	}
@@ -245,7 +247,7 @@ func TestRetrieve_RankingOrder(t *testing.T) {
 
 	svc := NewRetrieverService(&mockQueryEmbedder{}, searcher)
 
-	result, err := svc.Retrieve(context.Background(), "test", true)
+	result, err := svc.Retrieve(context.Background(), "test-user", "test", true)
 	if err != nil {
 		t.Fatalf("Retrieve() error: %v", err)
 	}

@@ -100,7 +100,7 @@ type stubSearcher struct {
 	err    error
 }
 
-func (s *stubSearcher) SimilaritySearch(ctx context.Context, queryVec []float32, topK int, threshold float64, excludePrivileged bool) ([]service.VectorSearchResult, error) {
+func (s *stubSearcher) SimilaritySearch(ctx context.Context, queryVec []float32, topK int, threshold float64, userID string, excludePrivileged bool) ([]service.VectorSearchResult, error) {
 	if s.err != nil {
 		return nil, s.err
 	}

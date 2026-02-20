@@ -39,7 +39,7 @@ type VectorSearchResult struct {
 
 // VectorSearcher abstracts similarity search for testability.
 type VectorSearcher interface {
-	SimilaritySearch(ctx context.Context, queryVec []float32, topK int, threshold float64, excludePrivileged bool) ([]VectorSearchResult, error)
+	SimilaritySearch(ctx context.Context, queryVec []float32, topK int, threshold float64, userID string, excludePrivileged bool) ([]VectorSearchResult, error)
 }
 
 // QueryEmbedder abstracts query embedding for testability.
@@ -76,9 +76,9 @@ func NewRetrieverService(embedder QueryEmbedder, searcher VectorSearcher) *Retri
 	}
 }
 
-// Retrieve embeds a query, performs similarity search, re-ranks, deduplicates,
-// and returns the top results.
-func (s *RetrieverService) Retrieve(ctx context.Context, query string, privilegeMode bool) (*RetrievalResult, error) {
+// Retrieve embeds a query, performs similarity search scoped to the user's documents,
+// re-ranks, deduplicates, and returns the top results.
+func (s *RetrieverService) Retrieve(ctx context.Context, userID string, query string, privilegeMode bool) (*RetrievalResult, error) {
 	if query == "" {
 		return nil, fmt.Errorf("service.Retrieve: query is empty")
 	}
@@ -92,18 +92,20 @@ func (s *RetrieverService) Retrieve(ctx context.Context, query string, privilege
 
 	slog.Info("[DEBUG-RETRIEVER] query embedded",
 		"query", query,
+		"user_id", userID,
 		"vec_dim", len(queryVec),
 		"vec_first3", fmt.Sprintf("%.4f, %.4f, %.4f", safeIdx(queryVec, 0), safeIdx(queryVec, 1), safeIdx(queryVec, 2)),
 	)
 
-	// 2. Vector search (top-20, threshold 0.7)
+	// 2. Vector search scoped to user's documents (top-20, threshold 0.35)
 	excludePrivileged := !privilegeMode
-	candidates, err := s.searcher.SimilaritySearch(ctx, queryVec, defaultTopK, defaultThreshold, excludePrivileged)
+	candidates, err := s.searcher.SimilaritySearch(ctx, queryVec, defaultTopK, defaultThreshold, userID, excludePrivileged)
 	if err != nil {
 		return nil, fmt.Errorf("service.Retrieve: search: %w", err)
 	}
 
 	slog.Info("[DEBUG-RETRIEVER] similarity search done",
+		"user_id", userID,
 		"candidates", len(candidates),
 		"top_k", defaultTopK,
 		"threshold", defaultThreshold,

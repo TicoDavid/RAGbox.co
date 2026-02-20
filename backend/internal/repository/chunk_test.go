@@ -211,7 +211,7 @@ func TestChunkRepo_SimilaritySearch(t *testing.T) {
 	queryVec := make([]float32, 768)
 	queryVec[100] = 1.0
 
-	results, err := repo.SimilaritySearch(ctx, queryVec, 5, 0.9, false)
+	results, err := repo.SimilaritySearch(ctx, queryVec, 5, 0.9, "test-user-chunk", false)
 	if err != nil {
 		t.Fatalf("SimilaritySearch() error: %v", err)
 	}
@@ -260,7 +260,7 @@ func TestChunkRepo_SimilaritySearch_ExcludePrivileged(t *testing.T) {
 	queryVec[300] = 1.0
 
 	// Search WITHOUT excluding privileged — should find both
-	allResults, err := repo.SimilaritySearch(ctx, queryVec, 100, 0.9, false)
+	allResults, err := repo.SimilaritySearch(ctx, queryVec, 100, 0.9, "test-user-chunk", false)
 	if err != nil {
 		t.Fatalf("SimilaritySearch(all) error: %v", err)
 	}
@@ -283,7 +283,7 @@ func TestChunkRepo_SimilaritySearch_ExcludePrivileged(t *testing.T) {
 	}
 
 	// Search WITH excluding privileged — privileged doc should not appear
-	filteredResults, err := repo.SimilaritySearch(ctx, queryVec, 100, 0.9, true)
+	filteredResults, err := repo.SimilaritySearch(ctx, queryVec, 100, 0.9, "test-user-chunk", true)
 	if err != nil {
 		t.Fatalf("SimilaritySearch(exclude) error: %v", err)
 	}
@@ -324,7 +324,7 @@ func TestChunkRepo_SimilaritySearch_ThresholdFilters(t *testing.T) {
 	orthogonalVec := make([]float32, 768)
 	orthogonalVec[600] = 1.0
 
-	results, err := repo.SimilaritySearch(ctx, orthogonalVec, 10, 0.5, false)
+	results, err := repo.SimilaritySearch(ctx, orthogonalVec, 10, 0.5, "test-user-chunk", false)
 	if err != nil {
 		t.Fatalf("SimilaritySearch() error: %v", err)
 	}

@@ -66,9 +66,10 @@ func (r *ChunkRepo) BulkInsert(ctx context.Context, chunks []service.Chunk, vect
 	return nil
 }
 
-// SimilaritySearch finds the top-K chunks most similar to queryVec using cosine distance.
-// When excludePrivileged is true, chunks from privileged documents are excluded.
-func (r *ChunkRepo) SimilaritySearch(ctx context.Context, queryVec []float32, topK int, threshold float64, excludePrivileged bool) ([]service.VectorSearchResult, error) {
+// SimilaritySearch finds the top-K chunks most similar to queryVec using cosine distance,
+// scoped to documents owned by userID. When excludePrivileged is true, chunks from
+// privileged documents are excluded.
+func (r *ChunkRepo) SimilaritySearch(ctx context.Context, queryVec []float32, topK int, threshold float64, userID string, excludePrivileged bool) ([]service.VectorSearchResult, error) {
 	embedding := pgvector.NewVector(queryVec)
 
 	query := `
@@ -81,6 +82,7 @@ func (r *ChunkRepo) SimilaritySearch(ctx context.Context, queryVec []float32, to
 		FROM document_chunks dc
 		JOIN documents d ON dc.document_id = d.id
 		WHERE d.deletion_status = 'Active'
+			AND d.user_id = $3
 			AND (1 - (dc.embedding <=> $1::vector)) > $2`
 
 	if excludePrivileged {
@@ -89,15 +91,16 @@ func (r *ChunkRepo) SimilaritySearch(ctx context.Context, queryVec []float32, to
 
 	query += `
 		ORDER BY dc.embedding <=> $1::vector
-		LIMIT $3`
+		LIMIT $4`
 
 	slog.Info("[DEBUG-REPO] executing similarity search",
 		"top_k", topK,
 		"threshold", threshold,
+		"user_id", userID,
 		"exclude_privileged", excludePrivileged,
 	)
 
-	rows, err := r.pool.Query(ctx, query, embedding, threshold, topK)
+	rows, err := r.pool.Query(ctx, query, embedding, threshold, userID, topK)
 	if err != nil {
 		slog.Error("[DEBUG-REPO] similarity search query failed", "error", err)
 		return nil, fmt.Errorf("repository.SimilaritySearch: %w", err)

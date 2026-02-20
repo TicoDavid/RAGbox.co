@@ -161,7 +161,7 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 		// Step 1: Retrieve
 		sendEvent(w, flusher, "status", `{"stage":"retrieving"}`)
 
-		retrieval, err := deps.Retriever.Retrieve(ctx, req.Query, req.PrivilegeMode)
+		retrieval, err := deps.Retriever.Retrieve(ctx, userID, req.Query, req.PrivilegeMode)
 		if err != nil {
 			slog.Error("chat retrieval failed", "user_id", userID, "stage", "retrieval", "error", err)
 			sendEvent(w, flusher, "error", fmt.Sprintf(`{"message":%q}`, rateLimitMessage(err)))
