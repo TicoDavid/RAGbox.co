@@ -27,6 +27,7 @@ model User {
   subscriptionTier subscription_tier @default(professional) @map("subscription_tier")
   privilegeModeEnabled Boolean @default(false) @map("privilege_mode_enabled")
   privilegeModeChangedAt DateTime? @map("privilege_mode_changed_at")
+  onboardingCompleted Boolean @default(false) @map("onboarding_completed")
   createdAt DateTime @default(now()) @map("created_at")
   lastLoginAt DateTime? @map("last_login_at")
 

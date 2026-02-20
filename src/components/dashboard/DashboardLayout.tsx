@@ -12,6 +12,7 @@ import { SovereignExplorer } from './vault/explorer'
 import { MercuryWindow } from './mercury/MercuryWindow'
 import { isMercuryEnabled } from '@/lib/features'
 import { CenterChat } from './chat'
+import { OnboardingWizard } from './OnboardingWizard'
 import { SovereignStudio } from './studio'
 import { useContentIntelligenceStore } from '@/stores/contentIntelligenceStore'
 import {
@@ -285,6 +286,21 @@ export function DashboardLayout() {
   // Mobile overlay state
   const [mobileLeftOpen, setMobileLeftOpen] = useState(false)
   const [mobileRightOpen, setMobileRightOpen] = useState(false)
+
+  // Onboarding wizard state
+  const [showOnboarding, setShowOnboarding] = useState(false)
+  const onboardingChecked = useRef(false)
+
+  useEffect(() => {
+    if (onboardingChecked.current) return
+    onboardingChecked.current = true
+    apiFetch('/api/user/onboarding')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && !data.onboardingCompleted) setShowOnboarding(true)
+      })
+      .catch(() => { /* silently skip — don't block dashboard */ })
+  }, [])
 
   // Close mobile overlays when transitioning to tablet/desktop
   useEffect(() => {
@@ -617,6 +633,13 @@ export function DashboardLayout() {
         onClose={() => setIsIngestionOpen(false)}
         onFileUpload={handleIngestionUpload}
       />
+
+      {/* Onboarding Wizard — first-run only */}
+      <AnimatePresence>
+        {showOnboarding && (
+          <OnboardingWizard onComplete={() => setShowOnboarding(false)} />
+        )}
+      </AnimatePresence>
 
     </div>
   )
