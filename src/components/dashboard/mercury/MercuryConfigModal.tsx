@@ -244,8 +244,8 @@ export function MercuryConfigModal({ isOpen, onClose }: MercuryConfigModalProps)
                       </div>
                       <input
                         type="range"
-                        min={10}
-                        max={100}
+                        min={40}
+                        max={85}
                         step={5}
                         value={config.silenceThreshold * 100}
                         onChange={(e) => updateField('silenceThreshold', Number(e.target.value) / 100)}
