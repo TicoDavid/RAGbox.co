@@ -79,9 +79,14 @@ const config: Config = {
             transform: 'scale(1.4)',
           },
         },
+        orbPulse: {
+          '0%, 100%': { transform: 'translate(-50%, -50%) scale(1)' },
+          '50%': { transform: 'translate(-50%, -50%) scale(1.05)' },
+        },
       },
       animation: {
         'pulse-intense': 'pulse-intense 1s ease-in-out infinite',
+        'orb-pulse': 'orbPulse 4s ease-in-out infinite',
       }
     },
   },
