@@ -61,6 +61,10 @@ export function ExportPanel() {
       const res = await apiFetch(`/api/audit/export-formatted?${params}`)
       if (!res.ok) throw new Error('Export failed')
       const blob = await res.blob()
+      if (blob.size === 0 || (auditFormat === 'json' && blob.size < 5)) {
+        toast.error('No audit entries to export for the selected range')
+        return
+      }
       const dateSuffix = new Date().toISOString().split('T')[0]
       const ext = auditFormat
       triggerDownload(blob, `ragbox_audit_${dateSuffix}.${ext}`)
