@@ -41,9 +41,22 @@ const DEFAULT_CONFIG: ConfigState = {
 }
 
 const PRESETS = [
-  { key: 'professional', label: 'Professional' },
-  { key: 'friendly', label: 'Friendly' },
-  { key: 'technical', label: 'Technical' },
+  // Core styles
+  { key: 'professional', label: 'Professional', group: 'style' },
+  { key: 'friendly', label: 'Friendly', group: 'style' },
+  { key: 'technical', label: 'Technical', group: 'style' },
+  // C-Suite personas
+  { key: 'ceo', label: 'CEO', group: 'csuite' },
+  { key: 'cfo', label: 'CFO', group: 'csuite' },
+  { key: 'cmo', label: 'CMO', group: 'csuite' },
+  { key: 'coo', label: 'COO', group: 'csuite' },
+  { key: 'cpo', label: 'CPO', group: 'csuite' },
+  { key: 'cto', label: 'CTO', group: 'csuite' },
+  // Specialist personas
+  { key: 'legal', label: 'Legal', group: 'specialist' },
+  { key: 'compliance', label: 'Compliance', group: 'specialist' },
+  { key: 'auditor', label: 'Auditor', group: 'specialist' },
+  { key: 'whistleblower', label: 'Whistleblower', group: 'specialist' },
 ] as const
 
 export function MercuryConfigModal({ isOpen, onClose }: MercuryConfigModalProps) {
@@ -210,8 +223,9 @@ export function MercuryConfigModal({ isOpen, onClose }: MercuryConfigModalProps)
 
                     {/* Personality */}
                     <Section title="Personality">
-                      <div className="flex gap-2 mb-2">
-                        {PRESETS.map((p) => (
+                      {/* Style presets */}
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {PRESETS.filter((p) => p.group === 'style').map((p) => (
                           <button
                             key={p.key}
                             onClick={() => applyPreset(p.key)}
@@ -224,6 +238,50 @@ export function MercuryConfigModal({ isOpen, onClose }: MercuryConfigModalProps)
                             {p.label}
                           </button>
                         ))}
+                      </div>
+                      {/* C-Suite personas */}
+                      <div className="flex flex-wrap gap-1.5 mb-1">
+                        <span className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider w-full">C-Suite</span>
+                        {PRESETS.filter((p) => p.group === 'csuite').map((p) => (
+                          <button
+                            key={p.key}
+                            onClick={() => applyPreset(p.key)}
+                            className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                              activePreset === p.key
+                                ? 'bg-[var(--brand-blue)] text-white' /* THEME-EXEMPT: white on brand */
+                                : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
+                            }`}
+                          >
+                            {p.label}
+                          </button>
+                        ))}
+                      </div>
+                      {/* Specialist personas */}
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        <span className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider w-full">Specialist</span>
+                        {PRESETS.filter((p) => p.group === 'specialist').map((p) => (
+                          <button
+                            key={p.key}
+                            onClick={() => applyPreset(p.key)}
+                            className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                              activePreset === p.key
+                                ? 'bg-[var(--brand-blue)] text-white' /* THEME-EXEMPT: white on brand */
+                                : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
+                            }`}
+                          >
+                            {p.label}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => updateField('personalityPrompt', '')}
+                          className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                            !activePreset && config.personalityPrompt
+                              ? 'bg-[var(--brand-blue)] text-white' /* THEME-EXEMPT: white on brand */
+                              : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
+                          }`}
+                        >
+                          Custom
+                        </button>
                       </div>
                       <textarea
                         value={config.personalityPrompt}
