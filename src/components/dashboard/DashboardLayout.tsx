@@ -10,6 +10,7 @@ import { GlobalHeader } from './GlobalHeader'
 import { VaultPanel } from './vault/VaultPanel'
 import { SovereignExplorer } from './vault/explorer'
 import { MercuryWindow } from './mercury/MercuryWindow'
+import { isMercuryEnabled } from '@/lib/features'
 import { CenterChat } from './chat'
 import { SovereignStudio } from './studio'
 import { useContentIntelligenceStore } from '@/stores/contentIntelligenceStore'
@@ -277,7 +278,8 @@ export function DashboardLayout() {
   const [leftTab, setLeftTab] = useState<LeftRailTab>('vault')
   const [rightExpanded, setRightExpanded] = useState(false)
   const [rightTab, setRightTab] = useState<RightRailTab>('studio')
-  const [mercuryOpen, setMercuryOpen] = useState(true)
+  const mercuryEnabled = isMercuryEnabled()
+  const [mercuryOpen, setMercuryOpen] = useState(mercuryEnabled)
   const [isIngestionOpen, setIsIngestionOpen] = useState(false)
 
   // Mobile overlay state
@@ -526,8 +528,8 @@ export function DashboardLayout() {
         {/* ============================================ */}
         {isTablet && (
           <div className="flex shrink-0">
-            {/* Mercury — persistent right panel (desktop) */}
-            {isDesktop && (
+            {/* Mercury — persistent right panel (desktop, paid feature) */}
+            {isDesktop && mercuryEnabled && (
               <motion.div
                 initial={false}
                 animate={{ width: mercuryOpen ? MERCURY_PANEL_WIDTH : 0 }}
@@ -547,8 +549,9 @@ export function DashboardLayout() {
                 activeTab={isDesktop && rightExpanded ? rightTab : null}
                 onTabClick={handleRightTabClick}
                 onCollapse={() => setRightExpanded(false)}
-                isMercuryOpen={mercuryOpen}
-                onMercuryToggle={handleMercuryToggle}
+                isMercuryOpen={mercuryEnabled && mercuryOpen}
+                onMercuryToggle={mercuryEnabled ? handleMercuryToggle : undefined}
+                mercuryEnabled={mercuryEnabled}
               />
             </div>
           </div>
@@ -588,7 +591,7 @@ export function DashboardLayout() {
         <div className="flex h-full">
           {/* Panel content — Mercury if mercury tab, else tool panel */}
           <div className="flex-1 min-w-0 bg-[var(--bg-secondary)]">
-            {rightTab === 'mercury' ? <MercuryWindow /> : renderToolContent()}
+            {rightTab === 'mercury' && mercuryEnabled ? <MercuryWindow /> : renderToolContent()}
           </div>
 
           {/* Rail icons */}

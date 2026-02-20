@@ -221,6 +221,7 @@ interface RightRailProps {
   onCollapse: () => void
   isMercuryOpen?: boolean
   onMercuryToggle?: () => void
+  mercuryEnabled?: boolean
 }
 
 export function RightStealthRail({
@@ -230,19 +231,28 @@ export function RightStealthRail({
   onCollapse,
   isMercuryOpen,
   onMercuryToggle,
+  mercuryEnabled = true,
 }: RightRailProps) {
   return (
     <div className="h-full flex flex-col bg-[var(--bg-primary)] border-l border-[var(--border-default)]" role="navigation" aria-label="Tools navigation">
       {/* Icon Stack */}
       <div className="flex-1 flex flex-col items-center py-4 gap-2">
-        {/* Mercury — toggles persistent Mercury panel */}
-        <RailIcon
-          icon={Mic}
-          label="Mercury"
-          isActive={isMercuryOpen ?? (isExpanded && activeTab === 'mercury')}
-          onClick={onMercuryToggle ?? (() => onTabClick('mercury'))}
-          side="right"
-        />
+        {/* Mercury — toggles persistent Mercury panel (paid feature) */}
+        <div className="relative group">
+          <RailIcon
+            icon={Mic}
+            label="Mercury"
+            isActive={mercuryEnabled && (isMercuryOpen ?? (isExpanded && activeTab === 'mercury'))}
+            onClick={mercuryEnabled ? (onMercuryToggle ?? (() => onTabClick('mercury'))) : () => {}}
+            side="right"
+          />
+          {!mercuryEnabled && (
+            <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 hidden group-hover:block whitespace-nowrap bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-lg px-3 py-2 shadow-xl z-50">
+              <p className="text-xs font-medium text-[var(--text-primary)]">Mercury AI Assistant</p>
+              <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5">Upgrade to Team plan to unlock</p>
+            </div>
+          )}
+        </div>
 
         {/* Studio/Create */}
         <RailIcon
