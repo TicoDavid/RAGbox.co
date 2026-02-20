@@ -58,6 +58,7 @@
     "@inworld/runtime": "^0.8.0",
     "@openrouter/sdk": "^0.3.15",
     "@prisma/client": "^5.22.0",
+    "@react-pdf/renderer": "^4.3.2",
     "@sentry/nextjs": "^10.39.0",
     "clsx": "^2.1.1",
     "docx": "^9.5.3",

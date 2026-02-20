@@ -23,6 +23,7 @@ import type {
 import { renderReport } from './renderers/renderReport'
 import { renderDeck } from './renderers/renderDeck'
 import { renderEvidence } from './renderers/renderEvidence'
+import { renderInfographic, type InfographicData } from './renderers/renderInfographic'
 
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME || 'ragbox-documents-prod'
 
@@ -307,12 +308,12 @@ export async function generateArtifact(
     }
 
     case 'infographic': {
-      // Infographic data for frontend rendering
-      finalContent = aiContent
-      fileName = `${safeName}_Infographic_${timestamp}.json`
-      fileType = 'json'
-      mimeType = 'application/json'
-      previewContent = aiContent.substring(0, 500)
+      const infographicData = parseAIResponse<InfographicData>(aiContent)
+      finalContent = await renderInfographic(infographicData)
+      fileName = `${safeName}_Infographic_${timestamp}.pdf`
+      fileType = 'pdf'
+      mimeType = 'application/pdf'
+      previewContent = `${infographicData.title} — ${infographicData.sections.length} sections`
       break
     }
 
