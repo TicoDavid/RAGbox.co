@@ -56,7 +56,7 @@ interface GenerationState {
   artifact: ArtifactType | null
   selectedFiles: string[]
   progress: string
-  result: { name: string; url: string } | null
+  result: { name: string; url: string; preview?: string } | null
 }
 
 // ============================================================================
@@ -540,10 +540,12 @@ function GenerationError({
 
 function ArtifactResult({
   name,
+  preview,
   onDownload,
   onDismiss,
 }: {
   name: string
+  preview?: string
   onDownload: () => void
   onDismiss: () => void
 }) {
@@ -562,6 +564,13 @@ function ArtifactResult({
           <p className="text-xs text-[var(--success)] truncate">{name}</p>
         </div>
       </div>
+
+      {preview && (
+        <div className="mb-3 p-2.5 rounded-lg bg-[var(--bg-primary)]/50 border border-[var(--border-subtle)]">
+          <p className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] mb-1">Preview</p>
+          <p className="text-xs text-[var(--text-secondary)] line-clamp-4 whitespace-pre-wrap">{preview}</p>
+        </div>
+      )}
 
       <div className="flex gap-2">
         <button
@@ -653,6 +662,7 @@ export function SovereignStudio() {
         result: {
           name: data.data.fileName,
           url: data.data.downloadUrl,
+          preview: data.data.previewContent || undefined,
         },
       })
     } catch (error) {
@@ -720,6 +730,7 @@ export function SovereignStudio() {
         {generation.phase === 'complete' && generation.result && (
           <ArtifactResult
             name={generation.result.name}
+            preview={generation.result.preview}
             onDownload={handleDownload}
             onDismiss={handleDismiss}
           />
