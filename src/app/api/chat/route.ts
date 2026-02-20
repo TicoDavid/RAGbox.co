@@ -42,7 +42,7 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
     }
 
     const body = await request.json()
-    const { query, stream, privilegeMode, history, maxTier, personaId } = body
+    const { query, stream, privilegeMode, history, maxTier, personaId, safetyMode } = body
 
     if (!query || typeof query !== 'string') {
       return NextResponse.json(
@@ -50,6 +50,47 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
         { status: 400 }
       )
     }
+
+    // ── Safety Mode: URL fetching when unsafe ──────────
+    // safetyMode=true (default) → vault-only, no external URL fetching
+    // safetyMode=false → extract URLs from query, fetch content, prepend to context
+    let webContext = ''
+    if (safetyMode === false) {
+      const urlPattern = /https?:\/\/[^\s)>\]]+/gi
+      const urls = query.match(urlPattern)
+      if (urls && urls.length > 0) {
+        // Fetch first URL only (limit blast radius)
+        const targetUrl = urls[0]
+        try {
+          const urlRes = await fetch(targetUrl, {
+            headers: { 'User-Agent': 'RAGbox/1.0 (knowledge-assistant)' },
+            signal: AbortSignal.timeout(10000),
+          })
+          if (urlRes.ok) {
+            const contentType = urlRes.headers.get('content-type') ?? ''
+            if (contentType.includes('text/html') || contentType.includes('text/plain')) {
+              const rawText = await urlRes.text()
+              // Strip HTML tags for plain text extraction
+              const cleanText = rawText
+                .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                .replace(/<[^>]+>/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .slice(0, 8000) // Cap at 8KB to avoid context overflow
+              if (cleanText.length > 50) {
+                webContext = `[Web content from ${targetUrl}]:\n${cleanText}\n\n`
+              }
+            }
+          }
+        } catch (err) {
+          console.warn('[Chat] URL fetch failed (continuing without web context):', err)
+        }
+      }
+    }
+
+    // Build the effective query — prepend web context if fetched
+    const effectiveQuery = webContext ? `${webContext}User question: ${query}` : query
 
     // Check cache for non-streaming requests (or when explicitly not streaming)
     // Only cache simple queries (no conversation history — those are context-dependent)
@@ -146,7 +187,7 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
         'X-User-ID': userId,
       },
       body: JSON.stringify({
-        query,
+        query: effectiveQuery,
         stream: stream ?? true,
         privilegeMode: privilegeMode ?? false,
         history: history ?? [],
