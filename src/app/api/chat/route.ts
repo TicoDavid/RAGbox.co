@@ -42,7 +42,7 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
     }
 
     const body = await request.json()
-    const { query, stream, privilegeMode, history, maxTier, personaId, safetyMode } = body
+    const { query, stream, privilegeMode, history, maxTier, personaId, safetyMode, documentScope } = body
 
     if (!query || typeof query !== 'string') {
       return NextResponse.json(
@@ -193,6 +193,7 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
         history: history ?? [],
         maxTier: maxTier ?? 3,
         ...(personaId ? { personaId } : {}),
+        ...(documentScope ? { documentScope } : {}),
         ...byollmFields,
       }),
     })

@@ -30,11 +30,15 @@ export interface ChatState {
   // Model selector: 'aegis' or BYOLLM model string
   selectedModel: string
 
+  // Document scope: when set, retrieval is filtered to this document only
+  documentScope: string | null
+
   // Actions
   setInputValue: (value: string) => void
   sendMessage: (privilegeMode: boolean) => Promise<void>
   toggleSafetyMode: () => void
   setModel: (model: string) => void
+  setDocumentScope: (docId: string | null) => void
   stopStreaming: () => void
   clearThread: () => void
 }
@@ -67,6 +71,7 @@ export const useChatStore = create<ChatState>()(
       abortController: null,
       safetyMode: true,
       selectedModel: 'aegis',
+      documentScope: null,
 
       setInputValue: (value) => set({ inputValue: value }),
 
@@ -74,6 +79,8 @@ export const useChatStore = create<ChatState>()(
         set((state) => ({ safetyMode: !state.safetyMode })),
 
       setModel: (model) => set({ selectedModel: model }),
+
+      setDocumentScope: (docId) => set({ documentScope: docId }),
 
       stopStreaming: () => {
         const { abortController } = get()
@@ -90,10 +97,11 @@ export const useChatStore = create<ChatState>()(
           isStreaming: false,
           streamingContent: '',
           abortController: null,
+          documentScope: null,
         }),
 
       sendMessage: async (privilegeMode) => {
-        const { inputValue, messages, safetyMode, selectedModel } = get()
+        const { inputValue, messages, safetyMode, selectedModel, documentScope } = get()
         if (!inputValue.trim() || get().isStreaming) return
 
         const userMessage: ChatMessage = {
@@ -125,6 +133,7 @@ export const useChatStore = create<ChatState>()(
             maxTier: 3,
             safetyMode,
             history: messages.map((m) => ({ role: m.role, content: m.content })),
+            ...(documentScope ? { documentScope } : {}),
           }
 
           // BYOLLM routing
