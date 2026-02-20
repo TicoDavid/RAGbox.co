@@ -17,4 +17,4 @@ export type ViewMode = 'grid' | 'list'
 
 export type SortField = 'name' | 'security' | 'updatedAt' | 'size' | 'relevanceScore'
 
-export type InspectorTab = 'certificate' | 'activity' | 'related'
+export type InspectorTab = 'certificate' | 'activity'

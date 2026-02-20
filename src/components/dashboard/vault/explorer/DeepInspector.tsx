@@ -43,13 +43,13 @@ export function DeepInspector({
   item,
   vaultItem,
   userName,
-  allItems,
+  allItems: _allItems,
   onClose,
   onChat,
   onDelete,
   onSecurityChange,
   onIndexToggle,
-  onSelectItem,
+  onSelectItem: _onSelectItem,
   onDownload,
   onAuditLog,
   onVerifyIntegrity,
@@ -134,7 +134,7 @@ export function DeepInspector({
 
         {/* Tabs */}
         <div className="shrink-0 flex border-b border-[var(--border-default)]">
-          {(['certificate', 'activity', 'related'] as const).map((tab) => (
+          {(['certificate', 'activity'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setInspectorTab(tab)}
@@ -166,14 +166,6 @@ export function DeepInspector({
           )}
 
           {inspectorTab === 'activity' && <ActivityTab item={item} />}
-
-          {inspectorTab === 'related' && (
-            <RelatedTab
-              item={item}
-              allItems={allItems}
-              onSelectItem={onSelectItem}
-            />
-          )}
         </div>
       </div>
     </motion.aside>
@@ -331,25 +323,18 @@ function ActivityTab({ item }: { item: ExplorerItem }) {
   return (
     <div className="space-y-3">
       <ActivityItem
-        action="Analyzed by Mercury"
-        time="5 minutes ago"
-        detail="Generated 12 new embeddings"
-      />
-      <ActivityItem
-        action="Cited in Query"
-        time="23 minutes ago"
-        detail="'What are the Q4 projections?'"
-      />
-      <ActivityItem
-        action="Uploaded by User"
+        action="Uploaded"
         time={formatDate(item.updatedAt)}
-        detail="Initial upload via drag-and-drop"
+        detail="Initial upload"
       />
       <ActivityItem
-        action="Security Updated"
+        action="Security Classification"
         time={formatDate(item.updatedAt)}
-        detail={`Classification set to ${item.security}`}
+        detail={`Set to ${item.security}`}
       />
+      <p className="text-xs text-[var(--text-muted)] text-center py-4">
+        Activity feed will show Mercury citations, queries, and audit events once available.
+      </p>
     </div>
   )
 }
@@ -366,42 +351,4 @@ function ActivityItem({ action, time, detail }: { action: string; time: string; 
   )
 }
 
-// ============================================================================
-// RELATED TAB
-// ============================================================================
-
-function RelatedTab({
-  item,
-  allItems,
-  onSelectItem,
-}: {
-  item: ExplorerItem
-  allItems: ExplorerItem[]
-  onSelectItem: (id: string) => void
-}) {
-  const related = allItems
-    .filter((f) => f.id !== item.id && f.type !== 'folder')
-    .slice(0, 4)
-
-  return (
-    <div className="space-y-2">
-      <p className="text-xs text-[var(--text-tertiary)] mb-3">Documents with similar content</p>
-      {related.map((file) => (
-        <button
-          key={file.id}
-          onClick={() => onSelectItem(file.id)}
-          className="w-full flex items-center gap-3 p-3 rounded-lg bg-[var(--bg-elevated)]/15 border border-[var(--border-subtle)] hover:bg-[var(--bg-elevated)]/30 hover:border-[var(--brand-blue)]/20 transition-all text-left"
-        >
-          <FileText className="w-4 h-4 text-[var(--text-secondary)]" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm text-[var(--text-secondary)] truncate">{file.name}</p>
-            <p className="text-[10px] text-[var(--text-muted)]">Relevance: {Math.round(file.relevanceScore * 100)}%</p>
-          </div>
-        </button>
-      ))}
-      {related.length === 0 && (
-        <p className="text-xs text-[var(--text-muted)] text-center py-4">No related documents found</p>
-      )}
-    </div>
-  )
-}
+// RelatedTab removed — waiting for backend document-to-document vector similarity support
