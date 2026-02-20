@@ -73,6 +73,47 @@ function HomeContent() {
       <Hero onOpenAuth={() => openAuth('signup')} />
       <FeatureGrid />
       <TrustBar />
+
+      {/* Social Proof */}
+      <section className="py-16 bg-white dark:bg-transparent border-t border-slate-800/50">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <p className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-3">
+            38+{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#2463EB] to-[#00d4ff]">
+              AI agents
+            </span>{' '}
+            deployed
+          </p>
+          <p className="text-lg text-slate-500 dark:text-slate-400">
+            across 14 organizations — powered by ConnexUS AI
+          </p>
+        </div>
+      </section>
+
+      {/* Pricing Teaser */}
+      <section className="py-20 bg-white dark:bg-transparent border-t border-slate-800/50">
+        <div className="max-w-2xl mx-auto px-6 text-center">
+          <p className="text-xs uppercase tracking-widest text-slate-500 mb-4">
+            Simple Pricing
+          </p>
+          <p className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-3">
+            Starting at{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#FDE68A] via-[#FBBF24] to-[#D97706]">
+              $99/mo
+            </span>
+          </p>
+          <p className="text-base text-slate-500 dark:text-slate-400 mb-8">
+            Vault storage, unlimited queries, and full citation audit trails included.
+          </p>
+          <button
+            onClick={() => openAuth('signup')}
+            className="px-8 py-3.5 rounded-full bg-gradient-to-b from-[#4040FF] to-[#0000FF] hover:from-[#5050FF] hover:to-[#0000DD] text-white font-bold tracking-wide shadow-[0_0_30px_rgba(0,0,255,0.5)] hover:shadow-[0_0_50px_rgba(0,0,255,0.7)] transition-all duration-300 hover:-translate-y-0.5"
+          >
+            See Plans
+          </button>
+        </div>
+      </section>
+
       <Footer />
       <AnimatePresence>
         {isAuthOpen && (

@@ -5,18 +5,21 @@ import React from 'react'
 
 const TRUST_ITEMS = [
   { label: 'SOC 2 Ready', icon: '🛡️' },
-  { label: 'AES-256 Encryption', icon: '🔐' },
-  { label: 'GDPR Compliant', icon: '📋' },
+  { label: 'HIPAA Compliant', icon: '🏥' },
+  { label: 'AES-256-GCM', icon: '🔐' },
   { label: 'SEC 17a-4 Audit Trail', icon: '📊' },
-  { label: 'Zero Data Exfiltration', icon: '🚫' },
+  { label: 'Zero Data Retention', icon: '🚫' },
 ]
 
 export function TrustBar() {
   return (
-    <section className="py-12 border-t border-slate-800/50">
+    <section className="py-16 border-t border-slate-800/50">
       <div className="max-w-5xl mx-auto px-6">
-        <p className="text-center text-xs uppercase tracking-widest text-slate-500 mb-6">
+        <p className="text-center text-xs uppercase tracking-widest text-slate-500 mb-3">
           Enterprise-Grade Security
+        </p>
+        <p className="text-center text-sm text-slate-400 mb-8">
+          Your data never leaves your vault.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10">
           {TRUST_ITEMS.map((item) => (

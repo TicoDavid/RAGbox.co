@@ -115,15 +115,15 @@ export default function Hero({ onOpenAuth }: HeroProps) {
 
         {/* The Headline */}
         <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold tracking-tighter text-slate-900 dark:text-white leading-[1.1]">
-          <span className="sm:whitespace-nowrap">Your Private AI. Grounded in Truth.</span> <br />
+          <span className="sm:whitespace-nowrap">Your Documents.</span> <br />
           {/* THE METALLIC GOLD GRADIENT TEXT - Brilliant & Glowing */}
           <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#FDE68A] via-[#FBBF24] to-[#D97706] drop-shadow-[0_0_30px_rgba(251,191,36,0.6)] dark:drop-shadow-[0_0_40px_rgba(251,191,36,0.7)]">
-            Locked in a Vault.
+            Interrogated.
           </span>
         </h1>
 
         <p className="text-sm sm:text-base md:text-lg lg:text-xl text-slate-600 dark:text-slate-400 max-w-5xl mx-auto leading-relaxed px-2">
-          A Digital Fort Knox for your intellectual property. Chat with your most confidential documents without fear of data leaks or AI hallucinations. Every answer is cited, verifiable, and yours alone.
+          Upload anything. Ask everything. Get answers with the exact source, page, and paragraph.
         </p>
 
         {/* Trust Badges */}
@@ -191,14 +191,14 @@ export default function Hero({ onOpenAuth }: HeroProps) {
             onClick={onOpenAuth}
             className="h-12 sm:h-14 px-6 sm:px-8 rounded-full bg-gradient-to-b from-[#4040FF] to-[#0000FF] hover:from-[#5050FF] hover:to-[#0000DD] text-white font-bold tracking-wide shadow-[0_0_30px_rgba(0,0,255,0.5),inset_0_1px_0_rgba(255,255,255,0.2)] hover:shadow-[0_0_50px_rgba(0,0,255,0.7),0_4px_20px_rgba(0,0,255,0.4)] transition-all duration-300 w-full sm:w-auto text-sm sm:text-base hover:-translate-y-0.5"
           >
-            Secure Your First Vault
+            Start Free
           </button>
           {/* Secondary Action Link */}
           <button
             onClick={openDemoModal}
             className="text-base mt-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
           >
-            or watch the 2-minute demo
+            Watch Demo
           </button>
         </div>
       </div>
