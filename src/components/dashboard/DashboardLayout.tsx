@@ -10,7 +10,7 @@ import { GlobalHeader } from './GlobalHeader'
 import { VaultPanel } from './vault/VaultPanel'
 import { SovereignExplorer } from './vault/explorer'
 import { MercuryWindow } from './mercury/MercuryWindow'
-import { DocumentWorkspace } from './DocumentWorkspace'
+import { CenterChat } from './chat'
 import { SovereignStudio } from './studio'
 import { useContentIntelligenceStore } from '@/stores/contentIntelligenceStore'
 import {
@@ -498,7 +498,7 @@ export function DashboardLayout() {
         {/* CENTER: Document Workspace + Tool Overlay */}
         {/* ============================================ */}
         <div className="flex-1 min-w-0 overflow-hidden relative">
-          <DocumentWorkspace />
+          <CenterChat />
 
           {/* Tool panel overlay (Studio/Audit/Export) slides over center */}
           {isDesktop && (
