@@ -481,7 +481,8 @@ export function GlobalHeader() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-[var(--text-primary)] truncate">{session?.user?.name || 'User'}</p>
-                      <p className="text-xs text-[var(--text-secondary)] truncate">{session?.user?.email || 'user@example.com'}</p>
+                      <p className="text-xs text-[var(--text-secondary)] truncate">{session?.user?.email || ''}</p>
+                      <p className="text-[10px] text-[var(--text-tertiary)] truncate mt-0.5">RAGbox Sovereign</p>
                     </div>
                   </div>
                 </div>
