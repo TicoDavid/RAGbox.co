@@ -11,7 +11,7 @@ interface IconProps {
 
 const defaultProps = {
   size: 20,
-  color: '#C0C0C0', // Sterling Silver
+  color: 'var(--text-tertiary)', // Sterling Silver (theme-aware)
 }
 
 // CEO - Crown/Apex (Authority)

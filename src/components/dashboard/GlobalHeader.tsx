@@ -204,7 +204,7 @@ export function GlobalHeader() {
           {/* Privilege Badge */}
           {privilegeMode && (
             <div className="privilege-badge flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--privilege-bg)] border border-[var(--privilege-border)] text-[var(--privilege-color)] animate-pulse">
-              <PrivilegeKeyIcon size={14} color="#FFAB00" />
+              <PrivilegeKeyIcon size={14} color="var(--privilege-color)" />
               <span className="text-xs font-semibold uppercase tracking-wide">Privileged</span>
             </div>
           )}
@@ -283,7 +283,7 @@ export function GlobalHeader() {
               )}
               <CurrentPersonaIcon
                 size={16}
-                color={isWhistleblowerMode ? '#FBBF24' : '#94a3b8'}
+                color={isWhistleblowerMode ? 'var(--warning)' : 'var(--text-tertiary)'}
               />
               <span className="hidden lg:inline text-xs">{currentPersona.label}</span>
               <ChevronDown className={`w-3.5 h-3.5 transition-transform ${personaMenuOpen ? 'rotate-180' : ''}`} />
@@ -323,7 +323,7 @@ export function GlobalHeader() {
                     >
                       <Icon
                         size={18}
-                        color={isSelected ? '#22d3ee' : '#94a3b8'}
+                        color={isSelected ? 'var(--brand-blue-hover)' : 'var(--text-tertiary)'}
                       />
                       <div className="flex-1 min-w-0">
                         <div className={`text-sm font-medium ${isSelected ? 'text-[var(--brand-blue)]' : 'text-[var(--text-secondary)]'}`}>
@@ -348,8 +348,8 @@ export function GlobalHeader() {
                   const Icon = persona.Icon
                   const isSelected = persona.id === activePersona
                   const iconColor = persona.isWhistleblower
-                    ? (isSelected ? '#FBBF24' : '#D97706')
-                    : (isSelected ? '#22d3ee' : '#94a3b8')
+                    ? (isSelected ? 'var(--warning)' : 'var(--warning-dim, #b45309)')
+                    : (isSelected ? 'var(--brand-blue-hover)' : 'var(--text-tertiary)')
 
                   return (
                     <button
@@ -405,12 +405,12 @@ export function GlobalHeader() {
                   : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
               }`}
             >
-              <PrivilegeKeyIcon size={20} color={privilegeMode ? '#FFAB00' : '#C0C0C0'} />
+              <PrivilegeKeyIcon size={20} color={privilegeMode ? 'var(--privilege-color)' : 'var(--text-tertiary)'} />
             </button>
             {/* Enhanced Tooltip */}
             <div className="absolute right-0 top-full mt-2 w-64 p-3 bg-[var(--bg-primary)]/95 backdrop-blur-xl border border-[var(--border-default)] rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
               <div className="flex items-center gap-2 mb-2">
-                <PrivilegeKeyIcon size={16} color={privilegeMode ? '#FFAB00' : '#C0C0C0'} />
+                <PrivilegeKeyIcon size={16} color={privilegeMode ? 'var(--privilege-color)' : 'var(--text-tertiary)'} />
                 <span className={`text-sm font-semibold ${privilegeMode ? 'text-[var(--warning)]' : 'text-[var(--text-secondary)]'}`}>
                   {privilegeMode ? 'Privilege Mode Active' : 'Privilege Mode'}
                 </span>
@@ -532,7 +532,7 @@ export function GlobalHeader() {
       {isSwitching && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">
-            <IdentityIcon size={48} color="#60A5FA" className="animate-pulse" />
+            <IdentityIcon size={48} color="var(--brand-blue-hover)" className="animate-pulse" />
             <p className="text-[var(--text-primary)] font-medium">Switching Profile...</p>
           </div>
         </div>
