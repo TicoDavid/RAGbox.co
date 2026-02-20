@@ -603,8 +603,9 @@ export function DashboardLayout() {
                 setRightTab(tab)
               }}
               onCollapse={() => setMobileRightOpen(false)}
-              isMercuryOpen={rightTab === 'mercury'}
-              onMercuryToggle={() => setRightTab('mercury')}
+              isMercuryOpen={mercuryEnabled && rightTab === 'mercury'}
+              onMercuryToggle={mercuryEnabled ? () => setRightTab('mercury') : undefined}
+              mercuryEnabled={mercuryEnabled}
             />
           </div>
         </div>
