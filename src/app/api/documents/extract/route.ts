@@ -31,7 +31,7 @@ const EXT_MIME_MAP: Record<string, string> = {
   '.jpeg': 'image/jpeg',
   '.gif': 'image/gif',
   '.webp': 'image/webp',
-  '.md': 'text/plain',
+  '.md': 'text/markdown',
   '.json': 'application/json',
 }
 
