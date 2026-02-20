@@ -20,6 +20,9 @@ import type {
   ComplianceDrill,
   EvidenceLog,
 } from './types'
+import { renderReport } from './renderers/renderReport'
+import { renderDeck } from './renderers/renderDeck'
+import { renderEvidence } from './renderers/renderEvidence'
 
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME || 'ragbox-documents-prod'
 
@@ -284,11 +287,11 @@ export async function generateArtifact(
     }
 
     case 'report': {
-      // Report comes back as Markdown
-      finalContent = aiContent
-      fileName = `${safeName}_Report_${timestamp}.md`
-      fileType = 'md'
-      mimeType = 'text/markdown'
+      // Report: Markdown → DOCX
+      finalContent = await renderReport(aiContent)
+      fileName = `${safeName}_Report_${timestamp}.docx`
+      fileType = 'docx'
+      mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
       previewContent = aiContent.substring(0, 1000)
       break
     }
@@ -315,21 +318,20 @@ export async function generateArtifact(
 
     case 'deck': {
       const deck = parseAIResponse<DeckStructure>(aiContent)
-      finalContent = generateDeckJSON(deck)
-      fileName = `${safeName}_Deck_${timestamp}.json`
-      fileType = 'json'
-      mimeType = 'application/json'
+      finalContent = await renderDeck(deck)
+      fileName = `${safeName}_Deck_${timestamp}.pptx`
+      fileType = 'pptx'
+      mimeType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
       previewContent = `${deck.slides.length} slides: ${deck.title}`
       break
     }
 
     case 'evidence': {
       const log = parseAIResponse<EvidenceLog>(aiContent)
-      const csv = generateEvidenceCSV(log)
-      finalContent = csv
-      fileName = `${safeName}_Evidence_Log_${timestamp}.csv`
-      fileType = 'csv'
-      mimeType = 'text/csv'
+      finalContent = await renderEvidence(log)
+      fileName = `${safeName}_Evidence_Log_${timestamp}.xlsx`
+      fileType = 'xlsx'
+      mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       previewContent = log.summary
       break
     }
