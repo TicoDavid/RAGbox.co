@@ -26,6 +26,7 @@ import { renderEvidence } from './renderers/renderEvidence'
 import { renderInfographic, type InfographicData } from './renderers/renderInfographic'
 import { renderCompliance } from './renderers/renderCompliance'
 import { renderMindMap } from './renderers/renderMindMap'
+import { renderVideo } from './renderers/renderVideo'
 
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME || 'ragbox-documents-prod'
 
@@ -268,12 +269,11 @@ export async function generateArtifact(
     }
 
     case 'video': {
-      // For video, we generate the script JSON (frontend will create the video)
       const script = parseAIResponse<NarrationScript>(aiContent)
-      finalContent = JSON.stringify(script, null, 2)
-      fileName = `${safeName}_Video_Script_${timestamp}.json`
-      fileType = 'json'
-      mimeType = 'application/json'
+      finalContent = renderVideo(script)
+      fileName = `${safeName}_Video_Briefing_${timestamp}.html`
+      fileType = 'html'
+      mimeType = 'text/html'
       previewContent = script.introduction.substring(0, 500)
       break
     }

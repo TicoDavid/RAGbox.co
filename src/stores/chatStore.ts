@@ -7,7 +7,7 @@
  */
 
 import { create } from 'zustand'
-import { devtools } from 'zustand/middleware'
+import { devtools, persist } from 'zustand/middleware'
 import type { ChatMessage, Citation } from '@/types/ragbox'
 import { apiFetch } from '@/lib/api'
 import { toCitationBlocks } from '@/lib/citations/transform'
@@ -63,6 +63,7 @@ async function generateTitle(query: string): Promise<string> {
 
 export const useChatStore = create<ChatState>()(
   devtools(
+    persist(
     (set, get) => ({
       threadId: null,
       threadTitle: 'New Chat',
@@ -335,6 +336,18 @@ export const useChatStore = create<ChatState>()(
         }
       },
     }),
+    {
+      name: 'ragbox-chat-storage',
+      partialize: (state) => ({
+        threadId: state.threadId,
+        threadTitle: state.threadTitle,
+        messages: state.messages,
+        documentScope: state.documentScope,
+        documentScopeName: state.documentScopeName,
+        selectedModel: state.selectedModel,
+      }),
+    },
+    ),
     { name: 'chat-store' },
   ),
 )
