@@ -254,23 +254,25 @@ export function MercuryPanel() {
   }, [threadId])
 
   // Apply theme shift for Whistleblower mode
+  // These hex values are design-token overrides (setProperty requires raw values)
   useEffect(() => {
     const root = document.documentElement
+    const COBALT_BRAND = '#2463EB'
+    const COBALT_HOVER = '#1D4ED8'
+    const WHISTLE_BRAND = '#F59E0B' // Amber — matches --warning
+    const WHISTLE_HOVER = '#D97706' // Amber dim — matches --warning-dim
 
     if (isWhistleblowerMode) {
-      // Nuclear Mode: Shift to Amber/Orange
-      root.style.setProperty('--brand-blue', '#F59E0B')
-      root.style.setProperty('--brand-blue-hover', '#D97706')
+      root.style.setProperty('--brand-blue', WHISTLE_BRAND)
+      root.style.setProperty('--brand-blue-hover', WHISTLE_HOVER)
     } else {
-      // Normal Mode: Royal Cobalt
-      root.style.setProperty('--brand-blue', '#2463EB')
-      root.style.setProperty('--brand-blue-hover', '#1D4ED8')
+      root.style.setProperty('--brand-blue', COBALT_BRAND)
+      root.style.setProperty('--brand-blue-hover', COBALT_HOVER)
     }
 
     return () => {
-      // Cleanup: Reset to default on unmount
-      root.style.setProperty('--brand-blue', '#2463EB')
-      root.style.setProperty('--brand-blue-hover', '#1D4ED8')
+      root.style.setProperty('--brand-blue', COBALT_BRAND)
+      root.style.setProperty('--brand-blue-hover', COBALT_HOVER)
     }
   }, [isWhistleblowerMode])
 

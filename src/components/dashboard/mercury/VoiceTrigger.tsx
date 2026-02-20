@@ -40,6 +40,11 @@ function WaveformVisualizer({ isActive }: { isActive: boolean }) {
     const gap = 2
     const maxHeight = 16
 
+    // Read theme-aware colors from CSS custom properties
+    const styles = getComputedStyle(document.documentElement)
+    const colorTop = styles.getPropertyValue('--warning').trim() || '#F59E0B'
+    const colorBottom = styles.getPropertyValue('--warning-dim').trim() || '#D97706'
+
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
 
@@ -48,10 +53,9 @@ function WaveformVisualizer({ isActive }: { isActive: boolean }) {
         const x = i * (barWidth + gap) + (canvas.width - bars * (barWidth + gap)) / 2
         const y = (canvas.height - height) / 2
 
-        // Gradient from gold to amber
         const gradient = ctx.createLinearGradient(x, y, x, y + height)
-        gradient.addColorStop(0, '#F59E0B')
-        gradient.addColorStop(1, '#D97706')
+        gradient.addColorStop(0, colorTop)
+        gradient.addColorStop(1, colorBottom)
 
         ctx.fillStyle = gradient
         ctx.beginPath()
