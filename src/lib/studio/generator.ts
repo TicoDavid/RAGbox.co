@@ -24,6 +24,7 @@ import { renderReport } from './renderers/renderReport'
 import { renderDeck } from './renderers/renderDeck'
 import { renderEvidence } from './renderers/renderEvidence'
 import { renderInfographic, type InfographicData } from './renderers/renderInfographic'
+import { renderCompliance } from './renderers/renderCompliance'
 
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME || 'ragbox-documents-prod'
 
@@ -299,10 +300,10 @@ export async function generateArtifact(
 
     case 'compliance': {
       const drill = parseAIResponse<ComplianceDrill>(aiContent)
-      finalContent = JSON.stringify(drill, null, 2)
-      fileName = `${safeName}_Compliance_Drill_${timestamp}.json`
-      fileType = 'json'
-      mimeType = 'application/json'
+      finalContent = await renderCompliance(drill)
+      fileName = `${safeName}_Compliance_Drill_${timestamp}.pdf`
+      fileType = 'pdf'
+      mimeType = 'application/pdf'
       previewContent = `${drill.cards.length} flashcards, ${drill.quiz.length} quiz questions`
       break
     }
