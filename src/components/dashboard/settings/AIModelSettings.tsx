@@ -344,23 +344,39 @@ export function AIModelSettings() {
           </div>
         )}
 
-        {/* ─── AEGIS Status Card ─── */}
+        {/* ─── AEGIS Status Card with Toggle ─── */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-3 rounded-xl bg-[var(--warning)]/5 border border-[var(--warning)]/20"
+          className={`p-3 rounded-xl border ${
+            llmPolicy !== 'byollm_only'
+              ? 'bg-[var(--warning)]/5 border-[var(--warning)]/20'
+              : 'bg-[var(--bg-tertiary)]/30 border-[var(--border-subtle)]'
+          }`}
         >
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-[var(--warning)]/10 flex items-center justify-center">
-              <ShieldCheck className="w-5 h-5 text-[var(--warning)]" />
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+              llmPolicy !== 'byollm_only' ? 'bg-[var(--warning)]/10' : 'bg-[var(--bg-elevated)]/30'
+            }`}>
+              <ShieldCheck className={`w-5 h-5 ${llmPolicy !== 'byollm_only' ? 'text-[var(--warning)]' : 'text-[var(--text-tertiary)]'}`} />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-[var(--text-primary)]">AEGIS</p>
               <p className="text-[10px] text-[var(--text-tertiary)]">Sovereign AI on RAGbox infrastructure</p>
             </div>
-            <span className="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-[var(--success)]/20 text-[var(--success)] border border-[var(--success)]/30">
-              ACTIVE
-            </span>
+            <button
+              onClick={() => handlePolicyChange(llmPolicy === 'byollm_only' ? 'aegis_only' : 'byollm_only')}
+              aria-label={llmPolicy !== 'byollm_only' ? 'Disable AEGIS' : 'Enable AEGIS'}
+              className={`relative w-10 h-5 rounded-full transition-colors ${
+                llmPolicy !== 'byollm_only'
+                  ? 'bg-[var(--success)]'
+                  : 'bg-[var(--bg-elevated)]'
+              }`}
+            >
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                llmPolicy !== 'byollm_only' ? 'left-5.5 translate-x-0' : 'left-0.5'
+              }`} />
+            </button>
           </div>
         </motion.div>
 
