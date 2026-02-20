@@ -289,7 +289,12 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 		}
 
 		// Step 4: Stream result — tiered by confidence
+		// Whistleblower persona uses a lower silence threshold (0.40) to
+		// surface forensic findings even at low confidence.
 		tier := service.ClassifyConfidence(result.FinalConfidence)
+		if isWhistleblower(req.Persona) && tier == "low_confidence" {
+			tier = "normal"
+		}
 
 		if tier == "silence" {
 			if deps.Metrics != nil {
@@ -398,6 +403,11 @@ func rateLimitMessage(err error) string {
 }
 
 // splitIntoTokens splits text into word-level tokens for streaming.
+// isWhistleblower returns true if the persona ID refers to the whistleblower persona.
+func isWhistleblower(persona string) bool {
+	return persona == "whistleblower" || persona == "persona_whistleblower"
+}
+
 func splitIntoTokens(text string) []string {
 	words := strings.Fields(text)
 	if len(words) == 0 {

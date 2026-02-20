@@ -82,8 +82,17 @@ func (s *GeneratorService) Generate(ctx context.Context, query string, chunks []
 
 	start := time.Now()
 
+	// Persona-specific mode defaults: legal and auditor default to detailed
+	mode := opts.Mode
+	if mode == "" {
+		switch opts.Persona {
+		case "legal", "persona_legal", "auditor", "persona_auditor":
+			mode = "detailed"
+		}
+	}
+
 	systemPrompt := s.buildSystemPrompt(opts)
-	userPrompt := buildUserPrompt(query, chunks, opts.Mode, opts.CortexContext...)
+	userPrompt := buildUserPrompt(query, chunks, mode, opts.CortexContext...)
 
 	raw, err := s.client.GenerateContent(ctx, systemPrompt, userPrompt)
 	if err != nil {
