@@ -136,7 +136,7 @@ const nextConfig = {
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob: https://storage.googleapis.com https://*.googleusercontent.com",
               "media-src 'self' https://storage.googleapis.com",
-              "connect-src 'self' https://*.googleapis.com https://*.deepgram.com https://openrouter.ai wss://*.deepgram.com wss: https://*.sentry.io https://*.ingest.sentry.io",
+              "connect-src 'self' https://*.googleapis.com https://*.deepgram.com https://openrouter.ai https://*.run.app wss://*.deepgram.com wss: https://*.sentry.io https://*.ingest.sentry.io",
               "frame-ancestors 'none'",
             ].join('; '),
           },
