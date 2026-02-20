@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import { useVaultStore } from '@/stores/vaultStore'
+import { useChatStore } from '@/stores/chatStore'
 import { VaultRail } from './VaultRail'
 import { ColumnBrowser } from './ColumnBrowser'
 import { StorageFooter } from './StorageFooter'
@@ -33,6 +34,7 @@ function VaultDetailView() {
   const toggleStar = useVaultStore((s) => s.toggleStar)
   const selectAndChat = useVaultStore((s) => s.selectAndChat)
   const selectItem = useVaultStore((s) => s.selectItem)
+  const startDocumentChat = useChatStore((s) => s.startDocumentChat)
   const selectedDoc = selectedItemId ? documents[selectedItemId] : null
 
   if (!selectedDoc) return null
@@ -106,7 +108,10 @@ function VaultDetailView() {
         {/* Actions */}
         <div className="flex flex-col gap-2 mt-auto pt-2">
           <button
-            onClick={() => selectAndChat(selectedDoc.id)}
+            onClick={() => {
+              selectAndChat(selectedDoc.id)
+              startDocumentChat(selectedDoc.id, selectedDoc.name)
+            }}
             className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-[var(--brand-blue)] text-[var(--text-primary)] text-sm font-semibold hover:bg-[var(--brand-blue-hover)] transition-colors"
             aria-label={`Chat with ${selectedDoc.name}`}
           >

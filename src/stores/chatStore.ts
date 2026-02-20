@@ -39,6 +39,7 @@ export interface ChatState {
   toggleSafetyMode: () => void
   setModel: (model: string) => void
   setDocumentScope: (docId: string | null) => void
+  startDocumentChat: (docId: string, docName: string) => Promise<void>
   stopStreaming: () => void
   clearThread: () => void
 }
@@ -81,6 +82,22 @@ export const useChatStore = create<ChatState>()(
       setModel: (model) => set({ selectedModel: model }),
 
       setDocumentScope: (docId) => set({ documentScope: docId }),
+
+      startDocumentChat: async (docId, docName) => {
+        // Clear existing thread, scope to this document, and send initial query
+        set({
+          threadId: null,
+          threadTitle: docName,
+          messages: [],
+          inputValue: `Summarize this document: ${docName}`,
+          isStreaming: false,
+          streamingContent: '',
+          abortController: null,
+          documentScope: docId,
+        })
+        // Fire off the initial query
+        await get().sendMessage(false)
+      },
 
       stopStreaming: () => {
         const { abortController } = get()
