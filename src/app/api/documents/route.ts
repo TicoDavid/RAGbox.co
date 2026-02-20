@@ -67,6 +67,7 @@ export async function GET(request: NextRequest) {
           securityTier: true,
           checksum: true,
           folderId: true,
+          sortOrder: true,
           createdAt: true,
           updatedAt: true,
         },

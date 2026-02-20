@@ -1,16 +1,16 @@
 'use client'
 
 import { useRef, useEffect } from 'react'
-import { useMercuryStore } from '@/stores/mercuryStore'
+import { useChatStore } from '@/stores/chatStore'
 import { usePrivilegeStore } from '@/stores/privilegeStore'
 import { FileText, Mic, ArrowUp, Square } from 'lucide-react'
 
 export function CenterInputBar() {
-  const inputValue = useMercuryStore((s) => s.inputValue)
-  const setInputValue = useMercuryStore((s) => s.setInputValue)
-  const sendMessage = useMercuryStore((s) => s.sendMessage)
-  const isStreaming = useMercuryStore((s) => s.isStreaming)
-  const stopStreaming = useMercuryStore((s) => s.stopStreaming)
+  const inputValue = useChatStore((s) => s.inputValue)
+  const setInputValue = useChatStore((s) => s.setInputValue)
+  const sendMessage = useChatStore((s) => s.sendMessage)
+  const isStreaming = useChatStore((s) => s.isStreaming)
+  const stopStreaming = useChatStore((s) => s.stopStreaming)
   const privilegeMode = usePrivilegeStore((s) => s.isEnabled)
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)

@@ -191,6 +191,7 @@ model Document {
   isStarred       Boolean        @default(false) @map("is_starred")
   checksum        String?
   folderId        String?        @map("folder_id")
+  sortOrder       Int            @default(0) @map("sort_order")
   metadata        Json?
   deletedAt       DateTime?      @map("deleted_at")
   hardDeleteAt    DateTime?      @map("hard_delete_at")
@@ -208,6 +209,7 @@ model Document {
   @@index([vaultId])
   @@index([securityTier])
   @@index([folderId])
+  @@index([folderId, sortOrder])
   @@map("documents")
 }
 

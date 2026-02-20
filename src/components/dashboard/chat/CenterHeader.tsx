@@ -1,11 +1,11 @@
 'use client'
 
-import { useMercuryStore } from '@/stores/mercuryStore'
+import { useChatStore } from '@/stores/chatStore'
 import { MessageSquare } from 'lucide-react'
 
 export function CenterHeader() {
-  const messages = useMercuryStore((s) => s.messages)
-  const threadTitle = useMercuryStore((s) => s.threadTitle)
+  const messages = useChatStore((s) => s.messages)
+  const threadTitle = useChatStore((s) => s.threadTitle)
   const queryCount = messages.filter((m) => m.role === 'user').length
 
   return (
