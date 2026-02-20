@@ -325,16 +325,27 @@ function ActivityTab({ item }: { item: ExplorerItem }) {
       <ActivityItem
         action="Uploaded"
         time={formatDate(item.updatedAt)}
-        detail="Initial upload"
+        detail={`${item.name} (${(item.size / 1024).toFixed(1)} KB)`}
       />
       <ActivityItem
         action="Security Classification"
         time={formatDate(item.updatedAt)}
         detail={`Set to ${item.security}`}
       />
-      <p className="text-xs text-[var(--text-muted)] text-center py-4">
-        Activity feed will show Mercury citations, queries, and audit events once available.
-      </p>
+      {item.isIndexed && (
+        <ActivityItem
+          action="Indexed"
+          time={formatDate(item.updatedAt)}
+          detail="Embeddings generated and stored"
+        />
+      )}
+      {item.citations > 0 && (
+        <ActivityItem
+          action="Mercury Citations"
+          time={formatDate(item.updatedAt)}
+          detail={`Referenced ${item.citations} time${item.citations === 1 ? '' : 's'} in queries`}
+        />
+      )}
     </div>
   )
 }
