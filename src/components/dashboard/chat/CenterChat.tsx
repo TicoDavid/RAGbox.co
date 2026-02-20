@@ -90,7 +90,7 @@ export function CenterChat() {
       </div>
 
       {/* Input bar */}
-      <div className="shrink-0 border-t border-[var(--border-default)]">
+      <div className="shrink-0">
         <div className="max-w-[800px] mx-auto px-8 py-4">
           <CenterInputBar />
         </div>

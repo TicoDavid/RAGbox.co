@@ -283,22 +283,8 @@ export function MercuryPanel() {
         ${isWhistleblowerMode ? 'ring-2 ring-amber-500/30 ring-inset' : ''}
       `}
     >
-      {/* Layer 2: The Watermark — sits ABOVE bg, BELOW content */}
-      <div
-        className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
-        aria-hidden="true"
-      >
-        <img
-          src="https://storage.googleapis.com/connexusai-assets/RAGb%C3%B6x_ICON.png"
-          alt=""
-          className="w-[600px] h-auto opacity-20 select-none"
-          draggable={false}
-          style={{ filter: 'sepia(1) hue-rotate(-15deg) saturate(1.5)' }}
-        />
-      </div>
-
-      {/* Layer 3: All content — transparent bg so watermark shows through */}
-      <div className="relative z-10 flex flex-col h-full min-h-0">
+      {/* All content */}
+      <div className="relative flex flex-col h-full min-h-0">
         <ContextBar />
 
         {/* Conversation with Lens Refocus Animation */}
