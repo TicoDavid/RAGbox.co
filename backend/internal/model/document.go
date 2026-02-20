@@ -64,13 +64,17 @@ type DocumentChunk struct {
 
 // AllowedMimeTypes lists the mime types accepted for upload.
 var AllowedMimeTypes = map[string]bool{
-	"application/pdf":                                                true,
+	"application/pdf": true,
 	"application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
-	"text/plain":       true,
-	"text/csv":         true,
+	"text/plain":      true,
+	"text/markdown":   true,
+	"text/csv":        true,
+	"application/json": true,
 	"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": true,
-	"image/png":        true,
-	"image/jpeg":       true,
+	"image/png":  true,
+	"image/jpeg": true,
+	"image/gif":  true,
+	"image/webp": true,
 }
 
 // MaxFileSizeBytes is the maximum allowed upload size (50 MB).
