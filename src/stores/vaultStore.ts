@@ -50,7 +50,9 @@ interface VaultState {
 
   // Folder Actions
   createFolder: (name: string, parentId?: string) => Promise<void>
+  renameFolder: (id: string, name: string) => Promise<void>
   deleteFolder: (id: string) => Promise<void>
+  moveDocument: (docId: string, folderId: string | null) => Promise<void>
 }
 
 export const useVaultStore = create<VaultState>()(
@@ -367,6 +369,23 @@ export const useVaultStore = create<VaultState>()(
           }
         },
 
+        renameFolder: async (id, name) => {
+          try {
+            const res = await apiFetch(`/api/documents/folders/${id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name }),
+            })
+
+            if (!res.ok) throw new Error('Folder rename failed')
+            get().fetchFolders()
+            toast.success('Folder renamed')
+          } catch (error) {
+            toast.error('Failed to rename folder')
+            throw error
+          }
+        },
+
         deleteFolder: async (id) => {
           try {
             const res = await apiFetch(`/api/documents/folders/${id}`, {
@@ -375,9 +394,48 @@ export const useVaultStore = create<VaultState>()(
 
             if (!res.ok) throw new Error('Folder deletion failed')
             get().fetchFolders()
-            toast.success('Folder deleted')
+            get().fetchDocuments()
+            toast.success('Folder deleted — files moved to root')
           } catch (error) {
             toast.error('Failed to delete folder')
+            throw error
+          }
+        },
+
+        moveDocument: async (docId, folderId) => {
+          const { documents, folders } = get()
+          const doc = documents[docId]
+          if (!doc) return
+
+          // Optimistic UI: update locally first
+          set((state) => ({
+            documents: {
+              ...state.documents,
+              [docId]: { ...doc, folderId: folderId ?? undefined },
+            },
+          }))
+
+          try {
+            const res = await apiFetch(`/api/documents/${docId}/move`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ folderId }),
+            })
+
+            if (!res.ok) throw new Error('Move failed')
+
+            const folderName = folderId ? folders[folderId]?.name : 'Root'
+            toast.success(`Moved "${doc.name}" to ${folderName}`)
+            get().fetchFolders()
+          } catch (error) {
+            // Revert optimistic update
+            set((state) => ({
+              documents: {
+                ...state.documents,
+                [docId]: doc,
+              },
+            }))
+            toast.error('Failed to move document')
             throw error
           }
         },
