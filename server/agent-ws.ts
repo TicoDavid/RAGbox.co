@@ -281,15 +281,7 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
     session.state = 'idle'
     sendJSON(ws, { type: 'state', state: 'idle' })
 
-    // Send initial greeting from Mercury
-    console.log(`[AgentWS] Sending initial greeting for ${sessionId}`)
-    try {
-      await voiceSession.triggerGreeting()
-    } catch (greetError) {
-      console.warn('[AgentWS] Failed to send initial greeting:', greetError)
-    }
-
-    // Handle incoming messages
+    // Register message handler BEFORE greeting so messages aren't lost during TTS
     ws.on('message', async (data, isBinary) => {
       session.lastActivity = Date.now()
 
@@ -373,6 +365,12 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
       }
     }
     whatsAppEventEmitter.on('message', onWhatsAppEvent)
+
+    // Send initial greeting from Mercury (fire-and-forget so it doesn't block message handling)
+    console.log(`[AgentWS] Sending initial greeting for ${sessionId}`)
+    voiceSession.triggerGreeting().catch((greetError) => {
+      console.warn('[AgentWS] Failed to send initial greeting:', greetError)
+    })
 
     // Handle disconnection
     ws.on('close', async (code, reason) => {
