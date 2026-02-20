@@ -17,6 +17,7 @@ import {
   Search,
   ShieldCheck,
   Key,
+  EyeOff,
 } from 'lucide-react'
 
 export function CenterInputBar() {
@@ -28,6 +29,8 @@ export function CenterInputBar() {
   const stopStreaming = useChatStore((s) => s.stopStreaming)
   const safetyMode = useChatStore((s) => s.safetyMode)
   const toggleSafetyMode = useChatStore((s) => s.toggleSafetyMode)
+  const incognitoMode = useChatStore((s) => s.incognitoMode)
+  const toggleIncognito = useChatStore((s) => s.toggleIncognito)
   const privilegeMode = usePrivilegeStore((s) => s.isEnabled)
 
   // Settings for model picker
@@ -186,6 +189,24 @@ export function CenterInputBar() {
             <ShieldOff className="w-3.5 h-3.5" />
           )}
           Safety
+        </button>
+
+        {/* ── Incognito toggle ── */}
+        <button
+          onClick={toggleIncognito}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+            incognitoMode
+              ? 'bg-[var(--warning)]/15 text-[var(--warning)]'
+              : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+          }`}
+          title={
+            incognitoMode
+              ? 'Incognito: conversation won\'t be saved'
+              : 'Enable incognito mode'
+          }
+        >
+          <EyeOff className="w-3.5 h-3.5" />
+          Incognito
         </button>
 
         {/* ── Model dropdown ── */}

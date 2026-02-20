@@ -60,6 +60,8 @@ export function CenterChat() {
   const messages = useChatStore((s) => s.messages)
   const isStreaming = useChatStore((s) => s.isStreaming)
   const streamingContent = useChatStore((s) => s.streamingContent)
+  const incognitoMode = useChatStore((s) => s.incognitoMode)
+  const clearThread = useChatStore((s) => s.clearThread)
 
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -70,8 +72,14 @@ export function CenterChat() {
     el.scrollTop = el.scrollHeight
   }, [messages, streamingContent])
 
+  // Auto-clear messages on unmount when incognito
+  useEffect(() => {
+    if (!incognitoMode) return
+    return () => { clearThread() }
+  }, [incognitoMode, clearThread])
+
   return (
-    <div className="flex flex-col h-full bg-[var(--bg-primary)]">
+    <div className={`flex flex-col h-full bg-[var(--bg-primary)]${incognitoMode ? ' border-t-2 border-[var(--warning)]' : ''}`}>
       {/* Header */}
       <CenterHeader />
 

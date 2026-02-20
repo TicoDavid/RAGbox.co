@@ -45,6 +45,9 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
     const body = await request.json()
     const { query, stream, privilegeMode, history, maxTier, personaId, safetyMode, documentScope } = body
 
+    // Incognito mode: skip cache reads/writes and audit trail
+    const incognito = request.headers.get('x-incognito') === 'true'
+
     if (!query || typeof query !== 'string') {
       return NextResponse.json(
         { success: false, error: 'Query is required' },
@@ -100,7 +103,7 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
     // Check cache for non-streaming requests (or when explicitly not streaming)
     // Only cache simple queries (no conversation history — those are context-dependent)
     const isSimpleQuery = !history || history.length === 0
-    if (isSimpleQuery) {
+    if (isSimpleQuery && !incognito) {
       const cached = await getCachedQuery(query, userId)
       if (cached) {
         return NextResponse.json({
@@ -242,7 +245,7 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
     // Handle JSON response — cache if it's a simple query with a successful answer
     const data = await backendResponse.json()
 
-    if (isSimpleQuery && data.success !== false) {
+    if (isSimpleQuery && !incognito && data.success !== false) {
       const answer = data.data?.answer ?? data.answer
       const confidence = data.data?.confidence ?? data.confidence
       const citations = data.data?.citations ?? data.citations ?? []

@@ -34,12 +34,16 @@ export interface ChatState {
   documentScope: string | null
   documentScopeName: string | null
 
+  // Incognito mode: no persistence, no audit trail
+  incognitoMode: boolean
+
   // Actions
   setInputValue: (value: string) => void
   sendMessage: (privilegeMode: boolean) => Promise<void>
   toggleSafetyMode: () => void
   setModel: (model: string) => void
   setDocumentScope: (docId: string | null) => void
+  toggleIncognito: () => void
   startDocumentChat: (docId: string, docName: string) => Promise<void>
   stopStreaming: () => void
   clearThread: () => void
@@ -76,6 +80,7 @@ export const useChatStore = create<ChatState>()(
       selectedModel: 'aegis',
       documentScope: null,
       documentScopeName: null,
+      incognitoMode: false,
 
       setInputValue: (value) => set({ inputValue: value }),
 
@@ -85,6 +90,9 @@ export const useChatStore = create<ChatState>()(
       setModel: (model) => set({ selectedModel: model }),
 
       setDocumentScope: (docId) => set({ documentScope: docId, documentScopeName: null }),
+
+      toggleIncognito: () =>
+        set((state) => ({ incognitoMode: !state.incognitoMode })),
 
       startDocumentChat: async (docId, docName) => {
         // Clear existing thread, scope to this document, and send initial query
@@ -123,7 +131,7 @@ export const useChatStore = create<ChatState>()(
         }),
 
       sendMessage: async (privilegeMode) => {
-        const { inputValue, messages, safetyMode, selectedModel, documentScope } = get()
+        const { inputValue, messages, safetyMode, selectedModel, documentScope, incognitoMode } = get()
         if (!inputValue.trim() || get().isStreaming) return
 
         const userMessage: ChatMessage = {
@@ -164,9 +172,14 @@ export const useChatStore = create<ChatState>()(
             chatBody.llmModel = selectedModel
           }
 
+          const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+          }
+          if (incognitoMode) headers['X-Incognito'] = 'true'
+
           const res = await apiFetch('/api/chat', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify(chatBody),
             signal: abortController.signal,
           })
@@ -302,8 +315,8 @@ export const useChatStore = create<ChatState>()(
             abortController: null,
           }))
 
-          // Auto-title after first exchange
-          if (isFirstMessage) {
+          // Auto-title after first exchange (skip in incognito)
+          if (isFirstMessage && !incognitoMode) {
             generateTitle(queryForTitle)
               .then((title) => set({ threadTitle: title }))
               .catch(() => set({ threadTitle: queryForTitle.slice(0, 50) }))
@@ -338,14 +351,17 @@ export const useChatStore = create<ChatState>()(
     }),
     {
       name: 'ragbox-chat-storage',
-      partialize: (state) => ({
-        threadId: state.threadId,
-        threadTitle: state.threadTitle,
-        messages: state.messages,
-        documentScope: state.documentScope,
-        documentScopeName: state.documentScopeName,
-        selectedModel: state.selectedModel,
-      }),
+      partialize: (state) =>
+        state.incognitoMode
+          ? { selectedModel: state.selectedModel }
+          : {
+              threadId: state.threadId,
+              threadTitle: state.threadTitle,
+              messages: state.messages,
+              documentScope: state.documentScope,
+              documentScopeName: state.documentScopeName,
+              selectedModel: state.selectedModel,
+            },
     },
     ),
     { name: 'chat-store' },

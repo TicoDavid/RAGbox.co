@@ -1,7 +1,7 @@
 'use client'
 
 import { useChatStore } from '@/stores/chatStore'
-import { MessageSquare, FileText, X, PenLine } from 'lucide-react'
+import { MessageSquare, FileText, X, PenLine, EyeOff } from 'lucide-react'
 
 export function CenterHeader() {
   const messages = useChatStore((s) => s.messages)
@@ -10,6 +10,7 @@ export function CenterHeader() {
   const documentScopeName = useChatStore((s) => s.documentScopeName)
   const setDocumentScope = useChatStore((s) => s.setDocumentScope)
   const clearThread = useChatStore((s) => s.clearThread)
+  const incognitoMode = useChatStore((s) => s.incognitoMode)
   const queryCount = messages.filter((m) => m.role === 'user').length
 
   return (
@@ -22,6 +23,15 @@ export function CenterHeader() {
           </span>
         </div>
         <div className="flex items-center gap-4 text-xs text-[var(--text-tertiary)]">
+          {incognitoMode && (
+            <span
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--warning)]/15 text-[var(--warning)] text-[10px] font-semibold uppercase tracking-wider"
+              title="This conversation won't be saved"
+            >
+              <EyeOff className="w-3 h-3" />
+              Incognito
+            </span>
+          )}
           {queryCount > 0 && <span>{queryCount} {queryCount === 1 ? 'query' : 'queries'}</span>}
           <button
             onClick={clearThread}
