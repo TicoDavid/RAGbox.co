@@ -62,6 +62,7 @@ interface MercuryState {
 
   // Unified Thread
   threadId: string | null
+  threadTitle: string | null
   threadLoaded: boolean
   titlePatched: boolean
   channelFilter: MercuryChannel | 'all'
@@ -125,6 +126,18 @@ function persistToThread(
   })
 }
 
+// Call Gemini Flash to generate a short thread title from the user query
+async function generateThreadTitle(query: string): Promise<string> {
+  const res = await fetch('/api/mercury/thread/generate-title', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query }),
+  })
+  if (!res.ok) return query.slice(0, 50)
+  const data = await res.json()
+  return data.title || query.slice(0, 50)
+}
+
 export const useMercuryStore = create<MercuryState>()(
   devtools((set, get) => ({
     messages: [],
@@ -143,6 +156,7 @@ export const useMercuryStore = create<MercuryState>()(
     pendingAction: null,
     pendingConfirmation: null,
     threadId: null,
+    threadTitle: null,
     threadLoaded: false,
     titlePatched: false,
     channelFilter: 'all',
@@ -175,10 +189,9 @@ export const useMercuryStore = create<MercuryState>()(
       // Persist user message to thread (fire-and-forget)
       persistToThread(get().threadId, 'user', 'dashboard', inputValue)
 
-      // Auto-title: use first message as thread title
-      if (!get().titlePatched) {
-        get().patchThreadTitle(inputValue.trim())
-      }
+      // Auto-title: generate LLM title after first response (deferred below)
+      const shouldGenerateTitle = !get().titlePatched
+      const queryForTitle = inputValue.trim()
 
       try {
         // Tool routing: check if message matches a tool pattern before hitting the backend
@@ -220,6 +233,15 @@ export const useMercuryStore = create<MercuryState>()(
 
           // Persist tool result to thread
           persistToThread(get().threadId, 'assistant', 'dashboard', toolResult.display)
+
+          // Generate LLM thread title after first tool response
+          if (shouldGenerateTitle) {
+            generateThreadTitle(queryForTitle).then((title) => {
+              get().patchThreadTitle(title)
+            }).catch(() => {
+              get().patchThreadTitle(queryForTitle.slice(0, 50))
+            })
+          }
           return
         }
 
@@ -397,6 +419,16 @@ export const useMercuryStore = create<MercuryState>()(
 
         // Persist assistant response to thread
         persistToThread(get().threadId, 'assistant', 'dashboard', fullContent || 'No response generated.', confidence, citations)
+
+        // Generate LLM thread title after first successful response
+        if (shouldGenerateTitle) {
+          generateThreadTitle(queryForTitle).then((title) => {
+            get().patchThreadTitle(title)
+          }).catch(() => {
+            // Fallback: use raw query
+            get().patchThreadTitle(queryForTitle.slice(0, 50))
+          })
+        }
       } catch (error) {
         if ((error as Error).name === 'AbortError') {
           set({ isStreaming: false, streamingContent: '', abortController: null })
@@ -620,7 +652,7 @@ export const useMercuryStore = create<MercuryState>()(
         const threadId = threadData.data?.id
         if (!threadId) return
 
-        set({ threadId })
+        set({ threadId, threadTitle: threadData.data?.title || null })
 
         // 2. Load recent messages
         const msgRes = await fetch(`/api/mercury/thread/messages?threadId=${threadId}&limit=100`)
@@ -670,6 +702,7 @@ export const useMercuryStore = create<MercuryState>()(
 
         set({
           threadId: newId,
+          threadTitle: null,
           messages: [],
           attachments: [],
           sessionQueryCount: 0,
@@ -723,7 +756,7 @@ export const useMercuryStore = create<MercuryState>()(
       const { threadId } = get()
       if (!threadId) return
 
-      set({ titlePatched: true })
+      set({ titlePatched: true, threadTitle: title })
 
       // Fire-and-forget PATCH
       fetch('/api/mercury/thread', {
