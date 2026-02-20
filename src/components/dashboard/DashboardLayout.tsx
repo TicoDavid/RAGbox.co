@@ -280,7 +280,7 @@ export function DashboardLayout() {
   const [rightExpanded, setRightExpanded] = useState(false)
   const [rightTab, setRightTab] = useState<RightRailTab>('studio')
   const mercuryEnabled = isMercuryEnabled()
-  const [mercuryOpen, setMercuryOpen] = useState(mercuryEnabled)
+  const [mercuryOpen, setMercuryOpen] = useState(false)
   const [isIngestionOpen, setIsIngestionOpen] = useState(false)
 
   // Mobile overlay state

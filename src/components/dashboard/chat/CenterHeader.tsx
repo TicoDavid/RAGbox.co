@@ -1,7 +1,7 @@
 'use client'
 
 import { useChatStore } from '@/stores/chatStore'
-import { MessageSquare, FileText, X } from 'lucide-react'
+import { MessageSquare, FileText, X, PenLine } from 'lucide-react'
 
 export function CenterHeader() {
   const messages = useChatStore((s) => s.messages)
@@ -9,6 +9,7 @@ export function CenterHeader() {
   const documentScope = useChatStore((s) => s.documentScope)
   const documentScopeName = useChatStore((s) => s.documentScopeName)
   const setDocumentScope = useChatStore((s) => s.setDocumentScope)
+  const clearThread = useChatStore((s) => s.clearThread)
   const queryCount = messages.filter((m) => m.role === 'user').length
 
   return (
@@ -22,6 +23,14 @@ export function CenterHeader() {
         </div>
         <div className="flex items-center gap-4 text-xs text-[var(--text-tertiary)]">
           {queryCount > 0 && <span>{queryCount} {queryCount === 1 ? 'query' : 'queries'}</span>}
+          <button
+            onClick={clearThread}
+            className="p-1.5 rounded-md hover:bg-[var(--bg-elevated)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+            aria-label="New chat"
+            title="New Chat"
+          >
+            <PenLine className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
       {documentScope && documentScopeName && (
