@@ -134,7 +134,7 @@ export function DeepInspector({
 
         {/* Tabs */}
         <div className="shrink-0 flex border-b border-[var(--border-default)]">
-          {(['certificate', 'activity'] as const).map((tab) => (
+          {(['certificate', 'activity', 'related'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setInspectorTab(tab)}
@@ -166,6 +166,8 @@ export function DeepInspector({
           )}
 
           {inspectorTab === 'activity' && <ActivityTab item={item} />}
+
+          {inspectorTab === 'related' && <RelatedTab />}
         </div>
       </div>
     </motion.aside>
@@ -362,4 +364,19 @@ function ActivityItem({ action, time, detail }: { action: string; time: string; 
   )
 }
 
-// RelatedTab removed — waiting for backend document-to-document vector similarity support
+function RelatedTab() {
+  return (
+    <div className="flex flex-col items-center justify-center py-8 text-center">
+      <div className="w-12 h-12 rounded-xl bg-[var(--brand-blue)]/10 flex items-center justify-center mb-3">
+        <svg className="w-6 h-6 text-[var(--brand-blue)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
+        </svg>
+      </div>
+      <p className="text-sm font-medium text-[var(--text-primary)] mb-1">Related Documents</p>
+      <p className="text-xs text-[var(--text-tertiary)] max-w-[200px] leading-relaxed">
+        Vector similarity search will surface related documents once the backend API is available.
+      </p>
+    </div>
+  )
+}
