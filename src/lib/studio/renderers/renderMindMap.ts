@@ -6,8 +6,7 @@
  * browser — no Chromium or server-side rendering required.
  */
 
-const DARK_BG = '#0A192F'
-const TEXT_PRIMARY = '#E5E7EB'
+import { DARK_BG, CARD_BG, TERTIARY_BG, TEXT_PRIMARY, TEXT_SECONDARY, BRAND_BLUE, BORDER_DEFAULT } from './colors'
 
 /**
  * Render a mermaid diagram string into a self-contained HTML Buffer.
@@ -38,11 +37,11 @@ export function renderMindMap(title: string, mermaidCode: string): Buffer {
     }
     .watermark {
       font-size: 0.7rem;
-      color: #94A3B8;
+      color: ${TEXT_SECONDARY};
       margin-bottom: 1.5rem;
     }
     .mermaid {
-      background: #112240;
+      background: ${CARD_BG};
       border-radius: 8px;
       padding: 2rem;
       max-width: 100%;
@@ -51,7 +50,7 @@ export function renderMindMap(title: string, mermaidCode: string): Buffer {
     .footer {
       margin-top: 2rem;
       font-size: 0.65rem;
-      color: #94A3B8;
+      color: ${TEXT_SECONDARY};
     }
   </style>
 </head>
@@ -69,12 +68,12 @@ ${escapeHtml(mermaidCode)}
       startOnLoad: true,
       theme: 'dark',
       themeVariables: {
-        primaryColor: '#2463EB',
-        primaryTextColor: '#E5E7EB',
-        primaryBorderColor: '#233554',
-        lineColor: '#94A3B8',
-        secondaryColor: '#112240',
-        tertiaryColor: '#1B2D4B',
+        primaryColor: '${BRAND_BLUE}',
+        primaryTextColor: '${TEXT_PRIMARY}',
+        primaryBorderColor: '${BORDER_DEFAULT}',
+        lineColor: '${TEXT_SECONDARY}',
+        secondaryColor: '${CARD_BG}',
+        tertiaryColor: '${TERTIARY_BG}',
       },
     });
   </script>

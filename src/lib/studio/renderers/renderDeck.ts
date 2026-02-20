@@ -6,11 +6,7 @@
 
 import PptxGenJS from 'pptxgenjs'
 import type { DeckStructure, SlideContent } from '../types'
-
-const BRAND_BLUE = '2463EB'
-const DARK_BG = '0A192F'
-const TEXT_LIGHT = 'E5E7EB'
-const TEXT_MUTED = '94A3B8'
+import { PPTX_BRAND as BRAND_BLUE, PPTX_DARK_BG as DARK_BG, PPTX_TEXT_LIGHT as TEXT_LIGHT, PPTX_TEXT_MUTED as TEXT_MUTED } from './colors'
 
 /**
  * Render a DeckStructure to a .pptx Buffer.

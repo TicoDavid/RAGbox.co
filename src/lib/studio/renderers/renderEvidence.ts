@@ -6,16 +6,7 @@
 
 import ExcelJS from 'exceljs'
 import type { EvidenceLog } from '../types'
-
-const SEVERITY_COLORS: Record<string, string> = {
-  critical: 'FFDC2626', // red
-  high: 'FFF59E0B',     // amber
-  medium: 'FF3B82F6',   // blue
-  low: 'FF10B981',      // green
-}
-
-const HEADER_BG = 'FF0A192F'   // dark navy
-const HEADER_FG = 'FFE5E7EB'   // light text
+import { XLSX_SEVERITY as SEVERITY_COLORS, XLSX_HEADER_BG as HEADER_BG, XLSX_HEADER_FG as HEADER_FG } from './colors'
 
 /**
  * Render an EvidenceLog to a .xlsx Buffer.

@@ -8,15 +8,7 @@
 import React from 'react'
 import { renderToBuffer, Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer'
 import type { ComplianceDrill } from '../types'
-
-const BRAND_BLUE = '#2463EB'
-const DARK_BG = '#0A192F'
-const CARD_BG = '#112240'
-const TEXT_PRIMARY = '#E5E7EB'
-const TEXT_SECONDARY = '#94A3B8'
-const ACCENT_AMBER = '#F59E0B'
-const SUCCESS = '#10B981'
-const DANGER = '#EF4444'
+import { BRAND_BLUE, DARK_BG, CARD_BG, TEXT_PRIMARY, TEXT_SECONDARY, WARNING as ACCENT_AMBER, SUCCESS, DANGER } from './colors'
 
 const DIFFICULTY_COLORS: Record<string, string> = {
   easy: SUCCESS,
