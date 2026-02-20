@@ -32,6 +32,7 @@ export interface ChatState {
 
   // Document scope: when set, retrieval is filtered to this document only
   documentScope: string | null
+  documentScopeName: string | null
 
   // Actions
   setInputValue: (value: string) => void
@@ -73,6 +74,7 @@ export const useChatStore = create<ChatState>()(
       safetyMode: true,
       selectedModel: 'aegis',
       documentScope: null,
+      documentScopeName: null,
 
       setInputValue: (value) => set({ inputValue: value }),
 
@@ -81,7 +83,7 @@ export const useChatStore = create<ChatState>()(
 
       setModel: (model) => set({ selectedModel: model }),
 
-      setDocumentScope: (docId) => set({ documentScope: docId }),
+      setDocumentScope: (docId) => set({ documentScope: docId, documentScopeName: null }),
 
       startDocumentChat: async (docId, docName) => {
         // Clear existing thread, scope to this document, and send initial query
@@ -89,11 +91,12 @@ export const useChatStore = create<ChatState>()(
           threadId: null,
           threadTitle: docName,
           messages: [],
-          inputValue: `Summarize this document: ${docName}`,
+          inputValue: `Summarize "${docName}" and provide a detailed outline.`,
           isStreaming: false,
           streamingContent: '',
           abortController: null,
           documentScope: docId,
+          documentScopeName: docName,
         })
         // Fire off the initial query
         await get().sendMessage(false)
@@ -115,6 +118,7 @@ export const useChatStore = create<ChatState>()(
           streamingContent: '',
           abortController: null,
           documentScope: null,
+          documentScopeName: null,
         }),
 
       sendMessage: async (privilegeMode) => {

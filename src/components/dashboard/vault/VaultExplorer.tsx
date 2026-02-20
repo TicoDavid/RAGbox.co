@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react'
 import { useVaultStore } from '@/stores/vaultStore'
+import { useChatStore } from '@/stores/chatStore'
 import {
   ChevronLeft,
   ChevronRight,
@@ -416,7 +417,7 @@ function SovereignInspector({
           {item.isIndexed ? (
             <>
               <MessageSquare className="w-4 h-4" />
-              Analyze in Mercury
+              Chat with this File
             </>
           ) : (
             <>
@@ -456,6 +457,7 @@ export function VaultExplorer() {
   const folders = useVaultStore((s) => s.folders)
   const exitExplorerMode = useVaultStore((s) => s.exitExplorerMode)
   const selectAndChat = useVaultStore((s) => s.selectAndChat)
+  const startDocumentChat = useChatStore((s) => s.startDocumentChat)
   const uploadDocuments = useVaultStore((s) => s.uploadDocuments)
   const deleteDocument = useVaultStore((s) => s.deleteDocument)
   const currentPath = useVaultStore((s) => s.currentPath)
@@ -722,7 +724,12 @@ export function VaultExplorer() {
                 <tr
                   key={item.id}
                   onClick={() => handleRowClick(item)}
-                  onDoubleClick={() => item.type === 'document' && selectAndChat(item.id)}
+                  onDoubleClick={() => {
+                    if (item.type === 'document') {
+                      selectAndChat(item.id)
+                      startDocumentChat(item.id, item.name)
+                    }
+                  }}
                   className={`border-b border-[var(--border-subtle)] cursor-pointer transition-all ${
                     selectedId === item.id
                       ? 'bg-[var(--brand-blue)]/15 border-l-4 border-l-[var(--brand-blue)]'
@@ -818,7 +825,11 @@ export function VaultExplorer() {
           <SovereignInspector
             item={selectedItem}
             onClose={() => setShowInspector(false)}
-            onChat={selectAndChat}
+            onChat={(id: string) => {
+              const doc = documents[id]
+              selectAndChat(id)
+              if (doc) startDocumentChat(id, doc.name)
+            }}
             onDelete={(id) => { deleteDocument(id); setSelectedId(null) }}
             onSecurityChange={handleSecurityChange}
             onIndexToggle={handleIndexToggle}

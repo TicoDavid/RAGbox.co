@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { useSession } from 'next-auth/react'
 import { useVaultStore } from '@/stores/vaultStore'
+import { useChatStore } from '@/stores/chatStore'
 import { SECURITY_TIERS } from '../security'
 import type { SecurityTier } from '../security'
 import { apiFetch } from '@/lib/api'
@@ -38,6 +39,7 @@ export function SovereignExplorer({ onClose }: SovereignExplorerProps) {
   const createFolder = useVaultStore((s) => s.createFolder)
   const deleteDocument = useVaultStore((s) => s.deleteDocument)
   const selectAndChat = useVaultStore((s) => s.selectAndChat)
+  const startDocumentChat = useChatStore((s) => s.startDocumentChat)
   const uploadDocuments = useVaultStore((s) => s.uploadDocuments)
   const navigate = useVaultStore((s) => s.navigate)
   const toggleStar = useVaultStore((s) => s.toggleStar)
@@ -305,8 +307,12 @@ export function SovereignExplorer({ onClose }: SovereignExplorerProps) {
   }, [uploadDocuments, selectedFolderId, fetchDocuments])
 
   const handleChat = useCallback(() => {
-    if (selectedId) selectAndChat(selectedId)
-  }, [selectedId, selectAndChat])
+    if (selectedId) {
+      const doc = documents[selectedId]
+      selectAndChat(selectedId)
+      if (doc) startDocumentChat(selectedId, doc.name)
+    }
+  }, [selectedId, documents, selectAndChat, startDocumentChat])
 
   const handleVectorize = useCallback(async () => {
     const pendingDocs = Object.values(documents).filter(
