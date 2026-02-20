@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { validateExternalUrl } from '@/lib/utils/url-validation'
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -14,39 +15,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'URL is required' }, { status: 400 })
     }
 
-    // Validate URL
-    let parsedUrl: URL
-    try {
-      parsedUrl = new URL(url)
-      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-        throw new Error('Invalid protocol')
-      }
-    } catch {
-      return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 })
-    }
-
-    // SSRF protection: block private/internal IP ranges
-    const hostname = parsedUrl.hostname
-    const privatePatterns = [
-      /^127\./,                          // Loopback
-      /^10\./,                           // 10.0.0.0/8
-      /^172\.(1[6-9]|2[0-9]|3[01])\./,  // 172.16.0.0/12
-      /^192\.168\./,                     // 192.168.0.0/16
-      /^169\.254\./,                     // Link-local
-      /^0\./,                            // Current network
-      /^fc00:/i,                         // IPv6 unique local
-      /^fe80:/i,                         // IPv6 link-local
-      /^::1$/,                           // IPv6 loopback
-      /^::$/,                            // IPv6 unspecified
-    ]
-    const blockedHosts = ['localhost', 'metadata.google.internal', '[::1]']
-
-    if (blockedHosts.includes(hostname.toLowerCase()) || privatePatterns.some(p => p.test(hostname))) {
-      return NextResponse.json({ error: 'Access to internal addresses is not allowed' }, { status: 403 })
+    // SSRF protection: validate URL scheme, block private/internal IPs
+    const validation = validateExternalUrl(url)
+    if (!validation.ok) {
+      const status = validation.reason.includes('internal') ? 403 : 400
+      return NextResponse.json({ error: validation.reason }, { status })
     }
 
     // Fetch the URL content
-    const response = await fetch(url, {
+    const response = await fetch(validation.url.href, {
       headers: {
         'User-Agent': 'RAGbox/1.0 (Knowledge Extraction Bot)',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8',

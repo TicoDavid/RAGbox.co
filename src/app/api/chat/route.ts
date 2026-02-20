@@ -17,6 +17,7 @@ import { isToolError, createErrorResponse } from '@/lib/mercury/toolErrors'
 import { getCachedQuery, setCachedQuery } from '@/lib/cache/queryCache'
 import prisma from '@/lib/prisma'
 import { decryptKey } from '@/lib/utils/kms'
+import { validateExternalUrl } from '@/lib/utils/url-validation'
 
 const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
@@ -54,37 +55,41 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
     // ── Safety Mode: URL fetching when unsafe ──────────
     // safetyMode=true (default) → vault-only, no external URL fetching
     // safetyMode=false → extract URLs from query, fetch content, prepend to context
+    // SSRF protection: block private IPs, GCP metadata, non-HTTP schemes (5s timeout)
     let webContext = ''
     if (safetyMode === false) {
       const urlPattern = /https?:\/\/[^\s)>\]]+/gi
       const urls = query.match(urlPattern)
       if (urls && urls.length > 0) {
-        // Fetch first URL only (limit blast radius)
         const targetUrl = urls[0]
-        try {
-          const urlRes = await fetch(targetUrl, {
-            headers: { 'User-Agent': 'RAGbox/1.0 (knowledge-assistant)' },
-            signal: AbortSignal.timeout(10000),
-          })
-          if (urlRes.ok) {
-            const contentType = urlRes.headers.get('content-type') ?? ''
-            if (contentType.includes('text/html') || contentType.includes('text/plain')) {
-              const rawText = await urlRes.text()
-              // Strip HTML tags for plain text extraction
-              const cleanText = rawText
-                .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-                .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-                .replace(/<[^>]+>/g, ' ')
-                .replace(/\s+/g, ' ')
-                .trim()
-                .slice(0, 8000) // Cap at 8KB to avoid context overflow
-              if (cleanText.length > 50) {
-                webContext = `[Web content from ${targetUrl}]:\n${cleanText}\n\n`
+        const validation = validateExternalUrl(targetUrl)
+        if (!validation.ok) {
+          console.warn(`[Chat] SSRF blocked: ${validation.reason} — ${targetUrl}`)
+        } else {
+          try {
+            const urlRes = await fetch(validation.url.href, {
+              headers: { 'User-Agent': 'RAGbox/1.0 (knowledge-assistant)' },
+              signal: AbortSignal.timeout(5000),
+            })
+            if (urlRes.ok) {
+              const contentType = urlRes.headers.get('content-type') ?? ''
+              if (contentType.includes('text/html') || contentType.includes('text/plain')) {
+                const rawText = await urlRes.text()
+                const cleanText = rawText
+                  .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                  .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                  .replace(/<[^>]+>/g, ' ')
+                  .replace(/\s+/g, ' ')
+                  .trim()
+                  .slice(0, 8000)
+                if (cleanText.length > 50) {
+                  webContext = `[Web content from ${targetUrl}]:\n${cleanText}\n\n`
+                }
               }
             }
+          } catch (err) {
+            console.warn('[Chat] URL fetch failed (continuing without web context):', err)
           }
-        } catch (err) {
-          console.warn('[Chat] URL fetch failed (continuing without web context):', err)
         }
       }
     }
