@@ -163,13 +163,49 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
         throw new Error(`Backend error ${res.status}: ${errText.substring(0, 200)}`)
       }
 
-      const data = await res.json() as {
-        data?: { answer?: string; confidence?: number; queryId?: string }
-        answer?: string
-        confidence?: number
+      // The Go backend may return SSE format (event: ...\ndata: ...\n\n)
+      // or plain JSON depending on configuration. Handle both.
+      const rawText = await res.text()
+      let answer = ''
+
+      if (rawText.startsWith('{')) {
+        // Plain JSON response
+        const data = JSON.parse(rawText) as {
+          data?: { answer?: string }
+          answer?: string
+        }
+        answer = data.data?.answer || data.answer || ''
+      } else {
+        // SSE format — parse event/data pairs, collect token events
+        const tokens: string[] = []
+        for (const line of rawText.split('\n')) {
+          if (line.startsWith('data: ')) {
+            const dataStr = line.slice(6).trim()
+            if (!dataStr) continue
+            try {
+              const event = JSON.parse(dataStr) as {
+                type?: string
+                token?: string
+                answer?: string
+                data?: { answer?: string }
+              }
+              if (event.type === 'token' && event.token) {
+                tokens.push(event.token)
+              } else if (event.type === 'done') {
+                // done event may contain the full answer
+                answer = event.answer || event.data?.answer || tokens.join('')
+              }
+            } catch {
+              // Raw token text (non-JSON data line)
+              if (dataStr !== '[DONE]') {
+                tokens.push(dataStr)
+              }
+            }
+          }
+        }
+        if (!answer) answer = tokens.join('')
       }
 
-      const answer = data.data?.answer || data.answer || ''
       console.log(`[VoicePipeline] LLM answer: "${answer.substring(0, 80)}..."`)
 
       // Add assistant response to history
