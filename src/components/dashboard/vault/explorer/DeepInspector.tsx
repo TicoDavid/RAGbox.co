@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X,
@@ -14,7 +14,10 @@ import {
   ScrollText,
   ShieldCheck,
   Star,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react'
+import { apiFetch } from '@/lib/api'
 import { SovereignCertificate } from '../SovereignCertificate'
 import { SecurityBadge, SecurityDropdown, RagIndexToggle } from '../security'
 import type { SecurityTier } from '../security'
@@ -49,7 +52,7 @@ export function DeepInspector({
   onDelete,
   onSecurityChange,
   onIndexToggle,
-  onSelectItem: _onSelectItem,
+  onSelectItem,
   onDownload,
   onAuditLog,
   onVerifyIntegrity,
@@ -167,7 +170,7 @@ export function DeepInspector({
 
           {inspectorTab === 'activity' && <ActivityTab item={item} />}
 
-          {inspectorTab === 'related' && <RelatedTab />}
+          {inspectorTab === 'related' && <RelatedTab item={item} onSelectItem={onSelectItem} />}
         </div>
       </div>
     </motion.aside>
@@ -364,19 +367,119 @@ function ActivityItem({ action, time, detail }: { action: string; time: string; 
   )
 }
 
-function RelatedTab() {
-  return (
-    <div className="flex flex-col items-center justify-center py-8 text-center">
-      <div className="w-12 h-12 rounded-xl bg-[var(--brand-blue)]/10 flex items-center justify-center mb-3">
-        <svg className="w-6 h-6 text-[var(--brand-blue)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="12" cy="12" r="3" />
-          <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
-        </svg>
+interface RelatedDoc {
+  document: {
+    id: string
+    originalName: string
+    filename: string
+    fileType: string
+    chunkCount: number
+    mimeType: string
+  }
+  similarity: number
+}
+
+function RelatedTab({ item, onSelectItem }: { item: ExplorerItem; onSelectItem: (id: string) => void }) {
+  const [related, setRelated] = useState<RelatedDoc[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!item?.id || item.type === 'folder') return
+
+    let cancelled = false
+    setLoading(true)
+    setError(null)
+
+    apiFetch(`/api/documents/${item.id}/related?limit=5`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Failed to load related documents')
+        const json = await res.json()
+        if (!cancelled) {
+          setRelated(json.data?.related ?? [])
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => { cancelled = true }
+  }, [item?.id, item?.type])
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-8">
+        <Loader2 className="w-6 h-6 text-[var(--brand-blue)] animate-spin mb-2" />
+        <p className="text-xs text-[var(--text-tertiary)]">Finding related documents...</p>
       </div>
-      <p className="text-sm font-medium text-[var(--text-primary)] mb-1">Related Documents</p>
-      <p className="text-xs text-[var(--text-tertiary)] max-w-[200px] leading-relaxed">
-        Vector similarity search will surface related documents once the backend API is available.
-      </p>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-8 text-center">
+        <AlertCircle className="w-6 h-6 text-[var(--danger)] mb-2" />
+        <p className="text-xs text-[var(--text-tertiary)]">{error}</p>
+      </div>
+    )
+  }
+
+  if (related.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-8 text-center">
+        <div className="w-12 h-12 rounded-xl bg-[var(--brand-blue)]/10 flex items-center justify-center mb-3">
+          <svg className="w-6 h-6 text-[var(--brand-blue)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
+          </svg>
+        </div>
+        <p className="text-sm font-medium text-[var(--text-primary)] mb-1">No Related Documents</p>
+        <p className="text-xs text-[var(--text-tertiary)] max-w-[200px] leading-relaxed">
+          Upload more documents to see vector similarity matches.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      {related.map((rel) => (
+        <button
+          key={rel.document.id}
+          onClick={() => onSelectItem(rel.document.id)}
+          className="w-full text-left p-3 rounded-lg bg-[var(--bg-elevated)]/30 border border-[var(--border-subtle)] hover:border-[var(--brand-blue)]/30 hover:bg-[var(--bg-elevated)] transition-all group cursor-pointer"
+        >
+          <div className="flex items-start gap-2.5">
+            <div className="p-1.5 rounded-lg bg-[var(--brand-blue)]/10 shrink-0 mt-0.5 group-hover:bg-[var(--brand-blue)]/20 transition-colors">
+              <FileText className="w-3.5 h-3.5 text-[var(--brand-blue)]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-[var(--text-primary)] truncate group-hover:text-[var(--brand-blue)] transition-colors">
+                {rel.document.originalName || rel.document.filename}
+              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-[10px] uppercase text-[var(--text-tertiary)]">
+                  {rel.document.fileType || 'doc'}
+                </span>
+                {rel.document.chunkCount > 0 && (
+                  <span className="text-[10px] text-[var(--text-tertiary)]">
+                    {rel.document.chunkCount} chunks
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <span className="text-sm font-bold text-[var(--brand-blue)]">
+                {Math.round(rel.similarity * 100)}%
+              </span>
+              <p className="text-[9px] text-[var(--text-tertiary)] uppercase">match</p>
+            </div>
+          </div>
+        </button>
+      ))}
     </div>
   )
 }
