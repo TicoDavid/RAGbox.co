@@ -96,10 +96,10 @@ export function CenterMessage({ message }: { message: ChatMessage }) {
               : 'bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-blue-hover)] text-white' /* THEME-EXEMPT: white on brand gradient */
           }`}
         >
-          {isUser ? 'Y' : 'M'}
+          {isUser ? 'Y' : 'R'}
         </div>
         <span className="text-sm font-medium text-[var(--text-primary)]">
-          {isUser ? 'You' : 'Mercury'}
+          {isUser ? 'You' : 'RAGböx'}
         </span>
       </div>
 
