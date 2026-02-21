@@ -262,6 +262,13 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
         sendJSON(ws, { type: 'ui_action', action })
       },
 
+      onNoSpeech: () => {
+        console.log(`[AgentWS] No speech detected for ${sessionId}`)
+        sendJSON(ws, { type: 'agent_text_final', text: "I didn't catch that. Could you try again?" })
+        session.state = 'idle'
+        sendJSON(ws, { type: 'state', state: 'idle' })
+      },
+
       onError: (error) => {
         console.error(`[AgentWS] Voice pipeline error for ${sessionId}:`, error)
         obs.incrementError(sessionId)
@@ -314,11 +321,14 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
 
           case 'stop':
             if (session.voiceSession && session.isAudioSessionActive) {
-              await session.voiceSession.endAudioSession()
               session.isAudioSessionActive = false
               session.state = 'processing'
               sendJSON(ws, { type: 'state', state: 'processing' })
               obs.logAudioEvent(sessionId, 'mic_stop')
+              await session.voiceSession.endAudioSession()
+              // Pipeline complete — return to idle
+              session.state = 'idle'
+              sendJSON(ws, { type: 'state', state: 'idle' })
             }
             break
 

@@ -35,6 +35,7 @@ export interface VoiceSessionConfig {
   onToolCall?: (name: string, args: Record<string, unknown>) => void
   onToolResult?: (name: string, result: unknown) => void
   onUIAction?: (action: unknown) => void
+  onNoSpeech?: () => void
   onError?: (error: Error) => void
   onDisconnect?: () => void
 }
@@ -65,6 +66,7 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
     onToolCall,
     onToolResult,
     onUIAction,
+    onNoSpeech,
     onError,
     onDisconnect,
   } = config
@@ -290,6 +292,7 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
     const transcript = await speechToText(merged)
     if (!transcript.trim()) {
       console.log('[VoicePipeline] Empty transcript — skipping')
+      onNoSpeech?.()
       return
     }
 
@@ -362,6 +365,7 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
       console.log('[VoicePipeline] Triggering greeting')
 
       conversationHistory.push({ role: 'assistant', content: greeting })
+      onAgentTextPartial?.(greeting)
       onAgentTextFinal?.(greeting)
       await textToSpeech(greeting)
     },
