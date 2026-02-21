@@ -82,11 +82,11 @@ describe('debugOTPStore', () => {
   const origEnv = process.env.NODE_ENV
 
   afterEach(() => {
-    process.env.NODE_ENV = origEnv
+    ;(process.env as Record<string, string | undefined>).NODE_ENV = origEnv
   })
 
   test('logs store size in development', () => {
-    process.env.NODE_ENV = 'development'
+    ;(process.env as Record<string, string | undefined>).NODE_ENV = 'development'
     const spy = jest.spyOn(console, 'log').mockImplementation()
     generateOTP('test@test.com')
     debugOTPStore()
@@ -95,7 +95,7 @@ describe('debugOTPStore', () => {
   })
 
   test('does nothing in production', () => {
-    process.env.NODE_ENV = 'production'
+    ;(process.env as Record<string, string | undefined>).NODE_ENV = 'production'
     const spy = jest.spyOn(console, 'log').mockImplementation()
     debugOTPStore()
     expect(spy).not.toHaveBeenCalled()
@@ -128,14 +128,16 @@ describe('authOptions', () => {
 
   test('logger.error logs to console.error', () => {
     const spy = jest.spyOn(console, 'error').mockImplementation()
-    authOptions.logger!.error('TEST_CODE', { message: 'test', stack: '' } as unknown as Error)
+    const logger = authOptions.logger as { error: (code: string, metadata: unknown) => void; warn: (code: string) => void }
+    logger.error('TEST_CODE', { message: 'test', stack: '' })
     expect(spy).toHaveBeenCalled()
     spy.mockRestore()
   })
 
   test('logger.warn logs to console.warn', () => {
     const spy = jest.spyOn(console, 'warn').mockImplementation()
-    authOptions.logger!.warn('TEST_WARN')
+    const logger = authOptions.logger as { warn: (code: string) => void }
+    logger.warn('TEST_WARN')
     expect(spy).toHaveBeenCalled()
     spy.mockRestore()
   })
