@@ -1483,6 +1483,38 @@ function DocumentationSettings() {
 function ReportIssueSettings() {
   const [issueType, setIssueType] = useState<'bug' | 'feature' | 'question'>('bug')
   const [description, setDescription] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  const handleSubmit = async () => {
+    if (!description.trim() || description.trim().length < 10) {
+      toast.error('Description must be at least 10 characters')
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/report-issue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: issueType,
+          description: description.trim(),
+          currentUrl: typeof window !== 'undefined' ? window.location.href : undefined,
+        }),
+      })
+      if (!res.ok) {
+        const json = await res.json()
+        throw new Error(json.error || 'Failed to submit report')
+      }
+      toast.success('Report submitted. Thank you for your feedback!')
+      setDescription('')
+      setIssueType('bug')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to submit report')
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -1526,9 +1558,11 @@ function ReportIssueSettings() {
       </div>
 
       <button
-        disabled={!description.trim()}
-        className="w-full py-3 px-4 bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-[var(--text-primary)] text-sm font-medium rounded-lg transition-colors"
+        onClick={handleSubmit}
+        disabled={!description.trim() || submitting}
+        className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-[var(--text-primary)] text-sm font-medium rounded-lg transition-colors"
       >
+        {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
         Submit Report
       </button>
     </div>
