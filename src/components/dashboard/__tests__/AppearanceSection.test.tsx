@@ -27,6 +27,7 @@ jest.mock('lucide-react', () => ({
 // We test the logic directly rather than importing the 1800-line GlobalHeader
 
 function AppearanceSettings() {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { theme, setTheme, density, setDensity } = require('@/contexts/SettingsContext').useSettings()
 
   const themes = [
