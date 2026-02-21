@@ -222,8 +222,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // ========================================
     // Phase 16c: Add 'roam' channel
     // ========================================
-    await prisma.$executeRawUnsafe(`ALTER TYPE mercury_channel ADD VALUE IF NOT EXISTS 'roam'`)
-    results.push('mercury_channel roam: OK')
+    try {
+      await prisma.$executeRawUnsafe(`ALTER TYPE mercury_channel ADD VALUE IF NOT EXISTS 'roam'`)
+      results.push('mercury_channel roam: OK')
+    } catch (enumErr) {
+      results.push(`mercury_channel roam: SKIPPED (${enumErr instanceof Error ? enumErr.message.slice(0, 80) : 'permission error'})`)
+    }
 
     // ========================================
     // Phase 16+17: Privilege fields, Audit entries, API keys
@@ -398,8 +402,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     results.push('mercury_actions agent_id: OK')
 
     // Add 'email' channel to mercury_channel enum
-    await prisma.$executeRawUnsafe(`ALTER TYPE mercury_channel ADD VALUE IF NOT EXISTS 'email'`)
-    results.push('mercury_channel email: OK')
+    try {
+      await prisma.$executeRawUnsafe(`ALTER TYPE mercury_channel ADD VALUE IF NOT EXISTS 'email'`)
+      results.push('mercury_channel email: OK')
+    } catch (enumErr2) {
+      results.push(`mercury_channel email: SKIPPED (${enumErr2 instanceof Error ? enumErr2.message.slice(0, 80) : 'permission error'})`)
+    }
 
     // ========================================
     // Phase BETA: Beta codes, subscription tier, waitlist expansion
@@ -477,11 +485,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // ========================================
 
     // Add new enum values to subscription_tier (free, sovereign, mercury, syndicate)
-    await prisma.$executeRawUnsafe(`ALTER TYPE "subscription_tier" ADD VALUE IF NOT EXISTS 'free'`)
-    await prisma.$executeRawUnsafe(`ALTER TYPE "subscription_tier" ADD VALUE IF NOT EXISTS 'sovereign'`)
-    await prisma.$executeRawUnsafe(`ALTER TYPE "subscription_tier" ADD VALUE IF NOT EXISTS 'mercury'`)
-    await prisma.$executeRawUnsafe(`ALTER TYPE "subscription_tier" ADD VALUE IF NOT EXISTS 'syndicate'`)
-    results.push('subscription_tier enum expanded: OK')
+    try {
+      await prisma.$executeRawUnsafe(`ALTER TYPE "subscription_tier" ADD VALUE IF NOT EXISTS 'free'`)
+      await prisma.$executeRawUnsafe(`ALTER TYPE "subscription_tier" ADD VALUE IF NOT EXISTS 'sovereign'`)
+      await prisma.$executeRawUnsafe(`ALTER TYPE "subscription_tier" ADD VALUE IF NOT EXISTS 'mercury'`)
+      await prisma.$executeRawUnsafe(`ALTER TYPE "subscription_tier" ADD VALUE IF NOT EXISTS 'syndicate'`)
+      results.push('subscription_tier enum expanded: OK')
+    } catch (enumErr3) {
+      results.push(`subscription_tier enum: SKIPPED (${enumErr3 instanceof Error ? enumErr3.message.slice(0, 80) : 'permission error'})`)
+    }
 
     // subscription_status enum
     await prisma.$executeRawUnsafe(`
