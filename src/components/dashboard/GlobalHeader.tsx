@@ -39,7 +39,9 @@ import {
   Brain,
   Bot,
   Server,
+  Loader2,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { PrivilegeKeyIcon, IdentityIcon, LanternIcon } from './icons/SovereignIcons'
 import { useMercuryStore } from '@/stores/mercuryStore'
 import { PERSONAS } from './mercury/personaData'
@@ -702,10 +704,56 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
 // ============================================================================
 
 function ProfileSettings() {
-  const { data: session } = useSession()
-  const userInitials = session?.user?.name
-    ? session.user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  const { data: session, update: updateSession } = useSession()
+  const [editing, setEditing] = useState(false)
+  const [displayName, setDisplayName] = useState(session?.user?.name || '')
+  const [saving, setSaving] = useState(false)
+
+  const userInitials = (editing ? displayName : session?.user?.name)
+    ? (editing ? displayName : session?.user?.name || '').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
     : 'U'
+
+  const handleEdit = () => {
+    setDisplayName(session?.user?.name || '')
+    setEditing(true)
+  }
+
+  const handleCancel = () => {
+    setDisplayName(session?.user?.name || '')
+    setEditing(false)
+  }
+
+  const handleSave = async () => {
+    const trimmed = displayName.trim()
+    if (!trimmed) {
+      toast.error('Display name cannot be empty')
+      return
+    }
+    if (trimmed.length > 100) {
+      toast.error('Display name must be 100 characters or less')
+      return
+    }
+
+    setSaving(true)
+    try {
+      const res = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ displayName: trimmed }),
+      })
+      if (!res.ok) {
+        const json = await res.json()
+        throw new Error(json.error || 'Failed to update profile')
+      }
+      toast.success('Profile updated')
+      setEditing(false)
+      await updateSession()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update profile')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -720,17 +768,60 @@ function ProfileSettings() {
             {userInitials}
           </div>
           <div className="flex-1">
-            <p className="text-lg font-semibold text-[var(--text-primary)]">{session?.user?.name || 'Sovereign User'}</p>
-            <p className="text-sm text-[var(--text-secondary)]">{session?.user?.email || 'user@example.com'}</p>
+            {editing ? (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  maxLength={100}
+                  className="w-full px-3 py-1.5 rounded-lg bg-[var(--bg-primary)]/50 border border-[var(--border-default)] text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-blue)] transition-colors"
+                  placeholder="Display name"
+                  autoFocus
+                />
+                <p className="text-sm text-[var(--text-tertiary)]" title="Email cannot be changed">
+                  {session?.user?.email || 'user@example.com'}
+                </p>
+              </div>
+            ) : (
+              <>
+                <p className="text-lg font-semibold text-[var(--text-primary)]">{session?.user?.name || 'Sovereign User'}</p>
+                <p className="text-sm text-[var(--text-secondary)]">{session?.user?.email || 'user@example.com'}</p>
+              </>
+            )}
             <div className="flex items-center gap-2 mt-1">
               <span className="text-[10px] px-2 py-0.5 bg-[var(--warning)]/20 text-[var(--warning)] rounded-full font-medium">
                 ADMINISTRATOR
               </span>
             </div>
           </div>
-          <button className="px-4 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-default)] hover:border-[var(--border-strong)] rounded-lg transition-colors" aria-label="Edit profile">
-            Edit Profile
-          </button>
+          {editing ? (
+            <div className="flex gap-2">
+              <button
+                onClick={handleCancel}
+                disabled={saving}
+                className="px-3 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-default)] rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving || !displayName.trim()}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] text-white rounded-lg transition-colors disabled:opacity-50"
+              >
+                {saving && <Loader2 className="w-3 h-3 animate-spin" />}
+                Save
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleEdit}
+              className="px-4 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-default)] hover:border-[var(--border-strong)] rounded-lg transition-colors"
+              aria-label="Edit profile"
+            >
+              Edit Profile
+            </button>
+          )}
         </div>
       </div>
 
@@ -1264,9 +1355,9 @@ function ReportIssueSettings() {
 
 function CommunitySettings() {
   const links = [
-    { title: 'Discord Community', description: 'Join The Syndicate for real-time support', icon: <Users className="w-5 h-5" />, href: '#' },
-    { title: 'GitHub Discussions', description: 'Participate in open-source discussions', icon: <MessageSquare className="w-5 h-5" />, href: '#' },
-    { title: 'Twitter/X', description: 'Follow for updates and announcements', icon: <ExternalLink className="w-5 h-5" />, href: '#' },
+    { title: 'Discord Community', description: 'Join The Syndicate for real-time support', icon: <Users className="w-5 h-5" /> },
+    { title: 'GitHub Discussions', description: 'Participate in open-source discussions', icon: <MessageSquare className="w-5 h-5" /> },
+    { title: 'Twitter/X', description: 'Follow for updates and announcements', icon: <ExternalLink className="w-5 h-5" /> },
   ]
 
   return (
@@ -1278,26 +1369,24 @@ function CommunitySettings() {
 
       <div className="space-y-3">
         {links.map((link) => (
-          <a
+          <div
             key={link.title}
-            href={link.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-4 p-4 bg-[var(--bg-elevated)]/30 border border-[var(--border-default)] hover:border-[var(--brand-blue)]/30 rounded-xl transition-all group"
+            title="Community coming soon"
+            className="flex items-center gap-4 p-4 bg-[var(--bg-elevated)]/30 border border-[var(--border-default)] rounded-xl opacity-50 cursor-not-allowed"
           >
-            <div className="p-3 bg-[var(--bg-tertiary)]group-hover:bg-[var(--brand-blue)]/20 rounded-xl transition-colors">
-              <span className="text-[var(--text-secondary)] group-hover:text-[var(--brand-blue)] transition-colors">
+            <div className="p-3 bg-[var(--bg-tertiary)] rounded-xl">
+              <span className="text-[var(--text-secondary)]">
                 {link.icon}
               </span>
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-[var(--text-primary)] group-hover:text-[var(--brand-blue)] transition-colors">
+              <p className="text-sm font-medium text-[var(--text-primary)]">
                 {link.title}
               </p>
               <p className="text-xs text-[var(--text-tertiary)]">{link.description}</p>
             </div>
-            <ExternalLink className="w-4 h-4 text-[var(--text-tertiary)] group-hover:text-[var(--brand-blue)] transition-colors" />
-          </a>
+            <span className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">Coming soon</span>
+          </div>
         ))}
       </div>
     </div>
