@@ -223,6 +223,7 @@ function LandingV3Content() {
       className="min-h-screen bg-black text-[#E6F1FF] border-0"
       style={{
         fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+        scrollBehavior: 'smooth',
         // Landing-only tokens (BRANDING_GUIDELINES.md §0)
         '--bg-void': '#000000',
         '--accent-glow': '#F59E0B',
@@ -261,7 +262,7 @@ function LandingV3Content() {
       </nav>
 
       {/* ━━━ SECTION 1: HERO — The Vault Orb ━━━ */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center px-6 overflow-hidden border-0">
+      <section id="hero" className="relative min-h-screen flex flex-col items-center justify-center px-6 overflow-hidden border-0">
         {/* Three.js Orb (includes ambient glow + pulse internally) */}
         <div className="relative z-10 mb-10">
           <VaultOrb />
@@ -326,7 +327,7 @@ function LandingV3Content() {
       </section>
 
       {/* ━━━ SECTION 2: HOW IT WORKS ━━━ */}
-      <section className="py-[120px] px-6">
+      <section id="how-it-works" className="py-[120px] px-6 scroll-mt-20">
         <div className="max-w-5xl mx-auto">
           <SectionLabel>HOW IT WORKS</SectionLabel>
           <SectionHeadline>Three steps. Total clarity.</SectionHeadline>
@@ -343,7 +344,7 @@ function LandingV3Content() {
       </section>
 
       {/* ━━━ SECTION 3: FEATURES ━━━ */}
-      <section className="py-[120px] px-6">
+      <section id="capabilities" className="py-[120px] px-6 scroll-mt-20">
         <div className="max-w-7xl mx-auto">
           <SectionLabel>CAPABILITIES</SectionLabel>
           <h2 className="text-[28px] md:text-[40px] font-bold tracking-[-0.02em] text-center mb-16">
@@ -382,7 +383,7 @@ function LandingV3Content() {
       </section>
 
       {/* ━━━ SECTION 4: PERSONAS ━━━ */}
-      <section className="py-[120px] px-6">
+      <section id="personas" className="py-[120px] px-6 scroll-mt-20">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-[28px] md:text-[40px] font-bold tracking-[-0.02em] mb-3">
             10 Expert Lenses. <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-600">One Vault.</span>
@@ -409,7 +410,7 @@ function LandingV3Content() {
       </section>
 
       {/* ━━━ SECTION 5: STUDIO ━━━ */}
-      <section className="py-[120px] px-6">
+      <section id="studio" className="py-[120px] px-6 scroll-mt-20">
         <div className="max-w-4xl mx-auto text-center">
           <SectionLabel>SOVEREIGN STUDIO</SectionLabel>
           <h2 className="text-[28px] md:text-[40px] font-bold tracking-[-0.02em] text-center mb-3">
@@ -437,7 +438,7 @@ function LandingV3Content() {
       </section>
 
       {/* ━━━ SECTION 6: MERCURY ━━━ */}
-      <section className="py-[120px] px-6 border-t border-[rgba(212,168,83,0.1)]">
+      <section id="mercury" className="py-[120px] px-6 border-t border-[rgba(212,168,83,0.1)] scroll-mt-20">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-14">
             <span className="inline-block text-[11px] font-semibold uppercase tracking-[0.05em] text-[#D4A853] mb-4">
@@ -469,7 +470,7 @@ function LandingV3Content() {
       </section>
 
       {/* ━━━ SECTION 7: PRICING ━━━ */}
-      <section className="py-[120px] px-6">
+      <section id="pricing" className="py-[120px] px-6 scroll-mt-20">
         <div className="max-w-4xl mx-auto">
           <SectionLabel>SIMPLE PRICING</SectionLabel>
           <SectionHeadline>Choose your plan</SectionHeadline>
@@ -508,7 +509,7 @@ function LandingV3Content() {
       </section>
 
       {/* ━━━ SECTION 8: SECURITY BAR ━━━ */}
-      <section className="py-[80px] px-6">
+      <section id="security" className="py-[80px] px-6 scroll-mt-20">
         <div className="max-w-4xl mx-auto text-center">
           <SectionLabel>ENTERPRISE-GRADE SECURITY</SectionLabel>
           <p className="text-sm text-[#8892B0] mt-6">
@@ -521,7 +522,7 @@ function LandingV3Content() {
       </section>
 
       {/* ━━━ SECTION 9: SOCIAL PROOF ━━━ */}
-      <section className="py-[80px] px-6">
+      <section id="proof" className="py-[80px] px-6 scroll-mt-20">
         <div className="max-w-4xl mx-auto text-center">
           <p className="text-5xl font-bold">
             <span className="text-amber-500">38+</span>{' '}
