@@ -33,6 +33,8 @@ export interface InworldSessionConfig {
   onToolCall?: (toolName: string, args: Record<string, unknown>) => void
   onToolResult?: (toolName: string, result: unknown) => void
   onUIAction?: (action: unknown) => void
+  onNoSpeech?: () => void
+  onSpeakingComplete?: () => void
   onError?: (error: Error) => void
   onDisconnect?: () => void
 }
@@ -201,6 +203,8 @@ export async function createInworldSession(config: InworldSessionConfig): Promis
     onToolCall,
     onToolResult,
     onUIAction,
+    onNoSpeech,
+    onSpeakingComplete,
     onError,
     onDisconnect,
   } = config
@@ -556,6 +560,10 @@ Current user context:
       if (transcription.trim()) {
         console.info('[Inworld] Transcription', { transcription })
         await processWithLLM(transcription)
+        onSpeakingComplete?.()
+      } else {
+        console.info('[Inworld] No speech detected')
+        onNoSpeech?.()
       }
     } catch (error) {
       console.error('[Inworld] STT error:', error)
@@ -603,6 +611,7 @@ Current user context:
     async sendText(text: string): Promise<void> {
       console.info('[Inworld] Sending text', { preview: text.substring(0, 80) })
       await processWithLLM(text)
+      onSpeakingComplete?.()
     },
 
     async triggerGreeting(): Promise<void> {
@@ -625,6 +634,7 @@ Current user context:
 
       // Convert to speech
       await textToSpeech(greeting)
+      onSpeakingComplete?.()
     },
 
     close(): void {
