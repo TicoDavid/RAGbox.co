@@ -381,6 +381,22 @@ export function AIModelSettings() {
         </motion.div>
 
         {/* ─── Private LLM Configuration ─── */}
+        {llmPolicy === 'aegis_only' ? (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="p-3 rounded-xl bg-[var(--bg-primary)]/50 border border-[var(--border-subtle)]"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Key className="w-4 h-4 text-[var(--text-tertiary)]" />
+              <p className="text-sm font-medium text-[var(--text-tertiary)]">Private LLM</p>
+            </div>
+            <p className="text-xs text-[var(--text-tertiary)]">
+              Your organization uses AEGIS exclusively. Change the routing policy below to enable private LLM configuration.
+            </p>
+          </motion.div>
+        ) : (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -583,6 +599,7 @@ export function AIModelSettings() {
             </div>
           )}
         </motion.div>
+        )}
 
         {/* ─── Connections Help Text ─── */}
         <motion.div
