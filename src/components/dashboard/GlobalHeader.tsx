@@ -839,7 +839,7 @@ function BillingSettings() {
       </div>
 
       {/* Manage Subscription */}
-      <button className="w-full flex items-center justify-between p-4 bg-[var(--bg-elevated)]/30 border border-[var(--border-default)] hover:border-[var(--border-strong)] rounded-xl transition-colors group" aria-label="Manage subscription">
+      <button onClick={() => window.open('/billing', '_self')} className="w-full flex items-center justify-between p-4 bg-[var(--bg-elevated)]/30 border border-[var(--border-default)] hover:border-[var(--border-strong)] rounded-xl transition-colors group" aria-label="Manage subscription">
         <div className="flex items-center gap-3">
           <CreditCard className="w-5 h-5 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors" />
           <div className="text-left">
