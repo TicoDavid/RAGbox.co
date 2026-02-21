@@ -200,6 +200,9 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			"privilege_mode", req.PrivilegeMode,
 			"mode", req.Mode,
 			"persona", req.Persona,
+			"llm_provider", req.LLMProvider,
+			"llm_model", req.LLMModel,
+			"llm_api_key_present", req.LLMApiKey != "",
 		)
 
 		if req.Query == "" {

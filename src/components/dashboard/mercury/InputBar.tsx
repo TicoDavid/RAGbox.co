@@ -46,7 +46,7 @@ export function InputBar() {
 
   const currentPersona = PERSONAS.find((p) => p.id === activePersona) || PERSONAS[0]
 
-  // Sync selectedLlm in mercuryStore whenever activeIntelligence or policy changes
+  // Sync selectedLlm in mercuryStore from activeIntelligence (set by IntelligenceMatrix)
   const byollmConnection = connections.find(
     (c) => c.verified && c.selectedModel && c.type !== 'local' && c.type !== 'custom'
   )
@@ -55,16 +55,19 @@ export function InputBar() {
       setSelectedLlm({ provider: 'aegis', model: 'aegis-core' })
       return
     }
-    if (llmPolicy === 'byollm_only' && byollmConnection.selectedModel) {
-      setSelectedLlm({ provider: 'byollm', model: byollmConnection.selectedModel })
+    if (llmPolicy === 'byollm_only') {
+      const model = activeIntelligence.tier !== 'native'
+        ? activeIntelligence.id
+        : byollmConnection.selectedModel || ''
+      setSelectedLlm({ provider: 'byollm', model })
       return
     }
-    if (isAegisActive) {
+    if (activeIntelligence.tier === 'native') {
       setSelectedLlm({ provider: 'aegis', model: 'aegis-core' })
-    } else if (byollmConnection.selectedModel) {
-      setSelectedLlm({ provider: 'byollm', model: byollmConnection.selectedModel })
+    } else {
+      setSelectedLlm({ provider: 'byollm', model: activeIntelligence.id })
     }
-  }, [llmPolicy, isAegisActive, byollmConnection, setSelectedLlm, activeIntelligence])
+  }, [llmPolicy, activeIntelligence, byollmConnection, setSelectedLlm])
 
   useEffect(() => {
     const textarea = textareaRef.current

@@ -23,23 +23,26 @@ export function ChatModelPicker() {
 
   const isAegis = activeIntelligence.tier === 'native'
 
-  // Sync selectedLlm in mercuryStore whenever activeIntelligence or policy changes
+  // Sync selectedLlm in mercuryStore from activeIntelligence (set by IntelligenceMatrix)
   useEffect(() => {
     if (llmPolicy === 'aegis_only' || !byollmConnection) {
       setSelectedLlm({ provider: 'aegis', model: 'aegis-core' })
       return
     }
-    if (llmPolicy === 'byollm_only' && byollmConnection.selectedModel) {
-      setSelectedLlm({ provider: 'byollm', model: byollmConnection.selectedModel })
+    if (llmPolicy === 'byollm_only') {
+      const model = activeIntelligence.tier !== 'native'
+        ? activeIntelligence.id
+        : byollmConnection.selectedModel || ''
+      setSelectedLlm({ provider: 'byollm', model })
       return
     }
     // choice mode — follow activeIntelligence
-    if (isAegis) {
+    if (activeIntelligence.tier === 'native') {
       setSelectedLlm({ provider: 'aegis', model: 'aegis-core' })
-    } else if (byollmConnection.selectedModel) {
-      setSelectedLlm({ provider: 'byollm', model: byollmConnection.selectedModel })
+    } else {
+      setSelectedLlm({ provider: 'byollm', model: activeIntelligence.id })
     }
-  }, [llmPolicy, isAegis, byollmConnection, setSelectedLlm, activeIntelligence])
+  }, [llmPolicy, activeIntelligence, byollmConnection, setSelectedLlm])
 
   // Only visible when: verified BYOLLM exists AND policy === 'choice'
   if (!byollmConnection?.selectedModel || llmPolicy !== 'choice') {

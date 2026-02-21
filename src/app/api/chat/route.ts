@@ -200,7 +200,7 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
         privilegeMode: privilegeMode ?? false,
         history: history ?? [],
         maxTier: maxTier ?? 3,
-        ...(personaId ? { personaId } : {}),
+        ...(personaId ? { persona: personaId } : {}),
         ...(documentScope ? { documentScope } : {}),
         ...byollmFields,
       }),
