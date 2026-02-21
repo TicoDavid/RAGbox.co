@@ -81,6 +81,9 @@ type Dependencies struct {
 	// Chunk preview (citation context)
 	ChunkPreviewDeps handler.ChunkPreviewDeps
 
+	// Vonage SMS/WhatsApp webhooks
+	VonageDeps handler.VonageDeps
+
 	// Voice transcription
 	TranscribeDeps handler.TranscribeDeps
 
@@ -132,6 +135,12 @@ func New(deps *Dependencies) *chi.Mux {
 	// Admin routes (internal auth only — called by Cloud Build)
 	r.Post("/api/admin/migrate", internalAuthOnly(deps.InternalAuthSecret,
 		handler.AdminMigrate(deps.AdminMigrateDeps)))
+
+	// Vonage webhook routes (public — called by Vonage, no Firebase auth)
+	if deps.VonageDeps.APIKey != "" {
+		r.Post("/api/webhooks/vonage/inbound", handler.VonageInbound(deps.VonageDeps))
+		r.Post("/api/webhooks/vonage/status", handler.VonageStatus())
+	}
 
 	// Build shared dependency structs
 	docCRUD := handler.DocCRUDDeps{

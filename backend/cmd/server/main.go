@@ -317,6 +317,16 @@ func run() error {
 			ChunkReader: chunkRepo,
 		},
 
+		VonageDeps: handler.VonageDeps{
+			APIKey:             cfg.VonageAPIKey,
+			APISecret:          cfg.VonageAPISecret,
+			SMSFromNumber:      cfg.VonageSMSFromNumber,
+			WhatsAppFromNumber: cfg.VonageWhatsAppFromNumber,
+			Retriever:          retrieverService,
+			Generator:          generatorService,
+			SelfRAG:            selfRAGService,
+		},
+
 		TranscribeDeps: handler.TranscribeDeps{
 			DeepgramAPIKey: cfg.DeepgramAPIKey,
 		},
