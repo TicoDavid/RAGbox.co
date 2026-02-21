@@ -264,27 +264,27 @@ function LandingV3Content() {
       {/* ━━━ SECTION 1: HERO — The Vault Orb ━━━ */}
       <section id="hero" className="relative min-h-screen flex flex-col items-center justify-center px-6 overflow-hidden border-0">
         {/* Three.js Orb (includes ambient glow + pulse internally) */}
-        <div className="relative z-10 mb-10">
+        <div className="relative z-10 mb-10 pointer-events-none">
           <VaultOrb />
         </div>
 
         {/* Text content below orb */}
-        <div className="relative z-10 text-center max-w-2xl mx-auto space-y-5">
-          <FadeIn delay={0.8}>
+        <div className="relative z-20 text-center max-w-2xl mx-auto space-y-5">
+          <FadeIn delay={0.2}>
             <h1 className="text-[32px] sm:text-[40px] md:text-[56px] font-bold tracking-[-0.02em] leading-[1.1]">
               Your Documents.{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-600">Interrogated.</span>
             </h1>
           </FadeIn>
 
-          <FadeIn delay={1.0}>
+          <FadeIn delay={0.35}>
             <p className="text-base md:text-lg text-[#8892B0]">
               Every answer cited. Every source verified.
             </p>
           </FadeIn>
 
           {/* Search bar */}
-          <FadeIn delay={1.2}>
+          <FadeIn delay={0.5}>
             <div
               onClick={() => openAuth('signup')}
               className="mx-auto max-w-[560px] flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 cursor-pointer hover:border-amber-500/40 transition-colors"
@@ -297,7 +297,7 @@ function LandingV3Content() {
           </FadeIn>
 
           {/* CTAs */}
-          <FadeIn delay={1.4}>
+          <FadeIn delay={0.65}>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <button
                 onClick={() => openAuth('signup')}
@@ -318,7 +318,7 @@ function LandingV3Content() {
           </FadeIn>
 
           {/* Trust strip */}
-          <FadeIn delay={1.6}>
+          <FadeIn delay={0.8}>
             <p className="text-xs tracking-[0.3em] font-mono text-gray-500 opacity-50 mt-8 text-center">
               SOC2 READY &middot; ZERO RETENTION &middot; AES-256 ENCRYPTED &middot; HIPAA COMPLIANT
             </p>
