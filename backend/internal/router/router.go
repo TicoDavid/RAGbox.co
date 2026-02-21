@@ -101,6 +101,9 @@ type Dependencies struct {
 
 	// Mercury config (voice agent persona)
 	MercuryConfigDeps handler.MercuryConfigDeps
+
+	// Usage metering
+	UsageDeps *handler.UsageDeps
 }
 
 // internalAuthOnly wraps a handler with a simple internal auth check.
@@ -231,6 +234,11 @@ func New(deps *Dependencies) *chi.Mux {
 		// Mercury config — voice agent persona
 		r.With(timeout30s).Get("/api/mercury/config", handler.GetMercuryConfig(deps.MercuryConfigDeps))
 		r.With(timeout30s).Post("/api/mercury/config", handler.SaveMercuryConfig(deps.MercuryConfigDeps))
+
+		// Usage metering
+		if deps.UsageDeps != nil {
+			r.With(timeout30s).Get("/api/v1/usage", handler.GetUsage(*deps.UsageDeps))
+		}
 
 		// Forge — AI generation, 60s timeout. Strictest rate limit (5/min).
 		forgeMiddleware := []func(http.Handler) http.Handler{middleware.Timeout(60 * time.Second)}

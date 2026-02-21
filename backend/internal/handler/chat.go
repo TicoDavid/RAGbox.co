@@ -193,6 +193,8 @@ type ChatDeps struct {
 	PersonaFetcher PersonaFetcher  // optional — nil means use file-based persona
 	CortexSvc      CortexSearcher  // optional — nil means no working memory
 	QueryCache     *cache.QueryCache // optional — nil disables retrieval caching
+	UsageSvc       *service.UsageService // optional — nil disables usage metering
+	UserTierFunc   func(ctx context.Context, userID string) string // optional — returns user's subscription tier
 }
 
 // Chat returns an SSE streaming handler for Mercury chat.
@@ -293,6 +295,25 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 
 		ctx, cancel := context.WithTimeout(r.Context(), 120*time.Second)
 		defer cancel()
+
+		// Usage metering: check tier limit before processing
+		if deps.UsageSvc != nil {
+			tier := "free"
+			if deps.UserTierFunc != nil {
+				tier = deps.UserTierFunc(ctx, userID)
+			}
+			allowed, currentCount, limit, err := deps.UsageSvc.CheckLimit(ctx, userID, "aegis_queries", tier)
+			if err != nil {
+				slog.Error("usage check failed", "user_id", userID, "error", err)
+				// Allow query on metering error — don't block on infra failure
+			} else if !allowed {
+				slog.Warn("usage limit reached", "user_id", userID, "tier", tier, "count", currentCount, "limit", limit)
+				limitMsg := fmt.Sprintf(`{"error":"monthly_limit_reached","message":"You've used %d of %d AEGIS queries this month. Upgrade your plan to continue.","used":%d,"limit":%d}`, currentCount, limit, currentCount, limit)
+				sendEvent(w, flusher, "error", limitMsg)
+				sendEvent(w, flusher, "done", `{}`)
+				return
+			}
+		}
 
 		// Step 1: Retrieve (with cache)
 		sendEvent(w, flusher, "status", `{"stage":"retrieving"}`)
@@ -513,6 +534,15 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 		donePayload := buildDonePayload(retrieval, initial, result, startTime, providerName)
 		doneJSON, _ := json.Marshal(donePayload)
 		sendEvent(w, flusher, "done", string(doneJSON))
+
+		// Usage metering: increment after successful query
+		if deps.UsageSvc != nil {
+			go func() {
+				if err := deps.UsageSvc.IncrementUsage(context.Background(), userID, "aegis_queries"); err != nil {
+					slog.Error("usage increment failed", "user_id", userID, "error", err)
+				}
+			}()
+		}
 
 		// Auto-capture: store query + response in cortex for future context
 		if deps.CortexSvc != nil && tier != "silence" {
