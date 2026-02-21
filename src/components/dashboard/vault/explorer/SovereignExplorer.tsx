@@ -463,6 +463,7 @@ export function SovereignExplorer({ onClose }: SovereignExplorerProps) {
             onDoubleClick={handleDoubleClick}
             onToggleSort={handleToggleSort}
             onToggleStar={handleToggleStar}
+            onDelete={handleDelete}
           />
         </div>
 

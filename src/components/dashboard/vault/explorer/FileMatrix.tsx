@@ -1,18 +1,60 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import React, { useEffect, useCallback, useRef } from 'react'
 import {
   FileText,
+  File,
+  Image,
+  Video,
+  Table,
   Folder as FolderIcon,
   Brain,
   Cloud,
   ArrowUpDown,
   MoreHorizontal,
   Star,
+  Upload,
 } from 'lucide-react'
 import { SecurityBadge } from '../security'
 import type { ExplorerItem, ViewMode, SortField } from './explorer-types'
 import { formatFileSize, formatDate } from './explorer-utils'
+
+// ============================================================================
+// FILE TYPE ICON HELPER
+// ============================================================================
+
+function getFileIcon(name: string): React.ReactNode {
+  const ext = name.split('.').pop()?.toLowerCase() || ''
+  switch (ext) {
+    case 'pdf':
+    case 'doc':
+    case 'docx':
+    case 'txt':
+    case 'md':
+      return <FileText className="w-5 h-5" />
+    case 'png':
+    case 'jpg':
+    case 'jpeg':
+    case 'gif':
+    case 'svg':
+    case 'webp':
+      return <Image className="w-5 h-5" />
+    case 'mp4':
+    case 'mov':
+    case 'avi':
+    case 'mkv':
+    case 'webm':
+      return <Video className="w-5 h-5" />
+    case 'csv':
+    case 'xlsx':
+    case 'xls':
+    case 'tsv':
+      return <Table className="w-5 h-5" />
+    default:
+      return <File className="w-5 h-5" />
+  }
+}
 
 interface FileMatrixProps {
   items: ExplorerItem[]
@@ -24,6 +66,7 @@ interface FileMatrixProps {
   onDoubleClick: (item: ExplorerItem) => void
   onToggleSort: (field: SortField) => void
   onToggleStar?: (id: string) => void
+  onDelete?: (id: string) => void
 }
 
 export function FileMatrix({
@@ -36,13 +79,58 @@ export function FileMatrix({
   onDoubleClick,
   onToggleSort,
   onToggleStar,
+  onDelete,
 }: FileMatrixProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // Keyboard navigation: Arrow keys, Enter, Delete
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (items.length === 0) return
+    const currentIndex = selectedId ? items.findIndex((i) => i.id === selectedId) : -1
+
+    switch (e.key) {
+      case 'ArrowDown': {
+        e.preventDefault()
+        const next = Math.min(currentIndex + 1, items.length - 1)
+        onSelect(items[next].id)
+        break
+      }
+      case 'ArrowUp': {
+        e.preventDefault()
+        const prev = Math.max(currentIndex - 1, 0)
+        onSelect(items[prev].id)
+        break
+      }
+      case 'Enter': {
+        if (currentIndex >= 0) {
+          e.preventDefault()
+          onDoubleClick(items[currentIndex])
+        }
+        break
+      }
+      case 'Delete': {
+        if (currentIndex >= 0 && onDelete && items[currentIndex].type === 'document') {
+          e.preventDefault()
+          onDelete(items[currentIndex].id)
+        }
+        break
+      }
+    }
+  }, [items, selectedId, onSelect, onDoubleClick, onDelete])
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    container.addEventListener('keydown', handleKeyDown)
+    return () => container.removeEventListener('keydown', handleKeyDown)
+  }, [handleKeyDown])
+
   if (viewMode === 'grid') {
     return <GridView items={items} selectedId={selectedId} onSelect={onSelect} onDoubleClick={onDoubleClick} onToggleStar={onToggleStar} />
   }
 
   return (
-    <div className="flex-1 overflow-auto">
+    <div ref={containerRef} tabIndex={0} className="flex-1 overflow-auto outline-none">
       <table className="w-full">
         <thead className="sticky top-0 bg-[var(--bg-primary)] z-10">
           <tr className="text-left text-xs text-[var(--text-tertiary)] uppercase tracking-wider border-b border-[var(--border-default)]">
@@ -90,7 +178,7 @@ export function FileMatrix({
                     {file.type === 'folder' ? (
                       <FolderIcon className="w-5 h-5" />
                     ) : (
-                      <FileText className="w-5 h-5" />
+                      getFileIcon(file.name)
                     )}
                   </div>
                   <span className="text-sm text-[var(--text-primary)] font-medium truncate max-w-[300px]">
@@ -159,7 +247,11 @@ export function FileMatrix({
             <tr>
               <td colSpan={7} className="px-4 py-16 text-center">
                 <FolderIcon className="w-16 h-16 text-[var(--text-muted)] mx-auto mb-4" />
-                <p className="text-base text-[var(--text-secondary)]">No files found</p>
+                <p className="text-base text-[var(--text-secondary)]">This folder is empty</p>
+                <p className="text-sm text-[var(--text-tertiary)] mt-2 flex items-center justify-center gap-1.5">
+                  <Upload className="w-4 h-4" />
+                  Drop files here or click Upload
+                </p>
               </td>
             </tr>
           )}
@@ -209,7 +301,7 @@ function GridView({
                 {file.type === 'folder' ? (
                   <FolderIcon className="w-5 h-5" />
                 ) : (
-                  <FileText className="w-5 h-5" />
+                  getFileIcon(file.name)
                 )}
               </div>
               {file.type === 'document' && onToggleStar && (
@@ -236,7 +328,11 @@ function GridView({
         {items.length === 0 && (
           <div className="col-span-4 flex flex-col items-center py-16">
             <FolderIcon className="w-16 h-16 text-[var(--text-muted)] mb-4" />
-            <p className="text-base text-[var(--text-secondary)]">No files found</p>
+            <p className="text-base text-[var(--text-secondary)]">This folder is empty</p>
+            <p className="text-sm text-[var(--text-tertiary)] mt-2 flex items-center gap-1.5">
+              <Upload className="w-4 h-4" />
+              Drop files here or click Upload
+            </p>
           </div>
         )}
       </div>
