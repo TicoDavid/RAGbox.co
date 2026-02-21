@@ -12,6 +12,7 @@ import { SovereignExplorer } from './vault/explorer'
 import { MercuryWindow } from './mercury/MercuryWindow'
 import { isMercuryEnabled } from '@/lib/features'
 import { CenterChat } from './chat'
+import { ChatErrorBoundary } from './chat/ChatErrorBoundary'
 import { OnboardingWizard } from './OnboardingWizard'
 import { SovereignStudio } from './studio'
 import { useContentIntelligenceStore } from '@/stores/contentIntelligenceStore'
@@ -516,7 +517,9 @@ export function DashboardLayout() {
         {/* CENTER: Document Workspace + Tool Overlay */}
         {/* ============================================ */}
         <div className="flex-1 min-w-0 overflow-hidden relative">
-          <CenterChat />
+          <ChatErrorBoundary>
+            <CenterChat />
+          </ChatErrorBoundary>
 
           {/* Tool panel overlay (Studio/Audit/Export) slides over center */}
           {isDesktop && (
