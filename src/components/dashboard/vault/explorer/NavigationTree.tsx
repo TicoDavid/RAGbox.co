@@ -144,7 +144,7 @@ interface NavigationTreeProps {
 export function NavigationTree({ folders, selectedFolderId, activeFilter, starredCount, recentCount, onSelectFolder, onQuickAccessFilter }: NavigationTreeProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set(['quick-access', 'folders'])
+    new Set()
   )
 
   const toggleExpand = (id: string) => {
