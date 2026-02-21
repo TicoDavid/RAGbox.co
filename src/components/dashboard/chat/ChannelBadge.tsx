@@ -16,7 +16,7 @@ interface ChannelBadgeProps {
 }
 
 export function ChannelBadge({ channel }: ChannelBadgeProps) {
-  if (!channel || channel === 'dashboard') return null
+  if (!channel) return null
   const cfg = CHANNEL_CONFIG[channel]
   return (
     <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium ${cfg.color}`}>
