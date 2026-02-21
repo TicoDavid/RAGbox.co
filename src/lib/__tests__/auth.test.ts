@@ -4,7 +4,7 @@
  * These tests verify the OTP generation/validation logic, the NextAuth
  * configuration structure, and the callback behaviors.
  */
-import { generateOTP, hasValidOTP, authOptions } from '../auth'
+import { generateOTP, hasValidOTP, debugOTPStore, authOptions } from '../auth'
 
 // ── Setup ─────────────────────────────────────────────────────
 
@@ -76,6 +76,33 @@ describe('hasValidOTP', () => {
   })
 })
 
+// ── debugOTPStore Tests ──────────────────────────────────────
+
+describe('debugOTPStore', () => {
+  const origEnv = process.env.NODE_ENV
+
+  afterEach(() => {
+    process.env.NODE_ENV = origEnv
+  })
+
+  test('logs store size in development', () => {
+    process.env.NODE_ENV = 'development'
+    const spy = jest.spyOn(console, 'log').mockImplementation()
+    generateOTP('test@test.com')
+    debugOTPStore()
+    expect(spy).toHaveBeenCalledWith('[OTP Store] entry count:', expect.any(Number))
+    spy.mockRestore()
+  })
+
+  test('does nothing in production', () => {
+    process.env.NODE_ENV = 'production'
+    const spy = jest.spyOn(console, 'log').mockImplementation()
+    debugOTPStore()
+    expect(spy).not.toHaveBeenCalled()
+    spy.mockRestore()
+  })
+})
+
 // ── authOptions Configuration Tests ──────────────────────────
 
 describe('authOptions', () => {
@@ -97,6 +124,20 @@ describe('authOptions', () => {
 
   test('sets error page to /', () => {
     expect(authOptions.pages?.error).toBe('/')
+  })
+
+  test('logger.error logs to console.error', () => {
+    const spy = jest.spyOn(console, 'error').mockImplementation()
+    authOptions.logger!.error('TEST_CODE', { message: 'test', stack: '' } as unknown as Error)
+    expect(spy).toHaveBeenCalled()
+    spy.mockRestore()
+  })
+
+  test('logger.warn logs to console.warn', () => {
+    const spy = jest.spyOn(console, 'warn').mockImplementation()
+    authOptions.logger!.warn('TEST_WARN')
+    expect(spy).toHaveBeenCalled()
+    spy.mockRestore()
   })
 
   test('has jwt, session, redirect, and signIn callbacks', () => {
