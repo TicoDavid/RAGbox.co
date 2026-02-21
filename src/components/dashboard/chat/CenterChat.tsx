@@ -21,11 +21,11 @@ interface StatCardProps {
 
 function StatCardSkeleton() {
   return (
-    <div className="flex flex-col gap-3 p-5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
-      <div className="w-8 h-8 rounded-lg bg-[var(--bg-tertiary)] animate-pulse" />
-      <div>
-        <div className="h-7 w-12 rounded bg-[var(--bg-tertiary)] animate-pulse mb-1" />
-        <div className="h-3 w-24 rounded bg-[var(--bg-tertiary)] animate-pulse" />
+    <div className="flex items-center gap-2.5 px-4 py-3 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
+      <div className="w-6 h-6 rounded-md bg-[var(--bg-tertiary)] animate-pulse shrink-0" />
+      <div className="flex-1">
+        <div className="h-5 w-8 rounded bg-[var(--bg-tertiary)] animate-pulse mb-0.5" />
+        <div className="h-3 w-16 rounded bg-[var(--bg-tertiary)] animate-pulse" />
       </div>
     </div>
   )
@@ -35,13 +35,13 @@ function StatCard({ icon: Icon, value, label, color }: StatCardProps) {
   if (value === '...') return <StatCardSkeleton />
 
   return (
-    <div className="flex flex-col gap-3 p-5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)] hover:border-[var(--border-default)] transition-colors">
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${color}`}>
-        <Icon className="w-4 h-4" />
+    <div className="flex items-center gap-2.5 px-4 py-3 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-subtle)] hover:border-[var(--border-default)] transition-colors">
+      <div className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${color}`}>
+        <Icon className="w-3.5 h-3.5" />
       </div>
       <div>
-        <p className="text-2xl font-semibold text-[var(--text-primary)] tracking-tight">{value}</p>
-        <p className="text-xs text-[var(--text-tertiary)] mt-0.5">{label}</p>
+        <p className="text-lg font-semibold text-[var(--text-primary)] leading-tight">{value}</p>
+        <p className="text-[10px] text-[var(--text-tertiary)]">{label}</p>
       </div>
     </div>
   )
@@ -71,43 +71,45 @@ function DashboardHome() {
 
   return (
     <div className="flex flex-col items-center justify-center h-full px-4 sm:px-8">
+      {/* Large centered watermark */}
       <img
         src="https://storage.googleapis.com/connexusai-assets/RAGb%C3%B6x_ICON.png"
         alt=""
-        className="w-32 h-auto opacity-30 select-none mb-8"
+        className="w-48 sm:w-56 h-auto opacity-20 select-none mb-6"
         draggable={false}
       />
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full max-w-[720px] mb-8">
+      {/* Compact horizontal stats row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full max-w-[640px] mb-5">
         <StatCard
           icon={FileText}
           value={docCount}
-          label="Documents in Vault"
+          label="Documents"
           color="bg-[var(--brand-blue)]/15 text-[var(--brand-blue)]"
         />
         <StatCard
           icon={MessageSquare}
           value={queryCount}
-          label="Questions Asked"
+          label="Queries"
           color="bg-[var(--warning)]/15 text-[var(--warning)]"
         />
         <StatCard
           icon={Quote}
           value={'\u2014'}
-          label="Citations Generated"
+          label="Citations"
           color="bg-[var(--success)]/15 text-[var(--success)]"
         />
         <StatCard
           icon={Activity}
           value="Healthy"
-          label="Vault Health"
+          label="Vault"
           color="bg-[var(--success)]/15 text-[var(--success)]"
         />
       </div>
 
       {docCount === '0' ? (
-        <div className="flex flex-col items-center gap-2">
-          <Upload className="w-5 h-5 text-[var(--brand-blue)]" />
+        <div className="flex items-center gap-2">
+          <Upload className="w-4 h-4 text-[var(--brand-blue)]" />
           <p className="text-sm text-[var(--text-tertiary)]">
             Your vault is empty. Drop your first document to get started.
           </p>
