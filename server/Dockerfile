@@ -1,13 +1,19 @@
 # RAGbox Voice Server - Production Dockerfile
 # Separate Cloud Run service for WebSocket voice pipeline
 # Service: mercury-voice | Port: 3003
-# Uses debian-slim (NOT alpine) for native module compatibility
+# NOTE: Uses debian-slim (NOT alpine) because @inworld/runtime
+#       ships glibc-linked native binaries (libinworld.so)
 
 # ==============================================
 # Stage 1: Dependencies
 # ==============================================
 FROM node:20-slim AS deps
 WORKDIR /app
+
+# Native module build deps (required by @inworld/runtime)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy root package files (voice server shares the monorepo deps)
 COPY package.json package-lock.json ./
@@ -20,6 +26,9 @@ RUN npm ci --omit=dev --ignore-scripts
 
 # Install Prisma CLI (devDep) just for generate, then remove it
 RUN npm install --no-save prisma && npx prisma generate && npm rm prisma
+
+# Rebuild native modules for linux
+RUN npm rebuild
 
 # ==============================================
 # Stage 2: Builder (compile TypeScript)
@@ -34,7 +43,7 @@ COPY package.json package-lock.json ./
 RUN npm install --no-save typescript
 
 # Copy voice server source (only files needed for compilation)
-COPY server/index.ts server/agent-ws.ts \
+COPY server/index.ts server/agent-ws.ts server/inworld.ts \
      server/voice-pipeline.ts server/observability.ts server/rate-limit.ts \
      server/tsconfig.json ./server/
 COPY server/tools/ ./server/tools/
