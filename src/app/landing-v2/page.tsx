@@ -83,32 +83,8 @@ const STUDIO_OUTPUTS = [
   { label: 'Video Brief', icon: Video },
 ]
 
-/* ─── Pricing (TWO tiers only per spec) ─── */
-const PRICING = [
-  {
-    name: 'Starter',
-    price: '$99',
-    period: '/mo',
-    features: ['1 vault', '100 documents', '5 personas', 'Studio basic'],
-    cta: 'Start Free',
-    gold: false,
-  },
-  {
-    name: 'Enterprise',
-    price: 'Custom',
-    period: '',
-    features: [
-      'Unlimited vaults',
-      'Unlimited documents',
-      'Custom personas',
-      'Studio + API',
-      'Mercury + Voice',
-      'VERITAS audit trail',
-    ],
-    cta: 'Contact Sales',
-    gold: true,
-  },
-]
+/* ─── Pricing: "2+1" Model (POS-BILLING-ARCHITECTURE.md) ─── */
+/* Sovereign $99/mo | Mercury +$99/mo add-on | Syndicate $25K MCV */
 
 /* ─── Typewriter prompts ─── */
 const TYPEWRITER_PROMPTS = [
@@ -470,50 +446,117 @@ function LandingV3Content() {
           </div>
 
           <p className="text-center text-sm text-[#8892B0] mt-10">
-            Available with Team plans and above.{' '}
+            Available with Sovereign + Mercury.{' '}
             <button onClick={() => openAuth('signup')} className="text-[#D4A853] hover:underline font-medium">
-              Upgrade to Team
+              Add Mercury
               <ArrowRight className="w-3 h-3 inline ml-1" strokeWidth={1.5} />
             </button>
           </p>
         </div>
       </section>
 
-      {/* ━━━ SECTION 7: PRICING ━━━ */}
+      {/* ━━━ SECTION 7: PRICING (2+1 Model — POS-BILLING-ARCHITECTURE.md) ━━━ */}
       <section id="pricing" className="py-[120px] px-6 scroll-mt-20">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-3xl mx-auto">
           <SectionLabel>SIMPLE PRICING</SectionLabel>
-          <SectionHeadline>Choose your plan</SectionHeadline>
+          <SectionHeadline>Build your stack</SectionHeadline>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-16 max-w-3xl mx-auto">
-            {PRICING.map((tier) => (
-              <div
-                key={tier.name}
-                className={`rounded-2xl p-8 flex flex-col bg-white/[0.03] border ${
-                  tier.gold ? 'border-[rgba(212,168,83,0.2)]' : 'border-white/[0.06]'
-                }`}
-              >
-                <h3 className="text-lg font-bold mb-2">{tier.name}</h3>
-                <div className="mb-8">
-                  <span className="text-4xl font-bold">{tier.price}</span>
-                  <span className="text-sm text-[#8892B0]">{tier.period}</span>
+          {/* ── Sovereign Card ── */}
+          <div className="mt-16 rounded-2xl p-8 bg-white/[0.03] border border-[rgba(212,168,83,0.2)]">
+            <div className="flex items-center gap-3 mb-1">
+              <Shield className="w-5 h-5 text-[#D4A853]" strokeWidth={1.5} />
+              <span className="text-xs uppercase tracking-widest text-[#D4A853] font-semibold">The Foundation</span>
+            </div>
+            <h3 className="text-2xl font-bold mb-1">Sovereign</h3>
+            <p className="text-sm text-[#8892B0] mb-6">Your vault. Your queries. Your audit trail.</p>
+            <div className="mb-6">
+              <span className="text-4xl font-bold">$99</span>
+              <span className="text-sm text-[#8892B0]">/month</span>
+            </div>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
+              {[
+                'Unlimited document uploads',
+                'Unlimited RAG queries',
+                'Full citation audit trail',
+                'AES-256 encryption at rest',
+                'Privilege mode toggle',
+                'SOC 2 & HIPAA ready',
+              ].map((f) => (
+                <li key={f} className="flex items-center gap-2.5 text-sm text-[#8892B0]">
+                  <Check className="w-4 h-4 text-amber-500 shrink-0" strokeWidth={1.5} />
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={() => openAuth('signup')}
+              className="w-full py-3 rounded-lg text-sm font-semibold bg-gradient-to-r from-[#D4A853] to-[#B8860B] text-black hover:brightness-110 transition-all"
+            >
+              Start Free Trial
+            </button>
+          </div>
+
+          {/* ── Plus Connector ── */}
+          <div className="flex items-center justify-center py-4">
+            <div className="h-8 w-px bg-white/10" />
+            <div className="mx-3 w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-[#8892B0] text-sm font-bold">+</div>
+            <div className="h-8 w-px bg-white/10" />
+          </div>
+
+          {/* ── Mercury Card ── */}
+          <div className="rounded-2xl p-8 bg-white/[0.03] border border-white/[0.06]">
+            <div className="flex items-center gap-3 mb-1">
+              <Headphones className="w-5 h-5 text-[#60A5FA]" strokeWidth={1.5} />
+              <span className="text-xs uppercase tracking-widest text-[#60A5FA] font-semibold">The Digital Hire</span>
+            </div>
+            <h3 className="text-2xl font-bold mb-1">Protocol Mercury</h3>
+            <p className="text-sm text-[#8892B0] mb-6">Voice, chat, email, SMS — your AI executive assistant.</p>
+            <div className="mb-2">
+              <span className="text-4xl font-bold">+$99</span>
+              <span className="text-sm text-[#8892B0]">/month add-on</span>
+            </div>
+            <p className="text-xs text-[#4A5568] mb-6">Requires active Sovereign subscription · $198/mo total</p>
+            <div className="flex items-center gap-4 mb-6">
+              {[
+                { icon: Mic, label: 'Voice' },
+                { icon: Monitor, label: 'Chat' },
+                { icon: Mail, label: 'Email' },
+                { icon: MessageCircle, label: 'SMS' },
+              ].map((ch) => (
+                <div key={ch.label} className="flex items-center gap-1.5 text-xs text-[#8892B0]">
+                  <ch.icon className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  {ch.label}
                 </div>
-                <ul className="space-y-3 mb-8 flex-1">
-                  {tier.features.map((f) => (
-                    <li key={f} className="flex items-center gap-2.5 text-sm text-[#8892B0]">
-                      <Check className="w-4 h-4 text-amber-500 shrink-0" strokeWidth={1.5} />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  onClick={() => openAuth('signup')}
-                  className="w-full py-3 rounded-lg text-sm font-semibold border border-white/10 text-[#8892B0] hover:text-[#E6F1FF] hover:border-white/20 transition-all"
-                >
-                  {tier.cta}
-                </button>
-              </div>
-            ))}
+              ))}
+            </div>
+            <div className="rounded-lg bg-white/[0.02] border border-white/[0.04] p-4 mb-8 text-center">
+              <p className="text-xs text-[#4A5568] mb-1">Replaces a $60K/yr executive assistant</p>
+              <p className="text-lg font-bold text-[#D4A853]">$1,200/yr vs $60,000/yr</p>
+              <p className="text-xs text-[#8892B0]">98% cost reduction</p>
+            </div>
+            <button
+              onClick={() => openAuth('signup')}
+              className="w-full py-3 rounded-lg text-sm font-semibold border border-white/10 text-[#8892B0] hover:text-[#E6F1FF] hover:border-white/20 transition-all"
+            >
+              Get Sovereign + Mercury — $198/mo
+            </button>
+          </div>
+
+          {/* ── Syndicate (Enterprise) ── */}
+          <div className="mt-8 rounded-2xl p-6 bg-white/[0.02] border border-white/[0.04] text-center">
+            <h3 className="text-lg font-bold mb-1">Syndicate</h3>
+            <p className="text-sm text-[#8892B0] mb-3">
+              Custom AI deployment, white-label, and data integrations.
+            </p>
+            <p className="text-2xl font-bold mb-4">
+              $25K<span className="text-sm font-normal text-[#8892B0]">/year minimum</span>
+            </p>
+            <a
+              href="mailto:david@theconnexus.ai?subject=Syndicate%20Inquiry"
+              className="inline-block px-6 py-2.5 rounded-lg text-sm font-semibold border border-white/10 text-[#8892B0] hover:text-[#E6F1FF] hover:border-white/20 transition-all"
+            >
+              Talk to Sales
+            </a>
           </div>
         </div>
       </section>

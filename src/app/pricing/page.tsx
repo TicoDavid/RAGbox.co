@@ -1,7 +1,8 @@
 // THEME-EXEMPT: Public pricing page, locked to Obsidian Gold palette
+// Pricing canonical source: connexus-ops/docs/POS-BILLING-ARCHITECTURE.md
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 import { motion } from 'framer-motion'
 import {
   Check,
@@ -16,361 +17,377 @@ import {
   HardDrive,
   Bot,
   Mic,
-  Globe,
+  Mail,
+  MessageCircle,
+  Monitor,
+  Plus,
+  Calculator,
 } from 'lucide-react'
 import { Navbar } from '@/components/Navbar'
 import Footer from '@/components/Footer'
 
 // ============================================================================
-// TIER DATA
+// STRIPE PLACEHOLDERS — wire to real price IDs when Stripe products configured
 // ============================================================================
 
-type BillingCycle = 'monthly' | 'annual'
-
-interface PriceTier {
-  id: string
-  name: string
-  tagline: string
-  icon: React.ElementType
-  monthlyPrice: number | null // null = "Contact us"
-  annualPrice: number | null
-  highlight: boolean // gold border treatment
-  cta: string
-  features: string[]
-  limits: { storage: string; documents: string; users: string; queries: string }
+function handleCheckout(plan: 'sovereign' | 'sovereign_mercury') {
+  // Phase 1: Redirect to Stripe Hosted Checkout
+  // TODO: Replace with actual Stripe checkout session creation
+  // await fetch('/api/stripe/checkout', { method: 'POST', body: JSON.stringify({ plan }) })
+  // window.location.href = session.url
+  console.log(`[Stripe] Checkout: ${plan}`)
 }
 
-const TIERS: PriceTier[] = [
-  {
-    id: 'analyst',
-    name: 'Analyst',
-    tagline: 'For solo practitioners and small teams getting started.',
-    icon: Zap,
-    monthlyPrice: 49,
-    annualPrice: 39,
-    highlight: false,
-    cta: 'Start Free Trial',
-    limits: {
-      storage: '5 GB',
-      documents: '500 docs',
-      users: '3 seats',
-      queries: '1,000 / mo',
-    },
-    features: [
-      'Sovereign RAG pipeline',
-      'Document ingestion (PDF, DOCX, TXT)',
-      'Citation-backed answers',
-      'Mercury AI assistant',
-      'Silence Protocol (confidence gating)',
-      'Basic audit log',
-      'Cobalt theme',
-    ],
-  },
-  {
-    id: 'counsel',
-    name: 'Counsel',
-    tagline: 'For growing firms with compliance and privilege needs.',
-    icon: Shield,
-    monthlyPrice: 149,
-    annualPrice: 119,
-    highlight: true,
-    cta: 'Start Free Trial',
-    limits: {
-      storage: '50 GB',
-      documents: '5,000 docs',
-      users: '15 seats',
-      queries: '10,000 / mo',
-    },
-    features: [
-      'Everything in Analyst',
-      'Attorney-Client Privilege Mode',
-      'Veritas immutable audit trail',
-      'BYOLLM (bring your own LLM)',
-      'Mercury Voice agent',
-      'Multi-channel (Email, WhatsApp, SMS)',
-      'Vault access control & clearance levels',
-      'All 4 themes',
-      'Priority support',
-    ],
-  },
-  {
-    id: 'sovereign',
-    name: 'Sovereign',
-    tagline: 'For enterprises requiring full data sovereignty.',
-    icon: Crown,
-    monthlyPrice: null,
-    annualPrice: null,
-    highlight: false,
-    cta: 'Contact Sales',
-    limits: {
-      storage: 'Unlimited',
-      documents: 'Unlimited',
-      users: 'Unlimited',
-      queries: 'Unlimited',
-    },
-    features: [
-      'Everything in Counsel',
-      'Dedicated Cloud Run instance',
-      'CMEK encryption (your keys)',
-      'VPC peering & private endpoints',
-      'SOC 2 Type II attestation',
-      'Custom SSO / SAML',
-      'SLA with 99.9% uptime',
-      'White-glove onboarding',
-      'Dedicated success manager',
-    ],
-  },
-]
+function handleEnterprise() {
+  // Syndicate is sales-led, not self-serve
+  window.location.href = 'mailto:david@theconnexus.ai?subject=RAGb%C3%B6x%20Syndicate%20%E2%80%94%20Enterprise%20Inquiry'
+}
 
 // ============================================================================
-// SUB-COMPONENTS
+// FADE IN
 // ============================================================================
 
-function BillingToggle({ cycle, onChange }: { cycle: BillingCycle; onChange: (c: BillingCycle) => void }) {
-  return (
-    <div className="flex items-center justify-center gap-3">
-      <span className={`text-sm font-medium transition-colors ${cycle === 'monthly' ? 'text-white' : 'text-white/40'}`}>
-        Monthly
-      </span>
-      <button
-        onClick={() => onChange(cycle === 'monthly' ? 'annual' : 'monthly')}
-        className="relative w-14 h-7 rounded-full bg-white/10 border border-amber-500/20 transition-colors"
-        aria-label="Toggle billing cycle"
-      >
-        <motion.div
-          className="absolute top-[3px] w-5 h-5 rounded-full bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.4)]"
-          animate={{ left: cycle === 'monthly' ? '3px' : '33px' }}
-          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-        />
-      </button>
-      <span className={`text-sm font-medium transition-colors ${cycle === 'annual' ? 'text-white' : 'text-white/40'}`}>
-        Annual
-      </span>
-      {cycle === 'annual' && (
-        <motion.span
-          initial={{ opacity: 0, x: -8 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full"
-        >
-          Save 20%
-        </motion.span>
-      )}
-    </div>
-  )
-}
-
-function LimitRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between py-2">
-      <div className="flex items-center gap-2 text-white/50 text-sm">
-        <Icon className="w-3.5 h-3.5" />
-        {label}
-      </div>
-      <span className="text-sm font-semibold text-white/80">{value}</span>
-    </div>
-  )
-}
-
-function TierCard({ tier, cycle }: { tier: PriceTier; cycle: BillingCycle }) {
-  const price = cycle === 'monthly' ? tier.monthlyPrice : tier.annualPrice
-  const Icon = tier.icon
-
+function FadeUp({ delay = 0, children }: { delay?: number; children: React.ReactNode }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
+      initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-50px' }}
-      transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-      className={`
-        relative flex flex-col rounded-2xl overflow-hidden
-        bg-[#0a0e1a]/80 backdrop-blur-sm
-        border transition-all duration-300
-        ${tier.highlight
-          ? 'border-amber-500/40 shadow-[0_0_40px_-10px_rgba(245,158,11,0.2)]'
-          : 'border-white/[0.06] hover:border-white/10'
-        }
-      `}
+      viewport={{ once: true, margin: '-40px' }}
+      transition={{ duration: 0.55, delay, ease: [0.25, 0.1, 0.25, 1] }}
     >
-      {/* Popular badge */}
-      {tier.highlight && (
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-500 to-transparent" />
-      )}
+      {children}
+    </motion.div>
+  )
+}
 
-      {/* Header */}
-      <div className={`px-7 pt-7 pb-5 ${tier.highlight ? 'bg-amber-500/[0.03]' : ''}`}>
-        {tier.highlight && (
-          <span className="inline-block text-[10px] font-bold uppercase tracking-[0.2em] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full mb-4">
-            Most Popular
-          </span>
-        )}
+// ============================================================================
+// SOVEREIGN CARD — The Anchor
+// ============================================================================
 
-        <div className="flex items-center gap-3 mb-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-            tier.highlight
-              ? 'bg-amber-500/15 text-amber-400'
-              : 'bg-white/5 text-white/50'
-          }`}>
-            <Icon className="w-5 h-5" />
+const SOVEREIGN_FEATURES = [
+  'Unlimited Vault storage',
+  'Sovereign RAG pipeline (Aegis AI)',
+  'Citation-backed answers with source verification',
+  'Silence Protocol (confidence gating)',
+  'Sovereign Studio — reports, decks, evidence timelines',
+  '10 Expert Personas (CEO to Whistleblower)',
+  'Privilege Mode (Attorney-Client segregation)',
+  'Veritas immutable audit trail',
+  'AES-256-GCM encryption at rest',
+]
+
+function SovereignCard() {
+  return (
+    <div className="relative rounded-2xl overflow-hidden bg-[#0a0e1a]/80 backdrop-blur-sm border border-amber-500/30 shadow-[0_0_60px_-15px_rgba(245,158,11,0.15)]">
+      {/* Top accent line */}
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-500 to-transparent" />
+
+      <div className="p-8 md:p-10">
+        {/* Badge */}
+        <span className="inline-block text-[10px] font-bold uppercase tracking-[0.2em] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full mb-5">
+          The Foundation
+        </span>
+
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-8">
+          {/* Left: Identity */}
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-11 h-11 rounded-xl bg-amber-500/15 flex items-center justify-center">
+                <Shield className="w-5.5 h-5.5 text-amber-400" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white tracking-tight">Sovereign</h2>
+                <p className="text-sm text-white/30">Digital Insurance for Intellectual Property</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-white/40 leading-relaxed mb-6 max-w-lg">
+              Everything you need to transform unstructured documents into sovereign intelligence.
+              One user. Unlimited power.
+            </p>
+
+            {/* Features grid */}
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2.5">
+              {SOVEREIGN_FEATURES.map((f) => (
+                <li key={f} className="flex items-start gap-2.5 text-sm text-white/55">
+                  <Check className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  {f}
+                </li>
+              ))}
+            </ul>
           </div>
-          <div>
-            <h3 className="text-lg font-bold text-white tracking-tight">{tier.name}</h3>
+
+          {/* Right: Price + CTA */}
+          <div className="shrink-0 md:text-right md:min-w-[200px]">
+            <div className="flex items-baseline gap-1.5 md:justify-end mb-1">
+              <span className="text-5xl font-bold text-white tracking-tight">$99</span>
+              <span className="text-sm text-white/30 font-medium">/ mo</span>
+            </div>
+            <p className="text-xs text-white/25 mb-6">Single user. Cancel anytime.</p>
+
+            <button
+              onClick={() => handleCheckout('sovereign')}
+              className="w-full md:w-auto px-8 py-3.5 rounded-xl text-sm font-bold transition-all duration-200
+                         bg-gradient-to-r from-amber-500 to-amber-600 text-black
+                         hover:from-amber-400 hover:to-amber-500
+                         shadow-lg shadow-amber-500/20"
+            >
+              Start Free Trial
+              <ArrowRight className="w-4 h-4 inline ml-2" />
+            </button>
+            <p className="text-[11px] text-white/20 mt-2.5">14 days free. No credit card required.</p>
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
 
-        <p className="text-sm text-white/40 leading-relaxed mb-6">{tier.tagline}</p>
+// ============================================================================
+// PLUS CONNECTOR
+// ============================================================================
 
-        {/* Price */}
-        <div className="flex items-baseline gap-1.5 mb-1">
-          {price !== null ? (
-            <>
-              <span className="text-4xl font-bold text-white tracking-tight">${price}</span>
-              <span className="text-sm text-white/30 font-medium">/ seat / mo</span>
-            </>
-          ) : (
-            <span className="text-2xl font-bold text-white tracking-tight">Custom</span>
-          )}
+function PlusConnector() {
+  return (
+    <div className="flex items-center justify-center py-4">
+      <div className="w-px h-8 bg-white/[0.06]" />
+      <div className="mx-4 w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+        <Plus className="w-5 h-5 text-amber-400/60" />
+      </div>
+      <div className="w-px h-8 bg-white/[0.06]" />
+    </div>
+  )
+}
+
+// ============================================================================
+// MERCURY CARD — The Digital Hire
+// ============================================================================
+
+const MERCURY_CHANNELS = [
+  { icon: Mic, label: 'Voice' },
+  { icon: Monitor, label: 'Chat' },
+  { icon: Mail, label: 'Email' },
+  { icon: MessageCircle, label: 'SMS' },
+]
+
+const MERCURY_FEATURES = [
+  'Mercury AI assistant across every channel',
+  'Voice agent — talk to your documents',
+  'Email integration (reads and responds)',
+  'SMS & WhatsApp support',
+  'BYOLLM (bring your own LLM)',
+  'Multi-channel conversation history',
+]
+
+function MercuryCard() {
+  return (
+    <div className="relative rounded-2xl overflow-hidden bg-[#0a0e1a]/80 backdrop-blur-sm border border-white/[0.08] hover:border-amber-500/20 transition-colors">
+      <div className="p-8 md:p-10">
+        {/* Badge */}
+        <span className="inline-block text-[10px] font-bold uppercase tracking-[0.2em] text-[#D4A853] bg-[#D4A853]/10 border border-[#D4A853]/20 px-2.5 py-1 rounded-full mb-5">
+          The Digital Hire
+        </span>
+
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-8">
+          {/* Left: Identity */}
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-11 h-11 rounded-xl bg-[#D4A853]/15 flex items-center justify-center">
+                <Bot className="w-5.5 h-5.5 text-[#D4A853]" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white tracking-tight">Protocol Mercury</h2>
+                <p className="text-sm text-white/30">Add-on to Sovereign</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-white/40 leading-relaxed mb-5 max-w-lg">
+              For $99, you hire an Executive Assistant that listens to every call, reads every email,
+              and works 24/7/365. A real EA costs $60,000/year. Mercury costs $1,200.
+            </p>
+
+            {/* Channel icons */}
+            <div className="flex items-center gap-3 mb-5">
+              {MERCURY_CHANNELS.map((ch) => {
+                const Icon = ch.icon
+                return (
+                  <div
+                    key={ch.label}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-white/40"
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span className="text-xs font-medium">{ch.label}</span>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Features */}
+            <ul className="space-y-2.5">
+              {MERCURY_FEATURES.map((f) => (
+                <li key={f} className="flex items-start gap-2.5 text-sm text-white/55">
+                  <Check className="w-4 h-4 text-[#D4A853] shrink-0 mt-0.5" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Right: Price + CTA */}
+          <div className="shrink-0 md:text-right md:min-w-[200px]">
+            <div className="flex items-baseline gap-1.5 md:justify-end mb-1">
+              <span className="text-lg text-white/30 font-medium">+</span>
+              <span className="text-5xl font-bold text-white tracking-tight">$99</span>
+              <span className="text-sm text-white/30 font-medium">/ mo</span>
+            </div>
+            <p className="text-xs text-white/25 mb-2">Requires Sovereign plan.</p>
+
+            {/* ROI callout */}
+            <div className="inline-block px-3 py-1.5 rounded-lg bg-amber-500/[0.07] border border-amber-500/15 mb-5">
+              <p className="text-[11px] text-amber-400/70 font-medium">
+                98% cheaper than a human EA
+              </p>
+            </div>
+
+            <div>
+              <button
+                onClick={() => handleCheckout('sovereign_mercury')}
+                className="w-full md:w-auto px-8 py-3.5 rounded-xl text-sm font-bold transition-all duration-200
+                           bg-white/5 text-white border border-white/10
+                           hover:bg-white/10 hover:border-white/20"
+              >
+                Get Sovereign + Mercury
+                <ArrowRight className="w-4 h-4 inline ml-2" />
+              </button>
+              <p className="text-xs text-white/25 mt-2 md:text-right">$198/mo total. 14 days free.</p>
+            </div>
+          </div>
         </div>
-        {price !== null && cycle === 'annual' && (
-          <p className="text-xs text-amber-400/60">billed annually</p>
-        )}
       </div>
+    </div>
+  )
+}
 
-      {/* Divider */}
-      <div className="mx-7 h-px bg-white/[0.06]" />
+// ============================================================================
+// SYNDICATE CARD — The Enterprise
+// ============================================================================
 
-      {/* Limits */}
-      <div className="px-7 py-4">
-        <LimitRow icon={HardDrive} label="Storage" value={tier.limits.storage} />
-        <LimitRow icon={FileText} label="Documents" value={tier.limits.documents} />
-        <LimitRow icon={Users} label="Team" value={tier.limits.users} />
-        <LimitRow icon={Bot} label="Queries" value={tier.limits.queries} />
+const SYNDICATE_FEATURES = [
+  'Dedicated Cloud Run instance',
+  'CMEK encryption (your keys)',
+  'Custom SSO / SAML (Okta)',
+  'VPC peering & private endpoints',
+  'Data residency (Frankfurt / NY / London)',
+  'SLA with 99.9% uptime guarantee',
+  'Dedicated success manager',
+  'White-glove onboarding',
+]
+
+function SyndicateCard() {
+  return (
+    <div className="relative rounded-2xl overflow-hidden bg-[#0a0e1a]/60 backdrop-blur-sm border border-white/[0.06]">
+      <div className="p-8 md:p-10">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-8">
+          {/* Left */}
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center">
+                <Crown className="w-5.5 h-5.5 text-white/40" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white tracking-tight">Syndicate</h2>
+                <p className="text-sm text-white/30">Enterprise Governance</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-white/40 leading-relaxed mb-6 max-w-lg">
+              For firms that require full data sovereignty, dedicated infrastructure,
+              and compliance-grade SLAs. We do not sell seats — we sell governance.
+            </p>
+
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2.5">
+              {SYNDICATE_FEATURES.map((f) => (
+                <li key={f} className="flex items-start gap-2.5 text-sm text-white/50">
+                  <Check className="w-4 h-4 text-white/25 shrink-0 mt-0.5" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Right */}
+          <div className="shrink-0 md:text-right md:min-w-[200px]">
+            <p className="text-sm text-white/25 uppercase tracking-wider font-semibold mb-1">Starting at</p>
+            <div className="flex items-baseline gap-1.5 md:justify-end mb-1">
+              <span className="text-4xl font-bold text-white tracking-tight">$25K</span>
+              <span className="text-sm text-white/30 font-medium">/ year</span>
+            </div>
+            <p className="text-xs text-white/25 mb-6">Annual contract. Prepaid.</p>
+
+            <button
+              onClick={handleEnterprise}
+              className="w-full md:w-auto px-8 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200
+                         bg-white/[0.04] text-white/70 border border-white/[0.08]
+                         hover:bg-white/[0.08] hover:text-white hover:border-white/15"
+            >
+              Talk to Sales
+              <ArrowRight className="w-4 h-4 inline ml-2" />
+            </button>
+          </div>
+        </div>
       </div>
+    </div>
+  )
+}
 
-      {/* Divider */}
-      <div className="mx-7 h-px bg-white/[0.06]" />
+// ============================================================================
+// ROI SECTION — The Billable Hour Test
+// ============================================================================
 
-      {/* Features */}
-      <div className="px-7 py-5 flex-1">
-        <p className="text-xs font-semibold text-white/30 uppercase tracking-wider mb-3">
-          {tier.id === 'analyst' ? 'Includes' : tier.id === 'counsel' ? 'Everything in Analyst, plus' : 'Everything in Counsel, plus'}
+function RoiSection() {
+  return (
+    <FadeUp>
+      <div className="rounded-2xl overflow-hidden bg-gradient-to-b from-amber-500/[0.04] to-transparent border border-amber-500/10 p-8 md:p-10">
+        <div className="flex items-center gap-3 mb-6">
+          <Calculator className="w-5 h-5 text-amber-400/60" />
+          <h2 className="text-lg font-bold text-white tracking-tight">The Billable Hour Test</h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <RoiStat
+            label="Senior Partner Rate"
+            value="$600 – $1,200"
+            sub="per hour"
+          />
+          <RoiStat
+            label="RAGböx Cost"
+            value="$198"
+            sub="per month (Sovereign + Mercury)"
+            highlight
+          />
+          <RoiStat
+            label="Break-Even"
+            value="20 minutes"
+            sub="of saved work per month"
+          />
+        </div>
+
+        <p className="text-sm text-white/30 leading-relaxed max-w-2xl">
+          If Mercury catches one liability in a contract that a human missed, it pays for itself for 10 years.
+          This is not software cost. This is insurance premium.
         </p>
-        <ul className="space-y-2.5">
-          {tier.features.map((feature) => (
-            <li key={feature} className="flex items-start gap-2.5 text-sm text-white/60">
-              <Check className={`w-4 h-4 shrink-0 mt-0.5 ${tier.highlight ? 'text-amber-400' : 'text-blue-400/60'}`} />
-              {feature}
-            </li>
-          ))}
-        </ul>
       </div>
-
-      {/* CTA */}
-      <div className="px-7 pb-7 mt-auto">
-        <button
-          className={`
-            w-full py-3 rounded-xl text-sm font-semibold transition-all duration-200
-            flex items-center justify-center gap-2
-            ${tier.highlight
-              ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-black hover:from-amber-400 hover:to-amber-500 shadow-lg shadow-amber-500/20'
-              : tier.monthlyPrice === null
-                ? 'bg-white/5 text-white border border-white/10 hover:bg-white/10 hover:border-white/20'
-                : 'bg-white/5 text-white border border-white/10 hover:bg-white/10 hover:border-white/20'
-            }
-          `}
-        >
-          {tier.cta}
-          <ArrowRight className="w-4 h-4" />
-        </button>
-      </div>
-    </motion.div>
+    </FadeUp>
   )
 }
 
-// ============================================================================
-// COMPARISON TABLE
-// ============================================================================
-
-interface CompareRow {
-  label: string
-  icon: React.ElementType
-  analyst: string | boolean
-  counsel: string | boolean
-  sovereign: string | boolean
-}
-
-const COMPARE_ROWS: CompareRow[] = [
-  { label: 'Storage', icon: HardDrive, analyst: '5 GB', counsel: '50 GB', sovereign: 'Unlimited' },
-  { label: 'Documents', icon: FileText, analyst: '500', counsel: '5,000', sovereign: 'Unlimited' },
-  { label: 'Team seats', icon: Users, analyst: '3', counsel: '15', sovereign: 'Unlimited' },
-  { label: 'Mercury AI', icon: Bot, analyst: true, counsel: true, sovereign: true },
-  { label: 'Voice Agent', icon: Mic, analyst: false, counsel: true, sovereign: true },
-  { label: 'Multi-channel', icon: Globe, analyst: false, counsel: true, sovereign: true },
-  { label: 'Privilege Mode', icon: Lock, analyst: false, counsel: true, sovereign: true },
-  { label: 'BYOLLM', icon: Zap, analyst: false, counsel: true, sovereign: true },
-  { label: 'Immutable Audit', icon: Shield, analyst: false, counsel: true, sovereign: true },
-  { label: 'Dedicated Instance', icon: Building2, analyst: false, counsel: false, sovereign: true },
-  { label: 'CMEK Encryption', icon: Lock, analyst: false, counsel: false, sovereign: true },
-  { label: 'Custom SSO', icon: Users, analyst: false, counsel: false, sovereign: true },
-]
-
-function CompareCell({ value }: { value: string | boolean }) {
-  if (typeof value === 'boolean') {
-    return value ? (
-      <Check className="w-4 h-4 text-amber-400 mx-auto" />
-    ) : (
-      <span className="block w-4 h-px bg-white/10 mx-auto" />
-    )
-  }
-  return <span className="text-sm text-white/60 font-medium">{value}</span>
-}
-
-function ComparisonTable() {
+function RoiStat({ label, value, sub, highlight }: { label: string; value: string; sub: string; highlight?: boolean }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-50px' }}
-      transition={{ duration: 0.5 }}
-      className="mt-28"
-    >
-      <h2 className="text-2xl font-bold text-white text-center mb-2 tracking-tight">
-        Compare Plans
-      </h2>
-      <p className="text-sm text-white/30 text-center mb-10">
-        Every plan includes end-to-end encryption and zero data retention.
-      </p>
-
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-white/[0.06]">
-              <th className="py-4 pr-6 text-xs font-semibold text-white/30 uppercase tracking-wider w-1/4">Feature</th>
-              <th className="py-4 px-4 text-center text-xs font-semibold text-white/30 uppercase tracking-wider w-1/4">Analyst</th>
-              <th className="py-4 px-4 text-center text-xs font-semibold text-amber-400/60 uppercase tracking-wider w-1/4">Counsel</th>
-              <th className="py-4 pl-4 text-center text-xs font-semibold text-white/30 uppercase tracking-wider w-1/4">Sovereign</th>
-            </tr>
-          </thead>
-          <tbody>
-            {COMPARE_ROWS.map((row) => {
-              const Icon = row.icon
-              return (
-                <tr key={row.label} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
-                  <td className="py-3.5 pr-6">
-                    <div className="flex items-center gap-2.5 text-sm text-white/50">
-                      <Icon className="w-4 h-4 shrink-0" />
-                      {row.label}
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4 text-center"><CompareCell value={row.analyst} /></td>
-                  <td className="py-3.5 px-4 text-center bg-amber-500/[0.02]"><CompareCell value={row.counsel} /></td>
-                  <td className="py-3.5 pl-4 text-center"><CompareCell value={row.sovereign} /></td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
-    </motion.div>
+    <div className={`p-5 rounded-xl border ${highlight ? 'bg-amber-500/[0.05] border-amber-500/15' : 'bg-white/[0.02] border-white/[0.06]'}`}>
+      <p className="text-xs text-white/30 uppercase tracking-wider font-medium mb-2">{label}</p>
+      <p className={`text-2xl font-bold tracking-tight mb-0.5 ${highlight ? 'text-amber-400' : 'text-white'}`}>{value}</p>
+      <p className="text-xs text-white/25">{sub}</p>
+    </div>
   )
 }
 
@@ -381,31 +398,25 @@ function ComparisonTable() {
 const FAQS = [
   {
     q: 'What happens to my data?',
-    a: 'RAGbox operates on a zero-retention model. Your documents are encrypted at rest (AES-256) and in transit (TLS 1.3). We never train on your data. Sovereign tier adds CMEK so only your keys can decrypt.',
+    a: 'RAGböx operates on a zero-retention model. Your documents are encrypted at rest (AES-256) and in transit (TLS 1.3). We never train on your data. Syndicate adds CMEK so only your keys can decrypt.',
   },
   {
-    q: 'Can I bring my own LLM?',
-    a: 'Yes. Counsel and Sovereign plans support BYOLLM via OpenAI, Anthropic, Google AI, or OpenRouter. Your API key, your model, your data stays in your pipeline.',
+    q: 'Can I add Mercury later?',
+    a: 'Yes. Start with Sovereign, then upgrade anytime from your dashboard. Mercury is added to your existing subscription with automatic proration.',
   },
   {
     q: 'What is Privilege Mode?',
     a: 'Attorney-Client Privilege Mode is a binary toggle that segregates privileged documents from normal queries. When active, privileged docs are invisible to standard users. Full audit trail included.',
   },
   {
-    q: 'Do you offer a free trial?',
-    a: 'Yes. Analyst and Counsel plans include a 14-day free trial with full feature access. No credit card required to start.',
+    q: 'What does "Bring Your Own LLM" mean?',
+    a: 'Mercury supports BYOLLM via OpenAI, Anthropic, Google AI, or OpenRouter. Your API key, your model, your data stays in your pipeline. Available with Mercury add-on.',
   },
 ]
 
 function FaqSection() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-50px' }}
-      transition={{ duration: 0.5 }}
-      className="mt-28"
-    >
+    <FadeUp>
       <h2 className="text-2xl font-bold text-white text-center mb-10 tracking-tight">
         Frequently Asked Questions
       </h2>
@@ -420,7 +431,7 @@ function FaqSection() {
           </div>
         ))}
       </div>
-    </motion.div>
+    </FadeUp>
   )
 }
 
@@ -429,52 +440,73 @@ function FaqSection() {
 // ============================================================================
 
 export default function PricingPage() {
-  const [cycle, setCycle] = useState<BillingCycle>('annual')
-
   return (
     <main className="min-h-screen bg-[#020408]">
       <Navbar />
 
       {/* Hero */}
       <section className="pt-36 pb-16 px-6">
-        <div className="max-w-5xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
+        <div className="max-w-4xl mx-auto text-center">
+          <FadeUp>
             <span className="inline-block text-[10px] font-bold uppercase tracking-[0.25em] text-amber-400/60 mb-4">
               Pricing
             </span>
             <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight mb-4 leading-[1.15]">
-              Sovereign intelligence,<br />
+              Digital Insurance<br />
               <span className="bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">
-                priced for reality.
+                for Intellectual Property.
               </span>
             </h1>
-            <p className="text-base text-white/40 max-w-xl mx-auto mb-10 leading-relaxed">
-              Every plan includes end-to-end encryption, zero data retention,
-              and the RAG pipeline your compliance team will love.
+            <p className="text-base text-white/40 max-w-xl mx-auto leading-relaxed">
+              Not a chatbot. Not a search tool. Sovereign intelligence that
+              pays for itself in 20 minutes of saved work.
             </p>
-          </motion.div>
-
-          <BillingToggle cycle={cycle} onChange={setCycle} />
+          </FadeUp>
         </div>
       </section>
 
-      {/* Tier Cards */}
-      <section className="pb-20 px-6">
-        <div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-6">
-          {TIERS.map((tier) => (
-            <TierCard key={tier.id} tier={tier} cycle={cycle} />
-          ))}
+      {/* Sovereign Card */}
+      <section className="pb-2 px-6">
+        <div className="max-w-4xl mx-auto">
+          <FadeUp delay={0.1}>
+            <SovereignCard />
+          </FadeUp>
         </div>
       </section>
 
-      {/* Comparison Table */}
+      {/* Plus Connector */}
+      <section className="px-6">
+        <div className="max-w-4xl mx-auto">
+          <PlusConnector />
+        </div>
+      </section>
+
+      {/* Mercury Card */}
+      <section className="pt-2 pb-16 px-6">
+        <div className="max-w-4xl mx-auto">
+          <FadeUp delay={0.15}>
+            <MercuryCard />
+          </FadeUp>
+        </div>
+      </section>
+
+      {/* ROI Section */}
+      <section className="pb-16 px-6">
+        <div className="max-w-4xl mx-auto">
+          <RoiSection />
+        </div>
+      </section>
+
+      {/* Syndicate */}
       <section className="pb-20 px-6">
         <div className="max-w-4xl mx-auto">
-          <ComparisonTable />
+          <FadeUp>
+            <div className="text-center mb-8">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/20 mb-2">Enterprise</p>
+              <div className="w-12 h-px bg-white/[0.06] mx-auto" />
+            </div>
+            <SyndicateCard />
+          </FadeUp>
         </div>
       </section>
 
@@ -485,26 +517,12 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Bottom CTA */}
-      <section className="pb-24 px-6">
-        <div className="max-w-2xl mx-auto text-center">
-          <div className="p-10 rounded-2xl bg-gradient-to-b from-amber-500/[0.04] to-transparent border border-amber-500/10">
-            <Crown className="w-8 h-8 text-amber-400/60 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-white mb-2">Need something custom?</h2>
-            <p className="text-sm text-white/40 mb-6 leading-relaxed">
-              On-prem deployment, custom integrations, dedicated infrastructure.<br />
-              Our team will architect the perfect sovereign stack.
-            </p>
-            <a
-              href="https://theconnexus.ai/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-semibold hover:bg-white/10 hover:border-white/20 transition-all"
-            >
-              Talk to Sales
-              <ArrowRight className="w-4 h-4" />
-            </a>
-          </div>
+      {/* Trust bar */}
+      <section className="pb-20 px-6">
+        <div className="max-w-4xl mx-auto text-center">
+          <p className="text-xs tracking-[0.3em] font-mono text-white/15 uppercase">
+            SOC2 Ready &middot; Zero Retention &middot; AES-256 Encrypted &middot; HIPAA Compliant &middot; SEC 17a-4 Audit
+          </p>
         </div>
       </section>
 
