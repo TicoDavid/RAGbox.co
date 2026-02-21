@@ -273,7 +273,16 @@ function LandingV3Content() {
           <FadeIn delay={0.2}>
             <h1 className="text-[32px] sm:text-[40px] md:text-[56px] font-bold tracking-[-0.02em] leading-[1.1]">
               Your Documents.{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-600">Interrogated.</span>
+              <span
+                style={{
+                  background: 'linear-gradient(to right, #FBBF24, #CA8A04)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                }}
+              >
+                Interrogated.
+              </span>
             </h1>
           </FadeIn>
 
@@ -301,7 +310,8 @@ function LandingV3Content() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <button
                 onClick={() => openAuth('signup')}
-                className="w-full sm:w-auto px-6 py-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-sm font-bold transition-all"
+                className="w-full sm:w-auto px-6 py-3 rounded-lg text-sm font-bold transition-all hover:opacity-90"
+                style={{ backgroundColor: '#F59E0B', color: '#000000' }}
               >
                 Start Free
               </button>
