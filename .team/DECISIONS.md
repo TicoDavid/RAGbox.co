@@ -16,7 +16,7 @@
 
 [2026-02-18] BETA ACCESS — Dr. Insane — Invite-only. 50 codes. 20 David's network, 20 inbound, 10 investor demos. Format: RBX-LEGAL-XXXXXX.
 
-[2026-02-18] PRICING — Dr. Insane (awaiting David approval) — Starter $149/mo (1 vault, 500 docs), Professional $399/mo (3 vaults, 2000 docs, Mercury included), Enterprise $999/mo (unlimited, API access). Mercury is add-on at Starter, included at Professional+.
+[2026-02-21] PRICING — DAVID (Jerry 2+1 model, approved) — Sovereign $99/mo (core RAG platform), Mercury $99/mo (voice + communication add-on), Syndicate $25K+ (enterprise/custom). Replaces prior 3-tier pricing.
 
 [2026-02-18] DEMO CONTENT — Dr. Insane — Synthetic but realistic. 8 legal PDFs generated. We control the narrative.
 
@@ -34,7 +34,7 @@
 
 [2026-02-18] TIMELINE — DAVID — HOT DEADLINE. Build now. No buffer. Ship ASAP.
 
-[2026-02-18] PRICING APPROVED — DAVID — $149/$399/$999 confirmed. Starter $149/mo, Professional $399/mo, Enterprise $999/mo. Mercury add-on at Starter, included at Professional+. Put it on the landing page.
+[2026-02-18] EVELYN AUTH FIX — Sheldon — Agent email routes must enforce tenant-scoped authorization before shipping production Evelyn. Spec: .team/SPEC_EVELYN_PRODUCTION.md. Auth change — requires Sheldon review before merge.
 
 ---
 
@@ -45,3 +45,11 @@
 - AEGIS = proprietary LLM abstraction
 - RAGböx = always with umlaut
 - Do not name individual AI vendors/models in external materials
+
+---
+
+## ARCHIVED DECISIONS
+
+[2026-02-18] ~~PRICING — Dr. Insane — Starter $149/mo, Professional $399/mo, Enterprise $999/mo.~~ Superseded by Jerry 2+1 model (2026-02-21).
+
+[2026-02-18] ~~PRICING APPROVED — DAVID — $149/$399/$999 confirmed.~~ Superseded by Jerry 2+1 model (2026-02-21).
