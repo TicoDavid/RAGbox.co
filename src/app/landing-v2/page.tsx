@@ -1,10 +1,10 @@
 // THEME-EXEMPT: Landing V3 — Pure black, Three.js orb, premium
 // Landing-only design tokens (not in design-tokens.css — see BRANDING_GUIDELINES.md §0)
-// --bg-void: #000000    --accent-glow: #3B82F6
+// --bg-void: #000000    --accent-glow: #F59E0B (amber)
 // --accent-warm: #D4A853  --text-muted: #4A5568
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 import dynamic from 'next/dynamic'
@@ -110,6 +110,63 @@ const PRICING = [
   },
 ]
 
+/* ─── Typewriter prompts ─── */
+const TYPEWRITER_PROMPTS = [
+  'Conduct a forensic audit on the Q3 Report...',
+  'Extract all liability clauses from these contracts...',
+  'Synthesize a briefing for the Board of Directors...',
+  'Find every reference to indemnification across 400 pages...',
+]
+
+function useTypewriter(strings: string[]) {
+  const [display, setDisplay] = useState('')
+  const indexRef = useRef(0)
+  const phaseRef = useRef<'typing' | 'paused' | 'erasing' | 'gap'>('typing')
+  const charRef = useRef(0)
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>
+
+    const tick = () => {
+      const current = strings[indexRef.current]
+      const phase = phaseRef.current
+
+      if (phase === 'typing') {
+        charRef.current++
+        setDisplay(current.slice(0, charRef.current))
+        if (charRef.current >= current.length) {
+          phaseRef.current = 'paused'
+          timer = setTimeout(tick, 2000)
+        } else {
+          timer = setTimeout(tick, 50)
+        }
+      } else if (phase === 'paused') {
+        phaseRef.current = 'erasing'
+        timer = setTimeout(tick, 30)
+      } else if (phase === 'erasing') {
+        charRef.current--
+        setDisplay(current.slice(0, charRef.current))
+        if (charRef.current <= 0) {
+          phaseRef.current = 'gap'
+          timer = setTimeout(tick, 500)
+        } else {
+          timer = setTimeout(tick, 30)
+        }
+      } else {
+        indexRef.current = (indexRef.current + 1) % strings.length
+        charRef.current = 0
+        phaseRef.current = 'typing'
+        timer = setTimeout(tick, 50)
+      }
+    }
+
+    timer = setTimeout(tick, 50)
+    return () => clearTimeout(timer)
+  }, [strings])
+
+  return display
+}
+
 /* ─── Fade-in helper ─── */
 function FadeIn({ delay = 0, children }: { delay?: number; children: React.ReactNode }) {
   return (
@@ -132,6 +189,7 @@ function LandingV3Content() {
   const [authContext, setAuthContext] = useState<AuthContext>('signin')
   const [authError, setAuthError] = useState<string | null>(null)
   const [scrolled, setScrolled] = useState(false)
+  const typewriterText = useTypewriter(TYPEWRITER_PROMPTS)
 
   // OAuth error detection
   useEffect(() => {
@@ -167,7 +225,7 @@ function LandingV3Content() {
         fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
         // Landing-only tokens (BRANDING_GUIDELINES.md §0)
         '--bg-void': '#000000',
-        '--accent-glow': '#3B82F6',
+        '--accent-glow': '#F59E0B',
         '--accent-warm': '#D4A853',
         '--text-muted': '#4A5568',
       } as React.CSSProperties}
@@ -216,7 +274,7 @@ function LandingV3Content() {
           <FadeIn delay={0.8}>
             <h1 className="text-[32px] sm:text-[40px] md:text-[56px] font-bold tracking-[-0.02em] leading-[1.1]">
               Your Documents.{' '}
-              <span className="text-[#2463EB]">Interrogated.</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-600">Interrogated.</span>
             </h1>
           </FadeIn>
 
@@ -230,9 +288,11 @@ function LandingV3Content() {
           <FadeIn delay={1.2}>
             <div
               onClick={() => openAuth('signup')}
-              className="mx-auto max-w-[560px] flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 cursor-pointer hover:border-[#2463EB]/40 transition-colors"
+              className="mx-auto max-w-[560px] flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 cursor-pointer hover:border-amber-500/40 transition-colors"
             >
-              <span className="flex-1 text-sm text-[#4A5568] text-left">Ask anything about your documents...</span>
+              <span className="flex-1 text-sm text-[#4A5568] text-left">
+                {typewriterText}<span className="inline-block w-[2px] h-[14px] bg-amber-400/70 ml-0.5 animate-pulse align-middle" />
+              </span>
               <Mic className="w-5 h-5 text-[#8892B0]" strokeWidth={1.5} />
             </div>
           </FadeIn>
@@ -242,7 +302,7 @@ function LandingV3Content() {
             <div className="flex items-center justify-center gap-3">
               <button
                 onClick={() => openAuth('signup')}
-                className="px-6 py-3 rounded-lg bg-[#2463EB] hover:brightness-110 text-white text-sm font-semibold transition-all"
+                className="px-6 py-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-sm font-bold transition-all"
               >
                 Start Free
               </button>
@@ -250,12 +310,19 @@ function LandingV3Content() {
                 href="https://storage.googleapis.com/connexusai-assets/RAGbox.co.mp4"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-6 py-3 rounded-lg border border-white/10 text-sm text-[#8892B0] hover:text-[#E6F1FF] hover:border-white/20 transition-all"
+                className="px-6 py-3 rounded-lg border border-amber-500/30 text-sm text-amber-400/80 hover:text-amber-300 hover:border-amber-500/50 transition-all"
               >
                 Watch Demo
                 <ArrowRight className="w-3.5 h-3.5 inline ml-1.5" strokeWidth={1.5} />
               </a>
             </div>
+          </FadeIn>
+
+          {/* Trust strip */}
+          <FadeIn delay={1.6}>
+            <p className="text-xs tracking-[0.3em] font-mono text-gray-500 opacity-50 mt-8 text-center">
+              SOC2 READY &middot; ZERO RETENTION &middot; AES-256 ENCRYPTED &middot; HIPAA COMPLIANT
+            </p>
           </FadeIn>
         </div>
       </section>
@@ -320,7 +387,7 @@ function LandingV3Content() {
       <section className="py-[120px] px-6">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-[28px] md:text-[40px] font-bold tracking-[-0.02em] mb-3">
-            10 Expert Lenses. <span className="text-[#2463EB]">One Vault.</span>
+            10 Expert Lenses. <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-600">One Vault.</span>
           </h2>
           <p className="text-lg text-[#8892B0] mb-14">
             Same document. Different intelligence.
@@ -332,7 +399,7 @@ function LandingV3Content() {
               return (
                 <div
                   key={p.label}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/[0.08] hover:border-[#2463EB]/30 hover:shadow-[0_0_12px_rgba(36,99,235,0.15)] transition-all cursor-default"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/[0.08] hover:border-amber-500/30 hover:shadow-[0_0_12px_rgba(245,158,11,0.15)] transition-all cursor-default"
                 >
                   <Icon className="w-4 h-4 text-[#8892B0]" strokeWidth={1.5} />
                   <span className="text-sm font-medium">{p.label}</span>
@@ -360,7 +427,7 @@ function LandingV3Content() {
               return (
                 <div
                   key={item.label}
-                  className="flex flex-col items-center justify-center gap-2 py-5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-[#2463EB]/20 hover:scale-[1.02] transition-all"
+                  className="flex flex-col items-center justify-center gap-2 py-5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-amber-500/20 hover:scale-[1.02] transition-all"
                 >
                   <Icon className="w-8 h-8 text-[#8892B0]" strokeWidth={1.5} />
                   <span className="text-[13px] font-medium text-[#8892B0]">{item.label}</span>
@@ -425,7 +492,7 @@ function LandingV3Content() {
                 <ul className="space-y-3 mb-8 flex-1">
                   {tier.features.map((f) => (
                     <li key={f} className="flex items-center gap-2.5 text-sm text-[#8892B0]">
-                      <Check className="w-4 h-4 text-[#2463EB] shrink-0" strokeWidth={1.5} />
+                      <Check className="w-4 h-4 text-amber-500 shrink-0" strokeWidth={1.5} />
                       {f}
                     </li>
                   ))}
@@ -459,7 +526,7 @@ function LandingV3Content() {
       <section className="py-[80px] px-6">
         <div className="max-w-4xl mx-auto text-center">
           <p className="text-5xl font-bold">
-            <span className="text-[#2463EB]">38+</span>{' '}
+            <span className="text-amber-500">38+</span>{' '}
             <span className="text-[#8892B0] text-2xl font-normal">AI agents deployed</span>
           </p>
           <p className="text-lg text-[#8892B0] mt-2">
@@ -559,7 +626,7 @@ export default function LandingV3() {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-center text-[11px] font-semibold uppercase tracking-[0.05em] text-[#2463EB] mb-4">
+    <p className="text-center text-[11px] font-semibold uppercase tracking-[0.05em] text-amber-500 mb-4">
       {children}
     </p>
   )
@@ -587,7 +654,7 @@ function StepItem({
   return (
     <div className="flex flex-col items-center text-center">
       <Icon className="w-10 h-10 text-[#8892B0] mb-4" strokeWidth={1.5} />
-      <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#2463EB] mb-2">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-amber-500 mb-2">
         STEP {step}
       </span>
       <h3 className="text-xl font-semibold mb-2">{title}</h3>
@@ -614,12 +681,12 @@ function FeatureCard({
       className={`p-8 rounded-2xl bg-white/[0.03] border transition-colors ${
         gold
           ? 'border-[rgba(212,168,83,0.2)] hover:border-[rgba(212,168,83,0.4)]'
-          : 'border-white/[0.06] hover:border-[rgba(36,99,235,0.2)]'
+          : 'border-white/[0.06] hover:border-[rgba(245,158,11,0.2)]'
       }`}
     >
       <div className="flex items-start justify-between mb-5">
         <Icon className="w-6 h-6 text-[#8892B0]" strokeWidth={1.5} />
-        <span className="px-2.5 py-1 rounded text-[11px] font-semibold uppercase tracking-[0.05em] bg-[rgba(36,99,235,0.15)] text-[#3B82F6]">
+        <span className="px-2.5 py-1 rounded text-[11px] font-semibold uppercase tracking-[0.05em] bg-amber-500/15 text-amber-400">
           {badge}
         </span>
       </div>

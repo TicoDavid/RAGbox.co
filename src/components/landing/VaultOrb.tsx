@@ -10,8 +10,8 @@ import { useRef, useEffect, useState, useCallback } from 'react'
  * Brand: connexus-ops/docs/BRANDING_GUIDELINES.md
  *
  * - IcosahedronGeometry(2.5, 4), MeshPhysicalMaterial (chrome/glass)
- * - 50 orbiting particles (#3B82F6)
- * - Gradient light ribbon (magenta → cyan → blue, additive)
+ * - 50 orbiting particles (#D4A853 sovereign gold)
+ * - Gradient light ribbon (amber → gold → orange, additive)
  * - Mouse parallax (10deg max, lerp 0.05); auto-rotate on mobile
  * - CSS radial glow behind canvas, pulsing 4s
  * - WebGL fallback: static CSS gradient orb
@@ -68,7 +68,7 @@ export function VaultOrb() {
       const cubeCamera = new THREE.CubeCamera(0.1, 100, cubeRT)
       const envScene = new THREE.Scene()
       const envGeo = new THREE.SphereGeometry(0.2, 8, 8)
-      const envColors = [0x2463EB, 0x7C3AED, 0x06B6D4, 0x3B82F6]
+      const envColors = [0xF59E0B, 0xD97706, 0xD4A853, 0xEA580C]
       envColors.forEach((c, i) => {
         const mat = new THREE.MeshBasicMaterial({ color: c })
         const mesh = new THREE.Mesh(envGeo, mat)
@@ -96,23 +96,23 @@ export function VaultOrb() {
       // ── Lighting ──
       scene.add(new THREE.AmbientLight(0x222244, 0.5))
 
-      const pl1 = new THREE.PointLight(0x2463EB, 2, 20)
+      const pl1 = new THREE.PointLight(0xF59E0B, 2, 20)
       pl1.position.set(5, 3, 5)
       scene.add(pl1)
 
-      const pl2 = new THREE.PointLight(0x7C3AED, 1.5, 20)
+      const pl2 = new THREE.PointLight(0xD97706, 1.5, 20)
       pl2.position.set(-5, -2, 3)
       scene.add(pl2)
 
-      const pl3 = new THREE.PointLight(0x06B6D4, 1, 15)
+      const pl3 = new THREE.PointLight(0xD4A853, 1, 15)
       pl3.position.set(0, 5, -3)
       scene.add(pl3)
 
-      const pl4 = new THREE.PointLight(0x3B82F6, 2, 20)
+      const pl4 = new THREE.PointLight(0xF59E0B, 2, 20)
       pl4.position.set(5, 5, 5)
       scene.add(pl4)
 
-      const pl5 = new THREE.PointLight(0x7C3AED, 1.5, 20)
+      const pl5 = new THREE.PointLight(0xD97706, 1.5, 20)
       pl5.position.set(-5, -3, 5)
       scene.add(pl5)
 
@@ -139,7 +139,7 @@ export function VaultOrb() {
       particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
       const particleMat = new THREE.PointsMaterial({
         size: 0.06,
-        color: 0x3B82F6,
+        color: 0xD4A853,
         transparent: true,
         opacity: 0.8,
         sizeAttenuation: true,
@@ -156,11 +156,11 @@ export function VaultOrb() {
       rCanvas.height = 4
       const rCtx = rCanvas.getContext('2d')!
       const grad = rCtx.createLinearGradient(0, 0, 512, 0)
-      grad.addColorStop(0, 'rgba(217,70,239,0)')       // magenta fade-in
-      grad.addColorStop(0.2, 'rgba(217,70,239,0.8)')   // magenta
-      grad.addColorStop(0.5, 'rgba(6,182,212,0.9)')    // cyan peak
-      grad.addColorStop(0.8, 'rgba(36,99,235,0.8)')    // blue
-      grad.addColorStop(1, 'rgba(36,99,235,0)')         // blue fade-out
+      grad.addColorStop(0, 'rgba(245,158,11,0)')         // amber fade-in
+      grad.addColorStop(0.2, 'rgba(245,158,11,0.8)')   // amber
+      grad.addColorStop(0.5, 'rgba(212,168,83,0.9)')   // gold peak
+      grad.addColorStop(0.8, 'rgba(234,88,12,0.8)')    // orange
+      grad.addColorStop(1, 'rgba(234,88,12,0)')         // orange fade-out
       rCtx.fillStyle = grad
       rCtx.fillRect(0, 0, 512, 4)
 
@@ -223,7 +223,7 @@ export function VaultOrb() {
         orb.rotation.y += (targetRot.y - orb.rotation.y) * LERP
 
         // Slow auto-rotation (always on; primary input on mobile)
-        orb.rotation.y += 0.001
+        orb.rotation.y += 0.0005
 
         // Particle orbit
         const pos = particleGeo.attributes.position.array as Float32Array
@@ -287,12 +287,12 @@ export function VaultOrb() {
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            background: 'radial-gradient(circle, rgba(36,99,235,0.25) 0%, rgba(124,58,237,0.15) 50%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(245,158,11,0.2) 0%, rgba(217,119,6,0.1) 50%, transparent 70%)',
             pointerEvents: 'none',
           }}
         />
         {/* Static orb shape */}
-        <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#1a1a2e] via-[#2463EB]/30 to-[#7C3AED]/20 border border-white/5" />
+        <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#1a1a2e] via-[#F59E0B]/30 to-[#D97706]/20 border border-white/5" />
       </div>
     )
   }
@@ -311,7 +311,7 @@ export function VaultOrb() {
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          background: 'radial-gradient(circle, rgba(36,99,235,0.25) 0%, rgba(124,58,237,0.15) 50%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(245,158,11,0.2) 0%, rgba(217,119,6,0.1) 50%, transparent 70%)',
         }}
       />
 
