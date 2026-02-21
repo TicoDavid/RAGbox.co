@@ -17,6 +17,119 @@ import (
 	"github.com/connexus-ai/ragbox-backend/internal/service"
 )
 
+// DonePayload is the structured payload sent with the final "done" SSE event.
+type DonePayload struct {
+	Answer   string       `json:"answer"`
+	Sources  []DoneSource `json:"sources"`
+	Evidence DoneEvidence `json:"evidence"`
+}
+
+// DoneSource describes a single source document referenced in the answer.
+type DoneSource struct {
+	DocumentID   string  `json:"documentId"`
+	DocumentName string  `json:"documentName"`
+	PageNumber   *int    `json:"pageNumber"`
+	Excerpt      string  `json:"excerpt"`
+	Relevance    float64 `json:"relevance"`
+	ChunkID      string  `json:"chunkId"`
+}
+
+// DoneEvidence contains metadata about the retrieval and generation process.
+type DoneEvidence struct {
+	TotalChunksSearched    int     `json:"totalChunksSearched"`
+	TotalDocumentsSearched int     `json:"totalDocumentsSearched"`
+	ConfidenceScore        float64 `json:"confidenceScore"`
+	Model                  string  `json:"model"`
+	LatencyMs              int64   `json:"latencyMs"`
+	CitationCount          int     `json:"citationCount"`
+}
+
+// buildDonePayload constructs a DonePayload from nullable pipeline outputs.
+// All parameters may be nil; the function degrades gracefully.
+func buildDonePayload(
+	retrieval *service.RetrievalResult,
+	initial *service.GenerationResult,
+	result *service.ReflectionResult,
+	startTime time.Time,
+	providerName string,
+) DonePayload {
+	// Answer: prefer reflection result, fall back to initial, then empty
+	answer := ""
+	if result != nil {
+		answer = result.FinalAnswer
+	} else if initial != nil {
+		answer = initial.Answer
+	}
+
+	// Model name
+	modelName := ""
+	if initial != nil {
+		modelName = initial.ModelUsed
+	}
+	model := providerName + "/" + modelName
+
+	// Confidence
+	confidence := 0.0
+	if result != nil {
+		confidence = result.FinalConfidence
+	} else if initial != nil {
+		confidence = initial.Confidence
+	}
+
+	// Citations → Sources (cross-reference with retrieval chunks for doc names)
+	var citations []service.CitationRef
+	if result != nil {
+		citations = result.Citations
+	} else if initial != nil {
+		citations = initial.Citations
+	}
+
+	// Build a map of chunk ID → document name from retrieval
+	chunkDocName := make(map[string]string)
+	if retrieval != nil {
+		for _, rc := range retrieval.Chunks {
+			chunkDocName[rc.Chunk.ID] = rc.Document.OriginalName
+		}
+	}
+
+	sources := make([]DoneSource, 0, len(citations))
+	for _, c := range citations {
+		sources = append(sources, DoneSource{
+			DocumentID:   c.DocumentID,
+			DocumentName: chunkDocName[c.ChunkID],
+			PageNumber:   nil,
+			Excerpt:      c.Excerpt,
+			Relevance:    c.Relevance,
+			ChunkID:      c.ChunkID,
+		})
+	}
+
+	// Evidence
+	totalChunks := 0
+	totalDocs := 0
+	if retrieval != nil {
+		totalChunks = retrieval.TotalCandidates
+		docSet := make(map[string]struct{})
+		for _, rc := range retrieval.Chunks {
+			docSet[rc.Document.ID] = struct{}{}
+		}
+		totalDocs = len(docSet)
+	}
+
+	return DonePayload{
+		Answer:  answer,
+		Sources: sources,
+		Evidence: DoneEvidence{
+			TotalChunksSearched:    totalChunks,
+			TotalDocumentsSearched: totalDocs,
+			ConfidenceScore:        confidence,
+			Model:                  model,
+			LatencyMs:              time.Since(startTime).Milliseconds(),
+			CitationCount:          len(citations),
+		},
+	}
+}
+
 // ChatRequest is the request body for the chat endpoint.
 type ChatRequest struct {
 	Query         string `json:"query"`
@@ -201,7 +314,9 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			if deps.ContentGapSvc != nil {
 				go deps.ContentGapSvc.LogGap(context.Background(), userID, req.Query, 0.0)
 			}
-			sendEvent(w, flusher, "done", `{}`)
+			donePayload := buildDonePayload(retrieval, nil, nil, startTime, "aegis")
+			doneJSON, _ := json.Marshal(donePayload)
+			sendEvent(w, flusher, "done", string(doneJSON))
 			return
 		}
 
@@ -291,6 +406,11 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 		// Step 4: Stream result — tiered by confidence
 		// Whistleblower persona uses a lower silence threshold (0.40) to
 		// surface forensic findings even at low confidence.
+		providerName := "aegis"
+		if byollmActive {
+			providerName = req.LLMProvider
+		}
+
 		tier := service.ClassifyConfidence(result.FinalConfidence)
 		if isWhistleblower(req.Persona) && tier == "low_confidence" {
 			tier = "normal"
@@ -321,10 +441,6 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			citationsJSON, _ := json.Marshal(result.Citations)
 			sendEvent(w, flusher, "citations", string(citationsJSON))
 
-			providerName := "aegis"
-			if byollmActive {
-				providerName = req.LLMProvider
-			}
 			confidenceJSON, _ := json.Marshal(map[string]interface{}{
 				"score":      result.FinalConfidence,
 				"iterations": result.Iterations,
@@ -354,7 +470,9 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			}
 		}
 
-		sendEvent(w, flusher, "done", `{}`)
+		donePayload := buildDonePayload(retrieval, initial, result, startTime, providerName)
+		doneJSON, _ := json.Marshal(donePayload)
+		sendEvent(w, flusher, "done", string(doneJSON))
 
 		// Auto-capture: store query + response in cortex for future context
 		if deps.CortexSvc != nil && tier != "silence" {

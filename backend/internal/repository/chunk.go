@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	pgvector "github.com/pgvector/pgvector-go"
 
+	"github.com/connexus-ai/ragbox-backend/internal/model"
 	"github.com/connexus-ai/ragbox-backend/internal/service"
 )
 
@@ -154,6 +155,39 @@ func (r *ChunkRepo) CountByDocumentID(ctx context.Context, documentID string) (i
 		return 0, fmt.Errorf("repository.CountByDocumentID: %w", err)
 	}
 	return count, nil
+}
+
+// GetChunkWithNeighbors returns the target chunk plus its immediate neighbors
+// (chunk_index ± 1) for the given document. Results are ordered by chunk_index.
+func (r *ChunkRepo) GetChunkWithNeighbors(ctx context.Context, documentID, chunkID string) ([]model.DocumentChunk, error) {
+	query := `
+		WITH target AS (
+			SELECT chunk_index FROM document_chunks
+			WHERE id = $1 AND document_id = $2
+		)
+		SELECT dc.id, dc.document_id, dc.chunk_index, dc.content,
+		       dc.content_hash, dc.token_count, dc.created_at
+		FROM document_chunks dc, target t
+		WHERE dc.document_id = $2
+		  AND dc.chunk_index BETWEEN t.chunk_index - 1 AND t.chunk_index + 1
+		ORDER BY dc.chunk_index`
+
+	rows, err := r.pool.Query(ctx, query, chunkID, documentID)
+	if err != nil {
+		return nil, fmt.Errorf("repository.GetChunkWithNeighbors: %w", err)
+	}
+	defer rows.Close()
+
+	var chunks []model.DocumentChunk
+	for rows.Next() {
+		var c model.DocumentChunk
+		if err := rows.Scan(&c.ID, &c.DocumentID, &c.ChunkIndex, &c.Content, &c.ContentHash, &c.TokenCount, &c.CreatedAt); err != nil {
+			return nil, fmt.Errorf("repository.GetChunkWithNeighbors: scan: %w", err)
+		}
+		chunks = append(chunks, c)
+	}
+
+	return chunks, nil
 }
 
 // FindRelatedDocuments computes the embedding centroid of a source document

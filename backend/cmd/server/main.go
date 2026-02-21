@@ -312,6 +312,11 @@ func run() error {
 			Searcher: chunkRepo,
 		},
 
+		ChunkPreviewDeps: handler.ChunkPreviewDeps{
+			DocRepo:     docRepo,
+			ChunkReader: chunkRepo,
+		},
+
 		TranscribeDeps: handler.TranscribeDeps{
 			DeepgramAPIKey: cfg.DeepgramAPIKey,
 		},

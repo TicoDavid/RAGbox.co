@@ -351,3 +351,145 @@ func TestSplitIntoTokens_Empty(t *testing.T) {
 		t.Errorf("expected nil for empty text, got %v", tokens)
 	}
 }
+
+func TestBuildDonePayload_FullPayload(t *testing.T) {
+	retrieval := &service.RetrievalResult{
+		Chunks: []service.RankedChunk{
+			{
+				Chunk:      model.DocumentChunk{ID: "c1", Content: "Contract expires March 2025."},
+				Similarity: 0.95,
+				FinalScore: 0.90,
+				Document:   model.Document{ID: "d1", OriginalName: "contract.pdf"},
+			},
+			{
+				Chunk:      model.DocumentChunk{ID: "c2", Content: "Amendment signed."},
+				Similarity: 0.80,
+				FinalScore: 0.75,
+				Document:   model.Document{ID: "d2", OriginalName: "amendment.pdf"},
+			},
+		},
+		TotalCandidates: 42,
+	}
+	initial := &service.GenerationResult{
+		Answer:     "Initial answer",
+		Confidence: 0.85,
+		ModelUsed:  "gemini-1.5-pro",
+		LatencyMs:  200,
+	}
+	result := &service.ReflectionResult{
+		FinalAnswer:     "The contract expires in March 2025.",
+		FinalConfidence: 0.92,
+		Citations: []service.CitationRef{
+			{ChunkID: "c1", DocumentID: "d1", Excerpt: "expires March 2025", Relevance: 0.95, Index: 1},
+		},
+		Iterations: 2,
+	}
+
+	payload := buildDonePayload(retrieval, initial, result, time.Now(), "aegis")
+
+	if payload.Answer != "The contract expires in March 2025." {
+		t.Errorf("Answer = %q, want %q", payload.Answer, "The contract expires in March 2025.")
+	}
+	if len(payload.Sources) != 1 {
+		t.Fatalf("Sources len = %d, want 1", len(payload.Sources))
+	}
+	if payload.Sources[0].DocumentName != "contract.pdf" {
+		t.Errorf("Sources[0].DocumentName = %q, want %q", payload.Sources[0].DocumentName, "contract.pdf")
+	}
+	if payload.Sources[0].ChunkID != "c1" {
+		t.Errorf("Sources[0].ChunkID = %q, want %q", payload.Sources[0].ChunkID, "c1")
+	}
+	if payload.Sources[0].PageNumber != nil {
+		t.Errorf("Sources[0].PageNumber = %v, want nil", payload.Sources[0].PageNumber)
+	}
+	if payload.Evidence.TotalChunksSearched != 42 {
+		t.Errorf("TotalChunksSearched = %d, want 42", payload.Evidence.TotalChunksSearched)
+	}
+	if payload.Evidence.TotalDocumentsSearched != 2 {
+		t.Errorf("TotalDocumentsSearched = %d, want 2", payload.Evidence.TotalDocumentsSearched)
+	}
+	if payload.Evidence.ConfidenceScore != 0.92 {
+		t.Errorf("ConfidenceScore = %f, want 0.92", payload.Evidence.ConfidenceScore)
+	}
+	if payload.Evidence.Model != "aegis/gemini-1.5-pro" {
+		t.Errorf("Model = %q, want %q", payload.Evidence.Model, "aegis/gemini-1.5-pro")
+	}
+	if payload.Evidence.CitationCount != 1 {
+		t.Errorf("CitationCount = %d, want 1", payload.Evidence.CitationCount)
+	}
+}
+
+func TestBuildDonePayload_NilResult(t *testing.T) {
+	initial := &service.GenerationResult{
+		Answer:     "Fallback answer from initial",
+		Confidence: 0.70,
+		ModelUsed:  "gemini-1.5-pro",
+		Citations: []service.CitationRef{
+			{ChunkID: "c1", DocumentID: "d1", Excerpt: "test", Relevance: 0.8, Index: 1},
+		},
+	}
+
+	payload := buildDonePayload(nil, initial, nil, time.Now(), "aegis")
+
+	if payload.Answer != "Fallback answer from initial" {
+		t.Errorf("Answer = %q, want %q", payload.Answer, "Fallback answer from initial")
+	}
+	if payload.Evidence.ConfidenceScore != 0.70 {
+		t.Errorf("ConfidenceScore = %f, want 0.70", payload.Evidence.ConfidenceScore)
+	}
+	if len(payload.Sources) != 1 {
+		t.Errorf("Sources len = %d, want 1", len(payload.Sources))
+	}
+}
+
+func TestBuildDonePayload_AllNil(t *testing.T) {
+	payload := buildDonePayload(nil, nil, nil, time.Now(), "")
+
+	if payload.Answer != "" {
+		t.Errorf("Answer = %q, want empty", payload.Answer)
+	}
+	if len(payload.Sources) != 0 {
+		t.Errorf("Sources len = %d, want 0", len(payload.Sources))
+	}
+	if payload.Evidence.TotalChunksSearched != 0 {
+		t.Errorf("TotalChunksSearched = %d, want 0", payload.Evidence.TotalChunksSearched)
+	}
+	if payload.Evidence.Model != "/" {
+		t.Errorf("Model = %q, want %q", payload.Evidence.Model, "/")
+	}
+	if payload.Evidence.CitationCount != 0 {
+		t.Errorf("CitationCount = %d, want 0", payload.Evidence.CitationCount)
+	}
+}
+
+func TestChat_SuccessStream_StructuredDone(t *testing.T) {
+	retriever := &mockRetriever{result: testRetrievalResult()}
+	generator := &mockChatGenerator{result: testGenerationResult()}
+	deps := makeChatDeps(retriever, generator)
+
+	h := Chat(deps)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, chatRequest("When does the contract expire?"))
+
+	events := parseSSEEvents(w.Body.String())
+
+	lastEvent := events[len(events)-1]
+	if lastEvent.Event != "done" {
+		t.Fatalf("last event = %q, want 'done'", lastEvent.Event)
+	}
+
+	var payload DonePayload
+	if err := json.Unmarshal([]byte(lastEvent.Data), &payload); err != nil {
+		t.Fatalf("failed to parse done payload: %v", err)
+	}
+
+	if payload.Answer == "" {
+		t.Error("done payload answer should not be empty for successful stream")
+	}
+	if payload.Evidence.Model == "" || payload.Evidence.Model == "/" {
+		t.Error("done payload model should be set")
+	}
+	if payload.Evidence.LatencyMs <= 0 {
+		t.Error("done payload latencyMs should be positive")
+	}
+}
