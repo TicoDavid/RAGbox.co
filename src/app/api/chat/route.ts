@@ -237,7 +237,9 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
           confidence,
           citations,
           cachedAt: new Date().toISOString(),
-        }).catch(() => {})
+        }).catch((err) => {
+          console.warn('[Chat] Cache write failed:', err)
+        })
       }
     }
 

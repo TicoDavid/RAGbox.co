@@ -142,7 +142,7 @@ export async function fetchOpenRouterModels(): Promise<OpenRouterModel[]> {
 
     return cachedModels || []
   } catch (error) {
-    // Return empty array on error, don't break the UI
+    console.error('[OpenRouter] Failed to fetch models (returning empty):', error)
     return []
   }
 }

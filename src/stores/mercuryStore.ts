@@ -495,7 +495,8 @@ export const useMercuryStore = create<MercuryState>()(
       }).then(() => {
         // Re-arm loadThread so next mount fetches fresh (empty) state
         set({ threadLoaded: true })
-      }).catch(() => {
+      }).catch((err) => {
+        console.warn('[MercuryStore] Thread clear failed:', err)
         set({ threadLoaded: true })
       })
     },
@@ -577,8 +578,8 @@ export const useMercuryStore = create<MercuryState>()(
                 body.agentId = persona.id
               }
             }
-          } catch {
-            // Non-fatal — falls back to legacy session-user mode
+          } catch (err) {
+            console.warn('[MercuryStore] Persona lookup failed (using legacy mode):', err)
           }
         } else if (actionType === 'send_sms') {
           endpoint = '/api/mercury/actions/send-sms'
