@@ -259,6 +259,19 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     setIsHydrated(true)
   }, [])
 
+  // Hydrate LLM policy from server (overrides localStorage default)
+  useEffect(() => {
+    fetch('/api/settings/llm')
+      .then((r) => r.ok ? r.json() : null)
+      .then((json) => {
+        const policy = json?.data?.policy
+        if (policy && ['choice', 'byollm_only', 'aegis_only'].includes(policy)) {
+          setSettings((prev) => ({ ...prev, llmPolicy: policy }))
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   // Save to localStorage on change
   useEffect(() => {
     if (isHydrated) {

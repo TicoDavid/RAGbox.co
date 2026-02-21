@@ -16,32 +16,20 @@ import type { ChatMessage, Citation } from '@/types/ragbox'
 type ResponseTab = 'answer' | 'sources' | 'evidence'
 
 // ============================================================================
-// JSON RESPONSE PARSER — Extract answer from raw JSON responses (BUG-009)
+// JSON GUARD — If content is raw JSON (BUG-009 / BUG-019), extract prose only
 // ============================================================================
 
-interface ParsedResponse {
-  content: string
-  citations?: Citation[]
-  confidence?: number
-}
-
-function parseMessageContent(raw: string): ParsedResponse {
+function extractProse(raw: string): string {
   const trimmed = raw.trim()
-  if (!trimmed.startsWith('{')) return { content: raw }
-
+  if (!trimmed.startsWith('{')) return raw
   try {
     const json = JSON.parse(trimmed)
-    if (json.answer || json.data?.answer) {
-      return {
-        content: json.data?.answer ?? json.answer,
-        citations: json.data?.citations ?? json.citations,
-        confidence: json.data?.confidence ?? json.confidence,
-      }
-    }
+    const answer = json.data?.answer ?? json.answer
+    if (typeof answer === 'string') return answer
   } catch {
     // Not valid JSON — render as-is
   }
-  return { content: raw }
+  return raw
 }
 
 // ============================================================================
@@ -159,11 +147,12 @@ export function CenterMessage({ message }: { message: ChatMessage }) {
     )
   }
 
-  // BUG-009: extract answer from raw JSON if the content is a JSON blob
-  const parsed = isUser ? null : parseMessageContent(message.content)
-  const displayContent = parsed?.content ?? message.content
-  const displayCitations = message.citations ?? parsed?.citations
-  const displayConfidence = message.confidence ?? parsed?.confidence
+  // BUG-009 / BUG-019: Answer tab shows prose only — never raw JSON.
+  // Citations & confidence come from message fields (set by chatStore),
+  // metadata (sources, evidence, model_used) rendered only in Sources/Evidence tabs.
+  const displayContent = isUser ? message.content : extractProse(message.content)
+  const displayCitations = message.citations
+  const displayConfidence = message.confidence
 
   // Hide Sources/Evidence tabs when message has no metadata to show
   const hasSources = displayCitations && displayCitations.length > 0
@@ -413,8 +402,9 @@ function EvidencePanel({
   const docsSearched = (meta?.docsSearched as number) ?? null
   const chunksEvaluated = (meta?.chunksEvaluated as number) ?? null
   const citationCount = citations?.length ?? 0
-  const displayModel = maskModel(message.modelUsed)
-  const displayProvider = maskProvider(message.provider)
+  const displayModel = maskModel(message.modelUsed ?? (meta?.modelUsed as string))
+  const displayProvider = maskProvider(message.provider ?? (meta?.provider as string))
+  const latency = message.latencyMs ?? (meta?.latencyMs as number | undefined)
 
   return (
     <div className="space-y-5">
@@ -438,7 +428,7 @@ function EvidencePanel({
           />
           <EvidenceRow
             label="Latency"
-            value={message.latencyMs != null ? `${(message.latencyMs / 1000).toFixed(1)}s` : '--'}
+            value={latency != null ? `${(latency / 1000).toFixed(1)}s` : '--'}
           />
           <EvidenceRow label="Time" value={formatTime(message.timestamp)} />
         </div>

@@ -31,6 +31,7 @@ export function CenterInputBar() {
   const toggleSafetyMode = useChatStore((s) => s.toggleSafetyMode)
   const incognitoMode = useChatStore((s) => s.incognitoMode)
   const toggleIncognito = useChatStore((s) => s.toggleIncognito)
+  const setModel = useChatStore((s) => s.setModel)
   const privilegeMode = usePrivilegeStore((s) => s.isEnabled)
 
   // Settings for model picker
@@ -248,6 +249,7 @@ export function CenterInputBar() {
                       provider: 'RAGbox',
                       tier: 'native',
                     })
+                    setModel('aegis')
                     setShowModelMenu(false)
                   }}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors ${
@@ -270,15 +272,15 @@ export function CenterInputBar() {
                   llmPolicy !== 'aegis_only' && (
                     <button
                       onClick={() => {
-                        const modelName =
-                          byollmConnection.selectedModel!.split('/').pop() ||
-                          byollmConnection.selectedModel!
+                        const modelId = byollmConnection.selectedModel!
+                        const modelName = modelId.split('/').pop() || modelId
                         setActiveIntelligence({
-                          id: byollmConnection.selectedModel!,
+                          id: modelId,
                           displayName: modelName,
                           provider: byollmConnection.type,
                           tier: 'private',
                         })
+                        setModel(modelId)
                         setShowModelMenu(false)
                       }}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors ${

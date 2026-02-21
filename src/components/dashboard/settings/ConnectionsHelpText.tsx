@@ -27,9 +27,9 @@ export function ConnectionsHelpText({ isConfigured, provider }: ConnectionsHelpT
         <div className="flex gap-2">
           <Zap size={14} className="mt-0.5 shrink-0 text-[var(--brand-blue)]" />
           <div>
-            <p className="font-medium text-[var(--text-secondary)]">Connect your own LLM</p>
+            <p className="font-medium text-[var(--text-secondary)]">Connect your own AI provider</p>
             <p className="mt-0.5">
-              Paste an API key from OpenRouter, OpenAI, or any OpenAI-compatible provider.
+              Connect your own AI provider for private, dedicated responses.
               RAGbox will use your model for answers while keeping all citations,
               confidence scoring, and audit logging intact.
             </p>
@@ -43,8 +43,8 @@ export function ConnectionsHelpText({ isConfigured, provider }: ConnectionsHelpT
         <div>
           <p className="font-medium text-[var(--text-secondary)]">Your key is safe</p>
           <p className="mt-0.5">
-            API keys are encrypted with AES-256-GCM via Google Cloud KMS before storage.
-            The plaintext key is never logged, never visible after saving, and never
+            Your API key is encrypted with Google Cloud KMS and never stored in plaintext.
+            The key is never logged, never visible after saving, and never
             shared with third parties.
           </p>
         </div>
@@ -70,7 +70,8 @@ export function ConnectionsHelpText({ isConfigured, provider }: ConnectionsHelpT
           <li>OpenRouter (recommended — 100+ models from one key)</li>
           <li>OpenAI (GPT-4o, o1)</li>
           <li>Anthropic (Claude Sonnet, Opus)</li>
-          <li>Google AI Studio (Gemini 2.0 Flash, Gemini Pro)</li>
+          <li>Azure OpenAI (enterprise deployments)</li>
+          <li>Custom OpenAI-compatible endpoint</li>
         </ul>
       </div>
 

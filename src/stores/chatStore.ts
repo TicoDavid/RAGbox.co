@@ -318,8 +318,7 @@ export const useChatStore = create<ChatState>()(
           let modelUsed: string | undefined
           let provider: string | undefined
           let latencyMs: number | undefined
-          let doneSources: unknown | undefined
-          let doneEvidence: unknown | undefined
+          let doneMetadata: Record<string, unknown> = {}
 
           // JSON fallback (non-streaming or cached)
           if (contentType.includes('application/json')) {
@@ -386,39 +385,30 @@ export const useChatStore = create<ChatState>()(
                         confidence = data.confidence ?? 0
                         break
                       case 'done': {
-                        // Extract answer from any nesting the Go backend may use:
-                        // { answer: "..." } or { data: { answer: "..." } }
-                        const doneAnswer =
-                          typeof data.answer === 'string'
-                            ? data.answer
-                            : typeof data.data?.answer === 'string'
-                              ? data.data.answer
-                              : null
+                        // Unwrap: backend may send { answer, ... } or { data: { answer, ... } }
+                        const d = data.data ?? data
 
-                        // REPLACE streamed content (never append). If no answer
-                        // field exists, keep whatever the token events accumulated.
-                        if (doneAnswer) {
-                          fullContent = doneAnswer
+                        // Extract prose answer — REPLACE streamed content, never append.
+                        // If no answer field, keep whatever token events accumulated.
+                        if (typeof d.answer === 'string') {
+                          fullContent = d.answer
                           set({ streamingContent: fullContent })
                         }
 
-                        const doneCit = data.citations ?? data.data?.citations
-                        if (doneCit) {
-                          citations = Array.isArray(doneCit) ? doneCit : undefined
-                        }
+                        // Citations & confidence → top-level vars for message construction
+                        const doneCit = d.citations
+                        if (Array.isArray(doneCit)) citations = doneCit
+                        if (d.confidence !== undefined) confidence = d.confidence
 
-                        const doneConf = data.confidence ?? data.data?.confidence
-                        if (doneConf !== undefined) {
-                          confidence = doneConf
-                        }
-
-                        // Sheldon's structured payload: sources + evidence for tab metadata
-                        if (data.sources ?? data.data?.sources) {
-                          doneSources = data.sources ?? data.data.sources
-                        }
-                        if (data.evidence ?? data.data?.evidence) {
-                          doneEvidence = data.evidence ?? data.data.evidence
-                        }
+                        // Everything else → metadata (sources, evidence, model info).
+                        // These are rendered by Sources/Evidence tabs, never by Answer tab.
+                        if (d.sources) doneMetadata.sources = d.sources
+                        if (d.evidence) doneMetadata.evidence = d.evidence
+                        if (d.documents_searched != null) doneMetadata.docsSearched = d.documents_searched
+                        if (d.chunks_evaluated != null) doneMetadata.chunksEvaluated = d.chunks_evaluated
+                        if (d.model_used) { modelUsed = d.model_used; doneMetadata.modelUsed = d.model_used }
+                        if (d.provider) { provider = d.provider; doneMetadata.provider = d.provider }
+                        if (d.latency_ms != null) { latencyMs = d.latency_ms; doneMetadata.latencyMs = d.latency_ms }
                         break
                       }
                       case 'status':
@@ -471,8 +461,8 @@ export const useChatStore = create<ChatState>()(
             modelUsed,
             provider,
             latencyMs,
-            ...(doneSources || doneEvidence
-              ? { metadata: { sources: doneSources, evidence: doneEvidence } }
+            ...(Object.keys(doneMetadata).length > 0
+              ? { metadata: doneMetadata }
               : {}),
           }
 

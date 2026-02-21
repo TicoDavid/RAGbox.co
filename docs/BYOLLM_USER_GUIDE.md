@@ -122,5 +122,5 @@ AEGIS is included in your RAGbox subscription at no additional per-query cost. T
 
 ---
 
-*Last updated: February 20, 2026*
+*Last updated: February 21, 2026*
 
