@@ -38,6 +38,7 @@ import {
   Glasses,
   Brain,
   Bot,
+  Server,
 } from 'lucide-react'
 import { PrivilegeKeyIcon, IdentityIcon, LanternIcon } from './icons/SovereignIcons'
 import { useMercuryStore } from '@/stores/mercuryStore'
@@ -1007,7 +1008,7 @@ function VoiceSettings() {
     <div className="space-y-6">
       <SectionHeader
         title="Voice Configuration"
-        description="Configure Inworld AI voice interface and speech recognition"
+        description="Configure Mercury Voice Engine and speech recognition"
       />
 
       <div className="space-y-4">
@@ -1053,12 +1054,12 @@ function VoiceSettings() {
         </div>
       </div>
 
-      {/* Inworld Status */}
+      {/* Voice Engine Status */}
       <div className="p-4 bg-[var(--success)]/10 border border-[var(--success)]/30 rounded-lg">
         <div className="flex items-center gap-3">
           <div className="w-2 h-2 rounded-full bg-[var(--success)] animate-pulse" />
           <div>
-            <p className="text-sm font-medium text-[var(--success)]">Inworld AI Connected</p>
+            <p className="text-sm font-medium text-[var(--success)]">Mercury Voice Engine Connected</p>
             <p className="text-xs text-[var(--text-tertiary)]">Voice: mercury_professional</p>
           </div>
         </div>
@@ -1163,10 +1164,12 @@ function DocumentationSettings() {
       href: '/docs/best-practices',
       icon: <Sparkles className="w-4 h-4" />,
     },
-    { title: 'Getting Started', description: 'Quick start guide for new users', href: '#' },
-    { title: 'API Reference', description: 'Complete API documentation', href: '#' },
-    { title: 'Security & Compliance', description: 'SOC 2, HIPAA, and security practices', href: '#' },
-    { title: 'Best Practices', description: 'Optimize your RAG workflows', href: '#' },
+    {
+      title: 'MCP Server Spec',
+      description: 'Model Context Protocol integration for AI agents',
+      href: '/docs/mcp-server-spec',
+      icon: <Server className="w-4 h-4" />,
+    },
   ]
 
   return (

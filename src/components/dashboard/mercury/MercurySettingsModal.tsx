@@ -654,7 +654,7 @@ function VoiceSection({
         <div className="flex items-center gap-3">
           <div className="w-2 h-2 rounded-full bg-[var(--success)] animate-pulse" />
           <div>
-            <p className="text-sm font-medium text-[var(--success)]">Inworld AI Connected</p>
+            <p className="text-sm font-medium text-[var(--success)]">Mercury Voice Engine Connected</p>
             <p className="text-xs text-[var(--text-tertiary)]">Voice: mercury_professional</p>
           </div>
         </div>
