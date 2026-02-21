@@ -297,10 +297,10 @@ function LandingV3Content() {
 
           {/* CTAs */}
           <FadeIn delay={1.4}>
-            <div className="flex items-center justify-center gap-3">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <button
                 onClick={() => openAuth('signup')}
-                className="px-6 py-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-sm font-bold transition-all"
+                className="w-full sm:w-auto px-6 py-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-sm font-bold transition-all"
               >
                 Start Free
               </button>
@@ -308,7 +308,7 @@ function LandingV3Content() {
                 href="https://storage.googleapis.com/connexusai-assets/RAGbox.co.mp4"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-6 py-3 rounded-lg border border-amber-500/30 text-sm text-amber-400/80 hover:text-amber-300 hover:border-amber-500/50 transition-all"
+                className="w-full sm:w-auto text-center px-6 py-3 rounded-lg border border-amber-500/30 text-sm text-amber-400/80 hover:text-amber-300 hover:border-amber-500/50 transition-all"
               >
                 Watch Demo
                 <ArrowRight className="w-3.5 h-3.5 inline ml-1.5" strokeWidth={1.5} />

@@ -82,7 +82,7 @@ export function CenterInputBar() {
   return (
     <div className="rounded-2xl bg-[var(--bg-primary)] border border-[var(--border-default)] focus-within:border-[var(--brand-blue)]/50 transition-all shadow-lg shadow-black/10 overflow-visible">
       {/* Textarea area */}
-      <div className="px-5 pt-4 pb-2">
+      <div className="px-3 sm:px-5 pt-4 pb-2">
         <textarea
           ref={textareaRef}
           value={inputValue}
@@ -100,7 +100,7 @@ export function CenterInputBar() {
       </div>
 
       {/* Bottom toolbar — inside the input container */}
-      <div className="flex items-center gap-2 px-4 py-2.5 border-t border-[var(--border-subtle)]">
+      <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2.5 border-t border-[var(--border-subtle)]">
         {/* ── Plus button ── */}
         <div className="relative">
           <button
@@ -188,13 +188,13 @@ export function CenterInputBar() {
           ) : (
             <ShieldOff className="w-3.5 h-3.5" />
           )}
-          Safety
+          <span className="hidden sm:inline">Safety</span>
         </button>
 
         {/* ── Incognito toggle ── */}
         <button
           onClick={toggleIncognito}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+          className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
             incognitoMode
               ? 'bg-[var(--warning)]/15 text-[var(--warning)]'
               : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
@@ -206,7 +206,7 @@ export function CenterInputBar() {
           }
         >
           <EyeOff className="w-3.5 h-3.5" />
-          Incognito
+          <span className="hidden sm:inline">Incognito</span>
         </button>
 
         {/* ── Model dropdown ── */}

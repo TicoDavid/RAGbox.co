@@ -56,7 +56,7 @@ function DashboardHome() {
   }, [])
 
   return (
-    <div className="flex flex-col items-center justify-center h-full px-8">
+    <div className="flex flex-col items-center justify-center h-full px-4 sm:px-8">
       <img
         src="https://storage.googleapis.com/connexusai-assets/RAGb%C3%B6x_ICON.png"
         alt=""
@@ -166,7 +166,7 @@ export function CenterChat() {
           {messages.length === 0 && !isStreaming ? (
             <DashboardHome />
           ) : (
-            <div className="max-w-[800px] mx-auto px-8 py-6">
+            <div className="max-w-[800px] mx-auto px-4 sm:px-8 py-6">
               {messages.map((msg) => (
                 <CenterMessage key={msg.id} message={msg} />
               ))}
@@ -177,7 +177,7 @@ export function CenterChat() {
 
         {/* Input bar */}
         <div className="shrink-0">
-          <div className="max-w-[800px] mx-auto px-8 py-4">
+          <div className="max-w-[800px] mx-auto px-4 sm:px-8 py-4">
             <CenterInputBar />
           </div>
         </div>

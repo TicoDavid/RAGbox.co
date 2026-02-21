@@ -366,7 +366,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.95, opacity: 0, y: 20 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="relative w-full max-w-2xl h-[540px] bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-2xl shadow-2xl shadow-black/50 overflow-hidden flex flex-col"
+        className="relative w-full max-w-2xl h-[90vh] sm:h-[540px] bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-2xl shadow-2xl shadow-black/50 overflow-hidden flex flex-col"
       >
         {/* Skip / Close button (top right) */}
         {step > 0 && (

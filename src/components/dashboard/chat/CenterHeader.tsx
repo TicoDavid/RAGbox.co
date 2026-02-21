@@ -17,7 +17,7 @@ export function CenterHeader() {
 
   return (
     <div className="shrink-0 flex flex-col border-b border-[var(--border-default)]">
-      <div className="flex items-center justify-between px-8 py-3">
+      <div className="flex items-center justify-between px-4 sm:px-8 py-3">
         <div className="flex items-center gap-2 text-sm">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -57,7 +57,7 @@ export function CenterHeader() {
         </div>
       </div>
       {documentScope && documentScopeName && (
-        <div className="flex items-center gap-2 px-8 pb-2">
+        <div className="flex items-center gap-2 px-4 sm:px-8 pb-2">
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--brand-blue)]/10 border border-[var(--brand-blue)]/20 text-xs">
             <FileText className="w-3 h-3 text-[var(--brand-blue)]" />
             <span className="text-[var(--brand-blue)] font-medium truncate max-w-[240px]">
