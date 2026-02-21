@@ -381,6 +381,22 @@ function SourcesPanel({
 }
 
 // ============================================================================
+// AEGIS MODEL MASK — Hide internal model names behind branded labels
+// ============================================================================
+
+function maskModel(modelUsed?: string): string {
+  if (!modelUsed) return '--'
+  if (modelUsed.startsWith('aegis/') || modelUsed === 'aegis-core') return 'AEGIS'
+  return modelUsed
+}
+
+function maskProvider(provider?: string): string {
+  if (!provider) return ''
+  if (provider === 'aegis') return 'ConnexUS AEGIS'
+  return provider
+}
+
+// ============================================================================
 // EVIDENCE PANEL — Metadata chain
 // ============================================================================
 
@@ -397,6 +413,8 @@ function EvidencePanel({
   const docsSearched = (meta?.docsSearched as number) ?? null
   const chunksEvaluated = (meta?.chunksEvaluated as number) ?? null
   const citationCount = citations?.length ?? 0
+  const displayModel = maskModel(message.modelUsed)
+  const displayProvider = maskProvider(message.provider)
 
   return (
     <div className="space-y-5">
@@ -416,11 +434,7 @@ function EvidencePanel({
           <EvidenceRow label="Citations" value={citationCount.toString()} />
           <EvidenceRow
             label="Model"
-            value={
-              message.modelUsed
-                ? `${message.provider ? `${message.provider}/` : ''}${message.modelUsed}`
-                : '--'
-            }
+            value={displayProvider ? `${displayProvider} / ${displayModel}` : displayModel}
           />
           <EvidenceRow
             label="Latency"

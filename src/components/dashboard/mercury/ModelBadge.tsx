@@ -7,7 +7,7 @@ interface ModelBadgeProps {
 export function ModelBadge({ modelUsed, provider, latencyMs }: ModelBadgeProps) {
   if (!modelUsed) return null
 
-  const isAegis = !provider || provider === 'aegis'
+  const isAegis = !provider || provider === 'aegis' || modelUsed.startsWith('aegis/')
 
   const label = isAegis ? 'AEGIS' : modelUsed
   const emoji = isAegis ? '\u26A1' : '\uD83D\uDD12'
