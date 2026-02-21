@@ -48,4 +48,49 @@ describe('ChannelBadge', () => {
     expect(badge).toBeInTheDocument()
     expect(badge.closest('span')).toHaveClass('text-orange-400')
   })
+
+  // ── SA-06: Extended tests ──────────────────────────────────────
+
+  it('renders dashboard badge with blue brand color class', () => {
+    render(<ChannelBadge channel="dashboard" />)
+    const outer = screen.getByText('Chat').closest('span')
+    expect(outer).toHaveClass('text-[var(--brand-blue)]')
+    expect(outer).toHaveClass('bg-[var(--brand-blue)]/15')
+  })
+
+  it('renders SMS badge with correct emoji', () => {
+    const { container } = render(<ChannelBadge channel="sms" />)
+    const spans = container.querySelectorAll('span span')
+    // First inner span is the emoji
+    expect(spans[0].textContent).toBe('\uD83D\uDCAC')
+  })
+
+  it('renders ROAM badge with orange circle emoji', () => {
+    const { container } = render(<ChannelBadge channel="roam" />)
+    const spans = container.querySelectorAll('span span')
+    expect(spans[0].textContent).toBe('\uD83D\uDFE0')
+  })
+
+  it('applies rounded-full pill styling to all badges', () => {
+    render(<ChannelBadge channel="voice" />)
+    const outer = screen.getByText('Voice').closest('span')
+    expect(outer).toHaveClass('rounded-full')
+    expect(outer).toHaveClass('inline-flex')
+    expect(outer).toHaveClass('items-center')
+    expect(outer).toHaveClass('text-[10px]')
+    expect(outer).toHaveClass('font-medium')
+  })
+
+  it('renders each channel with a unique label (no duplicates in output)', () => {
+    const channels = ['dashboard', 'whatsapp', 'voice', 'email', 'sms', 'roam'] as const
+    const labels = new Set<string>()
+    channels.forEach((ch) => {
+      const { unmount } = render(<ChannelBadge channel={ch} />)
+      const text = screen.getByText(/\w+/).textContent
+      labels.add(text || '')
+      unmount()
+    })
+    // All 6 channels should produce 6 unique labels
+    expect(labels.size).toBe(6)
+  })
 })
