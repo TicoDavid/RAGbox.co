@@ -87,7 +87,7 @@ describe('LlmPicker', () => {
       id: 'openai/gpt-4o',
       displayName: 'gpt-4o',
       provider: 'openai',
-      tier: 'private' as const,
+      tier: 'private' as 'native' | 'managed' | 'universe' | 'private',
     }
     render(<LlmPicker />)
 
