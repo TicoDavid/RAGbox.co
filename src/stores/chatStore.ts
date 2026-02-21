@@ -385,32 +385,49 @@ export const useChatStore = create<ChatState>()(
                           'Unable to provide a grounded answer.'
                         confidence = data.confidence ?? 0
                         break
-                      case 'done':
-                        // Structured payload: extract answer instead of storing raw JSON
-                        if (data.answer) {
-                          fullContent = data.answer
+                      case 'done': {
+                        // Extract answer from any nesting the Go backend may use:
+                        // { answer: "..." } or { data: { answer: "..." } }
+                        const doneAnswer =
+                          typeof data.answer === 'string'
+                            ? data.answer
+                            : typeof data.data?.answer === 'string'
+                              ? data.data.answer
+                              : null
+
+                        // REPLACE streamed content (never append). If no answer
+                        // field exists, keep whatever the token events accumulated.
+                        if (doneAnswer) {
+                          fullContent = doneAnswer
                           set({ streamingContent: fullContent })
                         }
-                        if (data.citations) {
-                          citations = Array.isArray(data.citations)
-                            ? data.citations
-                            : undefined
+
+                        const doneCit = data.citations ?? data.data?.citations
+                        if (doneCit) {
+                          citations = Array.isArray(doneCit) ? doneCit : undefined
                         }
-                        if (data.confidence !== undefined) {
-                          confidence = data.confidence
+
+                        const doneConf = data.confidence ?? data.data?.confidence
+                        if (doneConf !== undefined) {
+                          confidence = doneConf
                         }
+
                         // Sheldon's structured payload: sources + evidence for tab metadata
-                        if (data.sources) {
-                          doneSources = data.sources
+                        if (data.sources ?? data.data?.sources) {
+                          doneSources = data.sources ?? data.data.sources
                         }
-                        if (data.evidence) {
-                          doneEvidence = data.evidence
+                        if (data.evidence ?? data.data?.evidence) {
+                          doneEvidence = data.evidence ?? data.data.evidence
                         }
                         break
+                      }
                       case 'status':
                         break
                       default:
-                        if (data.text) {
+                        // Only append if data.text is a plain string token,
+                        // not a structured object (prevents JSON leak from
+                        // unlabelled done events hitting this fallback).
+                        if (typeof data.text === 'string' && !data.answer && !data.data) {
                           fullContent += data.text
                           set({ streamingContent: fullContent })
                         }
