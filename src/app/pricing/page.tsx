@@ -30,12 +30,14 @@ import Footer from '@/components/Footer'
 // STRIPE PLACEHOLDERS — wire to real price IDs when Stripe products configured
 // ============================================================================
 
-function handleCheckout(plan: 'sovereign' | 'sovereign_mercury') {
-  // Phase 1: Redirect to Stripe Hosted Checkout
-  // TODO: Replace with actual Stripe checkout session creation
-  // await fetch('/api/stripe/checkout', { method: 'POST', body: JSON.stringify({ plan }) })
-  // window.location.href = session.url
-  console.log(`[Stripe] Checkout: ${plan}`)
+async function handleCheckout(plan: 'sovereign' | 'sovereign_mercury') {
+  const res = await fetch('/api/stripe/checkout', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ plan }),
+  })
+  const { url } = await res.json()
+  if (url) window.location.href = url
 }
 
 function handleEnterprise() {
