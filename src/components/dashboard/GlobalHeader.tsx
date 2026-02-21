@@ -557,7 +557,7 @@ export function GlobalHeader() {
 type SettingsSection =
   | 'profile' | 'language' | 'billing'  // General
   | 'connections' | 'voice' | 'aimodel'  // Intelligence
-  | 'appearance' | 'density'             // Interface
+  | 'appearance'                         // Interface
   | 'alerts' | 'security'                // System
   | 'docs' | 'report' | 'community'      // Support
 
@@ -591,7 +591,6 @@ const SIDEBAR_CATEGORIES: SidebarCategory[] = [
     label: 'Interface',
     items: [
       { id: 'appearance', label: 'Appearance', icon: <Palette className="w-4 h-4" /> },
-      { id: 'density', label: 'Density', icon: <LayoutGrid className="w-4 h-4" /> },
     ],
   },
   {
@@ -680,8 +679,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
             {activeSection === 'connections' && <APIKeysSettings />}
             {activeSection === 'voice' && <VoiceSettings />}
             {activeSection === 'aimodel' && <AIModelSettings />}
-            {activeSection === 'appearance' && <ThemeSettings />}
-            {activeSection === 'density' && <DensitySettings />}
+            {activeSection === 'appearance' && <AppearanceSettings />}
             {activeSection === 'alerts' && <NotificationSettings />}
             {activeSection === 'security' && <SecuritySettings />}
             {activeSection === 'docs' && <DocumentationSettings />}
@@ -926,47 +924,7 @@ function VoiceSettings() {
 // INTERFACE SECTION COMPONENTS
 // ============================================================================
 
-function DensitySettings() {
-  const { density, setDensity } = useSettings()
-
-  const densityOptions: { id: DensityId; label: string; description: string }[] = [
-    { id: 'compact', label: 'Compact', description: 'Tighter spacing, more content visible' },
-    { id: 'comfortable', label: 'Comfortable', description: 'Standard spacing, easier reading' },
-  ]
-
-  return (
-    <div className="space-y-6">
-      <SectionHeader
-        title="Display Density"
-        description="Adjust the spacing and size of interface elements"
-      />
-
-      <div className="grid grid-cols-2 gap-4">
-        {densityOptions.map((option) => (
-          <button
-            key={option.id}
-            onClick={() => setDensity(option.id)}
-            className={`p-4 rounded-xl border-2 transition-all ${
-              density === option.id
-                ? 'border-[var(--brand-blue)] bg-[var(--brand-blue)]/10 shadow-[0_0_15px_-5px_var(--brand-blue)]'
-                : 'border-[var(--border-default)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)]/30'
-            }`}
-          >
-            <div className={`w-10 h-10 rounded-lg mb-3 flex items-center justify-center ${
-              density === option.id ? 'bg-[var(--brand-blue)]/20' : 'bg-[var(--bg-elevated)]/30'
-            }`}>
-              <LayoutGrid className={`w-5 h-5 ${density === option.id ? 'text-[var(--brand-blue)]' : 'text-[var(--text-secondary)]'}`} />
-            </div>
-            <p className={`text-sm font-semibold mb-1 ${density === option.id ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
-              {option.label}
-            </p>
-            <p className="text-xs text-[var(--text-tertiary)]">{option.description}</p>
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
+// DensitySettings merged into AppearanceSettings above
 
 // ============================================================================
 // SYSTEM SECTION COMPONENTS
@@ -1711,52 +1669,154 @@ function APIKeysSettings() {
   )
 }
 
-// Theme Settings Tab
-function ThemeSettings() {
-  const { theme, setTheme } = useSettings()
+// ============================================================================
+// APPEARANCE SETTINGS — Theme thumbnails + Density (merged)
+// ============================================================================
 
-  const themes = [
-    { id: 'cobalt' as const, name: 'Midnight Cobalt', colors: ['#0A192F', '#112240', '#2463EB'], description: 'Default sovereign blue' },
-    { id: 'noir' as const, name: 'Cyber Noir', colors: ['#000000', '#0A0A0A', '#00F0FF'], description: 'OLED black, neon cyan' },
-    { id: 'forest' as const, name: 'Forest Dark', colors: ['#022c22', '#064e3b', '#10b981'], description: 'Military field ops' },
-    { id: 'obsidian' as const, name: 'Obsidian Gold', colors: ['#020408', '#0F0F0F', '#F59E0B'], description: 'Executive luxury' },
+// Mini SVG dashboard preview for each theme
+function ThemeThumbnail({ bg, accent }: { bg: string; accent: string }) {
+  return (
+    <svg viewBox="0 0 200 120" className="w-full rounded-lg overflow-hidden" aria-hidden="true">
+      {/* Background */}
+      <rect width="200" height="120" fill={bg} />
+      {/* Sidebar rail */}
+      <rect x="0" y="0" width="4" height="120" fill={accent} opacity="0.8" />
+      <rect x="4" y="0" width="36" height="120" fill={accent} opacity="0.08" />
+      {/* Sidebar icons */}
+      <circle cx="22" cy="20" r="4" fill={accent} opacity="0.4" />
+      <circle cx="22" cy="36" r="4" fill={accent} opacity="0.25" />
+      <circle cx="22" cy="52" r="4" fill={accent} opacity="0.25" />
+      {/* Header bar */}
+      <rect x="40" y="0" width="160" height="16" fill={accent} opacity="0.06" />
+      <rect x="40" y="16" width="160" height="1" fill={accent} opacity="0.15" />
+      {/* Header text placeholder */}
+      <rect x="48" y="5" width="40" height="6" rx="2" fill={accent} opacity="0.2" />
+      {/* Center content area */}
+      <rect x="50" y="30" width="70" height="6" rx="2" fill={accent} opacity="0.15" />
+      <rect x="50" y="42" width="55" height="4" rx="1.5" fill={accent} opacity="0.08" />
+      <rect x="50" y="50" width="62" height="4" rx="1.5" fill={accent} opacity="0.08" />
+      {/* Chat message bubble */}
+      <rect x="50" y="64" width="50" height="14" rx="4" fill={accent} opacity="0.12" />
+      <rect x="55" y="69" width="30" height="3" rx="1" fill={accent} opacity="0.2" />
+      {/* Right panel outline (Mercury) */}
+      <rect x="148" y="17" width="52" height="103" fill={accent} opacity="0.04" />
+      <rect x="148" y="17" width="1" height="103" fill={accent} opacity="0.15" />
+      {/* Right panel header */}
+      <rect x="155" y="24" width="28" height="4" rx="1.5" fill={accent} opacity="0.18" />
+      {/* Right panel message lines */}
+      <rect x="155" y="36" width="36" height="3" rx="1" fill={accent} opacity="0.1" />
+      <rect x="155" y="44" width="28" height="3" rx="1" fill={accent} opacity="0.1" />
+      {/* Input bar at bottom */}
+      <rect x="50" y="90" width="88" height="18" rx="9" fill={accent} opacity="0.08" />
+      <rect x="60" y="96" width="40" height="4" rx="2" fill={accent} opacity="0.12" />
+    </svg>
+  )
+}
+
+function AppearanceSettings() {
+  const { theme, setTheme, density, setDensity } = useSettings()
+
+  const themes: {
+    id: 'cobalt' | 'noir' | 'forest' | 'obsidian'
+    name: string
+    subtitle: string
+    description: string
+    bg: string
+    accent: string
+  }[] = [
+    { id: 'cobalt', name: 'Midnight Cobalt', subtitle: 'Default sovereign blue', description: 'Best for extended sessions', bg: '#0B1120', accent: '#2563EB' },
+    { id: 'noir', name: 'Cyber Noir', subtitle: 'OLED black, neon cyan', description: 'Maximum contrast, minimal glare', bg: '#000000', accent: '#06B6D4' },
+    { id: 'forest', name: 'Forest Dark', subtitle: 'Military field dark', description: 'Low visibility environments', bg: '#0A1F0A', accent: '#22C55E' },
+    { id: 'obsidian', name: 'Obsidian Gold', subtitle: 'Executive luxury', description: 'Premium client-facing mode', bg: '#0B1120', accent: '#D4A843' },
+  ]
+
+  const densityOptions: { id: DensityId; label: string; description: string }[] = [
+    { id: 'compact', label: 'Compact', description: 'Tighter spacing, more content visible' },
+    { id: 'comfortable', label: 'Comfortable', description: 'Standard spacing, easier reading' },
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* ── Theme Section ── */}
       <div>
-        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Theme Preferences</h3>
-        <p className="text-xs text-[var(--text-secondary)] mb-4">
+        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1">Theme</h3>
+        <p className="text-xs text-[var(--text-tertiary)] mb-4">
           Select your operational environment.
         </p>
+
+        <div className="grid grid-cols-2 gap-3">
+          {themes.map((t) => {
+            const isSelected = theme === t.id
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTheme(t.id)}
+                className={`relative text-left rounded-xl border-2 overflow-hidden transition-all duration-300 ${
+                  isSelected
+                    ? 'border-[var(--brand-blue)] shadow-[0_0_20px_-5px_var(--brand-blue)]'
+                    : 'border-[var(--border-default)] hover:border-[var(--border-strong)]'
+                }`}
+              >
+                {/* Checkmark badge */}
+                {isSelected && (
+                  <div
+                    className="absolute top-2 right-2 z-10 w-5 h-5 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: t.accent }}
+                  >
+                    <Check className="w-3 h-3 text-black" />
+                  </div>
+                )}
+
+                {/* SVG thumbnail */}
+                <ThemeThumbnail bg={t.bg} accent={t.accent} />
+
+                {/* Info */}
+                <div className="px-3 py-2.5">
+                  <p className={`text-sm font-semibold mb-0.5 ${isSelected ? 'text-[var(--brand-blue)]' : 'text-[var(--text-primary)]'}`}>
+                    {t.name}
+                  </p>
+                  <p className="text-[10px] text-[var(--text-tertiary)] leading-tight">{t.subtitle}</p>
+                  <p className="text-[10px] text-[var(--text-tertiary)] leading-tight mt-0.5 italic">{t.description}</p>
+                </div>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        {themes.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTheme(t.id)}
-            className={`p-4 rounded-xl border-2 transition-all duration-300 ${
-              theme === t.id
-                ? 'border-[var(--brand-blue)] bg-[var(--brand-blue)]/10 shadow-[0_0_20px_-5px_var(--brand-blue)]'
-                : 'border-[var(--border-default)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)]/30'
-            }`}
-          >
-            <div className="flex gap-1.5 mb-3">
-              {t.colors.map((color, i) => (
-                <div
-                  key={i}
-                  className="w-7 h-7 rounded-md shadow-inner"
-                  style={{ backgroundColor: color }}
-                />
-              ))}
-            </div>
-            <p className={`text-sm font-semibold mb-1 ${theme === t.id ? 'text-[var(--brand-blue)]' : 'text-[var(--text-primary)]'}`}>
-              {t.name}
-            </p>
-            <p className="text-[10px] text-[var(--text-tertiary)]">{t.description}</p>
-          </button>
-        ))}
+      {/* ── Divider ── */}
+      <div className="border-t border-[var(--border-subtle)]" />
+
+      {/* ── Density Section ── */}
+      <div>
+        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1">Display Density</h3>
+        <p className="text-xs text-[var(--text-tertiary)] mb-4">
+          Adjust the spacing and size of interface elements.
+        </p>
+
+        <div className="grid grid-cols-2 gap-3">
+          {densityOptions.map((option) => (
+            <button
+              key={option.id}
+              onClick={() => setDensity(option.id)}
+              className={`p-4 rounded-xl border-2 transition-all ${
+                density === option.id
+                  ? 'border-[var(--brand-blue)] bg-[var(--brand-blue)]/10 shadow-[0_0_15px_-5px_var(--brand-blue)]'
+                  : 'border-[var(--border-default)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)]/30'
+              }`}
+            >
+              <div className={`w-10 h-10 rounded-lg mb-3 flex items-center justify-center ${
+                density === option.id ? 'bg-[var(--brand-blue)]/20' : 'bg-[var(--bg-elevated)]/30'
+              }`}>
+                <LayoutGrid className={`w-5 h-5 ${density === option.id ? 'text-[var(--brand-blue)]' : 'text-[var(--text-secondary)]'}`} />
+              </div>
+              <p className={`text-sm font-semibold mb-1 ${density === option.id ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
+                {option.label}
+              </p>
+              <p className="text-xs text-[var(--text-tertiary)]">{option.description}</p>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )
