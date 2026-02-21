@@ -61,6 +61,10 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
+# Install OpenSSL (required by Prisma query engine detection)
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
 # Security: non-root user
 RUN groupadd --system --gid 1002 voicesvc && \
     useradd --system --uid 1002 --gid voicesvc mercury
