@@ -4,6 +4,7 @@
  * Tests the /api/stripe/checkout endpoint — plan validation, session creation,
  * and price configuration.
  */
+/* eslint-disable @typescript-eslint/no-require-imports */
 export {}
 
 // ─── Mock Stripe SDK ────────────────────────────────────────────────────────

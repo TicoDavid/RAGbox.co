@@ -4,6 +4,7 @@
  * Tests the /api/stripe/webhook endpoint — event handling, signature
  * verification, provisioning calls, and graceful degradation.
  */
+/* eslint-disable @typescript-eslint/no-require-imports */
 export {}
 
 // ─── Mock Stripe SDK ────────────────────────────────────────────────────────
