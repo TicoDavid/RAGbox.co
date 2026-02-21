@@ -193,16 +193,7 @@ function LandingV3Content() {
 
       {/* ━━━ SECTION 1: HERO — The Vault Orb ━━━ */}
       <section className="relative min-h-screen flex flex-col items-center justify-center px-6 overflow-hidden">
-        {/* Ambient glow behind orb (CSS) */}
-        <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full pointer-events-none"
-          style={{
-            background: 'radial-gradient(circle, rgba(36,99,235,0.15) 0%, rgba(124,58,237,0.08) 50%, transparent 70%)',
-            animation: 'orbPulse 4s ease-in-out infinite',
-          }}
-        />
-
-        {/* Three.js Orb */}
+        {/* Three.js Orb (includes ambient glow + pulse internally) */}
         <div className="relative z-10 mb-10">
           <VaultOrb />
         </div>
@@ -328,7 +319,7 @@ function LandingV3Content() {
               return (
                 <div
                   key={p.label}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/[0.08] hover:border-[#2463EB]/30 transition-all cursor-default"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/[0.08] hover:border-[#2463EB]/30 hover:shadow-[0_0_12px_rgba(36,99,235,0.15)] transition-all cursor-default"
                 >
                   <Icon className="w-4 h-4 text-[#8892B0]" strokeWidth={1.5} />
                   <span className="text-sm font-medium">{p.label}</span>
@@ -537,13 +528,6 @@ function LandingV3Content() {
         )}
       </AnimatePresence>
 
-      {/* Orb pulse keyframes */}
-      <style jsx global>{`
-        @keyframes orbPulse {
-          0%, 100% { transform: translate(-50%, -50%) scale(1); }
-          50% { transform: translate(-50%, -50%) scale(1.05); }
-        }
-      `}</style>
     </main>
   )
 }
