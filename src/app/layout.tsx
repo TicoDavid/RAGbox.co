@@ -35,8 +35,11 @@ const jakarta = Plus_Jakarta_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'RAGböx | Sovereign Intelligence',
-  description: 'Digital Fort Knox for Compliance-Sensitive Data',
+  title: {
+    default: 'RAGböx — Sovereign Knowledge for Professionals',
+    template: '%s | RAGböx',
+  },
+  description: 'AI-powered document intelligence with sovereign control.',
   icons: {
     icon: '/favicon.svg',
   },

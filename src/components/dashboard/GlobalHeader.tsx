@@ -732,7 +732,7 @@ function ProfileSettings() {
       <div className="grid grid-cols-2 gap-4">
         <div className="p-4 bg-[var(--bg-elevated)]/30 border border-[var(--border-default)] rounded-lg">
           <p className="text-xs text-[var(--text-tertiary)] mb-1">Organization</p>
-          <p className="text-sm font-medium text-[var(--text-primary)]">RAGbox Enterprise</p>
+          <p className="text-sm font-medium text-[var(--text-primary)]">RAGböx</p>
         </div>
         <div className="p-4 bg-[var(--bg-elevated)]/30 border border-[var(--border-default)] rounded-lg">
           <p className="text-xs text-[var(--text-tertiary)] mb-1">Role</p>
@@ -789,10 +789,11 @@ function BillingSettings() {
   const { subscription } = useSettings()
   const usagePercent = (subscription.tokensUsed / subscription.tokensLimit) * 100
 
-  const planLabels = {
+  const planLabels: Record<string, string> = {
     free: 'Free Tier',
-    professional: 'Professional',
-    enterprise: 'Sovereign Enterprise',
+    sovereign: 'Sovereign',
+    sovereign_mercury: 'Sovereign + Mercury',
+    syndicate: 'Syndicate',
   }
 
   return (

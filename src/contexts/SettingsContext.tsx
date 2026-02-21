@@ -34,7 +34,7 @@ export interface VoiceSettings {
 
 // Subscription/Plan info
 export interface SubscriptionInfo {
-  plan: 'free' | 'professional' | 'enterprise'
+  plan: 'free' | 'sovereign' | 'sovereign_mercury' | 'syndicate'
   tokensUsed: number
   tokensLimit: number
   renewalDate: string
@@ -168,7 +168,7 @@ const defaultSettings: SettingsState = {
     silenceThreshold: 2000,
   },
   subscription: {
-    plan: 'enterprise',
+    plan: 'sovereign',
     tokensUsed: 847500,
     tokensLimit: 5000000,
     renewalDate: '2025-02-15',

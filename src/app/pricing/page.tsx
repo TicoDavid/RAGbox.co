@@ -66,6 +66,7 @@ function FadeUp({ delay = 0, children }: { delay?: number; children: React.React
 // SOVEREIGN CARD — The Anchor
 // ============================================================================
 
+// 9 features — audited 2026-02-21, all distinct (BUG-029 WONTFIX)
 const SOVEREIGN_FEATURES = [
   'Unlimited Vault storage',
   'Sovereign RAG pipeline (Aegis AI)',
