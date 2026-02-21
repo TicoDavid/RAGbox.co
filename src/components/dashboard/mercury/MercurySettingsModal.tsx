@@ -886,24 +886,76 @@ function AppearanceSection() {
 // ============================================================================
 
 function AlertsSection() {
+  const [prefs, setPrefs] = useState({ email: true, push: false, audit: true })
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/settings/notifications')
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && json.data) {
+          setPrefs({
+            email: json.data.email ?? true,
+            push: json.data.push ?? false,
+            audit: json.data.audit ?? true,
+          })
+        }
+        setLoaded(true)
+      })
+      .catch((err) => {
+        console.error('Failed to load notification prefs:', err)
+        setLoaded(true)
+      })
+  }, [])
+
+  const togglePref = async (key: 'email' | 'push' | 'audit') => {
+    const newValue = !prefs[key]
+    setPrefs((prev) => ({ ...prev, [key]: newValue }))
+    try {
+      const res = await fetch('/api/settings/notifications', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [key]: newValue }),
+      })
+      if (!res.ok) throw new Error('Failed to save')
+    } catch (err) {
+      console.error('Failed to save notification pref:', err)
+      setPrefs((prev) => ({ ...prev, [key]: !newValue }))
+      toast.error('Failed to save notification preference')
+    }
+  }
+
+  const alerts = [
+    { key: 'email' as const, label: 'Email Notifications', description: 'Receive updates about document processing' },
+    { key: 'push' as const, label: 'Push Notifications', description: 'Browser push for real-time alerts' },
+    { key: 'audit' as const, label: 'Audit Trail Alerts', description: 'Notify when privileged documents are accessed' },
+  ]
+
+  if (!loaded) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-[var(--text-tertiary)]" />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <SectionHeader title="Alerts" description="Configure notification preferences." />
 
       <div className="space-y-3">
-        {[
-          { label: 'Email Notifications', description: 'Receive updates about document processing', enabled: true },
-          { label: 'Push Notifications', description: 'Browser push for real-time alerts', enabled: false },
-          { label: 'Audit Trail Alerts', description: 'Notify when privileged documents are accessed', enabled: true },
-        ].map((alert) => (
-          <div key={alert.label} className="flex items-center justify-between py-3 px-4 rounded-lg bg-[var(--bg-tertiary)]/50 border border-[var(--border-default)]">
+        {alerts.map((alert) => (
+          <div key={alert.key} className="flex items-center justify-between py-3 px-4 rounded-lg bg-[var(--bg-tertiary)]/50 border border-[var(--border-default)]">
             <div>
               <p className="text-sm text-[var(--text-primary)]">{alert.label}</p>
               <p className="text-xs text-[var(--text-tertiary)]">{alert.description}</p>
             </div>
-            <div className={`w-10 h-[22px] rounded-full relative ${alert.enabled ? 'bg-[var(--warning)]' : 'bg-[var(--bg-elevated)]'}`}>
-              <span className={`absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white transition-transform ${alert.enabled ? 'translate-x-[18px]' : ''}`} />
-            </div>
+            <button
+              onClick={() => togglePref(alert.key)}
+              className={`w-10 h-[22px] rounded-full relative transition-colors ${prefs[alert.key] ? 'bg-[var(--warning)]' : 'bg-[var(--bg-elevated)]'}`}
+            >
+              <span className={`absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white transition-transform ${prefs[alert.key] ? 'translate-x-[18px]' : ''}`} />
+            </button>
           </div>
         ))}
       </div>
