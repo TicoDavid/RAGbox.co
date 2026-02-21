@@ -34,6 +34,11 @@ model User {
   privilegeModeEnabled Boolean @default(false) @map("privilege_mode_enabled")
   privilegeModeChangedAt DateTime? @map("privilege_mode_changed_at")
   onboardingCompleted Boolean @default(false) @map("onboarding_completed")
+  companyName  String? @map("company_name")
+  jobTitle     String? @map("job_title")
+  industry     String? @map("industry")
+  companySize  String? @map("company_size")
+  useCase      String? @map("use_case")
   createdAt DateTime @default(now()) @map("created_at")
   lastLoginAt DateTime? @map("last_login_at")
 
@@ -54,6 +59,7 @@ model User {
   auditEntries          AuditEntry[]
   apiKeys               ApiKey[]
   knowledgeEvents       KnowledgeEvent[]
+  notificationSettings  NotificationSettings?
 
   @@map("users")
 }
@@ -847,4 +853,21 @@ model AgentEmailCredential {
 
   @@index([emailAddress])
   @@map("agent_email_credentials")
+}
+
+// ============================================
+// Notification Settings (Per-User Preferences)
+// ============================================
+
+model NotificationSettings {
+  id        String   @id @default(cuid())
+  userId    String   @unique @map("user_id")
+  email     Boolean  @default(true)
+  push      Boolean  @default(false)
+  audit     Boolean  @default(true)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_settings")
 }
