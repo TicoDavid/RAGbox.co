@@ -360,13 +360,7 @@ export function MercuryConfigModal({ isOpen, onClose, onSaved }: MercuryConfigMo
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-between px-6 py-3 border-t border-[var(--border-subtle)] shrink-0">
-                <a
-                  href="/dashboard/settings/mercury"
-                  className="text-xs text-[var(--text-tertiary)] hover:text-[var(--brand-blue)] transition-colors"
-                >
-                  Advanced Settings
-                </a>
+              <div className="flex items-center justify-end px-6 py-3 border-t border-[var(--border-subtle)] shrink-0">
                 <button
                   onClick={handleSave}
                   disabled={saving || loading}
