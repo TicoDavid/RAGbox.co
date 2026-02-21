@@ -133,7 +133,8 @@ export function MercurySettingsModal({ open, onClose, onSaved }: MercurySettings
       if (json.data?.presets) {
         setPresets(json.data.presets)
       }
-    } catch {
+    } catch (err) {
+      console.error('Mercury config load failed:', err)
       toast.error('Failed to load Mercury configuration')
     } finally {
       setLoading(false)
