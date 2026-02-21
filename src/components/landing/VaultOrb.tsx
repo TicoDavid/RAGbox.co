@@ -88,7 +88,7 @@ export function VaultOrb() {
         clearcoat: 1.0,
         clearcoatRoughness: 0.1,
         envMap: cubeRT.texture,
-        envMapIntensity: 2.0,
+        envMapIntensity: 3.5,
       })
       const orb = new THREE.Mesh(orbGeo, orbMat)
       scene.add(orb)
@@ -107,6 +107,14 @@ export function VaultOrb() {
       const pl3 = new THREE.PointLight(0x06B6D4, 1, 15)
       pl3.position.set(0, 5, -3)
       scene.add(pl3)
+
+      const pl4 = new THREE.PointLight(0x3B82F6, 2, 20)
+      pl4.position.set(5, 5, 5)
+      scene.add(pl4)
+
+      const pl5 = new THREE.PointLight(0x7C3AED, 1.5, 20)
+      pl5.position.set(-5, -3, 5)
+      scene.add(pl5)
 
       // ── Particle Ring — 50 orbiting "document" particles ──
       const PARTICLE_COUNT = 50
@@ -130,7 +138,7 @@ export function VaultOrb() {
       const particleGeo = new THREE.BufferGeometry()
       particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
       const particleMat = new THREE.PointsMaterial({
-        size: 0.04,
+        size: 0.06,
         color: 0x3B82F6,
         transparent: true,
         opacity: 0.8,
@@ -160,7 +168,7 @@ export function VaultOrb() {
       const ribbonMat = new THREE.MeshBasicMaterial({
         map: ribbonTex,
         transparent: true,
-        opacity: 0.6,
+        opacity: 0.8,
         blending: THREE.AdditiveBlending,
         side: THREE.DoubleSide,
         depthWrite: false,
@@ -279,7 +287,7 @@ export function VaultOrb() {
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            background: 'radial-gradient(circle, rgba(36,99,235,0.15) 0%, rgba(124,58,237,0.08) 50%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(36,99,235,0.25) 0%, rgba(124,58,237,0.15) 50%, transparent 70%)',
             pointerEvents: 'none',
           }}
         />
@@ -303,7 +311,7 @@ export function VaultOrb() {
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          background: 'radial-gradient(circle, rgba(36,99,235,0.15) 0%, rgba(124,58,237,0.08) 50%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(36,99,235,0.25) 0%, rgba(124,58,237,0.15) 50%, transparent 70%)',
         }}
       />
 
