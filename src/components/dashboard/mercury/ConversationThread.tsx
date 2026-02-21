@@ -14,9 +14,9 @@ const CHANNEL_FILTERS: { value: MercuryChannel | 'all'; label: string; color: st
   { value: 'all', label: 'All', color: 'text-[var(--text-primary)] bg-[var(--bg-elevated)]' },
   { value: 'dashboard', label: 'Dashboard', color: 'text-[var(--brand-blue)] bg-[var(--brand-blue)]/10' },
   { value: 'whatsapp', label: 'WhatsApp', color: 'text-[var(--success)] bg-[var(--success)]/10' },
-  { value: 'voice', label: 'Voice', color: 'text-[var(--text-accent)] bg-[var(--text-accent)]/10' },
+  { value: 'voice', label: 'Voice', color: 'text-purple-400 bg-purple-500/10' },
   { value: 'roam', label: 'ROAM', color: 'text-[var(--warning)] bg-[var(--warning)]/10' },
-  { value: 'email', label: 'Email', color: 'text-[var(--danger)] bg-[var(--danger)]/10' },
+  { value: 'email', label: 'Email', color: 'text-[var(--warning)] bg-[var(--warning)]/10' },
   { value: 'sms', label: 'SMS', color: 'text-cyan-400 bg-cyan-500/10' },
 ]
 

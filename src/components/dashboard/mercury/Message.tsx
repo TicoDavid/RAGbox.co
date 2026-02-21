@@ -77,9 +77,9 @@ function formatTime(date: Date): string {
 const CHANNEL_BADGE: Record<MercuryChannel, { label: string; color: string }> = {
   dashboard: { label: 'Dashboard', color: 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border-[var(--brand-blue)]/30' },
   whatsapp: { label: 'WhatsApp', color: 'bg-[var(--success)]/20 text-[var(--success)] border-[var(--success)]/30' },
-  voice: { label: 'Voice', color: 'bg-[var(--text-accent)]/20 text-[var(--text-accent)] border-[var(--text-accent)]/30' },
+  voice: { label: 'Voice', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' },
   roam: { label: 'ROAM', color: 'bg-[var(--warning)]/20 text-[var(--warning)] border-[var(--warning)]/30' },
-  email: { label: 'Email', color: 'bg-[var(--danger)]/20 text-[var(--danger)] border-[var(--danger)]/30' },
+  email: { label: 'Email', color: 'bg-[var(--warning)]/20 text-[var(--warning)] border-[var(--warning)]/30' },
   sms: { label: 'SMS', color: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' },
 }
 
