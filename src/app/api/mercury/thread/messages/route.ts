@@ -135,7 +135,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (!['user', 'assistant'].includes(role)) {
       return NextResponse.json({ success: false, error: 'Invalid role' }, { status: 400 })
     }
-    if (!['dashboard', 'whatsapp', 'voice'].includes(channel)) {
+    if (!['dashboard', 'whatsapp', 'voice', 'roam', 'email'].includes(channel)) {
       return NextResponse.json({ success: false, error: 'Invalid channel' }, { status: 400 })
     }
 

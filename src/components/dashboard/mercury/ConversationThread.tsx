@@ -15,6 +15,7 @@ const CHANNEL_FILTERS: { value: MercuryChannel | 'all'; label: string; color: st
   { value: 'whatsapp', label: 'WhatsApp', color: 'text-[var(--success)] bg-[var(--success)]/10' },
   { value: 'voice', label: 'Voice', color: 'text-[var(--text-accent)] bg-[var(--text-accent)]/10' },
   { value: 'roam', label: 'ROAM', color: 'text-[var(--warning)] bg-[var(--warning)]/10' },
+  { value: 'email', label: 'Email', color: 'text-[var(--danger)] bg-[var(--danger)]/10' },
 ]
 
 export function ConversationThread() {

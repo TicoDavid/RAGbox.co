@@ -281,7 +281,7 @@ async function writeMercuryThread(userId: string, to: string, subject: string): 
       data: {
         threadId: thread.id,
         role: 'assistant',
-        channel: 'dashboard',
+        channel: 'email',
         content: `Email sent to ${to}: "${subject}"`,
       },
     })
