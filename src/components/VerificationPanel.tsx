@@ -85,7 +85,7 @@ export default function VerificationPanel({ citation, onClear, onViewDocument }:
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-gray-800">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-[var(--bg-elevated)]">
 
         {/* Source Document Info */}
         <div className="flex items-start gap-3 p-3 bg-oled border border-border rounded-lg">

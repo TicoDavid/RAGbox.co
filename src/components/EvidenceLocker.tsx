@@ -38,7 +38,7 @@ export default function EvidenceLocker({ files, selectedId, onSelect, onUpload }
       </div>
 
       {/* 2. Scrollable File List */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-thin scrollbar-thumb-gray-800">
+      <div className="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-thin scrollbar-thumb-[var(--bg-elevated)]">
 
         {files.length === 0 && (
           <div className="h-32 flex flex-col items-center justify-center text-[var(--text-tertiary)] font-mono text-xs opacity-50">

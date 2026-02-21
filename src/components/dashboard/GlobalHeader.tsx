@@ -1212,7 +1212,7 @@ function CommunitySettings() {
 function SectionHeader({ title, description }: { title: string; description: string }) {
   return (
     <div className="mb-6">
-      <h3 className="text-lg font-semibold text-transparent bg-clip-text bg-gradient-to-r from-slate-200 to-slate-400">
+      <h3 className="text-lg font-semibold text-transparent bg-clip-text bg-gradient-to-r from-[var(--text-primary)] to-[var(--text-tertiary)]">
         {title}
       </h3>
       <p className="text-sm text-[var(--text-tertiary)] mt-1">{description}</p>
