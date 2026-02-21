@@ -81,7 +81,7 @@ type Dependencies struct {
 	// Chunk preview (citation context)
 	ChunkPreviewDeps handler.ChunkPreviewDeps
 
-	// Vonage SMS/WhatsApp webhooks
+	// Vonage SMS/WhatsApp webhooks (ThreadSaver wired in main.go)
 	VonageDeps handler.VonageDeps
 
 	// Voice transcription

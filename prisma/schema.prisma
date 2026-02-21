@@ -644,15 +644,17 @@ model MercuryThread {
 }
 
 model MercuryThreadMessage {
-  id        String              @id @default(cuid())
-  threadId  String              @map("thread_id")
-  role      mercury_role
-  channel   mercury_channel
-  content   String
-  confidence Float?
-  citations  Json?              // Citation[] serialized
-  metadata   Json?              // Channel-specific metadata (whatsapp phone, voice session, etc.)
-  createdAt  DateTime           @default(now()) @map("created_at")
+  id               String              @id @default(cuid())
+  threadId         String              @map("thread_id")
+  role             mercury_role
+  channel          mercury_channel
+  content          String
+  confidence       Float?
+  citations        Json?              // Citation[] serialized
+  metadata         Json?              // Channel-specific metadata (whatsapp phone, voice session, etc.)
+  channelMessageId String?            @map("channel_message_id") // external message ID (Vonage UUID, etc.)
+  direction        String?            @default("inbound") // "inbound" | "outbound"
+  createdAt        DateTime           @default(now()) @map("created_at")
 
   // Relations
   thread MercuryThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
@@ -673,6 +675,7 @@ enum mercury_channel {
   voice
   roam
   email
+  sms
 }
 
 // ============================================

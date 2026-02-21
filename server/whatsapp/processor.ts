@@ -14,6 +14,7 @@
 import { PrismaClient } from '@prisma/client'
 import { getWhatsAppProvider } from './providers/factory'
 import { whatsAppEventEmitter } from './events'
+import { persistThreadMessage } from '../thread-persistence'
 import type { InboundMessage, StatusUpdate } from './providers/types'
 
 const prisma = new PrismaClient()
@@ -133,6 +134,19 @@ export async function processInboundMessage(message: InboundMessage): Promise<vo
 
     console.log(`[WhatsApp] Processed inbound from ${message.from}: ${preview}`)
 
+    // 6b. Persist inbound message to unified Mercury thread (fire-and-forget)
+    if (message.content) {
+      persistThreadMessage({
+        userId,
+        role: 'user',
+        channel: 'whatsapp',
+        content: message.content,
+        direction: 'inbound',
+        channelMessageId: message.externalMessageId,
+        metadata: { from: message.from, conversationId: conversation.id },
+      })
+    }
+
     // 7. Auto-reply via RAG if enabled and message is text
     if (conversation.autoReply && message.messageType === 'text' && message.content) {
       await handleAutoReply(conversation.id, userId, message.from, message.content)
@@ -232,6 +246,18 @@ async function handleAutoReply(
         createdAt: dbMessage.createdAt,
         autoReply: true,
       },
+    })
+
+    // Persist auto-reply to unified Mercury thread (fire-and-forget)
+    persistThreadMessage({
+      userId,
+      role: 'assistant',
+      channel: 'whatsapp',
+      content: replyText,
+      confidence,
+      direction: 'outbound',
+      channelMessageId: sendResult.externalMessageId,
+      metadata: { conversationId, queryId, autoReply: true },
     })
 
     console.log(`[WhatsApp] Auto-reply sent to ${toPhone} (confidence: ${confidence ?? 'N/A'})`)

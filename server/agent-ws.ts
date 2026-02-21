@@ -26,6 +26,7 @@ import { checkToolPermission, createConfirmationRequest, storePendingConfirmatio
 import * as obs from './observability'
 import { createVoiceSession, type VoiceSession } from './voice-pipeline'
 import { whatsAppEventEmitter, type WhatsAppEvent } from './whatsapp/events'
+import { persistThreadMessage } from './thread-persistence'
 
 // ============================================================================
 // TYPES
@@ -227,6 +228,15 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
         sendJSON(ws, { type: 'asr_final', text })
         obs.logTranscript(sessionId, 'user', text, true)
         obs.incrementTurn(sessionId)
+        // Persist user voice message to unified thread (fire-and-forget)
+        persistThreadMessage({
+          userId: params.userId,
+          role: 'user',
+          channel: 'voice',
+          content: text,
+          direction: 'inbound',
+          metadata: { sessionId },
+        })
       },
 
       onAgentTextPartial: (text) => {
@@ -240,6 +250,15 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
       onAgentTextFinal: (text) => {
         sendJSON(ws, { type: 'agent_text_final', text })
         obs.logTranscript(sessionId, 'agent', text, true)
+        // Persist assistant voice response to unified thread (fire-and-forget)
+        persistThreadMessage({
+          userId: params.userId,
+          role: 'assistant',
+          channel: 'voice',
+          content: text,
+          direction: 'outbound',
+          metadata: { sessionId },
+        })
       },
 
       onTTSChunk: (audioBase64) => {

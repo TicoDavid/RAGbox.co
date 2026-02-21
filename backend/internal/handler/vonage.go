@@ -10,8 +10,15 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/connexus-ai/ragbox-backend/internal/model"
 	"github.com/connexus-ai/ragbox-backend/internal/service"
 )
+
+// ThreadSaver persists messages to the unified Mercury thread.
+type ThreadSaver interface {
+	GetOrCreateThread(ctx context.Context, userID string) (string, error)
+	SaveMessage(ctx context.Context, msg *model.MercuryThreadMessage) error
+}
 
 // VonageDeps bundles dependencies for Vonage webhook handlers.
 type VonageDeps struct {
@@ -23,6 +30,7 @@ type VonageDeps struct {
 	Retriever          *service.RetrieverService
 	Generator          service.Generator
 	SelfRAG            *service.SelfRAGService
+	ThreadSaver        ThreadSaver // unified thread persistence (nil = skip)
 }
 
 // vonageInbound is the Vonage Messages API inbound webhook payload.
@@ -86,22 +94,31 @@ func VonageInbound(deps VonageDeps) http.HandlerFunc {
 		// Acknowledge immediately — Vonage expects 200 within seconds
 		w.WriteHeader(http.StatusOK)
 
-		// Process async: RAG query → reply
+		// Process async: RAG query → reply → persist to unified thread
 		go func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 			defer cancel()
 
+			// Determine channel
+			channel := "sms"
+			fromNumber := deps.SMSFromNumber
+			if msg.Channel == "whatsapp" {
+				channel = "whatsapp"
+				fromNumber = deps.WhatsAppFromNumber
+			}
+
+			// Resolve user ID for thread persistence
+			userID := deps.DefaultTenant
+			if userID == "" {
+				userID = "vonage:" + msg.From
+			}
+
+			// Persist inbound user message to unified thread
+			persistToThread(ctx, deps.ThreadSaver, userID, "user", channel, msg.Text, "inbound", &msg.MessageUUID)
+
 			answer := processRAGQuery(ctx, deps, msg.From, msg.Text)
 			if answer == "" {
 				answer = "I couldn't find a relevant answer in the vault. Please try rephrasing your question."
-			}
-
-			// Determine reply sender number based on channel
-			fromNumber := deps.SMSFromNumber
-			channel := "sms"
-			if msg.Channel == "whatsapp" {
-				fromNumber = deps.WhatsAppFromNumber
-				channel = "whatsapp"
 			}
 
 			if err := sendVonageReply(deps.APIKey, deps.APISecret, channel, fromNumber, msg.From, answer); err != nil {
@@ -117,6 +134,9 @@ func VonageInbound(deps VonageDeps) http.HandlerFunc {
 					"answer_len", len(answer),
 				)
 			}
+
+			// Persist outbound assistant reply to unified thread
+			persistToThread(ctx, deps.ThreadSaver, userID, "assistant", channel, answer, "outbound", nil)
 		}()
 	}
 }
@@ -198,6 +218,31 @@ func processRAGQuery(ctx context.Context, deps VonageDeps, phoneFrom, query stri
 	}
 
 	return answer
+}
+
+// persistToThread saves a message to the unified Mercury thread (best-effort).
+func persistToThread(ctx context.Context, saver ThreadSaver, userID, role, channel, content, direction string, channelMsgID *string) {
+	if saver == nil {
+		return
+	}
+
+	threadID, err := saver.GetOrCreateThread(ctx, userID)
+	if err != nil {
+		slog.Error("[Vonage] failed to get/create thread", "error", err, "user_id", userID)
+		return
+	}
+
+	msg := &model.MercuryThreadMessage{
+		ThreadID:         threadID,
+		Role:             role,
+		Channel:          channel,
+		Content:          content,
+		Direction:        direction,
+		ChannelMessageID: channelMsgID,
+	}
+	if err := saver.SaveMessage(ctx, msg); err != nil {
+		slog.Error("[Vonage] failed to persist thread message", "error", err, "channel", channel, "role", role)
+	}
 }
 
 // sendVonageReply sends a message via the Vonage Messages API.

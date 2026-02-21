@@ -130,6 +130,7 @@ func run() error {
 	userRepo := repository.NewUserRepo(pool)
 	personaRepo := repository.NewPersonaRepo(pool)
 	cortexRepo := repository.NewCortexRepo(pool)
+	threadRepo := repository.NewThreadRepo(pool)
 
 	// ─── Services ──────────────────────────────────────────────────────
 
@@ -326,6 +327,7 @@ func run() error {
 			Retriever:          retrieverService,
 			Generator:          generatorService,
 			SelfRAG:            selfRAGService,
+			ThreadSaver:        threadRepo,
 		},
 
 		TranscribeDeps: handler.TranscribeDeps{
