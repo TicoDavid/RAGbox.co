@@ -6,7 +6,7 @@ import { CenterHeader } from './CenterHeader'
 import { CenterMessage } from './CenterMessage'
 import { CenterInputBar } from './CenterInputBar'
 import { ThreadSidebar } from './ThreadSidebar'
-import { FileText, MessageSquare, Quote, Activity } from 'lucide-react'
+import { FileText, MessageSquare, Quote, Activity, Upload } from 'lucide-react'
 
 // ============================================================================
 // DASHBOARD HOME — Stats cards shown when no chat is active
@@ -19,7 +19,21 @@ interface StatCardProps {
   color: string
 }
 
+function StatCardSkeleton() {
+  return (
+    <div className="flex flex-col gap-3 p-5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
+      <div className="w-8 h-8 rounded-lg bg-[var(--bg-tertiary)] animate-pulse" />
+      <div>
+        <div className="h-7 w-12 rounded bg-[var(--bg-tertiary)] animate-pulse mb-1" />
+        <div className="h-3 w-24 rounded bg-[var(--bg-tertiary)] animate-pulse" />
+      </div>
+    </div>
+  )
+}
+
 function StatCard({ icon: Icon, value, label, color }: StatCardProps) {
+  if (value === '...') return <StatCardSkeleton />
+
   return (
     <div className="flex flex-col gap-3 p-5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)] hover:border-[var(--border-default)] transition-colors">
       <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${color}`}>
@@ -91,9 +105,18 @@ function DashboardHome() {
         />
       </div>
 
-      <p className="text-sm text-[var(--text-tertiary)]">
-        Ask anything about your documents
-      </p>
+      {docCount === '0' ? (
+        <div className="flex flex-col items-center gap-2">
+          <Upload className="w-5 h-5 text-[var(--brand-blue)]" />
+          <p className="text-sm text-[var(--text-tertiary)]">
+            Your vault is empty. Drop your first document to get started.
+          </p>
+        </div>
+      ) : (
+        <p className="text-sm text-[var(--text-tertiary)]">
+          Ask anything about your documents
+        </p>
+      )}
     </div>
   )
 }
@@ -103,6 +126,15 @@ function DashboardHome() {
 // ============================================================================
 
 function StreamingIndicator({ content }: { content: string }) {
+  const [slow, setSlow] = useState(false)
+  const stopStreaming = useChatStore((s) => s.stopStreaming)
+
+  useEffect(() => {
+    setSlow(false)
+    const timer = setTimeout(() => setSlow(true), 30000)
+    return () => clearTimeout(timer)
+  }, [])
+
   return (
     <div className="mb-8">
       <div className="flex items-center gap-2 mb-2">
@@ -118,6 +150,17 @@ function StreamingIndicator({ content }: { content: string }) {
             <span className="w-2 h-2 rounded-full bg-[var(--brand-blue)] animate-pulse [animation-delay:0.2s]" />
             <span className="w-2 h-2 rounded-full bg-[var(--brand-blue)] animate-pulse [animation-delay:0.4s]" />
           </span>
+        )}
+        {slow && (
+          <div className="mt-3 flex items-center gap-2">
+            <span className="text-xs text-[var(--warning)]">Taking longer than expected...</span>
+            <button
+              onClick={stopStreaming}
+              className="text-xs px-2 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
         )}
       </div>
     </div>

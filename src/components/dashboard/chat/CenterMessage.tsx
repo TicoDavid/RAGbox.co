@@ -6,9 +6,11 @@ import remarkGfm from 'remark-gfm'
 import type { Components } from 'react-markdown'
 import {
   Copy, ThumbsUp, ThumbsDown, Check,
-  MessageSquare, FileText, ShieldCheck,
+  MessageSquare, FileText, ShieldCheck, RefreshCw, AlertTriangle,
 } from 'lucide-react'
 import { useVaultStore } from '@/stores/vaultStore'
+import { useChatStore } from '@/stores/chatStore'
+import { usePrivilegeStore } from '@/stores/privilegeStore'
 import type { ChatMessage, Citation } from '@/types/ragbox'
 
 type ResponseTab = 'answer' | 'sources' | 'evidence'
@@ -115,6 +117,47 @@ export function CenterMessage({ message }: { message: ChatMessage }) {
   const [copied, setCopied] = useState(false)
   const [activeTab, setActiveTab] = useState<ResponseTab>('answer')
   const selectItem = useVaultStore((s) => s.selectItem)
+  const setInputValue = useChatStore((s) => s.setInputValue)
+  const sendMessage = useChatStore((s) => s.sendMessage)
+  const messages = useChatStore((s) => s.messages)
+  const privilegeMode = usePrivilegeStore((s) => s.isEnabled)
+
+  // Error message with retry button
+  if (message.isError) {
+    // Find the last user message to retry
+    const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user')
+    const handleRetry = () => {
+      if (lastUserMsg) {
+        setInputValue(lastUserMsg.content)
+        setTimeout(() => sendMessage(privilegeMode), 50)
+      }
+    }
+
+    return (
+      <div className="group mb-8">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-6 h-6 rounded-full bg-[var(--danger)]/20 flex items-center justify-center">
+            <AlertTriangle className="w-3.5 h-3.5 text-[var(--danger)]" />
+          </div>
+          <span className="text-sm font-medium text-[var(--danger)]">Error</span>
+        </div>
+        <div className="pl-8">
+          <p className="text-sm text-[var(--text-secondary)] mb-3">
+            Connection lost. {message.content}
+          </p>
+          {lastUserMsg && (
+            <button
+              onClick={handleRetry}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--brand-blue)]/10 text-[var(--brand-blue)] hover:bg-[var(--brand-blue)]/20 transition-colors"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Retry
+            </button>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   // BUG-009: extract answer from raw JSON if the content is a JSON blob
   const parsed = isUser ? null : parseMessageContent(message.content)
