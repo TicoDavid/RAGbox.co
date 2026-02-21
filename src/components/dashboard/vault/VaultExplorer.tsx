@@ -670,7 +670,7 @@ export function VaultExplorer() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search..."
-                className="w-48 h-9 pl-10 pr-4 bg-[var(--bg-primary)]/50 border border-[var(--border-default)]/50 rounded-lg text-sm text-[var(--text-primary)] placeholder-[var(--text-placeholder)] focus:outline-none focus:border-[var(--brand-blue)] transition-colors"
+                className="w-48 h-9 pl-10 pr-4 bg-[var(--bg-primary)]/50 border border-[var(--border-default)] rounded-lg text-sm text-[var(--text-primary)] placeholder-[var(--text-placeholder)] focus:outline-none focus:border-[var(--brand-blue)] focus:ring-1 focus:ring-[var(--brand-blue)]/30 transition-colors"
               />
             </div>
             {/* Grant Clearance Button */}

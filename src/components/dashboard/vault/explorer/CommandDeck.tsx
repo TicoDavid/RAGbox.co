@@ -96,7 +96,7 @@ export function CommandDeck({
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search vault..."
-              className="w-64 h-8 pl-9 pr-3 bg-[var(--bg-elevated)]/20 border border-[var(--border-default)] rounded-lg text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--brand-blue)]/50"
+              className="w-64 h-8 pl-9 pr-3 bg-[var(--bg-elevated)]/20 border border-[var(--border-default)] rounded-lg text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--brand-blue)] focus:ring-1 focus:ring-[var(--brand-blue)]/30 transition-colors"
             />
           </div>
 

@@ -227,7 +227,7 @@ export function GlobalHeader() {
         {/* Center Section - Search (Absolutely Centered) */}
         <div className="absolute left-1/2 -translate-x-1/2">
           {searchOpen ? (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-[var(--brand-blue)] bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors" style={{ minWidth: 320 }}>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-[var(--brand-blue)] ring-1 ring-[var(--brand-blue)]/30 bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors" style={{ minWidth: 320 }}>
               <Search className="w-4 h-4 text-[var(--text-tertiary)] shrink-0" />
               <input
                 ref={searchInputRef}
