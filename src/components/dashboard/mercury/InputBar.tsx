@@ -15,7 +15,6 @@ import {
   FileText,
   Loader2,
 } from 'lucide-react'
-import { VoiceTrigger } from './VoiceTrigger'
 import { PERSONAS } from './personaData'
 import { IntelligenceMatrix, IntelligenceBadge } from './IntelligenceMatrix'
 import { useSettings } from '@/contexts/SettingsContext'
@@ -159,9 +158,6 @@ export function InputBar() {
 
   const handleSubmit = () => sendMessage(privilegeMode)
 
-  // Voice-to-text: populate input only, user sends manually
-  const handleVoiceTranscript = useCallback((text: string) => setInputValue(text), [setInputValue])
-
   const canSend = (inputValue.trim().length > 0 || attachments.length > 0) && !isStreaming
 
   const getAttachmentIcon = (attachment: SessionAttachment) => {
@@ -265,7 +261,6 @@ export function InputBar() {
           />
 
           <div className="flex items-center gap-1 shrink-0">
-            <VoiceTrigger onTranscript={handleVoiceTranscript} disabled={isStreaming} size="default" variant="inline" />
             {isStreaming ? (
               <button onClick={stopStreaming} className="p-2 rounded-full bg-[var(--danger)]/20 text-[var(--danger)] hover:bg-[var(--danger)]/30 transition-colors" title="Stop" aria-label="Stop streaming">
                 <Square className="w-4 h-4" />

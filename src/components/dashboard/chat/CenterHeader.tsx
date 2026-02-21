@@ -21,15 +21,15 @@ export function CenterHeader() {
         <div className="flex items-center gap-2 text-sm">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className={`p-1.5 rounded-md transition-colors ${
+            className={`p-1.5 rounded-lg transition-colors ${
               sidebarOpen
-                ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)]'
-                : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]'
+                ? 'bg-[var(--brand-blue)]/15 text-[var(--brand-blue)]'
+                : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]'
             }`}
             aria-label="Toggle thread history"
             title="Thread history"
           >
-            <PanelLeft className="w-3.5 h-3.5" />
+            <PanelLeft className="w-4 h-4" />
           </button>
           <span className="text-[var(--text-primary)] font-medium truncate max-w-[300px]">
             {threadTitle || 'New Chat'}
