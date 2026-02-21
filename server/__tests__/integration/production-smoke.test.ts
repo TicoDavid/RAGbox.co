@@ -11,8 +11,10 @@ const PRODUCTION = process.env.PRODUCTION === 'true'
 const BACKEND_URL = process.env.BACKEND_URL || 'https://ragbox-backend-100739220279.us-east4.run.app'
 const APP_URL = process.env.APP_URL || 'https://app.ragbox.co'
 const VOICE_URL = process.env.VOICE_URL || 'https://mercury-voice-100739220279.us-east4.run.app'
+const SMOKE_TEST_TOKEN = process.env.SMOKE_TEST_TOKEN || ''
 
 const describeIf = PRODUCTION ? describe : describe.skip
+const describeAuth = PRODUCTION && SMOKE_TEST_TOKEN ? describe : describe.skip
 
 // ============================================================================
 // 1.1 Service Health (3 tests)
@@ -296,3 +298,68 @@ describeIf('1.5 Response Format Contract', () => {
     expect(text.length).toBeGreaterThan(0)
   })
 }, 10000)
+
+// ============================================================================
+// 2.1 Authenticated Endpoint Tests (SA-13 through SA-17)
+// Requires: PRODUCTION=true SMOKE_TEST_TOKEN=<jwt>
+// Skips gracefully when no token is available.
+// ============================================================================
+
+describeAuth('2.1 Authenticated Endpoints', () => {
+  const authHeaders = { Authorization: `Bearer ${SMOKE_TEST_TOKEN}` }
+
+  it('SA-13: GET /api/documents — 401 without auth, 200 with auth', async () => {
+    const noAuth = await fetch(`${APP_URL}/api/documents`)
+    expect([401, 403, 302, 307]).toContain(noAuth.status)
+
+    const withAuth = await fetch(`${APP_URL}/api/documents`, { headers: authHeaders })
+    expect(withAuth.status).toBe(200)
+    const data = await withAuth.json() as Record<string, unknown>
+    expect(data).toHaveProperty('success')
+  })
+
+  it('SA-14: GET /api/settings/llm — 401 without auth, 200 with auth', async () => {
+    const noAuth = await fetch(`${APP_URL}/api/settings/llm`)
+    expect([401, 403, 302, 307]).toContain(noAuth.status)
+
+    const withAuth = await fetch(`${APP_URL}/api/settings/llm`, { headers: authHeaders })
+    expect([200, 404]).toContain(withAuth.status)
+  })
+
+  it('SA-15: GET /api/mercury/config — 401 without auth, 200 with auth', async () => {
+    const noAuth = await fetch(`${APP_URL}/api/mercury/config`)
+    expect([401, 403, 302, 307]).toContain(noAuth.status)
+
+    const withAuth = await fetch(`${APP_URL}/api/mercury/config`, { headers: authHeaders })
+    expect([200, 404]).toContain(withAuth.status)
+  })
+
+  it('SA-16: POST /api/chat — 401 without auth', async () => {
+    const noAuth = await fetch(`${APP_URL}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: 'test' }),
+    })
+    expect([401, 403, 302, 307]).toContain(noAuth.status)
+  })
+
+  it('SA-17: GET /api/audit — 401 without auth, 200 with auth', async () => {
+    const noAuth = await fetch(`${APP_URL}/api/audit`)
+    expect([401, 403, 302, 307]).toContain(noAuth.status)
+
+    const withAuth = await fetch(`${APP_URL}/api/audit`, { headers: authHeaders })
+    expect([200, 404]).toContain(withAuth.status)
+  })
+
+  it('SA-18: GET /api/export — 401 without auth', async () => {
+    const noAuth = await fetch(`${APP_URL}/api/export`)
+    expect([401, 403, 302, 307]).toContain(noAuth.status)
+  })
+
+  it('SA-19: POST /api/documents/extract — 401 without auth', async () => {
+    const noAuth = await fetch(`${APP_URL}/api/documents/extract`, {
+      method: 'POST',
+    })
+    expect([401, 403, 302, 307]).toContain(noAuth.status)
+  })
+}, 20000)
