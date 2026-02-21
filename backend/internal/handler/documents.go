@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/connexus-ai/ragbox-backend/internal/cache"
 	"github.com/connexus-ai/ragbox-backend/internal/middleware"
 	"github.com/connexus-ai/ragbox-backend/internal/model"
 	"github.com/connexus-ai/ragbox-backend/internal/service"
@@ -116,6 +117,7 @@ type DocCRUDDeps struct {
 	Storage          StorageSigner
 	ObjectDownloader ObjectDownloader
 	BucketName       string
+	QueryCache       *cache.QueryCache // optional — invalidated on doc changes
 }
 
 // ListDocuments handles GET /api/documents.
@@ -215,6 +217,10 @@ func DeleteDocument(deps DocCRUDDeps) http.HandlerFunc {
 			return
 		}
 
+		if deps.QueryCache != nil {
+			deps.QueryCache.InvalidateUser(userID)
+		}
+
 		respondJSON(w, http.StatusOK, envelope{Success: true})
 	}
 }
@@ -243,6 +249,10 @@ func RecoverDocument(deps DocCRUDDeps) http.HandlerFunc {
 		if err := deps.DocRepo.Recover(r.Context(), docID); err != nil {
 			respondJSON(w, http.StatusInternalServerError, envelope{Success: false, Error: "failed to recover document"})
 			return
+		}
+
+		if deps.QueryCache != nil {
+			deps.QueryCache.InvalidateUser(userID)
 		}
 
 		respondJSON(w, http.StatusOK, envelope{Success: true})
@@ -412,6 +422,10 @@ func ToggleDocPrivilege(deps DocCRUDDeps) http.HandlerFunc {
 			return
 		}
 
+		if deps.QueryCache != nil {
+			deps.QueryCache.InvalidateUser(userID)
+		}
+
 		respondJSON(w, http.StatusOK, envelope{Success: true})
 	}
 }
@@ -460,6 +474,10 @@ func DeleteChunks(deps DocCRUDDeps) http.HandlerFunc {
 		if err := deps.DocRepo.UpdateChunkCount(r.Context(), docID, 0); err != nil {
 			respondJSON(w, http.StatusInternalServerError, envelope{Success: false, Error: "failed to update chunk count"})
 			return
+		}
+
+		if deps.QueryCache != nil {
+			deps.QueryCache.InvalidateUser(userID)
 		}
 
 		respondJSON(w, http.StatusOK, envelope{Success: true})

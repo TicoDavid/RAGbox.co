@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/connexus-ai/ragbox-backend/internal/cache"
 	"github.com/connexus-ai/ragbox-backend/internal/middleware"
 	"github.com/connexus-ai/ragbox-backend/internal/model"
 	"github.com/connexus-ai/ragbox-backend/internal/service"
@@ -20,8 +21,9 @@ type TextIngester interface {
 
 // IngestTextDeps bundles dependencies for the ingest-text handler.
 type IngestTextDeps struct {
-	DocRepo  service.DocumentRepository
-	Pipeline TextIngester
+	DocRepo    service.DocumentRepository
+	Pipeline   TextIngester
+	QueryCache *cache.QueryCache // optional — invalidated after pipeline completes
 }
 
 // IngestText handles POST /api/documents/{id}/ingest-text.
@@ -73,7 +75,7 @@ func IngestText(deps IngestTextDeps) http.HandlerFunc {
 			return
 		}
 
-		go func(id string) {
+		go func(id, uid string) {
 			ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 			defer cancel()
 			slog.Info("ingest-text starting pipeline", "document_id", id)
@@ -81,8 +83,11 @@ func IngestText(deps IngestTextDeps) http.HandlerFunc {
 				slog.Error("ingest-text pipeline failed", "document_id", id, "error", err)
 			} else {
 				slog.Info("ingest-text pipeline completed", "document_id", id)
+				if deps.QueryCache != nil {
+					deps.QueryCache.InvalidateUser(uid)
+				}
 			}
-		}(docID)
+		}(docID, userID)
 
 		respondJSON(w, http.StatusAccepted, envelope{
 			Success: true,

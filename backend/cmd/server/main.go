@@ -13,6 +13,7 @@ import (
 	firebase "firebase.google.com/go/v4"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/connexus-ai/ragbox-backend/internal/cache"
 	"github.com/connexus-ai/ragbox-backend/internal/config"
 	"github.com/connexus-ai/ragbox-backend/internal/gcpclient"
 	"github.com/connexus-ai/ragbox-backend/internal/handler"
@@ -246,6 +247,13 @@ func run() error {
 
 	slog.Info("rate limiters initialized", "general", "60/min", "chat", "10/min", "forge", "5/min")
 
+	// ─── Query cache ──────────────────────────────────────────────────
+
+	queryCache := cache.New(1 * time.Hour)
+	defer queryCache.Stop()
+
+	slog.Info("query cache initialized", "ttl", "1h")
+
 	// ─── Router ────────────────────────────────────────────────────────
 
 	router := internalrouter.New(&internalrouter.Dependencies{
@@ -276,6 +284,7 @@ func run() error {
 			SessionSvc:     sessionSvc,
 			PersonaFetcher: personaRepo,
 			CortexSvc:      cortexSvc,
+			QueryCache:     queryCache,
 		},
 
 		ContentGapDeps: handler.ContentGapDeps{
@@ -300,12 +309,14 @@ func run() error {
 		PipelineSvc: pipelineSvc,
 
 		IngestDeps: handler.IngestDeps{
-			DocRepo:  docRepo,
-			Pipeline: pipelineSvc,
+			DocRepo:    docRepo,
+			Pipeline:   pipelineSvc,
+			QueryCache: queryCache,
 		},
 		IngestTextDeps: handler.IngestTextDeps{
-			DocRepo:  docRepo,
-			Pipeline: pipelineSvc,
+			DocRepo:    docRepo,
+			Pipeline:   pipelineSvc,
+			QueryCache: queryCache,
 		},
 
 		RelatedDocsDeps: handler.RelatedDocsDeps{
@@ -347,6 +358,8 @@ func run() error {
 		GeneralRateLimiter: generalRL,
 		ChatRateLimiter:    chatRL,
 		ForgeRateLimiter:   forgeRL,
+
+		QueryCache: queryCache,
 	})
 
 	// ─── HTTP server ───────────────────────────────────────────────────

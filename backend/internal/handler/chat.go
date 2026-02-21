@@ -11,6 +11,7 @@ import (
 
 	"errors"
 
+	"github.com/connexus-ai/ragbox-backend/internal/cache"
 	"github.com/connexus-ai/ragbox-backend/internal/gcpclient"
 	"github.com/connexus-ai/ragbox-backend/internal/middleware"
 	"github.com/connexus-ai/ragbox-backend/internal/model"
@@ -191,6 +192,7 @@ type ChatDeps struct {
 	SessionSvc     *service.SessionService
 	PersonaFetcher PersonaFetcher  // optional — nil means use file-based persona
 	CortexSvc      CortexSearcher  // optional — nil means no working memory
+	QueryCache     *cache.QueryCache // optional — nil disables retrieval caching
 }
 
 // Chat returns an SSE streaming handler for Mercury chat.
@@ -292,21 +294,38 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 		ctx, cancel := context.WithTimeout(r.Context(), 120*time.Second)
 		defer cancel()
 
-		// Step 1: Retrieve
+		// Step 1: Retrieve (with cache)
 		sendEvent(w, flusher, "status", `{"stage":"retrieving"}`)
 
-		retrieval, err := deps.Retriever.Retrieve(ctx, userID, req.Query, req.PrivilegeMode)
-		if err != nil {
-			slog.Error("chat retrieval failed", "user_id", userID, "stage", "retrieval", "error", err)
-			sendEvent(w, flusher, "error", fmt.Sprintf(`{"message":%q}`, rateLimitMessage(err)))
-			sendEvent(w, flusher, "done", `{}`)
-			return
+		var retrieval *service.RetrievalResult
+		var cacheHit bool
+
+		if deps.QueryCache != nil {
+			if cached, ok := deps.QueryCache.Get(userID, req.Query, req.PrivilegeMode); ok {
+				retrieval = cached
+				cacheHit = true
+			}
+		}
+
+		if retrieval == nil {
+			var err error
+			retrieval, err = deps.Retriever.Retrieve(ctx, userID, req.Query, req.PrivilegeMode)
+			if err != nil {
+				slog.Error("chat retrieval failed", "user_id", userID, "stage", "retrieval", "error", err)
+				sendEvent(w, flusher, "error", fmt.Sprintf(`{"message":%q}`, rateLimitMessage(err)))
+				sendEvent(w, flusher, "done", `{}`)
+				return
+			}
+			if deps.QueryCache != nil {
+				deps.QueryCache.Set(userID, req.Query, req.PrivilegeMode, retrieval)
+			}
 		}
 
 		slog.Info("[DEBUG-CHAT] retrieval complete",
 			"user_id", userID,
 			"chunks_returned", len(retrieval.Chunks),
 			"total_candidates", retrieval.TotalCandidates,
+			"cache_hit", cacheHit,
 		)
 		for i, c := range retrieval.Chunks {
 			slog.Info("[DEBUG-CHAT] chunk",

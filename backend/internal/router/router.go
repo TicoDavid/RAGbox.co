@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/connexus-ai/ragbox-backend/internal/cache"
 	"github.com/connexus-ai/ragbox-backend/internal/handler"
 	"github.com/connexus-ai/ragbox-backend/internal/middleware"
 	"github.com/connexus-ai/ragbox-backend/internal/service"
@@ -94,6 +95,9 @@ type Dependencies struct {
 	GeneralRateLimiter *middleware.RateLimiter
 	ChatRateLimiter    *middleware.RateLimiter
 	ForgeRateLimiter   *middleware.RateLimiter
+
+	// Query cache (nil = no caching)
+	QueryCache *cache.QueryCache
 }
 
 // internalAuthOnly wraps a handler with a simple internal auth check.
@@ -149,6 +153,7 @@ func New(deps *Dependencies) *chi.Mux {
 		Storage:          deps.Storage,
 		ObjectDownloader: deps.ObjectDownloader,
 		BucketName:       deps.BucketName,
+		QueryCache:       deps.QueryCache,
 	}
 	folderDeps := handler.FolderDeps{FolderRepo: deps.FolderRepo}
 
