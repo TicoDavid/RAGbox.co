@@ -16,7 +16,7 @@ interface RateLimitRule {
 const ROUTE_LIMITS: Record<string, RateLimitRule> = {
   '/api/chat':                { limit: 30,  keyBy: 'user' },
   '/api/auth/send-otp':       { limit: 5,   keyBy: 'ip' },
-  '/api/documents/extract':   { limit: 10,  keyBy: 'user' },
+  '/api/documents/extract':   { limit: 30,  keyBy: 'user' },
   '/api/waitlist':            { limit: 5,   keyBy: 'ip' },
   '/api/beta/validate':       { limit: 10,  keyBy: 'ip' },
   '/api/v1/knowledge/ingest': { limit: 10,  keyBy: 'user' },
