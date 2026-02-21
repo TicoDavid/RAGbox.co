@@ -83,6 +83,8 @@ interface AgentSession {
 
 const sessions = new Map<string, AgentSession>()
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000 // 30 minutes
+const PING_INTERVAL_MS = 25_000  // 25s — Cloud Run kills idle WS after ~60s
+const PONG_TIMEOUT_MS = 10_000   // 10s — dead connection detection
 
 // Cleanup expired sessions periodically
 setInterval(() => {
@@ -410,9 +412,25 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
       console.warn('[AgentWS] Failed to send initial greeting:', greetError)
     })
 
+    // ── Keepalive (ping/pong) ─────────────────────────────
+    // Cloud Run closes idle WebSockets after ~60s. Ping every 25s to stay alive.
+    let isAlive = true
+    ws.on('pong', () => { isAlive = true })
+
+    const pingInterval = setInterval(() => {
+      if (!isAlive) {
+        console.warn('[AgentWS] No pong received — terminating dead connection', { sessionId })
+        ws.terminate()
+        return
+      }
+      isAlive = false
+      ws.ping()
+    }, PING_INTERVAL_MS)
+
     // Handle disconnection
     ws.on('close', async (code, reason) => {
       console.info('[AgentWS] Connection closed', { sessionId, code, reason: reason.toString() })
+      clearInterval(pingInterval)
       whatsAppEventEmitter.off('message', onWhatsAppEvent)
       obs.endSession(sessionId)
       session.voiceSession?.close()
