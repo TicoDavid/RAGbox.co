@@ -12,6 +12,13 @@ const config = {
       testMatch: ['**/*.test.ts'],
     },
     {
+      displayName: 'server',
+      preset: 'ts-jest',
+      testEnvironment: 'node',
+      roots: ['<rootDir>/server'],
+      testMatch: ['**/*.test.ts'],
+    },
+    {
       displayName: 'jsdom',
       testEnvironment: 'jest-environment-jsdom',
       roots: ['<rootDir>/src'],
