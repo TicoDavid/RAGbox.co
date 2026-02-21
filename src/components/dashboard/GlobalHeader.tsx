@@ -36,6 +36,7 @@ import {
   AlertTriangle,
   Glasses,
   Brain,
+  Bot,
 } from 'lucide-react'
 import { PrivilegeKeyIcon, IdentityIcon, LanternIcon } from './icons/SovereignIcons'
 import { useMercuryStore } from '@/stores/mercuryStore'
@@ -556,7 +557,7 @@ export function GlobalHeader() {
 
 type SettingsSection =
   | 'profile' | 'language' | 'billing'  // General
-  | 'connections' | 'voice' | 'aimodel'  // Intelligence
+  | 'connections' | 'voice' | 'aimodel' | 'mercury'  // Intelligence
   | 'appearance'                         // Interface
   | 'alerts' | 'security'                // System
   | 'docs' | 'report' | 'community'      // Support
@@ -582,6 +583,7 @@ const SIDEBAR_CATEGORIES: SidebarCategory[] = [
     label: 'Intelligence',
     items: [
       { id: 'connections', label: 'Connections', icon: <Key className="w-4 h-4" /> },
+      { id: 'mercury', label: 'Mercury', icon: <Bot className="w-4 h-4" /> },
       { id: 'voice', label: 'Voice', icon: <Mic className="w-4 h-4" /> },
       { id: 'aimodel', label: 'AI Model', icon: <Brain className="w-4 h-4" /> },
     ],
@@ -677,6 +679,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
             {activeSection === 'language' && <LanguageSettings />}
             {activeSection === 'billing' && <BillingSettings />}
             {activeSection === 'connections' && <APIKeysSettings />}
+            {activeSection === 'mercury' && <MercurySettings />}
             {activeSection === 'voice' && <VoiceSettings />}
             {activeSection === 'aimodel' && <AIModelSettings />}
             {activeSection === 'appearance' && <AppearanceSettings />}
@@ -853,6 +856,148 @@ function BillingSettings() {
 // ============================================================================
 // INTELLIGENCE SECTION COMPONENTS
 // ============================================================================
+
+const MERCURY_VOICES = [
+  { id: 'Ashley', label: 'Ashley — Warm, professional' },
+  { id: 'Dennis', label: 'Dennis — Authoritative, deep' },
+  { id: 'Luna', label: 'Luna — Friendly, approachable' },
+  { id: 'Mark', label: 'Mark — Calm, measured' },
+]
+
+const MERCURY_DEFAULTS = {
+  name: 'Mercury',
+  voiceId: 'Ashley',
+  greeting: "Hello, I'm Mercury. How can I help you today?",
+}
+
+function MercurySettings() {
+  const [config, setConfig] = useState(MERCURY_DEFAULTS)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const loaded = useRef(false)
+
+  useEffect(() => {
+    if (loaded.current) return
+    loaded.current = true
+    fetch('/api/mercury/config')
+      .then((res) => (res.ok ? res.json() : MERCURY_DEFAULTS))
+      .then((data) => setConfig({ ...MERCURY_DEFAULTS, ...data }))
+      .catch(() => setConfig(MERCURY_DEFAULTS))
+  }, [])
+
+  const handleNameChange = (name: string) => {
+    setConfig((prev) => ({
+      ...prev,
+      name,
+      greeting:
+        prev.greeting === `Hello, I'm ${prev.name}. How can I help you today?`
+          ? `Hello, I'm ${name}. How can I help you today?`
+          : prev.greeting,
+    }))
+  }
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await fetch('/api/mercury/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config),
+      })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch {
+      // Endpoint may not exist yet — graceful fallback
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <SectionHeader
+        title="Mercury Configuration"
+        description="Customize your AI assistant's identity, voice, and greeting"
+      />
+
+      {/* Name */}
+      <div>
+        <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+          Name
+        </label>
+        <input
+          type="text"
+          value={config.name}
+          onChange={(e) => handleNameChange(e.target.value)}
+          className="w-full px-4 py-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--brand-blue)] transition-colors"
+          placeholder="Mercury"
+        />
+      </div>
+
+      {/* Voice */}
+      <div>
+        <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+          Voice
+        </label>
+        <div className="space-y-2">
+          {MERCURY_VOICES.map((v) => (
+            <button
+              key={v.id}
+              onClick={() => setConfig((prev) => ({ ...prev, voiceId: v.id }))}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all ${
+                config.voiceId === v.id
+                  ? 'border-[var(--brand-blue)] bg-[var(--brand-blue)]/10'
+                  : 'border-[var(--border-default)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)]/30'
+              }`}
+            >
+              <div
+                className={`w-3 h-3 rounded-full border-2 shrink-0 ${
+                  config.voiceId === v.id
+                    ? 'border-[var(--brand-blue)] bg-[var(--brand-blue)]'
+                    : 'border-[var(--text-tertiary)]'
+                }`}
+              />
+              <span className="text-sm text-[var(--text-primary)]">{v.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Greeting */}
+      <div>
+        <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+          Greeting
+        </label>
+        <textarea
+          value={config.greeting}
+          onChange={(e) =>
+            setConfig((prev) => ({ ...prev, greeting: e.target.value }))
+          }
+          rows={3}
+          className="w-full px-4 py-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)] text-sm resize-none focus:outline-none focus:border-[var(--brand-blue)] transition-colors"
+          placeholder="Hello, I'm Mercury. How can I help you today?"
+        />
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="px-6 py-2.5 rounded-xl text-sm font-semibold bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] text-white transition-colors disabled:opacity-50"
+        >
+          {saving ? 'Saving...' : saved ? 'Saved' : 'Save Changes'}
+        </button>
+        <button
+          onClick={() => setConfig(MERCURY_DEFAULTS)}
+          className="px-4 py-2.5 rounded-xl text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+        >
+          Reset to Defaults
+        </button>
+      </div>
+    </div>
+  )
+}
 
 function VoiceSettings() {
   const { voice, updateVoice } = useSettings()
