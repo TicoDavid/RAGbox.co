@@ -329,7 +329,7 @@ function LandingV3Content() {
 
           {/* Trust strip */}
           <FadeIn delay={0.8}>
-            <p className="text-xs tracking-[0.3em] font-mono text-gray-500 opacity-50 mt-8 text-center">
+            <p className="text-xs tracking-[0.3em] font-mono text-[var(--text-tertiary)] opacity-50 mt-8 text-center">
               SOC2 READY &middot; ZERO RETENTION &middot; AES-256 ENCRYPTED &middot; HIPAA COMPLIANT
             </p>
           </FadeIn>

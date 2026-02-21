@@ -25,7 +25,7 @@ const SaveToVaultModal: React.FC<SaveToVaultModalProps> = ({
     <div className="security-modal-overlay" onClick={onClose}>
       <div className="security-modal" onClick={e => e.stopPropagation()} style={{ width: '500px' }}>
         <div className="security-header">
-          <div className="security-shield" style={{ color: '#0000FF' }}><ArchiveIcon /></div>
+          <div className="security-shield" style={{ color: 'var(--brand-blue)' }}><ArchiveIcon /></div>
           <h2>Save Session to Vault</h2>
           <p>Select an <strong>Open Vault</strong> to permit data ingress.</p>
         </div>
@@ -61,7 +61,7 @@ const SaveToVaultModal: React.FC<SaveToVaultModalProps> = ({
             );
           })}
           {vaults.length === 0 && (
-            <div style={{ padding: 10, textAlign: 'center', color: '#666' }}>
+            <div style={{ padding: 10, textAlign: 'center', color: 'var(--text-tertiary)' }}>
               No vaults found. Create one first.
             </div>
           )}

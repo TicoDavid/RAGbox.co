@@ -208,11 +208,12 @@ describe('authOptions.callbacks', () => {
           user: { email: 'test@ragbox.co' },
           expires: new Date(Date.now() + 86400000).toISOString(),
         },
+        user: {} as never,
         token: { sub: '123', id: 'user-abc', accessToken: 'oauth-token-xyz' },
         trigger: 'update',
-      } as Parameters<typeof session>[0])
+      } as unknown as Parameters<typeof session>[0])
 
-      expect((result as { accessToken: string }).accessToken).toBe('oauth-token-xyz')
+      expect((result as unknown as { accessToken: string }).accessToken).toBe('oauth-token-xyz')
     })
 
     test('session expires field is preserved', async () => {

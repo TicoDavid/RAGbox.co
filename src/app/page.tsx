@@ -1,4 +1,4 @@
-// THEME-EXEMPT: Public landing page, locked to Cobalt palette
+// Public landing page — uses CSS custom properties for theme support
 "use client";
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -75,34 +75,34 @@ function HomeContent() {
       <TrustBar />
 
       {/* Social Proof */}
-      <section className="py-16 bg-white dark:bg-transparent border-t border-slate-800/50">
+      <section className="py-16 bg-white dark:bg-transparent border-t border-[var(--border-subtle)]">
         <div className="max-w-4xl mx-auto px-6 text-center">
-          <p className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-3">
+          <p className="text-4xl md:text-5xl font-bold text-[var(--text-primary)] mb-3">
             38+{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#2463EB] to-[#00d4ff]">
               AI agents
             </span>{' '}
             deployed
           </p>
-          <p className="text-lg text-slate-500 dark:text-slate-400">
+          <p className="text-lg text-[var(--text-tertiary)]">
             across 14 organizations — powered by ConnexUS AI
           </p>
         </div>
       </section>
 
       {/* Pricing Teaser */}
-      <section className="py-20 bg-white dark:bg-transparent border-t border-slate-800/50">
+      <section className="py-20 bg-white dark:bg-transparent border-t border-[var(--border-subtle)]">
         <div className="max-w-2xl mx-auto px-6 text-center">
-          <p className="text-xs uppercase tracking-widest text-slate-500 mb-4">
+          <p className="text-xs uppercase tracking-widest text-[var(--text-tertiary)] mb-4">
             Simple Pricing
           </p>
-          <p className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-3">
+          <p className="text-4xl md:text-5xl font-bold text-[var(--text-primary)] mb-3">
             Starting at{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#FDE68A] via-[#FBBF24] to-[#D97706]">
               $99/mo
             </span>
           </p>
-          <p className="text-base text-slate-500 dark:text-slate-400 mb-8">
+          <p className="text-base text-[var(--text-tertiary)] mb-8">
             Vault storage, unlimited queries, and full citation audit trails included.
           </p>
           <button

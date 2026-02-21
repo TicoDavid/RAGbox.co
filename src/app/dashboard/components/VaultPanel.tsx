@@ -294,9 +294,9 @@ const VaultPanel: React.FC<VaultPanelProps> = ({
 
             {/* Vault info */}
             <div className="vault-module-info">
-              <div className="vault-module-name" style={{ color: '#f5f5f5' }}>Legal Starter Vault</div>
+              <div className="vault-module-name" style={{ color: 'var(--text-primary)' }}>Legal Starter Vault</div>
               <div className="vault-module-meta">
-                <span style={{ color: '#94a3b8', fontSize: '11px' }}>
+                <span style={{ color: 'var(--text-tertiary)', fontSize: '11px' }}>
                   Pre-configured for legal professionals. 8 sample documents included.
                 </span>
               </div>
