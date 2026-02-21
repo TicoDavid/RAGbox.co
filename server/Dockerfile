@@ -44,7 +44,8 @@ RUN npm install --no-save typescript
 
 # Copy voice server source (only files needed for compilation)
 COPY server/index.ts server/agent-ws.ts server/inworld.ts \
-     server/voice-pipeline.ts server/observability.ts server/rate-limit.ts \
+     server/voice-pipeline.ts server/voice-pipeline-v2.ts \
+     server/observability.ts server/rate-limit.ts \
      server/thread-persistence.ts server/tsconfig.json ./server/
 COPY server/tools/ ./server/tools/
 COPY server/whatsapp/ ./server/whatsapp/

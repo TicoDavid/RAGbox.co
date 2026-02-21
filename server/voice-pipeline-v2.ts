@@ -16,8 +16,51 @@
  * Same session interface as voice-pipeline.ts — drop-in replacement.
  */
 
-import { chunkText } from '../src/lib/voice/inworld-client'
 import type { ToolContext } from './tools'
+
+// ============================================================================
+// TEXT CHUNKING (inlined — server/ can't import from src/ in Docker build)
+// ============================================================================
+
+const MAX_CHARS_PER_CHUNK = 2000
+
+/** Split text into chunks of at most maxChars, breaking at sentence/word boundaries. */
+function chunkText(text: string, maxChars: number = MAX_CHARS_PER_CHUNK): string[] {
+  if (text.length <= maxChars) return [text]
+
+  const chunks: string[] = []
+  let remaining = text
+
+  while (remaining.length > 0) {
+    if (remaining.length <= maxChars) {
+      chunks.push(remaining)
+      break
+    }
+
+    const searchRegion = remaining.slice(0, maxChars)
+
+    // Try to split at the last sentence-ending punctuation followed by a space
+    const sentenceEnd = searchRegion.lastIndexOf('. ')
+    const questionEnd = searchRegion.lastIndexOf('? ')
+    const exclamEnd = searchRegion.lastIndexOf('! ')
+    let splitIndex = Math.max(sentenceEnd, questionEnd, exclamEnd)
+
+    if (splitIndex > 0) {
+      splitIndex += 2 // include punctuation + space
+    } else {
+      splitIndex = searchRegion.lastIndexOf(' ')
+    }
+
+    if (splitIndex <= 0) {
+      splitIndex = maxChars
+    }
+
+    chunks.push(remaining.slice(0, splitIndex).trim())
+    remaining = remaining.slice(splitIndex).trim()
+  }
+
+  return chunks.filter(c => c.length > 0)
+}
 
 // ============================================================================
 // TYPES (identical to voice-pipeline.ts)
