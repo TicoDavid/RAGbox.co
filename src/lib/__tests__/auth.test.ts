@@ -185,4 +185,48 @@ describe('authOptions.callbacks', () => {
       expect(result).toBe(true)
     })
   })
+
+  describe('session', () => {
+    const session = authOptions.callbacks!.session!
+
+    test('populates session.user.id from JWT token', async () => {
+      const result = await session({
+        session: {
+          user: { email: 'test@ragbox.co' },
+          expires: new Date(Date.now() + 86400000).toISOString(),
+        },
+        token: { sub: '123', id: 'user-abc', email: 'test@ragbox.co' },
+        trigger: 'update',
+      } as Parameters<typeof session>[0])
+
+      expect((result as { user: { id: string } }).user.id).toBe('user-abc')
+    })
+
+    test('passes accessToken from JWT to session', async () => {
+      const result = await session({
+        session: {
+          user: { email: 'test@ragbox.co' },
+          expires: new Date(Date.now() + 86400000).toISOString(),
+        },
+        token: { sub: '123', id: 'user-abc', accessToken: 'oauth-token-xyz' },
+        trigger: 'update',
+      } as Parameters<typeof session>[0])
+
+      expect((result as { accessToken: string }).accessToken).toBe('oauth-token-xyz')
+    })
+
+    test('session expires field is preserved', async () => {
+      const expires = new Date(Date.now() + 86400000).toISOString()
+      const result = await session({
+        session: {
+          user: { email: 'test@ragbox.co' },
+          expires,
+        },
+        token: { sub: '123', id: 'user-abc' },
+        trigger: 'update',
+      } as Parameters<typeof session>[0])
+
+      expect((result as { expires: string }).expires).toBe(expires)
+    })
+  })
 })
