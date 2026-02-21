@@ -19,6 +19,7 @@ type VonageDeps struct {
 	APISecret          string
 	SMSFromNumber      string
 	WhatsAppFromNumber string
+	DefaultTenant      string // fallback tenant ID when no phone→user mapping exists
 	Retriever          *service.RetrieverService
 	Generator          service.Generator
 	SelfRAG            *service.SelfRAGService
@@ -152,9 +153,13 @@ func processRAGQuery(ctx context.Context, deps VonageDeps, phoneFrom, query stri
 		return ""
 	}
 
-	// Use phone number as tenant ID for retrieval scoping.
-	// In production this should map to a real user/tenant via a lookup table.
-	userID := "vonage:" + phoneFrom
+	// Map phone number to tenant ID for retrieval scoping.
+	// Use default tenant if configured (allows vault queries before phone→user mapping exists).
+	// In production this should be a DB lookup: phone_number → user_id.
+	userID := deps.DefaultTenant
+	if userID == "" {
+		userID = "vonage:" + phoneFrom
+	}
 
 	// Step 1: Retrieve relevant chunks
 	retrieval, err := deps.Retriever.Retrieve(ctx, userID, query, false)

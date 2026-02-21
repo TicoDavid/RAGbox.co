@@ -42,6 +42,7 @@ type Config struct {
 	VonageAPISecret        string
 	VonageSMSFromNumber    string
 	VonageWhatsAppFromNumber string
+	VonageDefaultTenant      string
 }
 
 // Load reads configuration from environment variables.
@@ -92,6 +93,7 @@ func Load() (*Config, error) {
 		VonageAPISecret:          envStr("VONAGE_API_SECRET", ""),
 		VonageSMSFromNumber:      envStr("VONAGE_SMS_FROM_NUMBER", ""),
 		VonageWhatsAppFromNumber: envStr("VONAGE_WHATSAPP_FROM_NUMBER", ""),
+		VonageDefaultTenant:      envStr("VONAGE_DEFAULT_TENANT", ""),
 	}
 
 	// Internal auth secret is required in non-development environments

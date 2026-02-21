@@ -322,6 +322,7 @@ func run() error {
 			APISecret:          cfg.VonageAPISecret,
 			SMSFromNumber:      cfg.VonageSMSFromNumber,
 			WhatsAppFromNumber: cfg.VonageWhatsAppFromNumber,
+			DefaultTenant:      cfg.VonageDefaultTenant,
 			Retriever:          retrieverService,
 			Generator:          generatorService,
 			SelfRAG:            selfRAGService,
