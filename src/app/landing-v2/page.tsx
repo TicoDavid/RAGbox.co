@@ -251,9 +251,7 @@ function LandingV3Content() {
               Sign In
             </button>
             <a
-              href="https://theconnexus.ai/"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="mailto:david@theconnexus.ai?subject=RAGb%C3%B6x%20Demo%20Request"
               className="px-5 py-2.5 rounded-lg text-sm font-semibold border border-white/10 text-[#8892B0] hover:text-[#E6F1FF] hover:border-white/20 transition-all"
             >
               Request Demo

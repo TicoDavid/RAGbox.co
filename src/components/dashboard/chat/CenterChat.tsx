@@ -1,26 +1,97 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useChatStore } from '@/stores/chatStore'
 import { CenterHeader } from './CenterHeader'
 import { CenterMessage } from './CenterMessage'
 import { CenterInputBar } from './CenterInputBar'
 import { ThreadSidebar } from './ThreadSidebar'
+import { FileText, MessageSquare, Quote, Activity } from 'lucide-react'
 
 // ============================================================================
-// EMPTY STATE — RAGböx watermark (Perplexity-style)
+// DASHBOARD HOME — Stats cards shown when no chat is active
 // ============================================================================
 
-function EmptyState() {
+interface StatCardProps {
+  icon: React.ElementType
+  value: string
+  label: string
+  color: string
+}
+
+function StatCard({ icon: Icon, value, label, color }: StatCardProps) {
   return (
-    <div className="flex flex-col items-center justify-center h-full text-center px-8">
+    <div className="flex flex-col gap-3 p-5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)] hover:border-[var(--border-default)] transition-colors">
+      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${color}`}>
+        <Icon className="w-4 h-4" />
+      </div>
+      <div>
+        <p className="text-2xl font-semibold text-[var(--text-primary)] tracking-tight">{value}</p>
+        <p className="text-xs text-[var(--text-tertiary)] mt-0.5">{label}</p>
+      </div>
+    </div>
+  )
+}
+
+function DashboardHome() {
+  const [docCount, setDocCount] = useState<string>('...')
+  const [queryCount, setQueryCount] = useState<string>('...')
+
+  useEffect(() => {
+    fetch('/api/documents')
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        const docs = data?.data?.documents ?? data?.documents ?? []
+        setDocCount(String(docs.length))
+      })
+      .catch(() => setDocCount('0'))
+
+    fetch('/api/mercury/thread/list?limit=200')
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        const threads = data?.data?.threads ?? data?.threads ?? []
+        setQueryCount(String(threads.length))
+      })
+      .catch(() => setQueryCount('0'))
+  }, [])
+
+  return (
+    <div className="flex flex-col items-center justify-center h-full px-8">
       <img
         src="https://storage.googleapis.com/connexusai-assets/RAGb%C3%B6x_ICON.png"
         alt=""
-        className="w-48 h-auto opacity-40 select-none mb-6"
+        className="w-32 h-auto opacity-30 select-none mb-8"
         draggable={false}
       />
-      <p className="text-sm text-[var(--text-tertiary)] max-w-md">
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full max-w-[720px] mb-8">
+        <StatCard
+          icon={FileText}
+          value={docCount}
+          label="Documents in Vault"
+          color="bg-[var(--brand-blue)]/15 text-[var(--brand-blue)]"
+        />
+        <StatCard
+          icon={MessageSquare}
+          value={queryCount}
+          label="Questions Asked"
+          color="bg-[var(--warning)]/15 text-[var(--warning)]"
+        />
+        <StatCard
+          icon={Quote}
+          value={'\u2014'}
+          label="Citations Generated"
+          color="bg-[var(--success)]/15 text-[var(--success)]"
+        />
+        <StatCard
+          icon={Activity}
+          value="Healthy"
+          label="Vault Health"
+          color="bg-[var(--success)]/15 text-[var(--success)]"
+        />
+      </div>
+
+      <p className="text-sm text-[var(--text-tertiary)]">
         Ask anything about your documents
       </p>
     </div>
@@ -93,7 +164,7 @@ export function CenterChat() {
         {/* Messages */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto">
           {messages.length === 0 && !isStreaming ? (
-            <EmptyState />
+            <DashboardHome />
           ) : (
             <div className="max-w-[800px] mx-auto px-8 py-6">
               {messages.map((msg) => (
