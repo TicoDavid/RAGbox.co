@@ -14,6 +14,7 @@ import { isMercuryEnabled } from '@/lib/features'
 import { CenterChat } from './chat'
 import { ChatErrorBoundary } from './chat/ChatErrorBoundary'
 import { OnboardingWizard } from './OnboardingWizard'
+import { PostCheckoutWizard } from '@/components/onboarding/PostCheckoutWizard'
 import { SovereignStudio } from './studio'
 import { useContentIntelligenceStore } from '@/stores/contentIntelligenceStore'
 import {
@@ -643,6 +644,9 @@ export function DashboardLayout() {
           <OnboardingWizard onComplete={() => setShowOnboarding(false)} />
         )}
       </AnimatePresence>
+
+      {/* Post-checkout wizard — triggered by ?checkout=success */}
+      <PostCheckoutWizard />
 
     </div>
   )
