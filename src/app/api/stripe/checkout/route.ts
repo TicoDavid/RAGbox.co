@@ -1,24 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+let _stripe: Stripe | null = null
 
-const PRICES: Record<string, string[]> = {
-  sovereign: [process.env.STRIPE_PRICE_SOVEREIGN!],
-  sovereign_mercury: [
-    process.env.STRIPE_PRICE_SOVEREIGN!,
-    process.env.STRIPE_PRICE_MERCURY!,
-  ],
+function getStripe(): Stripe {
+  if (!_stripe) {
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+  }
+  return _stripe
+}
+
+function getPrices(): Record<string, string[]> {
+  return {
+    sovereign: [process.env.STRIPE_PRICE_SOVEREIGN!],
+    sovereign_mercury: [
+      process.env.STRIPE_PRICE_SOVEREIGN!,
+      process.env.STRIPE_PRICE_MERCURY!,
+    ],
+  }
 }
 
 export async function POST(req: NextRequest) {
   const { plan } = (await req.json()) as { plan: string }
-  const priceIds = PRICES[plan]
+  const priceIds = getPrices()[plan]
   if (!priceIds) {
     return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
   }
 
-  const session = await stripe.checkout.sessions.create({
+  const session = await getStripe().checkout.sessions.create({
     mode: 'subscription',
     line_items: priceIds.map((price) => ({ price, quantity: 1 })),
     success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?checkout=success`,
