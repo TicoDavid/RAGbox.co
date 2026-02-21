@@ -37,6 +37,12 @@ export interface InworldSessionConfig {
   onDisconnect?: () => void
 }
 
+interface MercuryConfig {
+  name?: string
+  greeting?: string
+  personalityPrompt?: string
+}
+
 // OpenAI function calling format
 interface OpenAIFunction {
   name: string
@@ -86,9 +92,74 @@ export interface InworldSession {
 // CONSTANTS
 // ============================================================================
 
+/**
+ * Audio format contract (must match browser AudioContext):
+ *
+ * Browser → Server:  PCM Int16 (s16le), 48 kHz, mono
+ *   - AudioContext is constructed with { sampleRate: 48000 }
+ *   - ScriptProcessor / AudioWorklet emits Int16 frames
+ *
+ * Server internal:   Float32 (Inworld Runtime native format)
+ *   - sendAudio() converts Int16 → Float32 before passing to STT graph
+ *
+ * Server → Browser:  PCM Int16 (s16le), 48 kHz, mono
+ *   - Inworld TTS returns Float32 audio
+ *   - float32ToInt16Base64() converts back to Int16 for browser playback
+ *
+ * If the browser's AudioContext defaults to 44.1 kHz (e.g. macOS),
+ * the constructor MUST force 48 kHz:
+ *   new AudioContext({ sampleRate: 48000 })
+ * This is already enforced in src/hooks/useVoiceSession.ts.
+ */
 const SAMPLE_RATE = 48000
 const DEFAULT_TTS_MODEL_ID = 'inworld-tts-1-max'
 const DEFAULT_VOICE_ID = 'Ashley'
+const DEFAULT_GREETING = "Hello, I'm Mercury. How can I help you today?"
+
+// Mercury config endpoint (same as voice-pipeline.ts)
+const GO_BACKEND_URL = process.env.GO_BACKEND_URL
+  || process.env.NEXT_PUBLIC_API_URL
+  || 'http://localhost:8080'
+const INTERNAL_AUTH = process.env.INTERNAL_AUTH_SECRET || ''
+
+/**
+ * Fetch Mercury persona config from Go backend (best-effort).
+ * Returns defaults if the endpoint is unavailable.
+ */
+async function fetchMercuryConfig(userId: string): Promise<MercuryConfig> {
+  try {
+    const res = await fetch(`${GO_BACKEND_URL}/api/mercury/config`, {
+      headers: {
+        'X-Internal-Auth': INTERNAL_AUTH,
+        'X-User-ID': userId,
+      },
+    })
+    if (res.ok) {
+      const json = await res.json() as {
+        name?: string
+        greeting?: string
+        personalityPrompt?: string
+        data?: {
+          config?: {
+            name?: string
+            greeting?: string
+            personalityPrompt?: string
+          }
+        }
+      }
+      // Handle both flat and nested response shapes
+      const cfg = json.data?.config ?? json
+      return {
+        name: cfg.name || undefined,
+        greeting: cfg.greeting || undefined,
+        personalityPrompt: cfg.personalityPrompt || undefined,
+      }
+    }
+  } catch {
+    console.warn('[Inworld] Mercury config fetch failed, using defaults')
+  }
+  return {}
+}
 
 // Convert Float32 PCM (from Inworld TTS) to Int16 PCM (for browser playback)
 function float32ToInt16Base64(float32Base64: string): string {
@@ -137,6 +208,10 @@ export async function createInworldSession(config: InworldSessionConfig): Promis
   let isActive = false
   let audioBuffer: Float32Array[] = []
 
+  // Fetch Mercury persona config (best-effort, falls back to defaults)
+  const mercuryConfig = await fetchMercuryConfig(toolContext?.userId || 'anonymous')
+  const agentName = mercuryConfig.name || 'Mercury'
+
   // Build tool descriptions for the system prompt
   const toolDescriptions = TOOL_DEFINITIONS.map(t => {
     const params = Object.entries(t.parameters)
@@ -145,9 +220,16 @@ export async function createInworldSession(config: InworldSessionConfig): Promis
     return `**${t.name}**: ${t.description}${params ? '\n' + params : ''}`
   }).join('\n\n')
 
-  const systemPrompt = `You are Mercury, the Virtual Representative (V-Rep) for RAGbox.co - a secure, compliance-ready RAG platform for legal, financial, and healthcare sectors.
+  // Build system prompt — use personalityPrompt from config if available,
+  // otherwise fall back to the default Mercury persona
+  const defaultPersonality = `You are ${agentName}, the Virtual Representative (V-Rep) for RAGbox.co - a secure, compliance-ready RAG platform for legal, financial, and healthcare sectors.
 
 You have access to the user's document vault and can help them navigate, search, analyze, and monitor their documents and knowledge base health.
+
+Keep responses concise and professional - you are speaking aloud, so be conversational but precise.
+After using a tool, explain the results naturally in spoken language.`
+
+  const systemPrompt = `${mercuryConfig.personalityPrompt || defaultPersonality}
 
 ## Available Tools
 When you need to access documents or perform actions, use these tools by outputting a JSON block:
@@ -162,10 +244,8 @@ ${toolDescriptions}
 1. When users ask about their documents, USE the list_documents or search_documents tools - don't say you can't access them
 2. When users want to read a document, USE the read_document tool
 3. Only privileged documents require Privilege Mode - regular documents are always accessible
-4. Keep responses concise and professional - you are speaking aloud, so be conversational but precise
-5. After using a tool, explain the results naturally in spoken language
-6. When users ask about knowledge base health or gaps, USE check_content_gaps or run_health_check
-7. When users ask about recent activity or learning, USE get_learning_sessions
+4. When users ask about knowledge base health or gaps, USE check_content_gaps or run_health_check
+5. When users ask about recent activity or learning, USE get_learning_sessions
 
 Current user context:
 - User ID: ${toolContext?.userId || 'unknown'}
@@ -218,7 +298,7 @@ Current user context:
       return 'Error: No user context available for tool execution'
     }
 
-    console.log(`[Inworld] Executing tool: ${name}`, args)
+    console.info('[Inworld] Executing tool', { name, args })
     onToolCall?.(name, args)
 
     try {
@@ -250,7 +330,7 @@ Current user context:
   // Process text through LLM and TTS
   async function processWithLLM(userText: string, isToolResult = false): Promise<void> {
     try {
-      console.log('[Inworld] Processing:', isToolResult ? 'tool result' : 'user message', userText.substring(0, 100))
+      console.info('[Inworld] Processing', { type: isToolResult ? 'tool_result' : 'user_message', preview: userText.substring(0, 100) })
 
       if (!isToolResult) {
         onTranscriptFinal?.(userText)
@@ -295,13 +375,13 @@ Current user context:
         await result.processResponse({
           Content: async (response: GraphTypes.Content) => {
             fullResponse = response.content || ''
-            console.log('[Inworld] LLM Response:', fullResponse.substring(0, 100) + '...')
+            console.info('[Inworld] LLM response', { preview: fullResponse.substring(0, 100) })
 
             // Check for tool calls
             const { toolCall, cleanText } = parseToolCalls(fullResponse)
 
             if (toolCall) {
-              console.log('[Inworld] Tool call detected:', toolCall.name)
+              console.info('[Inworld] Tool call detected', { name: toolCall.name })
               conversationHistory.push({ role: 'assistant', content: fullResponse })
 
               // Execute the tool
@@ -325,13 +405,13 @@ Current user context:
                 }
               }
             }
-            console.log('[Inworld] LLM Streamed Response:', fullResponse.substring(0, 100) + '...')
+            console.info('[Inworld] LLM streamed response', { preview: fullResponse.substring(0, 100) })
 
             // Check for tool calls in streamed response
             const { toolCall, cleanText } = parseToolCalls(fullResponse)
 
             if (toolCall) {
-              console.log('[Inworld] Tool call detected (stream):', toolCall.name)
+              console.info('[Inworld] Tool call detected (stream)', { name: toolCall.name })
               conversationHistory.push({ role: 'assistant', content: fullResponse })
 
               // Execute the tool
@@ -367,7 +447,7 @@ Current user context:
   // Convert text to speech
   async function textToSpeech(text: string): Promise<void> {
     try {
-      console.log('[Inworld] Converting to speech:', text.substring(0, 50) + '...')
+      console.info('[Inworld] TTS request', { preview: text.substring(0, 50) })
 
       const ttsNode = new RemoteTTSNode({
         ttsComponent,
@@ -415,7 +495,7 @@ Current user context:
     if (audioBuffer.length === 0) return
 
     try {
-      console.log('[Inworld] Processing audio buffer...')
+      console.info('[Inworld] Processing audio buffer')
 
       // Merge audio buffers
       const totalLength = audioBuffer.reduce((acc, buf) => acc + buf.length, 0)
@@ -474,7 +554,7 @@ Current user context:
       }
 
       if (transcription.trim()) {
-        console.log('[Inworld] Transcription:', transcription)
+        console.info('[Inworld] Transcription', { transcription })
         await processWithLLM(transcription)
       }
     } catch (error) {
@@ -483,7 +563,7 @@ Current user context:
     }
   }
 
-  console.log('[Inworld] Session created')
+  console.info('[Inworld] Session created', { agentName })
 
   return {
     async sendAudio(pcmBuffer: Buffer): Promise<void> {
@@ -503,31 +583,39 @@ Current user context:
     },
 
     async startAudioSession(): Promise<void> {
-      console.log('[Inworld] Starting audio session')
+      console.info('[Inworld] Audio session start')
       isActive = true
       audioBuffer = []
     },
 
     async endAudioSession(): Promise<void> {
-      console.log('[Inworld] Ending audio session')
+      console.info('[Inworld] Audio session end')
       isActive = false
       await processAudio()
     },
 
     async cancelResponse(): Promise<void> {
-      console.log('[Inworld] Canceling response')
+      console.info('[Inworld] Cancelling response')
       // Reset buffers
       audioBuffer = []
     },
 
     async sendText(text: string): Promise<void> {
-      console.log('[Inworld] Sending text:', text)
+      console.info('[Inworld] Sending text', { preview: text.substring(0, 80) })
       await processWithLLM(text)
     },
 
     async triggerGreeting(): Promise<void> {
-      const greeting = 'Hello! Welcome to RAGbox. How may I assist you today?'
-      console.log('[Inworld] Triggering greeting:', greeting)
+      // Use greeting from Mercury config, fall back to agent name, then default
+      let greeting: string
+      if (mercuryConfig.greeting) {
+        greeting = mercuryConfig.greeting
+      } else if (agentName !== 'Mercury') {
+        greeting = `Hello, I'm ${agentName}. How can I help you today?`
+      } else {
+        greeting = DEFAULT_GREETING
+      }
+      console.info('[Inworld] Triggering greeting', { agentName })
 
       // Add greeting to conversation history
       conversationHistory.push({ role: 'assistant', content: greeting })
@@ -540,7 +628,7 @@ Current user context:
     },
 
     close(): void {
-      console.log('[Inworld] Closing session')
+      console.info('[Inworld] Closing session')
       isActive = false
       audioBuffer = []
       // NOTE: Don't call stopInworldRuntime() here - it's a global shutdown
