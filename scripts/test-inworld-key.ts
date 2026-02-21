@@ -32,7 +32,7 @@ async function main() {
       body: JSON.stringify({
         text: 'Hello, this is Mercury speaking.',
         voiceId: 'Ashley',
-        modelId: 'inworld-tts-1-max',
+        modelId: 'inworld-tts-1.5-max',
       }),
     })
     console.log('Status:', res.status)
