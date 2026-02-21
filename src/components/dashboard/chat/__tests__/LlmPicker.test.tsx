@@ -1,11 +1,11 @@
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 
 // ── Mock useSettings ────────────────────────────────────────────
 const mockSetActiveIntelligence = jest.fn()
 
 let mockSettings = {
-  connections: [] as Array<{ id: string; type: string; verified: boolean; selectedModel: string | null }>,
+  connections: [] as Array<{ id: string; type: string; verified: boolean; selectedModel: string | null; availableModels?: Array<{ id: string; name: string; contextLength: number }> }>,
   activeIntelligence: {
     id: 'aegis-core',
     displayName: 'Aegis',
@@ -27,6 +27,16 @@ jest.mock('sonner', () => ({
 
 import { LlmPicker } from '@/components/dashboard/mercury/ChatModelPicker'
 
+function withByollmConnection(overrides?: Partial<typeof mockSettings>) {
+  mockSettings = {
+    ...mockSettings,
+    connections: [
+      { id: 'conn-1', type: 'openrouter', verified: true, selectedModel: 'anthropic/claude-sonnet-4-20250514' },
+    ],
+    ...overrides,
+  }
+}
+
 describe('LlmPicker', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -42,6 +52,8 @@ describe('LlmPicker', () => {
       llmPolicy: 'choice',
     }
   })
+
+  // ── Original tests ────────────────────────────────────────────
 
   it('renders AEGIS card as default active', () => {
     render(<LlmPicker />)
@@ -104,5 +116,157 @@ describe('LlmPicker', () => {
     mockSettings.llmPolicy = 'aegis_only'
     const { container } = render(<LlmPicker />)
     expect(container.firstChild).toBeNull()
+  })
+
+  // ── SA-04: Extended tests (10 new) ────────────────────────────
+
+  it('opens selector modal when Private LLM card is clicked', () => {
+    withByollmConnection()
+    render(<LlmPicker />)
+
+    // Click the private card (shows model name when AEGIS is active)
+    fireEvent.click(screen.getByText('claude-sonnet-4-20250514'))
+
+    // Modal should appear with "Select Model" header
+    expect(screen.getByText('Select Model')).toBeInTheDocument()
+    expect(screen.getByText('via OpenRouter')).toBeInTheDocument()
+  })
+
+  it('filters models by search query in selector modal', () => {
+    withByollmConnection()
+    render(<LlmPicker />)
+
+    fireEvent.click(screen.getByText('claude-sonnet-4-20250514'))
+    const searchInput = screen.getByPlaceholderText('Search models...')
+    fireEvent.change(searchInput, { target: { value: 'gpt' } })
+
+    // Should show GPT models
+    expect(screen.getByText('GPT-4o')).toBeInTheDocument()
+    expect(screen.getByText('GPT-4o Mini')).toBeInTheDocument()
+    // Should not show Claude models
+    expect(screen.queryByText('Claude Sonnet 4')).not.toBeInTheDocument()
+  })
+
+  it('shows models from provider catalog in selector', () => {
+    withByollmConnection()
+    render(<LlmPicker />)
+
+    fireEvent.click(screen.getByText('claude-sonnet-4-20250514'))
+
+    // OpenRouter catalog should include various providers
+    expect(screen.getByText('Claude Sonnet 4')).toBeInTheDocument()
+    expect(screen.getByText('GPT-4o')).toBeInTheDocument()
+    expect(screen.getByText('Gemini 2.0 Flash')).toBeInTheDocument()
+    expect(screen.getByText('Llama 3.1 405B')).toBeInTheDocument()
+    expect(screen.getByText('Mistral Large')).toBeInTheDocument()
+  })
+
+  it('highlights selected model with gold accent in selector', () => {
+    withByollmConnection({
+      activeIntelligence: {
+        id: 'anthropic/claude-sonnet-4-20250514',
+        displayName: 'Claude Sonnet 4',
+        provider: 'openrouter',
+        tier: 'private',
+      },
+    })
+    render(<LlmPicker />)
+
+    fireEvent.click(screen.getByText('Claude Sonnet 4'))
+
+    // The selected model should show "Active" badge
+    expect(screen.getByText('Active')).toBeInTheDocument()
+  })
+
+  it('calls onSelect and closes modal when model is clicked', () => {
+    withByollmConnection()
+    render(<LlmPicker />)
+
+    fireEvent.click(screen.getByText('claude-sonnet-4-20250514'))
+    expect(screen.getByText('Select Model')).toBeInTheDocument()
+
+    // Click a different model
+    fireEvent.click(screen.getByText('GPT-4o Mini'))
+
+    // Should have called setActiveIntelligence with the new model
+    expect(mockSetActiveIntelligence).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'openai/gpt-4o-mini',
+        displayName: 'GPT-4o Mini',
+        tier: 'private',
+      })
+    )
+
+    // Modal should be closed
+    expect(screen.queryByText('Select Model')).not.toBeInTheDocument()
+  })
+
+  it('closes selector modal on Escape key without saving', () => {
+    withByollmConnection()
+    render(<LlmPicker />)
+
+    fireEvent.click(screen.getByText('claude-sonnet-4-20250514'))
+    expect(screen.getByText('Select Model')).toBeInTheDocument()
+
+    // Press Escape
+    fireEvent.keyDown(window, { key: 'Escape' })
+
+    // Modal should close
+    expect(screen.queryByText('Select Model')).not.toBeInTheDocument()
+    // setActiveIntelligence should NOT have been called from the modal
+    // (it was called once from the card click opening the modal)
+    const aegisToPrivateCalls = mockSetActiveIntelligence.mock.calls.filter(
+      (call: unknown[]) => (call[0] as { tier: string }).tier === 'private'
+    )
+    // The card click fires setActiveIntelligence, but Escape should not fire another
+    expect(aegisToPrivateCalls.length).toBeLessThanOrEqual(1)
+  })
+
+  it('shows all models when search is empty', () => {
+    withByollmConnection()
+    render(<LlmPicker />)
+
+    fireEvent.click(screen.getByText('claude-sonnet-4-20250514'))
+
+    const searchInput = screen.getByPlaceholderText('Search models...')
+    // Type something then clear
+    fireEvent.change(searchInput, { target: { value: 'xyz' } })
+    expect(screen.getByText('No models found')).toBeInTheDocument()
+
+    fireEvent.change(searchInput, { target: { value: '' } })
+    // All catalog models should be back
+    expect(screen.getByText('Claude Sonnet 4')).toBeInTheDocument()
+    expect(screen.getByText('GPT-4o')).toBeInTheDocument()
+  })
+
+  it('hides AEGIS card when policy is byollm_only', () => {
+    withByollmConnection({ llmPolicy: 'byollm_only' })
+    render(<LlmPicker />)
+
+    expect(screen.queryByText('AEGIS')).not.toBeInTheDocument()
+    expect(screen.queryByText('ConnexUS Sovereign AI')).not.toBeInTheDocument()
+  })
+
+  it('returns null when policy is byollm_only and no connection configured', () => {
+    mockSettings.llmPolicy = 'byollm_only'
+    mockSettings.connections = []
+    const { container } = render(<LlmPicker />)
+    expect(container.firstChild).toBeNull()
+  })
+
+  it('does not switch to AEGIS when policy is byollm_only', () => {
+    withByollmConnection({
+      llmPolicy: 'byollm_only',
+      activeIntelligence: {
+        id: 'anthropic/claude-sonnet-4-20250514',
+        displayName: 'Claude Sonnet 4',
+        provider: 'openrouter',
+        tier: 'private',
+      },
+    })
+    render(<LlmPicker />)
+
+    // AEGIS card should not exist
+    expect(screen.queryByText('AEGIS')).not.toBeInTheDocument()
   })
 })
