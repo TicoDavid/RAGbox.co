@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, FileText, Shield, Book, Zap } from 'lucide-react'
+import { ArrowLeft, FileText, Shield, Book, Zap, Server } from 'lucide-react'
 import { getDocBySlug, getAllDocSlugs } from '@/lib/docs'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
+import { DocContent } from '@/components/docs/DocContent'
+import { TableOfContents, extractHeadings } from '@/components/docs/TableOfContents'
 
 // Generate static params for all docs
 export async function generateStaticParams() {
@@ -30,11 +30,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 const DOC_ICONS: Record<string, React.ReactNode> = {
   'getting-started': <Zap className="w-4 h-4" />,
   'api-reference': <FileText className="w-4 h-4" />,
+  'mcp-server-spec': <Server className="w-4 h-4" />,
   'security-compliance': <Shield className="w-4 h-4" />,
   'best-practices': <Book className="w-4 h-4" />,
 }
 
-const DOC_ORDER = ['getting-started', 'api-reference', 'security-compliance', 'best-practices']
+const DOC_ORDER = ['getting-started', 'api-reference', 'mcp-server-spec', 'security-compliance', 'best-practices']
 
 export default async function DocPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
@@ -158,9 +159,7 @@ export default async function DocPage({ params }: { params: Promise<{ slug: stri
             prose-td:border prose-td:border-[var(--border-default)] prose-td:px-4 prose-td:py-2
             prose-hr:border-[var(--border-default)]
           ">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {doc.content}
-            </ReactMarkdown>
+            <DocContent content={doc.content} />
           </article>
 
           {/* Navigation Footer */}
@@ -194,6 +193,17 @@ export default async function DocPage({ params }: { params: Promise<{ slug: stri
             </div>
           </div>
         </main>
+
+        {/* Table of Contents (right sidebar) */}
+        {(() => {
+          const headings = extractHeadings(doc.content)
+          if (headings.length < 3) return null
+          return (
+            <aside className="hidden xl:block w-56 shrink-0 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto p-6">
+              <TableOfContents entries={headings} />
+            </aside>
+          )
+        })()}
       </div>
     </div>
   )

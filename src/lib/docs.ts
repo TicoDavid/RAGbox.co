@@ -20,8 +20,8 @@ const DOC_METADATA: Record<string, { title: string; description: string }> = {
     description: 'Quick start guide for new sovereign operators',
   },
   'api-reference': {
-    title: 'The Sovereign Uplink (API)',
-    description: 'Programmatic access to the RAGbox intelligence system',
+    title: 'API Reference v1.0',
+    description: 'Complete REST API documentation for RAGbox v1 endpoints',
   },
   'security-compliance': {
     title: 'The Fortress Architecture',
@@ -30,6 +30,10 @@ const DOC_METADATA: Record<string, { title: string; description: string }> = {
   'best-practices': {
     title: 'Tactical Prompting',
     description: 'Master the art of intelligence extraction',
+  },
+  'mcp-server-spec': {
+    title: 'MCP Server Spec',
+    description: 'Model Context Protocol integration guide for AI agents',
   },
 }
 
