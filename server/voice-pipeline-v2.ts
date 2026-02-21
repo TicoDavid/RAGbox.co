@@ -255,6 +255,15 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
               } catch {
                 if (dataStr !== '[DONE]') tokens.push(dataStr)
               }
+            } else if (currentEventType === 'silence') {
+              // BUG-032: Go backend sends event:silence when no docs match
+              try {
+                const payload = JSON.parse(dataStr) as { message?: string }
+                if (payload.message) answer = payload.message
+              } catch {
+                // Non-JSON silence data — use raw text
+                if (dataStr) answer = dataStr
+              }
             } else if (currentEventType === 'done') {
               if (!answer) answer = tokens.join('')
             }
@@ -410,7 +419,12 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
 
     // Step 2: LLM (Go backend RAG)
     onAgentTextPartial?.('Thinking...')
-    const answer = await queryLLM(transcript)
+    let answer = await queryLLM(transcript)
+
+    // BUG-033: fallback when LLM returns empty string
+    if (!answer.trim()) {
+      answer = "I don't have any documents to answer that question yet. Try uploading a document first."
+    }
 
     if (cancelled) return
     onAgentTextFinal?.(answer)
@@ -431,7 +445,12 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
     cancelled = false
 
     onAgentTextPartial?.('Thinking...')
-    const answer = await queryLLM(text)
+    let answer = await queryLLM(text)
+
+    // BUG-033: fallback when LLM returns empty string
+    if (!answer.trim()) {
+      answer = "I don't have any documents to answer that question yet. Try uploading a document first."
+    }
 
     if (cancelled) return
     onAgentTextFinal?.(answer)
