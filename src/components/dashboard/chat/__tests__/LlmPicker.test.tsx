@@ -10,7 +10,7 @@ let mockSettings = {
     id: 'aegis-core',
     displayName: 'Aegis',
     provider: 'RAGbox',
-    tier: 'native' as const,
+    tier: 'native' as 'native' | 'managed' | 'universe' | 'private',
   },
   setActiveIntelligence: mockSetActiveIntelligence,
   llmPolicy: 'choice' as 'choice' | 'byollm_only' | 'aegis_only',

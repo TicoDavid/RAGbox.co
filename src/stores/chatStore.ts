@@ -29,6 +29,7 @@ export interface ChatState {
   // Thread history
   threads: ThreadSummary[]
   threadsLoading: boolean
+  isThreadLoading: boolean
   sidebarOpen: boolean
 
   // Input
@@ -135,6 +136,7 @@ export const useChatStore = create<ChatState>()(
       messages: [],
       threads: [],
       threadsLoading: false,
+      isThreadLoading: false,
       sidebarOpen: false,
       inputValue: '',
       isStreaming: false,
@@ -218,6 +220,7 @@ export const useChatStore = create<ChatState>()(
       },
 
       loadThread: async (threadId) => {
+        set({ isThreadLoading: true })
         try {
           const res = await fetch(
             `/api/mercury/thread/messages?threadId=${threadId}&limit=200`,
@@ -249,9 +252,10 @@ export const useChatStore = create<ChatState>()(
             abortController: null,
             documentScope: null,
             documentScopeName: null,
+            isThreadLoading: false,
           })
         } catch {
-          // Silently fail — thread may have been deleted
+          set({ isThreadLoading: false })
         }
       },
 

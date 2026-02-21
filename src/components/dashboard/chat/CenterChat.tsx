@@ -137,6 +137,52 @@ function DashboardHome() {
 }
 
 // ============================================================================
+// CHAT SKELETON — pulsing message bubbles during thread loading
+// ============================================================================
+
+function ChatSkeleton() {
+  return (
+    <div className="max-w-[800px] mx-auto px-4 sm:px-8 py-6 space-y-6">
+      {/* Skeleton: user message (right-aligned short) */}
+      <div className="flex justify-end">
+        <div className="w-[55%] space-y-2">
+          <div className="h-4 rounded-full bg-[var(--bg-tertiary)] animate-pulse" />
+          <div className="h-4 w-3/4 rounded-full bg-[var(--bg-tertiary)] animate-pulse ml-auto" />
+        </div>
+      </div>
+
+      {/* Skeleton: assistant message (left-aligned, longer) */}
+      <div className="flex items-start gap-3">
+        <div className="w-6 h-6 rounded-full bg-[var(--bg-tertiary)] animate-pulse shrink-0 mt-0.5" />
+        <div className="flex-1 space-y-2 max-w-[70%]">
+          <div className="h-4 rounded-full bg-[var(--bg-tertiary)] animate-pulse" />
+          <div className="h-4 rounded-full bg-[var(--bg-tertiary)] animate-pulse" />
+          <div className="h-4 w-2/3 rounded-full bg-[var(--bg-tertiary)] animate-pulse" />
+        </div>
+      </div>
+
+      {/* Skeleton: user message */}
+      <div className="flex justify-end">
+        <div className="w-[40%] space-y-2">
+          <div className="h-4 rounded-full bg-[var(--bg-tertiary)] animate-pulse [animation-delay:0.15s]" />
+        </div>
+      </div>
+
+      {/* Skeleton: assistant message */}
+      <div className="flex items-start gap-3">
+        <div className="w-6 h-6 rounded-full bg-[var(--bg-tertiary)] animate-pulse shrink-0 mt-0.5 [animation-delay:0.2s]" />
+        <div className="flex-1 space-y-2 max-w-[70%]">
+          <div className="h-4 rounded-full bg-[var(--bg-tertiary)] animate-pulse [animation-delay:0.2s]" />
+          <div className="h-4 rounded-full bg-[var(--bg-tertiary)] animate-pulse [animation-delay:0.25s]" />
+          <div className="h-4 w-4/5 rounded-full bg-[var(--bg-tertiary)] animate-pulse [animation-delay:0.3s]" />
+          <div className="h-4 w-1/2 rounded-full bg-[var(--bg-tertiary)] animate-pulse [animation-delay:0.35s]" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============================================================================
 // STREAMING INDICATOR
 // ============================================================================
 
@@ -193,6 +239,7 @@ export function CenterChat() {
   const incognitoMode = useChatStore((s) => s.incognitoMode)
   const clearThread = useChatStore((s) => s.clearThread)
   const sidebarOpen = useChatStore((s) => s.sidebarOpen)
+  const isThreadLoading = useChatStore((s) => s.isThreadLoading)
 
   const [channelFilter, setChannelFilter] = useState<MercuryChannel | 'all'>('all')
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -227,7 +274,9 @@ export function CenterChat() {
 
         {/* Messages */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto">
-          {messages.length === 0 && !isStreaming ? (
+          {isThreadLoading ? (
+            <ChatSkeleton />
+          ) : messages.length === 0 && !isStreaming ? (
             <DashboardHome />
           ) : (
             <div className="max-w-[800px] mx-auto px-4 sm:px-8 py-6">
