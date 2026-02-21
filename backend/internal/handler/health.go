@@ -12,6 +12,8 @@ type DBPinger interface {
 	Ping(ctx context.Context) error
 }
 
+var startedAt = time.Now()
+
 // Health returns a handler that reports server and database health.
 // GET /api/health — returns {"status":"ok","version":"..."} without auth.
 func Health(db DBPinger, version ...string) http.HandlerFunc {
@@ -27,6 +29,7 @@ func Health(db DBPinger, version ...string) http.HandlerFunc {
 		dbStatus := "connected"
 		httpStatus := http.StatusOK
 
+		dbStart := time.Now()
 		if db != nil {
 			if err := db.Ping(ctx); err != nil {
 				status = "degraded"
@@ -34,13 +37,17 @@ func Health(db DBPinger, version ...string) http.HandlerFunc {
 				httpStatus = http.StatusServiceUnavailable
 			}
 		}
+		dbLatencyMs := time.Since(dbStart).Milliseconds()
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(httpStatus)
-		json.NewEncoder(w).Encode(map[string]string{
-			"status":   status,
-			"version":  ver,
-			"database": dbStatus,
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":      status,
+			"version":     ver,
+			"database":    dbStatus,
+			"dbLatencyMs": dbLatencyMs,
+			"uptimeS":     int(time.Since(startedAt).Seconds()),
+			"timestamp":   time.Now().UTC().Format(time.RFC3339),
 		})
 	}
 }
