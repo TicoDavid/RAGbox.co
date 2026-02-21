@@ -268,8 +268,8 @@ function RecentActivityFeed({ messages }: { messages: ThreadMessage[] }) {
         <div className="w-16 h-16 rounded-full bg-[var(--brand-blue)]/10 flex items-center justify-center mb-4">
           <MessageCircle className="w-7 h-7 text-[var(--brand-blue)]/50" />
         </div>
-        <p className="text-sm text-[var(--text-secondary)] font-medium">Evelyn is ready.</p>
-        <p className="text-xs text-[var(--text-tertiary)] mt-1">Send her first message.</p>
+        <p className="text-sm text-[var(--text-secondary)] font-medium">Mercury is ready.</p>
+        <p className="text-xs text-[var(--text-tertiary)] mt-1">Send the first message.</p>
       </div>
     )
   }
@@ -293,7 +293,7 @@ function RecentActivityFeed({ messages }: { messages: ThreadMessage[] }) {
             <div className="flex-1 min-w-0">
               <p className="text-sm text-[var(--text-secondary)] truncate">{msg.content}</p>
               <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5">
-                {msg.role === 'assistant' ? 'Evelyn' : 'You'} &middot; {dateStr} {timeStr}
+                {msg.role === 'assistant' ? 'Mercury' : 'You'} &middot; {dateStr} {timeStr}
               </p>
             </div>
           </div>
@@ -332,7 +332,7 @@ function QuickActions({ onCompose, onAsk, onAudit, actionLoading }: QuickActions
     },
     {
       id: 'ask',
-      label: 'Ask Evelyn',
+      label: 'Ask Mercury',
       icon: <Send className="w-4 h-4" />,
       onClick: onAsk,
       color: 'bg-[var(--warning)]/15 hover:bg-[var(--warning)]/25 text-[var(--warning)] border border-[var(--warning)]/20',

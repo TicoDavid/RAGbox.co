@@ -30,7 +30,7 @@ interface ConfigState {
 export type { ConfigState }
 
 const DEFAULT_CONFIG: ConfigState = {
-  name: 'Evelyn Monroe',
+  name: 'Mercury',
   title: 'AI Assistant',
   greeting: 'Welcome to RAGbox. Upload documents to your vault and ask me anything.',
   personalityPrompt: '',
@@ -201,7 +201,7 @@ export function MercuryConfigModal({ isOpen, onClose, onSaved }: MercuryConfigMo
                             value={config.name}
                             onChange={(e) => updateField('name', e.target.value)}
                             className="w-full px-3 py-1.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--brand-blue)]"
-                            placeholder="Evelyn Monroe"
+                            placeholder="Mercury"
                           />
                         </Field>
                         <Field label="Title">

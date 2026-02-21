@@ -8,9 +8,10 @@ describe('ChannelBadge', () => {
     expect(container.firstChild).toBeNull()
   })
 
-  it('renders nothing for dashboard channel (default, no badge needed)', () => {
-    const { container } = render(<ChannelBadge channel="dashboard" />)
-    expect(container.firstChild).toBeNull()
+  it('renders Chat badge for dashboard channel', () => {
+    render(<ChannelBadge channel="dashboard" />)
+    const badge = screen.getByText('Chat')
+    expect(badge).toBeInTheDocument()
   })
 
   it('renders WhatsApp badge with label and green styling', () => {
