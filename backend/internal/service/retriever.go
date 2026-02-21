@@ -57,9 +57,10 @@ type RankedChunk struct {
 
 // RetrievalResult contains the ranked chunks and query metadata.
 type RetrievalResult struct {
-	Chunks          []RankedChunk `json:"chunks"`
-	QueryEmbedding  []float32     `json:"-"`
-	TotalCandidates int           `json:"totalCandidates"`
+	Chunks              []RankedChunk `json:"chunks"`
+	QueryEmbedding      []float32     `json:"-"`
+	TotalCandidates     int           `json:"totalCandidates"`
+	TotalDocumentsFound int           `json:"totalDocumentsFound"`
 }
 
 // RetrieverService processes queries and retrieves relevant document chunks.
@@ -131,22 +132,30 @@ func (s *RetrieverService) Retrieve(ctx context.Context, userID string, query st
 		}, nil
 	}
 
-	// 3. Re-rank
+	// 3. Count unique documents across all candidates (for evidence tab)
+	docSet := make(map[string]struct{})
+	for _, c := range candidates {
+		docSet[c.Document.ID] = struct{}{}
+	}
+	totalDocsFound := len(docSet)
+
+	// 4. Re-rank
 	ranked := rerank(candidates, time.Now().UTC())
 
-	// 4. Deduplicate: max 2 chunks per source document
+	// 5. Deduplicate: max 2 chunks per source document
 	deduped := deduplicate(ranked, maxChunksPerDocument)
 
-	// 5. Return top-5
+	// 6. Return top-5
 	limit := defaultReturnLimit
 	if limit > len(deduped) {
 		limit = len(deduped)
 	}
 
 	return &RetrievalResult{
-		Chunks:          deduped[:limit],
-		QueryEmbedding:  queryVec,
-		TotalCandidates: len(candidates),
+		Chunks:              deduped[:limit],
+		QueryEmbedding:      queryVec,
+		TotalCandidates:     len(candidates),
+		TotalDocumentsFound: totalDocsFound,
 	}, nil
 }
 

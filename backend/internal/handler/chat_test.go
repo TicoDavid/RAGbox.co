@@ -47,14 +47,15 @@ func testRetrievalResult() *service.RetrievalResult {
 	return &service.RetrievalResult{
 		Chunks: []service.RankedChunk{
 			{
-				Chunk:      model.DocumentChunk{ID: "c1", Content: "Contract expires March 2025."},
+				Chunk:      model.DocumentChunk{ID: "c1", Content: "Contract expires March 2025.", ChunkIndex: 0},
 				Similarity: 0.95,
 				FinalScore: 0.90,
-				Document:   model.Document{ID: "d1", CreatedAt: time.Now().UTC(), ChunkCount: 10},
+				Document:   model.Document{ID: "d1", OriginalName: "contract.pdf", CreatedAt: time.Now().UTC(), ChunkCount: 10},
 			},
 		},
-		QueryEmbedding:  make([]float32, 768),
-		TotalCandidates: 1,
+		QueryEmbedding:      make([]float32, 768),
+		TotalCandidates:     1,
+		TotalDocumentsFound: 1,
 	}
 }
 
@@ -356,19 +357,20 @@ func TestBuildDonePayload_FullPayload(t *testing.T) {
 	retrieval := &service.RetrievalResult{
 		Chunks: []service.RankedChunk{
 			{
-				Chunk:      model.DocumentChunk{ID: "c1", Content: "Contract expires March 2025."},
+				Chunk:      model.DocumentChunk{ID: "c1", Content: "Contract expires March 2025.", ChunkIndex: 0},
 				Similarity: 0.95,
 				FinalScore: 0.90,
 				Document:   model.Document{ID: "d1", OriginalName: "contract.pdf"},
 			},
 			{
-				Chunk:      model.DocumentChunk{ID: "c2", Content: "Amendment signed."},
+				Chunk:      model.DocumentChunk{ID: "c2", Content: "Amendment signed.", ChunkIndex: 3},
 				Similarity: 0.80,
 				FinalScore: 0.75,
 				Document:   model.Document{ID: "d2", OriginalName: "amendment.pdf"},
 			},
 		},
-		TotalCandidates: 42,
+		TotalCandidates:     42,
+		TotalDocumentsFound: 5,
 	}
 	initial := &service.GenerationResult{
 		Answer:     "Initial answer",
@@ -405,8 +407,25 @@ func TestBuildDonePayload_FullPayload(t *testing.T) {
 	if payload.Evidence.TotalChunksSearched != 42 {
 		t.Errorf("TotalChunksSearched = %d, want 42", payload.Evidence.TotalChunksSearched)
 	}
-	if payload.Evidence.TotalDocumentsSearched != 2 {
-		t.Errorf("TotalDocumentsSearched = %d, want 2", payload.Evidence.TotalDocumentsSearched)
+	if payload.Evidence.TotalDocumentsSearched != 5 {
+		t.Errorf("TotalDocumentsSearched = %d, want 5", payload.Evidence.TotalDocumentsSearched)
+	}
+
+	// Verify citations array (from retrieval chunks directly)
+	if len(payload.Citations) != 2 {
+		t.Fatalf("Citations len = %d, want 2", len(payload.Citations))
+	}
+	if payload.Citations[0].DocumentName != "contract.pdf" {
+		t.Errorf("Citations[0].DocumentName = %q, want %q", payload.Citations[0].DocumentName, "contract.pdf")
+	}
+	if payload.Citations[0].ChunkIndex != 0 {
+		t.Errorf("Citations[0].ChunkIndex = %d, want 0", payload.Citations[0].ChunkIndex)
+	}
+	if payload.Citations[1].DocumentName != "amendment.pdf" {
+		t.Errorf("Citations[1].DocumentName = %q, want %q", payload.Citations[1].DocumentName, "amendment.pdf")
+	}
+	if payload.Citations[1].ChunkIndex != 3 {
+		t.Errorf("Citations[1].ChunkIndex = %d, want 3", payload.Citations[1].ChunkIndex)
 	}
 	if payload.Evidence.ConfidenceScore != 0.92 {
 		t.Errorf("ConfidenceScore = %f, want 0.92", payload.Evidence.ConfidenceScore)

@@ -19,9 +19,19 @@ import (
 
 // DonePayload is the structured payload sent with the final "done" SSE event.
 type DonePayload struct {
-	Answer   string       `json:"answer"`
-	Sources  []DoneSource `json:"sources"`
-	Evidence DoneEvidence `json:"evidence"`
+	Answer    string         `json:"answer"`
+	Sources   []DoneSource   `json:"sources"`
+	Citations []DoneCitation `json:"citations"`
+	Evidence  DoneEvidence   `json:"evidence"`
+}
+
+// DoneCitation represents a retrieved chunk used as context for the answer.
+type DoneCitation struct {
+	DocumentName   string  `json:"documentName"`
+	DocumentID     string  `json:"documentId"`
+	ChunkIndex     int     `json:"chunkIndex"`
+	RelevanceScore float64 `json:"relevanceScore"`
+	Snippet        string  `json:"snippet"`
 }
 
 // DoneSource describes a single source document referenced in the answer.
@@ -104,21 +114,36 @@ func buildDonePayload(
 		})
 	}
 
+	// Citations: built from retrieval chunks (the actual context fed to the model)
+	doneCitations := make([]DoneCitation, 0)
+	if retrieval != nil {
+		for _, rc := range retrieval.Chunks {
+			snippet := rc.Chunk.Content
+			if len(snippet) > 200 {
+				snippet = snippet[:200] + "..."
+			}
+			doneCitations = append(doneCitations, DoneCitation{
+				DocumentName:   rc.Document.OriginalName,
+				DocumentID:     rc.Document.ID,
+				ChunkIndex:     rc.Chunk.ChunkIndex,
+				RelevanceScore: rc.FinalScore,
+				Snippet:        snippet,
+			})
+		}
+	}
+
 	// Evidence
 	totalChunks := 0
 	totalDocs := 0
 	if retrieval != nil {
 		totalChunks = retrieval.TotalCandidates
-		docSet := make(map[string]struct{})
-		for _, rc := range retrieval.Chunks {
-			docSet[rc.Document.ID] = struct{}{}
-		}
-		totalDocs = len(docSet)
+		totalDocs = retrieval.TotalDocumentsFound
 	}
 
 	return DonePayload{
-		Answer:  answer,
-		Sources: sources,
+		Answer:    answer,
+		Sources:   sources,
+		Citations: doneCitations,
 		Evidence: DoneEvidence{
 			TotalChunksSearched:    totalChunks,
 			TotalDocumentsSearched: totalDocs,
@@ -227,16 +252,9 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			}
 		}
 
-		// Validate persona if provided (file-based keys only — DB personas override)
-		if req.Persona != "" && deps.PersonaFetcher == nil {
-			switch req.Persona {
-			case "default", "cfo", "legal":
-				// valid file-based persona key
-			default:
-				respondJSON(w, http.StatusBadRequest, envelope{Success: false, Error: "persona must be one of: default, cfo, legal"})
-				return
-			}
-		}
+		// Resolve persona key: "cfo" → "persona_cfo", default → "persona_ceo"
+		// DB persona (PersonaFetcher) overrides file-based persona in Generate.
+		personaKey := resolvePersonaKey(req.Persona)
 
 		// BYOLLM routing: per-request generator when external LLM fields are present.
 		// The API key is NEVER logged — only provider and model are safe to log.
@@ -371,7 +389,7 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 
 		opts := service.GenerateOpts{
 			Mode:           req.Mode,
-			Persona:        req.Persona,
+			Persona:        personaKey,
 			StrictMode:     req.StrictMode,
 			DynamicPersona: dbPersona,
 			CortexContext:  cortexContext,
@@ -527,6 +545,23 @@ func rateLimitMessage(err error) string {
 // isWhistleblower returns true if the persona ID refers to the whistleblower persona.
 func isWhistleblower(persona string) bool {
 	return persona == "whistleblower" || persona == "persona_whistleblower"
+}
+
+// resolvePersonaKey maps a request persona ID to the prompt file key.
+// Accepts short ("cfo") or prefixed ("persona_cfo") forms.
+// Defaults to "persona_ceo" when empty, "default", or unrecognized.
+func resolvePersonaKey(persona string) string {
+	if persona == "" || persona == "default" {
+		return "persona_ceo"
+	}
+	short := strings.TrimPrefix(persona, "persona_")
+	switch short {
+	case "ceo", "cfo", "coo", "cpo", "cmo", "cto",
+		"legal", "auditor", "whistleblower", "analyst":
+		return "persona_" + short
+	default:
+		return "persona_ceo"
+	}
 }
 
 func splitIntoTokens(text string) []string {
