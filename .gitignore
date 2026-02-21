@@ -54,3 +54,6 @@ private.key
 
 # Server build output
 server/dist/
+
+# Ops coordination lives in connexus-ops repo
+.team/
