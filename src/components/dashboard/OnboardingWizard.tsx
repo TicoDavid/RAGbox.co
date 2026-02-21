@@ -79,7 +79,8 @@ function UploadStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
   const [uploadedFiles, setUploadedFiles] = useState<{ name: string; done: boolean }[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const uploadDocuments = useVaultStore((s) => s.uploadDocuments)
+  const [uploadProgress, setUploadProgress] = useState('')
+  const uploadDocument = useVaultStore((s) => s.uploadDocument)
 
   const handleFiles = useCallback(async (files: File[]) => {
     if (files.length === 0) return
@@ -88,16 +89,24 @@ function UploadStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
     setUploadedFiles((prev) => [...prev, ...pending])
 
     try {
-      await uploadDocuments(files)
-      setUploadedFiles((prev) =>
-        prev.map((f) => (pending.some((p) => p.name === f.name) ? { ...f, done: true } : f)),
-      )
+      for (let i = 0; i < files.length; i++) {
+        setUploadProgress(`Uploading ${i + 1} of ${files.length}...`)
+        await uploadDocument(files[i])
+        setUploadedFiles((prev) =>
+          prev.map((f) => f.name === files[i].name ? { ...f, done: true } : f),
+        )
+        // 200ms stagger between files to avoid rate-limit spikes
+        if (i < files.length - 1) {
+          await new Promise((r) => setTimeout(r, 200))
+        }
+      }
+      setUploadProgress('')
     } catch {
-      // Upload errors handled by vaultStore toast
+      setUploadProgress('')
     } finally {
       setIsUploading(false)
     }
-  }, [uploadDocuments])
+  }, [uploadDocument])
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -167,6 +176,9 @@ function UploadStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
               )}
             </div>
           ))}
+          {uploadProgress && (
+            <p className="text-xs text-[var(--brand-blue)] mt-2 text-center font-medium">{uploadProgress}</p>
+          )}
         </div>
       )}
 
