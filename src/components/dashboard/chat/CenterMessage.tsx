@@ -122,6 +122,13 @@ export function CenterMessage({ message }: { message: ChatMessage }) {
   const displayCitations = message.citations ?? parsed?.citations
   const displayConfidence = message.confidence ?? parsed?.confidence
 
+  // Hide Sources/Evidence tabs when message has no metadata to show
+  const hasSources = displayCitations && displayCitations.length > 0
+  const hasEvidence = displayConfidence != null || message.modelUsed || message.metadata
+  const visibleTabs = hasSources || hasEvidence
+    ? RESPONSE_TABS
+    : RESPONSE_TABS.filter((t) => t.id === 'answer')
+
   const handleCopy = () => {
     navigator.clipboard.writeText(displayContent)
     setCopied(true)
@@ -149,9 +156,9 @@ export function CenterMessage({ message }: { message: ChatMessage }) {
       {/* Message body */}
       <div className="pl-8">
         {/* ── Response tabs (AI only) ── */}
-        {!isUser && (
+        {!isUser && visibleTabs.length > 1 && (
           <div className="flex items-center gap-4 mb-3 border-b border-[var(--border-subtle)]">
-            {RESPONSE_TABS.map((tab) => {
+            {visibleTabs.map((tab) => {
               const Icon = tab.icon
               const isActive = activeTab === tab.id
               return (
@@ -205,9 +212,9 @@ export function CenterMessage({ message }: { message: ChatMessage }) {
                   <span
                     key={i}
                     className="px-1.5 py-0.5 rounded bg-[var(--brand-blue)]/10 text-[var(--brand-blue)] text-[10px] font-medium cursor-default"
-                    title={`${c.documentName}: ${c.excerpt.slice(0, 100)}...`}
+                    title={`${c.documentName}: ${c.excerpt?.slice(0, 100) ?? ''}...`}
                   >
-                    [{c.citationIndex + 1}]
+                    [{(c.citationIndex ?? i) + 1}]
                   </span>
                 ))}
               </div>
@@ -277,7 +284,7 @@ function SourcesPanel({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       {citations.map((c, i) => {
-        const pct = Math.round(c.relevanceScore * 100)
+        const pct = c.relevanceScore != null ? Math.round(c.relevanceScore * 100) : null
         // Extract page from chunkId if available (e.g. "chunk-p3-1" → 3)
         const pageMatch = c.chunkId?.match(/p(\d+)/)
         const page = pageMatch ? parseInt(pageMatch[1], 10) : null
@@ -300,7 +307,7 @@ function SourcesPanel({
                 </span>
               )}
               <span className="shrink-0 px-1.5 py-0.5 rounded bg-[var(--brand-blue)]/10 text-[10px] font-medium text-[var(--brand-blue)]">
-                [{c.citationIndex + 1}]
+                [{(c.citationIndex ?? i) + 1}]
               </span>
             </div>
 
@@ -310,17 +317,19 @@ function SourcesPanel({
             </p>
 
             {/* Relevance bar */}
-            <div className="flex items-center gap-2">
-              <div className="flex-1 h-1.5 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-[var(--brand-blue)] transition-all"
-                  style={{ width: `${pct}%` }}
-                />
+            {pct != null && (
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-1.5 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-[var(--brand-blue)] transition-all"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <span className="text-[10px] font-mono text-[var(--text-tertiary)] shrink-0">
+                  {pct}%
+                </span>
               </div>
-              <span className="text-[10px] font-mono text-[var(--text-tertiary)] shrink-0">
-                {pct}%
-              </span>
-            </div>
+            )}
           </button>
         )
       })}
