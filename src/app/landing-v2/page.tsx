@@ -162,7 +162,7 @@ function LandingV3Content() {
 
   return (
     <main
-      className="min-h-screen bg-black text-[#E6F1FF]"
+      className="min-h-screen bg-black text-[#E6F1FF] border-0"
       style={{
         fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
         // Landing-only tokens (BRANDING_GUIDELINES.md §0)
@@ -175,7 +175,7 @@ function LandingV3Content() {
 
       {/* ━━━ NAVBAR (Floating, transparent → dark on scroll) ━━━ */}
       <nav
-        className={`fixed top-0 left-0 right-0 z-50 px-6 md:px-10 py-4 transition-all duration-500 ${
+        className={`fixed top-0 left-0 right-0 z-50 px-6 md:px-10 py-4 border-0 transition-all duration-500 ${
           scrolled ? 'bg-black/80 backdrop-blur-md' : 'bg-transparent'
         }`}
       >
@@ -205,7 +205,7 @@ function LandingV3Content() {
       </nav>
 
       {/* ━━━ SECTION 1: HERO — The Vault Orb ━━━ */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center px-6 overflow-hidden">
+      <section className="relative min-h-screen flex flex-col items-center justify-center px-6 overflow-hidden border-0">
         {/* Three.js Orb (includes ambient glow + pulse internally) */}
         <div className="relative z-10 mb-10">
           <VaultOrb />
