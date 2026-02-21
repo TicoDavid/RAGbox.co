@@ -10,6 +10,23 @@ import { ConfidenceBadge } from './ConfidenceBadge'
 import { ModelBadge } from './ModelBadge'
 import { Copy, Check, ThumbsUp, ThumbsDown, Share2 } from 'lucide-react'
 
+// ============================================================================
+// JSON GUARD — same fix as CenterMessage (BUG-009 / BUG-019)
+// ============================================================================
+
+export function extractProse(raw: string): string {
+  const trimmed = raw.trim()
+  if (!trimmed.startsWith('{')) return raw
+  try {
+    const json = JSON.parse(trimmed)
+    const answer = json.data?.answer ?? json.answer
+    if (typeof answer === 'string') return answer
+  } catch {
+    // Not valid JSON — render as-is
+  }
+  return raw
+}
+
 // Markdown components for styled rendering in the dark theme
 const mdComponents: Components = {
   p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
@@ -137,7 +154,7 @@ export function Message({ message }: MessageProps) {
               : 'bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)]'
         }`}
       >
-        {/* Content */}
+        {/* Content — BUG-019: extractProse strips JSON metadata from assistant replies */}
         {isUser ? (
           <div className="text-sm whitespace-pre-wrap leading-relaxed">
             {message.content}
@@ -145,7 +162,7 @@ export function Message({ message }: MessageProps) {
         ) : (
           <div className="text-sm leading-relaxed prose-sm prose-invert max-w-none">
             <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
-              {message.content}
+              {extractProse(message.content)}
             </ReactMarkdown>
           </div>
         )}
@@ -176,7 +193,7 @@ export function Message({ message }: MessageProps) {
         {/* Action buttons (assistant messages only, visible on hover) */}
         {!isUser && (
           <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-            <ActionButtons content={message.content} />
+            <ActionButtons content={extractProse(message.content)} />
           </div>
         )}
       </div>

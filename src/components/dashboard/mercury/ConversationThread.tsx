@@ -3,6 +3,7 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { extractProse } from './Message'
 import { useMercuryStore } from '@/stores/mercuryStore'
 import type { MercuryChannel } from '@/types/ragbox'
 import { Message } from './Message'
@@ -152,7 +153,7 @@ export function ConversationThread() {
             <div className="max-w-[85%] rounded-xl px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-default)]">
               <div className="text-sm leading-relaxed text-[var(--text-primary)] prose-sm prose-invert max-w-none">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {streamingContent}
+                  {extractProse(streamingContent)}
                 </ReactMarkdown>
                 <span className="inline-block w-2 h-4 bg-[var(--brand-blue)] ml-0.5 animate-pulse" />
               </div>
