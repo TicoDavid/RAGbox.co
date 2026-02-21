@@ -24,7 +24,13 @@ model User {
   image     String?
   role      user_role @default(Associate)
   status    user_status @default(Active)
-  subscriptionTier subscription_tier @default(professional) @map("subscription_tier")
+  subscriptionTier subscription_tier @default(free) @map("subscription_tier")
+  subscriptionStatus subscription_status @default(inactive) @map("subscription_status")
+  stripeCustomerId String? @unique @map("stripe_customer_id")
+  stripeSubscriptionId String? @map("stripe_subscription_id")
+  entitlements Json @default("{}") @map("entitlements")
+  subscriptionStartedAt DateTime? @map("subscription_started_at")
+  subscriptionEndsAt DateTime? @map("subscription_ends_at")
   privilegeModeEnabled Boolean @default(false) @map("privilege_mode_enabled")
   privilegeModeChangedAt DateTime? @map("privilege_mode_changed_at")
   onboardingCompleted Boolean @default(false) @map("onboarding_completed")
@@ -64,9 +70,17 @@ enum user_status {
 }
 
 enum subscription_tier {
-  starter
-  professional
-  enterprise
+  free
+  sovereign
+  mercury
+  syndicate
+}
+
+enum subscription_status {
+  inactive
+  active
+  past_due
+  cancelled
 }
 
 // ============================================

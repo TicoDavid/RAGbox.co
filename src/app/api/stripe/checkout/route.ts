@@ -10,6 +10,10 @@ function getStripe(): Stripe {
   return _stripe
 }
 
+function isStripeConfigured(): boolean {
+  return Boolean(process.env.STRIPE_SECRET_KEY)
+}
+
 function getPrices(): Record<string, string[]> {
   return {
     sovereign: [process.env.STRIPE_PRICE_SOVEREIGN!],
@@ -21,6 +25,10 @@ function getPrices(): Record<string, string[]> {
 }
 
 export async function POST(req: NextRequest) {
+  if (!isStripeConfigured()) {
+    return NextResponse.json({ error: 'Billing not configured' }, { status: 503 })
+  }
+
   const { plan } = (await req.json()) as { plan: string }
   const priceIds = getPrices()[plan]
   if (!priceIds) {
@@ -32,6 +40,8 @@ export async function POST(req: NextRequest) {
     line_items: priceIds.map((price) => ({ price, quantity: 1 })),
     success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?checkout=success`,
     cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?checkout=cancel`,
+    metadata: { plan },
+    allow_promotion_codes: true,
   })
 
   return NextResponse.json({ url: session.url })

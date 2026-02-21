@@ -472,6 +472,40 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "users" ADD COLUMN "onboarding_completed" BOOLEAN NOT NULL DEFAULT false; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
     results.push('users.onboarding_completed: OK')
 
+    // ========================================
+    // STORY-067: Billing subscription fields on users
+    // ========================================
+
+    // Add new enum values to subscription_tier (free, sovereign, mercury, syndicate)
+    await prisma.$executeRawUnsafe(`ALTER TYPE "subscription_tier" ADD VALUE IF NOT EXISTS 'free'`)
+    await prisma.$executeRawUnsafe(`ALTER TYPE "subscription_tier" ADD VALUE IF NOT EXISTS 'sovereign'`)
+    await prisma.$executeRawUnsafe(`ALTER TYPE "subscription_tier" ADD VALUE IF NOT EXISTS 'mercury'`)
+    await prisma.$executeRawUnsafe(`ALTER TYPE "subscription_tier" ADD VALUE IF NOT EXISTS 'syndicate'`)
+    results.push('subscription_tier enum expanded: OK')
+
+    // subscription_status enum
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN CREATE TYPE "subscription_status" AS ENUM ('inactive', 'active', 'past_due', 'cancelled'); EXCEPTION WHEN duplicate_object THEN NULL; END $$
+    `)
+    results.push('subscription_status enum: OK')
+
+    // Add billing columns to users
+    await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "users" ADD COLUMN "subscription_status" "subscription_status" NOT NULL DEFAULT 'inactive'; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
+    await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "users" ADD COLUMN "stripe_customer_id" VARCHAR(255); EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
+    await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "users" ADD COLUMN "stripe_subscription_id" VARCHAR(255); EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
+    await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "users" ADD COLUMN "entitlements" JSONB NOT NULL DEFAULT '{}'; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
+    await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "users" ADD COLUMN "subscription_started_at" TIMESTAMP(3); EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
+    await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "users" ADD COLUMN "subscription_ends_at" TIMESTAMP(3); EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
+    results.push('users billing columns: OK')
+
+    // Unique index on stripe_customer_id
+    await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "users_stripe_customer_id_key" ON "users"("stripe_customer_id")`)
+    results.push('users.stripe_customer_id unique index: OK')
+
+    // Migrate existing users from 'professional' to 'free' default (safe: old tier still valid in enum)
+    await prisma.$executeRawUnsafe(`UPDATE "users" SET "subscription_tier" = 'free' WHERE "subscription_tier" IN ('starter', 'professional') AND "subscription_status" = 'inactive'`)
+    results.push('users tier migration (professional→free): OK')
+
     return NextResponse.json({ success: true, results })
   } catch (error) {
     return NextResponse.json({

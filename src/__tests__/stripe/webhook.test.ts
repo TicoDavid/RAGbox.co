@@ -2,20 +2,44 @@
  * Stripe Webhook Route Tests
  *
  * Tests the /api/stripe/webhook endpoint — event handling, signature
- * verification, and idempotency.
+ * verification, provisioning calls, and graceful degradation.
  */
 export {}
 
 // ─── Mock Stripe SDK ────────────────────────────────────────────────────────
 const mockConstructEvent = jest.fn()
+const mockSubscriptionsRetrieve = jest.fn()
 
 jest.mock('stripe', () => {
   return jest.fn().mockImplementation(() => ({
     webhooks: {
       constructEvent: mockConstructEvent,
     },
+    subscriptions: {
+      retrieve: mockSubscriptionsRetrieve,
+    },
   }))
 })
+
+// ─── Mock Billing Provision ─────────────────────────────────────────────────
+const mockProvisionFromCheckout = jest.fn().mockResolvedValue({
+  userId: 'user_123',
+  email: 'test@ragbox.co',
+  tier: 'sovereign',
+  action: 'created',
+})
+const mockUpdateSubscription = jest.fn().mockResolvedValue({
+  userId: 'user_123',
+  tier: 'sovereign',
+  status: 'active',
+})
+const mockHandlePaymentFailed = jest.fn().mockResolvedValue(undefined)
+
+jest.mock('@/lib/billing/provision', () => ({
+  provisionFromCheckout: (...args: unknown[]) => mockProvisionFromCheckout(...args),
+  updateSubscription: (...args: unknown[]) => mockUpdateSubscription(...args),
+  handlePaymentFailed: (...args: unknown[]) => mockHandlePaymentFailed(...args),
+}))
 
 const ORIGINAL_ENV = process.env
 beforeAll(() => {
@@ -23,6 +47,8 @@ beforeAll(() => {
     ...ORIGINAL_ENV,
     STRIPE_SECRET_KEY: 'sk_test_fake',
     STRIPE_WEBHOOK_SECRET: 'whsec_test_fake',
+    STRIPE_PRICE_SOVEREIGN: 'price_sovereign_test',
+    STRIPE_PRICE_MERCURY: 'price_mercury_test',
   }
 })
 
@@ -32,8 +58,13 @@ afterAll(() => {
 
 beforeEach(() => {
   mockConstructEvent.mockReset()
+  mockSubscriptionsRetrieve.mockReset()
+  mockProvisionFromCheckout.mockClear()
+  mockUpdateSubscription.mockClear()
+  mockHandlePaymentFailed.mockClear()
   jest.spyOn(console, 'info').mockImplementation()
   jest.spyOn(console, 'error').mockImplementation()
+  jest.spyOn(console, 'warn').mockImplementation()
 })
 
 afterEach(() => {
@@ -62,14 +93,13 @@ function makeStripeEvent(type: string, data: Record<string, unknown> = {}) {
 }
 
 describe('Stripe Webhook', () => {
-  // ─── 2.2 Webhook Route (8 tests) ──────────────────────────────────────
-
-  describe('2.2 Webhook Route', () => {
-    it('checkout.session.completed → 200, logs customer email', async () => {
+  describe('Event Handling', () => {
+    it('checkout.session.completed → 200, calls provisionFromCheckout', async () => {
       const event = makeStripeEvent('checkout.session.completed', {
         customer: 'cus_123',
         subscription: 'sub_456',
         customer_details: { email: 'test@ragbox.co' },
+        line_items: { data: [{ price: { id: 'price_sovereign_test' } }] },
       })
       mockConstructEvent.mockReturnValue(event)
 
@@ -78,14 +108,20 @@ describe('Stripe Webhook', () => {
       const res = await POST(req as any)
 
       expect(res.status).toBe(200)
-      const data = await res.json()
-      expect(data.received).toBe(true)
+      expect(mockProvisionFromCheckout).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: 'test@ragbox.co',
+          stripeCustomerId: 'cus_123',
+          stripeSubscriptionId: 'sub_456',
+        })
+      )
     })
 
-    it('customer.subscription.updated → 200, logs subscription status', async () => {
+    it('customer.subscription.updated → 200, calls updateSubscription', async () => {
       const event = makeStripeEvent('customer.subscription.updated', {
         id: 'sub_456',
         status: 'active',
+        items: { data: [{ price: { id: 'price_sovereign_test' } }] },
       })
       mockConstructEvent.mockReturnValue(event)
 
@@ -94,11 +130,18 @@ describe('Stripe Webhook', () => {
       const res = await POST(req as any)
 
       expect(res.status).toBe(200)
+      expect(mockUpdateSubscription).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stripeSubscriptionId: 'sub_456',
+          status: 'active',
+        })
+      )
     })
 
-    it('customer.subscription.deleted → 200, logs cancellation', async () => {
+    it('customer.subscription.deleted → 200, calls updateSubscription with cancelled', async () => {
       const event = makeStripeEvent('customer.subscription.deleted', {
         id: 'sub_456',
+        items: { data: [] },
       })
       mockConstructEvent.mockReturnValue(event)
 
@@ -107,9 +150,15 @@ describe('Stripe Webhook', () => {
       const res = await POST(req as any)
 
       expect(res.status).toBe(200)
+      expect(mockUpdateSubscription).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stripeSubscriptionId: 'sub_456',
+          status: 'cancelled',
+        })
+      )
     })
 
-    it('invoice.payment_failed → 200, logs failed amount', async () => {
+    it('invoice.payment_failed → 200, calls handlePaymentFailed', async () => {
       const event = makeStripeEvent('invoice.payment_failed', {
         customer: 'cus_123',
         amount_due: 4900,
@@ -121,12 +170,11 @@ describe('Stripe Webhook', () => {
       const res = await POST(req as any)
 
       expect(res.status).toBe(200)
+      expect(mockHandlePaymentFailed).toHaveBeenCalledWith({ stripeCustomerId: 'cus_123' })
     })
 
     it('unknown event type → 200 (graceful pass-through)', async () => {
-      const event = makeStripeEvent('payment_method.attached', {
-        id: 'pm_123',
-      })
+      const event = makeStripeEvent('payment_method.attached', { id: 'pm_123' })
       mockConstructEvent.mockReturnValue(event)
 
       const { POST } = require('@/app/api/stripe/webhook/route')
@@ -137,8 +185,10 @@ describe('Stripe Webhook', () => {
       const data = await res.json()
       expect(data.received).toBe(true)
     })
+  })
 
-    it('invalid signature → 400 {error: "Invalid signature"}', async () => {
+  describe('Signature Verification', () => {
+    it('invalid signature → 400', async () => {
       mockConstructEvent.mockImplementation(() => {
         throw new Error('No signatures found matching the expected signature')
       })
@@ -152,7 +202,7 @@ describe('Stripe Webhook', () => {
       expect(data.error).toBe('Invalid signature')
     })
 
-    it('empty body → handled gracefully (400 or valid response)', async () => {
+    it('empty body → 400', async () => {
       mockConstructEvent.mockImplementation(() => {
         throw new Error('No webhook payload was provided')
       })
@@ -161,15 +211,39 @@ describe('Stripe Webhook', () => {
       const req = createWebhookRequest('')
       const res = await POST(req as any)
 
-      // Should not crash — either 400 (bad sig) or handled
       expect(res.status).toBe(400)
     })
+  })
 
-    it('same event twice → idempotent (no duplicate processing)', async () => {
+  describe('Graceful Degradation', () => {
+    it('no Stripe config → 503', async () => {
+      const savedKey = process.env.STRIPE_SECRET_KEY
+      const savedSecret = process.env.STRIPE_WEBHOOK_SECRET
+      delete process.env.STRIPE_SECRET_KEY
+      delete process.env.STRIPE_WEBHOOK_SECRET
+
+      // Need fresh import to pick up missing env
+      jest.resetModules()
+      const { POST } = require('@/app/api/stripe/webhook/route')
+      const req = createWebhookRequest('{}')
+      const res = await POST(req as any)
+
+      expect(res.status).toBe(503)
+      const data = await res.json()
+      expect(data.error).toBe('Billing not configured')
+
+      process.env.STRIPE_SECRET_KEY = savedKey
+      process.env.STRIPE_WEBHOOK_SECRET = savedSecret
+    })
+  })
+
+  describe('Idempotency', () => {
+    it('same event twice → no crash, both 200', async () => {
       const event = makeStripeEvent('checkout.session.completed', {
         customer: 'cus_123',
         subscription: 'sub_456',
         customer_details: { email: 'test@ragbox.co' },
+        line_items: { data: [{ price: { id: 'price_sovereign_test' } }] },
       })
       mockConstructEvent.mockReturnValue(event)
 
@@ -180,7 +254,7 @@ describe('Stripe Webhook', () => {
 
       expect(res1.status).toBe(200)
       expect(res2.status).toBe(200)
-      // Both should succeed — no crash from duplicate processing
+      expect(mockProvisionFromCheckout).toHaveBeenCalledTimes(2)
     })
   })
 })
