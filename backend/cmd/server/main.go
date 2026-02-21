@@ -132,6 +132,7 @@ func run() error {
 	personaRepo := repository.NewPersonaRepo(pool)
 	cortexRepo := repository.NewCortexRepo(pool)
 	threadRepo := repository.NewThreadRepo(pool)
+	mercuryConfigRepo := repository.NewMercuryConfigRepo(pool)
 
 	// ─── Services ──────────────────────────────────────────────────────
 
@@ -360,6 +361,11 @@ func run() error {
 		ForgeRateLimiter:   forgeRL,
 
 		QueryCache: queryCache,
+
+		MercuryConfigDeps: handler.MercuryConfigDeps{
+			Reader: mercuryConfigRepo,
+			Writer: mercuryConfigRepo,
+		},
 	})
 
 	// ─── HTTP server ───────────────────────────────────────────────────

@@ -98,6 +98,9 @@ type Dependencies struct {
 
 	// Query cache (nil = no caching)
 	QueryCache *cache.QueryCache
+
+	// Mercury config (voice agent persona)
+	MercuryConfigDeps handler.MercuryConfigDeps
 }
 
 // internalAuthOnly wraps a handler with a simple internal auth check.
@@ -224,6 +227,10 @@ func New(deps *Dependencies) *chi.Mux {
 
 		// Voice transcription — single utterance STT via Deepgram
 		r.With(timeout30s).Post("/api/voice/transcribe", handler.Transcribe(deps.TranscribeDeps))
+
+		// Mercury config — voice agent persona
+		r.With(timeout30s).Get("/api/mercury/config", handler.GetMercuryConfig(deps.MercuryConfigDeps))
+		r.With(timeout30s).Post("/api/mercury/config", handler.SaveMercuryConfig(deps.MercuryConfigDeps))
 
 		// Forge — AI generation, 60s timeout. Strictest rate limit (5/min).
 		forgeMiddleware := []func(http.Handler) http.Handler{middleware.Timeout(60 * time.Second)}
