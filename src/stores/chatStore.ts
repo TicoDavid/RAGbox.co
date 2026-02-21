@@ -193,6 +193,8 @@ export const useChatStore = create<ChatState>()(
           let modelUsed: string | undefined
           let provider: string | undefined
           let latencyMs: number | undefined
+          let doneSources: unknown | undefined
+          let doneEvidence: unknown | undefined
 
           // JSON fallback (non-streaming or cached)
           if (contentType.includes('application/json')) {
@@ -258,8 +260,29 @@ export const useChatStore = create<ChatState>()(
                           'Unable to provide a grounded answer.'
                         confidence = data.confidence ?? 0
                         break
-                      case 'status':
                       case 'done':
+                        // Structured payload: extract answer instead of storing raw JSON
+                        if (data.answer) {
+                          fullContent = data.answer
+                          set({ streamingContent: fullContent })
+                        }
+                        if (data.citations) {
+                          citations = Array.isArray(data.citations)
+                            ? data.citations
+                            : undefined
+                        }
+                        if (data.confidence !== undefined) {
+                          confidence = data.confidence
+                        }
+                        // Sheldon's structured payload: sources + evidence for tab metadata
+                        if (data.sources) {
+                          doneSources = data.sources
+                        }
+                        if (data.evidence) {
+                          doneEvidence = data.evidence
+                        }
+                        break
+                      case 'status':
                         break
                       default:
                         if (data.text) {
@@ -306,6 +329,9 @@ export const useChatStore = create<ChatState>()(
             modelUsed,
             provider,
             latencyMs,
+            ...(doneSources || doneEvidence
+              ? { metadata: { sources: doneSources, evidence: doneEvidence } }
+              : {}),
           }
 
           set((state) => ({
