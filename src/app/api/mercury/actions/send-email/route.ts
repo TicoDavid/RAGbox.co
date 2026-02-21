@@ -14,6 +14,7 @@ import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
 import { getValidAccessToken } from '@/lib/gmail/token'
 import { authorizeAgentAccessJWT } from '@/lib/agent/authorization'
+import { isGmailConfigured, sendViaGmail as sendSystemGmail } from '@/lib/email/gmail'
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || ''
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || ''
@@ -78,15 +79,27 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       fromEmail = cred.emailAddress
     } else {
       // === LEGACY: Session user mode ===
-      if (token.provider && token.provider !== 'google') {
-        return NextResponse.json(
-          { success: false, error: 'Email sending requires Google sign-in. Please re-authenticate with Google.' },
-          { status: 403 }
-        )
-      }
-
       const sessionToken = token.accessToken as string | undefined
-      if (!sessionToken) {
+      if (!sessionToken || (token.provider && token.provider !== 'google')) {
+        // No user OAuth token — fall back to system Gmail (Sarah's refresh token flow)
+        if (isGmailConfigured()) {
+          try {
+            const result = await sendSystemGmail(to, subject, emailBody)
+            await logMercuryAction(userId, 'email', to, subject, emailBody, 'completed', {
+              messageId: result.id,
+              via: 'system-gmail',
+            }, null)
+            await writeMercuryThread(userId, to, subject)
+            return NextResponse.json({ success: true, data: { messageId: result.id, via: 'system-gmail' } })
+          } catch (error) {
+            console.error('[Mercury Email] System Gmail fallback failed:', error)
+            return NextResponse.json(
+              { success: false, error: 'Email sending failed. System Gmail credentials may be misconfigured.' },
+              { status: 502 }
+            )
+          }
+        }
+
         return NextResponse.json(
           { success: false, error: 'No OAuth token available. Please sign out and sign in again with Google.' },
           { status: 403 }
