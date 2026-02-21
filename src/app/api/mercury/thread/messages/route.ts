@@ -122,7 +122,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const body = await request.json()
-    const { threadId, role, channel, content, confidence, citations, metadata } = body
+    const { threadId, role, channel, content, confidence, citations, metadata, channelMessageId, direction } = body
 
     if (!content || !role || !channel) {
       return NextResponse.json(
@@ -175,6 +175,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         confidence: confidence ?? null,
         citations: citations ?? null,
         metadata: metadata ?? null,
+        channelMessageId: channelMessageId ?? null,
+        direction: direction ?? (role === 'user' ? 'inbound' : 'outbound'),
       },
       select: {
         id: true,

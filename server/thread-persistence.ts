@@ -46,7 +46,7 @@ export async function persistThreadMessage(msg: ThreadMessage): Promise<void> {
       })
     }
 
-    // Insert message
+    // Insert message (all fields — direction, channelMessageId, metadata included)
     await prisma.mercuryThreadMessage.create({
       data: {
         threadId: thread.id,
@@ -54,6 +54,8 @@ export async function persistThreadMessage(msg: ThreadMessage): Promise<void> {
         channel: msg.channel as mercury_channel,
         content: msg.content,
         confidence: msg.confidence ?? undefined,
+        channelMessageId: msg.channelMessageId ?? undefined,
+        direction: msg.direction ?? 'inbound',
         metadata: msg.metadata ? (msg.metadata as InputJsonValue) : undefined,
       },
     })
