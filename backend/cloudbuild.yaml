@@ -62,7 +62,7 @@ steps:
       - '--timeout'
       - '300'
       - '--add-cloudsql-instances'
-      - 'ragbox-sovereign-prod:us-east4:ragbox-db'
+      - 'ragbox-sovereign-prod:us-east4:ragbox-db-prod'
       - '--vpc-connector'
       - 'ragbox-connector'
       - '--vpc-egress'
