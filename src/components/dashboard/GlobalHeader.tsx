@@ -25,6 +25,7 @@ import {
   CreditCard,
   Mic,
   Monitor,
+  Lock,
   Shield,
   FileText,
   MessageSquare,
@@ -1103,19 +1104,10 @@ function SecuritySettings() {
           </div>
         </div>
 
-        <div className="p-4 bg-[var(--bg-elevated)]/30 border border-[var(--border-default)] rounded-lg opacity-60">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-[var(--bg-tertiary)] rounded-lg">
-              <Monitor className="w-4 h-4 text-[var(--text-secondary)]" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-[var(--text-secondary)]">MacBook Pro</p>
-              <p className="text-xs text-[var(--text-tertiary)]">macOS · Safari · Last active yesterday</p>
-            </div>
-            <button className="text-xs text-[var(--danger)] hover:text-[var(--danger)] transition-colors" aria-label="Revoke session">
-              Revoke
-            </button>
-          </div>
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <Lock className="w-8 h-8 text-[var(--text-tertiary)] mb-3" />
+          <p className="text-sm text-[var(--text-secondary)]">No other active sessions</p>
+          <p className="text-xs text-[var(--text-tertiary)] mt-1">You are only signed in on this device</p>
         </div>
       </div>
 
