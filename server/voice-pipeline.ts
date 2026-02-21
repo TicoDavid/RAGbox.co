@@ -36,6 +36,7 @@ export interface VoiceSessionConfig {
   onToolResult?: (name: string, result: unknown) => void
   onUIAction?: (action: unknown) => void
   onNoSpeech?: () => void
+  onSpeakingComplete?: () => void
   onError?: (error: Error) => void
   onDisconnect?: () => void
 }
@@ -67,6 +68,7 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
     onToolResult,
     onUIAction,
     onNoSpeech,
+    onSpeakingComplete,
     onError,
     onDisconnect,
   } = config
@@ -93,7 +95,7 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
   // ------------------------------------------------------------------
   async function speechToText(pcmBuffer: Buffer): Promise<string> {
     try {
-      console.log(`[VoicePipeline] STT: sending ${pcmBuffer.length} bytes`)
+      console.info('[VoicePipeline] STT request', { bytes: pcmBuffer.length })
 
       const params = new URLSearchParams({
         model: STT_MODEL,
@@ -125,7 +127,7 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
       }
 
       const transcript = data.results?.channels?.[0]?.alternatives?.[0]?.transcript || ''
-      console.log(`[VoicePipeline] STT transcript: "${transcript}"`)
+      console.info('[VoicePipeline] STT transcript', { transcript })
       return transcript
     } catch (error) {
       console.error('[VoicePipeline] STT error:', error)
@@ -139,7 +141,7 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
   // ------------------------------------------------------------------
   async function queryLLM(text: string): Promise<string> {
     try {
-      console.log(`[VoicePipeline] LLM: querying "${text.substring(0, 80)}..."`)
+      console.info('[VoicePipeline] LLM query', { preview: text.substring(0, 80) })
 
       // Add user message to history
       conversationHistory.push({ role: 'user', content: text })
@@ -214,7 +216,7 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
         if (!answer) answer = tokens.join('')
       }
 
-      console.log(`[VoicePipeline] LLM answer: "${answer.substring(0, 80)}..."`)
+      console.info('[VoicePipeline] LLM answer', { preview: answer.substring(0, 80) })
 
       // Add assistant response to history
       conversationHistory.push({ role: 'assistant', content: answer })
@@ -234,7 +236,7 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
     if (cancelled) return
 
     try {
-      console.log(`[VoicePipeline] TTS: converting "${text.substring(0, 50)}..."`)
+      console.info('[VoicePipeline] TTS request', { preview: text.substring(0, 50) })
 
       const params = new URLSearchParams({
         model: TTS_MODEL,
@@ -260,7 +262,7 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
       const audioArrayBuffer = await res.arrayBuffer()
       const audioBuffer = Buffer.from(audioArrayBuffer)
 
-      console.log(`[VoicePipeline] TTS: received ${audioBuffer.length} bytes of audio`)
+      console.info('[VoicePipeline] TTS response', { bytes: audioBuffer.length })
 
       // Send in chunks to avoid oversized WebSocket frames
       for (let offset = 0; offset < audioBuffer.length; offset += TTS_CHUNK_SIZE) {
@@ -291,7 +293,7 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
     // Step 1: Speech-to-Text
     const transcript = await speechToText(merged)
     if (!transcript.trim()) {
-      console.log('[VoicePipeline] Empty transcript — skipping')
+      console.info('[VoicePipeline] Empty transcript, skipping')
       onNoSpeech?.()
       return
     }
@@ -309,6 +311,10 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
     if (answer && !cancelled) {
       await textToSpeech(answer)
     }
+
+    // Signal speaking complete → transitions state back to idle
+    console.info('[VoicePipeline] State: SPEAKING → IDLE (processAudio complete)')
+    onSpeakingComplete?.()
   }
 
   // ------------------------------------------------------------------
@@ -326,9 +332,13 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
     if (answer && !cancelled) {
       await textToSpeech(answer)
     }
+
+    // Signal speaking complete → transitions state back to idle
+    console.info('[VoicePipeline] State: SPEAKING → IDLE (processText complete)')
+    onSpeakingComplete?.()
   }
 
-  console.log('[VoicePipeline] Session created (Deepgram STT + Go Backend + Deepgram TTS)')
+  console.info('[VoicePipeline] Session created')
 
   return {
     async sendAudio(pcmBuffer: Buffer): Promise<void> {
@@ -337,41 +347,68 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
     },
 
     async startAudioSession(): Promise<void> {
-      console.log('[VoicePipeline] Starting audio session')
+      console.info('[VoicePipeline] Audio session start')
       isActive = true
       audioChunks = []
       cancelled = false
     },
 
     async endAudioSession(): Promise<void> {
-      console.log('[VoicePipeline] Ending audio session')
+      console.info('[VoicePipeline] Audio session end')
       isActive = false
       await processAudio()
     },
 
     async cancelResponse(): Promise<void> {
-      console.log('[VoicePipeline] Cancelling response')
+      console.info('[VoicePipeline] Cancelling response')
       cancelled = true
       audioChunks = []
     },
 
     async sendText(text: string): Promise<void> {
-      console.log('[VoicePipeline] Sending text:', text)
+      console.info('[VoicePipeline] Sending text', { preview: text.substring(0, 80) })
       await processText(text)
     },
 
     async triggerGreeting(): Promise<void> {
-      const greeting = 'Hello! Welcome to RAGbox. How may I assist you today?'
-      console.log('[VoicePipeline] Triggering greeting')
+      console.info('[VoicePipeline] State: IDLE → GREETING')
 
+      // Fetch agent config (best-effort — falls back to defaults)
+      let agentName = 'Mercury'
+      let greeting = "Hello, I'm Mercury. How can I help you today?"
+      try {
+        const res = await fetch(`${goBackendUrl}/api/mercury/config`, {
+          headers: {
+            'X-Internal-Auth': internalAuth,
+            'X-User-ID': toolContext.userId || 'anonymous',
+          },
+        })
+        if (res.ok) {
+          const cfg = await res.json() as { name?: string; greeting?: string }
+          if (cfg.name) agentName = cfg.name
+          if (cfg.greeting) {
+            greeting = cfg.greeting
+          } else {
+            greeting = `Hello, I'm ${agentName}. How can I help you today?`
+          }
+        }
+      } catch {
+        // Config endpoint unavailable — use defaults
+      }
+
+      console.info('[VoicePipeline] Greeting:', greeting)
       conversationHistory.push({ role: 'assistant', content: greeting })
       onAgentTextPartial?.(greeting)
       onAgentTextFinal?.(greeting)
       await textToSpeech(greeting)
+
+      // Signal greeting TTS complete → transitions state back to idle
+      console.info('[VoicePipeline] State: GREETING → IDLE (greeting TTS complete)')
+      onSpeakingComplete?.()
     },
 
     close(): void {
-      console.log('[VoicePipeline] Closing session')
+      console.info('[VoicePipeline] Closing session')
       isActive = false
       cancelled = true
       audioChunks = []

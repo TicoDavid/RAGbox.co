@@ -464,7 +464,7 @@ Handler (HTTP) → Service (Business Logic) → Repository (Database)
 |----------|-------|
 | Runtime | Node.js 20 + TypeScript |
 | Protocol | WebSocket (wss://) |
-| AI Runtime | Inworld (`@inworld/runtime`) |
+| AI Runtime | Deepgram STT + Go Backend LLM + Deepgram TTS |
 | STT | Deepgram |
 | TTS | Google Cloud TTS |
 | Cloud Run | `mercury-voice` service |

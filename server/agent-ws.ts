@@ -88,7 +88,7 @@ setInterval(() => {
   const now = Date.now()
   for (const [sessionId, session] of sessions) {
     if (now - session.lastActivity > SESSION_TIMEOUT_MS) {
-      console.log(`[AgentWS] Cleaning up expired session: ${sessionId}`)
+      console.info('[AgentWS] Cleaning up expired session', { sessionId })
       session.voiceSession?.close()
       session.ws.close(1000, 'Session expired')
       sessions.delete(sessionId)
@@ -178,7 +178,7 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
   const params = extractConnectionParams(req)
   const sessionId = params.sessionId || generateSessionId()
 
-  console.log(`[AgentWS] New connection: ${sessionId} (user: ${params.userId}, role: ${params.role})`)
+  console.info('[AgentWS] New connection', { sessionId, userId: params.userId, role: params.role })
 
   // Initialize observability
   obs.initSession(sessionId, params.userId)
@@ -203,8 +203,16 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
   }
   sessions.set(sessionId, session)
 
+  // State transition helper with logging
+  const setState = (newState: AgentState): void => {
+    const prev = session.state
+    session.state = newState
+    console.info(`[AgentWS] State: ${prev} → ${newState}`, { sessionId })
+    sendJSON(ws, { type: 'state', state: newState })
+  }
+
   // Send connecting state
-  sendJSON(ws, { type: 'state', state: 'connecting' })
+  setState('connecting')
 
   try {
     // Create voice session (Deepgram STT + Go Backend LLM + Deepgram TTS)
@@ -224,8 +232,7 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
       onAgentTextPartial: (text) => {
         sendJSON(ws, { type: 'agent_text_partial', text })
         if (session.state !== 'speaking') {
-          session.state = 'speaking'
-          sendJSON(ws, { type: 'state', state: 'speaking' })
+          setState('speaking')
           obs.recordFirstToken(sessionId)
         }
       },
@@ -243,30 +250,33 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
       },
 
       onToolCall: (toolName, args) => {
-        console.log(`[AgentWS] Tool call: ${toolName}`, args)
+        console.info('[AgentWS] Tool call', { toolName, args })
         sendJSON(ws, {
           type: 'tool_call',
           call: { id: `tool_${Date.now()}`, name: toolName, parameters: args }
         })
-        session.state = 'executing'
-        sendJSON(ws, { type: 'state', state: 'executing' })
+        setState('executing')
       },
 
       onToolResult: (toolName, result) => {
-        console.log(`[AgentWS] Tool result: ${toolName}`)
+        console.info('[AgentWS] Tool result', { toolName })
         sendJSON(ws, { type: 'tool_result', result: result as ToolResult })
       },
 
       onUIAction: (action) => {
-        console.log(`[AgentWS] UI action:`, action)
+        console.info('[AgentWS] UI action', { action })
         sendJSON(ws, { type: 'ui_action', action })
       },
 
       onNoSpeech: () => {
-        console.log(`[AgentWS] No speech detected for ${sessionId}`)
+        console.info('[AgentWS] No speech detected', { sessionId })
         sendJSON(ws, { type: 'agent_text_final', text: "I didn't catch that. Could you try again?" })
-        session.state = 'idle'
-        sendJSON(ws, { type: 'state', state: 'idle' })
+        setState('idle')
+      },
+
+      onSpeakingComplete: () => {
+        // TTS playback finished — transition back to idle so client can start listening
+        setState('idle')
       },
 
       onError: (error) => {
@@ -276,17 +286,15 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
       },
 
       onDisconnect: () => {
-        console.log(`[AgentWS] Voice session ended for ${sessionId}`)
-        session.state = 'error'
-        sendJSON(ws, { type: 'state', state: 'error' })
+        console.info('[AgentWS] Voice session ended', { sessionId })
+        setState('error')
       },
     })
 
     session.voiceSession = voiceSession
 
     // Ready to receive audio
-    session.state = 'idle'
-    sendJSON(ws, { type: 'state', state: 'idle' })
+    setState('idle')
 
     // Register message handler BEFORE greeting so messages aren't lost during TTS
     ws.on('message', async (data, isBinary) => {
@@ -313,8 +321,7 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
             if (session.voiceSession && !session.isAudioSessionActive) {
               await session.voiceSession.startAudioSession()
               session.isAudioSessionActive = true
-              session.state = 'listening'
-              sendJSON(ws, { type: 'state', state: 'listening' })
+              setState('listening')
               obs.logAudioEvent(sessionId, 'mic_start')
             }
             break
@@ -322,13 +329,14 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
           case 'stop':
             if (session.voiceSession && session.isAudioSessionActive) {
               session.isAudioSessionActive = false
-              session.state = 'processing'
-              sendJSON(ws, { type: 'state', state: 'processing' })
+              setState('processing')
               obs.logAudioEvent(sessionId, 'mic_stop')
               await session.voiceSession.endAudioSession()
-              // Pipeline complete — return to idle
-              session.state = 'idle'
-              sendJSON(ws, { type: 'state', state: 'idle' })
+              // Pipeline complete — onSpeakingComplete already set idle,
+              // but ensure idle in case pipeline had no TTS output
+              if (session.state !== 'idle') {
+                setState('idle')
+              }
             }
             break
 
@@ -337,23 +345,22 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
               await session.voiceSession.cancelResponse()
               obs.incrementBargeIn(sessionId)
               obs.logAudioEvent(sessionId, 'barge_in')
-              session.state = 'listening'
-              sendJSON(ws, { type: 'state', state: 'listening' })
+              setState('listening')
             }
             break
 
           case 'text':
             // Allow sending text directly (for testing or accessibility)
             if (session.voiceSession && msg.text) {
+              setState('processing')
               await session.voiceSession.sendText(msg.text)
-              session.state = 'processing'
-              sendJSON(ws, { type: 'state', state: 'processing' })
+              // onSpeakingComplete handles transition back to idle
             }
             break
 
           case 'tool_result':
             // Tool results from client confirmations
-            console.log(`[AgentWS] Tool result received: ${msg.name}`)
+            console.info('[AgentWS] Tool result received', { name: msg.name })
             break
 
           default:
@@ -377,14 +384,14 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
     whatsAppEventEmitter.on('message', onWhatsAppEvent)
 
     // Send initial greeting from Mercury (fire-and-forget so it doesn't block message handling)
-    console.log(`[AgentWS] Sending initial greeting for ${sessionId}`)
+    console.info('[AgentWS] Sending initial greeting', { sessionId })
     voiceSession.triggerGreeting().catch((greetError) => {
       console.warn('[AgentWS] Failed to send initial greeting:', greetError)
     })
 
     // Handle disconnection
     ws.on('close', async (code, reason) => {
-      console.log(`[AgentWS] Connection closed: ${sessionId} (${code}: ${reason.toString()})`)
+      console.info('[AgentWS] Connection closed', { sessionId, code, reason: reason.toString() })
       whatsAppEventEmitter.off('message', onWhatsAppEvent)
       obs.endSession(sessionId)
       session.voiceSession?.close()
@@ -394,15 +401,13 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
     ws.on('error', (error) => {
       console.error(`[AgentWS] WebSocket error for ${sessionId}:`, error)
       obs.incrementError(sessionId)
-      session.state = 'error'
-      sendJSON(ws, { type: 'state', state: 'error' })
+      setState('error')
       sendJSON(ws, { type: 'error', message: error.message })
     })
 
   } catch (error) {
     console.error('[AgentWS] Failed to initialize session:', error)
-    session.state = 'error'
-    sendJSON(ws, { type: 'state', state: 'error' })
+    setState('error')
     sendJSON(ws, {
       type: 'error',
       message: error instanceof Error ? error.message : 'Failed to initialize session',
@@ -426,7 +431,7 @@ export function startAgentWSServer(httpServer: HttpServer): WebSocketServer {
     path: '/agent/ws',
   })
 
-  console.log('[AgentWS] WebSocket server started on /agent/ws')
+  console.info('[AgentWS] WebSocket server started', { path: '/agent/ws' })
 
   wss.on('connection', handleConnection)
 
@@ -443,7 +448,7 @@ export function startAgentWSServer(httpServer: HttpServer): WebSocketServer {
 export function createStandaloneWSServer(port: number = 3003): WebSocketServer {
   const wss = new WebSocketServer({ port, path: '/agent/ws' })
 
-  console.log(`[AgentWS] Standalone WebSocket server started on ws://localhost:${port}/agent/ws`)
+  console.info('[AgentWS] Standalone WebSocket server started', { port, path: '/agent/ws' })
 
   wss.on('connection', handleConnection)
 
