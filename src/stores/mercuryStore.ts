@@ -277,6 +277,7 @@ export const useMercuryStore = create<MercuryState>()(
         let modelUsed: string | undefined
         let provider: string | undefined
         let latencyMs: number | undefined
+        let doneMetadata: Record<string, unknown> = {}
 
         // Handle non-streaming JSON fallback
         if (contentType.includes('application/json')) {
@@ -348,12 +349,36 @@ export const useMercuryStore = create<MercuryState>()(
                     case 'status':
                       // Ignore status events (retrieving, generating)
                       break
-                    case 'done':
-                      // Stream complete
+                    case 'done': {
+                      // Unwrap: backend may send { answer, ... } or { data: { answer, ... } }
+                      const d = data.data ?? data
+
+                      // Extract prose answer — REPLACE streamed content, never append.
+                      if (typeof d.answer === 'string') {
+                        fullContent = d.answer
+                        set({ streamingContent: fullContent })
+                      }
+
+                      // Citations & confidence → top-level vars for message construction
+                      const doneCit = d.citations
+                      if (Array.isArray(doneCit)) citations = doneCit
+                      if (d.confidence !== undefined) confidence = d.confidence
+
+                      // Everything else → metadata (sources, evidence, model info).
+                      if (d.sources) doneMetadata.sources = d.sources
+                      if (d.evidence) doneMetadata.evidence = d.evidence
+                      if (d.documents_searched != null) doneMetadata.docsSearched = d.documents_searched
+                      if (d.chunks_evaluated != null) doneMetadata.chunksEvaluated = d.chunks_evaluated
+                      if (d.model_used) { modelUsed = d.model_used; doneMetadata.modelUsed = d.model_used }
+                      if (d.provider) { provider = d.provider; doneMetadata.provider = d.provider }
+                      if (d.latency_ms != null) { latencyMs = d.latency_ms; doneMetadata.latencyMs = d.latency_ms }
                       break
+                    }
                     default:
-                      // Fallback: try known field names
-                      if (data.text) {
+                      // Only append if data.text is a plain string token,
+                      // not a structured object (prevents JSON leak from
+                      // unlabelled done events hitting this fallback).
+                      if (typeof data.text === 'string' && !data.answer && !data.data) {
                         fullContent += data.text
                         set({ streamingContent: fullContent })
                       }
@@ -397,6 +422,9 @@ export const useMercuryStore = create<MercuryState>()(
           modelUsed,
           provider,
           latencyMs,
+          ...(Object.keys(doneMetadata).length > 0
+            ? { metadata: doneMetadata }
+            : {}),
         }
 
         set((state) => {

@@ -437,6 +437,117 @@ describe('mercuryStore', () => {
     })
   })
 
+  describe('sendMessage – SSE done event metadata handling (BUG-027)', () => {
+    test('done event with answer replaces streamed tokens in message content', async () => {
+      const donePayload = {
+        answer: 'The clean prose answer.',
+        confidence: 0.95,
+        model_used: 'gemini-2.5-flash',
+        provider: 'aegis',
+        latency_ms: 342,
+        sources: [{ id: 's1', name: 'Source 1' }],
+        evidence: [{ id: 'e1', text: 'Evidence text' }],
+        documents_searched: 5,
+        chunks_evaluated: 12,
+      }
+      const stream = sseStream([
+        { event: 'token', data: JSON.stringify({ text: 'partial...' }) },
+        { event: 'done', data: JSON.stringify(donePayload) },
+      ])
+      ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+        if (url === '/api/chat') return Promise.resolve(mockResponse(stream))
+        return Promise.resolve(defaultFetchResponse)
+      })
+
+      useMercuryStore.setState({ inputValue: 'explain the background of this case' })
+      await useMercuryStore.getState().sendMessage(false)
+
+      const last = useMercuryStore.getState().messages.at(-1)
+      // Prose only — no JSON in content
+      expect(last?.content).toBe('The clean prose answer.')
+      expect(last?.content).not.toContain('{')
+      expect(last?.content).not.toContain('citations')
+      // Metadata stored separately
+      expect(last?.confidence).toBe(0.95)
+      expect(last?.modelUsed).toBe('gemini-2.5-flash')
+      expect(last?.provider).toBe('aegis')
+      expect(last?.latencyMs).toBe(342)
+      expect((last as unknown as Record<string, unknown>).metadata).toEqual({
+        sources: [{ id: 's1', name: 'Source 1' }],
+        evidence: [{ id: 'e1', text: 'Evidence text' }],
+        docsSearched: 5,
+        chunksEvaluated: 12,
+        modelUsed: 'gemini-2.5-flash',
+        provider: 'aegis',
+        latencyMs: 342,
+      })
+    })
+
+    test('done event wrapped in data envelope extracts correctly', async () => {
+      const stream = sseStream([
+        { event: 'token', data: JSON.stringify({ text: 'streaming...' }) },
+        { event: 'done', data: JSON.stringify({
+          data: {
+            answer: 'Unwrapped answer.',
+            confidence: 0.88,
+            citations: [],
+          },
+        }) },
+      ])
+      ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+        if (url === '/api/chat') return Promise.resolve(mockResponse(stream))
+        return Promise.resolve(defaultFetchResponse)
+      })
+
+      useMercuryStore.setState({ inputValue: 'test' })
+      await useMercuryStore.getState().sendMessage(false)
+
+      const last = useMercuryStore.getState().messages.at(-1)
+      expect(last?.content).toBe('Unwrapped answer.')
+      expect(last?.confidence).toBe(0.88)
+    })
+
+    test('done event without answer field keeps accumulated tokens', async () => {
+      const stream = sseStream([
+        { event: 'token', data: JSON.stringify({ text: 'Hello ' }) },
+        { event: 'token', data: JSON.stringify({ text: 'world' }) },
+        { event: 'done', data: JSON.stringify({ confidence: 0.9 }) },
+      ])
+      ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+        if (url === '/api/chat') return Promise.resolve(mockResponse(stream))
+        return Promise.resolve(defaultFetchResponse)
+      })
+
+      useMercuryStore.setState({ inputValue: 'test' })
+      await useMercuryStore.getState().sendMessage(false)
+
+      const last = useMercuryStore.getState().messages.at(-1)
+      expect(last?.content).toBe('Hello world')
+      expect(last?.confidence).toBe(0.9)
+    })
+
+    test('unlabelled event with structured data does not leak JSON into content', async () => {
+      // Simulate a done event arriving without the "done" label — hits default case
+      const stream = sseStream([
+        { event: 'token', data: JSON.stringify({ text: 'Good answer.' }) },
+        { event: '', data: JSON.stringify({ answer: 'Full JSON payload', data: { citations: [] } }) },
+        { event: 'done', data: '{}' },
+      ])
+      ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+        if (url === '/api/chat') return Promise.resolve(mockResponse(stream))
+        return Promise.resolve(defaultFetchResponse)
+      })
+
+      useMercuryStore.setState({ inputValue: 'test' })
+      await useMercuryStore.getState().sendMessage(false)
+
+      const last = useMercuryStore.getState().messages.at(-1)
+      // The default case guard should prevent JSON from leaking
+      expect(last?.content).toBe('Good answer.')
+      expect(last?.content).not.toContain('{')
+    })
+  })
+
   describe('sendMessage – tool routing vs RAG dispatch (Silence Protocol bypass)', () => {
     test('"what files are in my vault?" routes to list_documents tool, NOT /api/chat', async () => {
       mockExecuteTool.mockResolvedValue({
