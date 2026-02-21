@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Settings } from 'lucide-react'
 import { MercuryPanel } from './MercuryPanel'
-import { MercuryConfigModal } from './MercuryConfigModal'
+import { MercurySettingsModal } from './MercurySettingsModal'
 
 // ============================================================================
 // MERCURY WINDOW
@@ -72,9 +72,9 @@ export function MercuryWindow() {
         <MercuryPanel />
       </div>
 
-      {/* ─── Config Modal ─── */}
-      <MercuryConfigModal
-        isOpen={configOpen}
+      {/* ─── Settings Modal ─── */}
+      <MercurySettingsModal
+        open={configOpen}
         onClose={() => setConfigOpen(false)}
         onSaved={({ name, title }) => {
           setAgentName(name || 'Mercury')
