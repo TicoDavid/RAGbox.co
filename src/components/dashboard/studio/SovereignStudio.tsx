@@ -26,6 +26,7 @@ import {
 } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { useVaultStore } from '@/stores/vaultStore'
+import { MindMapPreview } from './MindMapPreview'
 
 // ============================================================================
 // TYPES
@@ -541,14 +542,18 @@ function GenerationError({
 function ArtifactResult({
   name,
   preview,
+  artifactType,
   onDownload,
   onDismiss,
 }: {
   name: string
   preview?: string
+  artifactType?: string
   onDownload: () => void
   onDismiss: () => void
 }) {
+  const isMindMap = artifactType === 'mindmap' && preview
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -565,7 +570,16 @@ function ArtifactResult({
         </div>
       </div>
 
-      {preview && (
+      {/* Mind map: render SVG inline via mermaid */}
+      {isMindMap && (
+        <div className="mb-3">
+          <p className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] mb-1">Preview</p>
+          <MindMapPreview mermaidCode={preview} title={name.replace(/\.[^.]+$/, '')} />
+        </div>
+      )}
+
+      {/* Other artifacts: text preview */}
+      {!isMindMap && preview && (
         <div className="mb-3 p-2.5 rounded-lg bg-[var(--bg-primary)]/50 border border-[var(--border-subtle)]">
           <p className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] mb-1">Preview</p>
           <p className="text-xs text-[var(--text-secondary)] line-clamp-4 whitespace-pre-wrap">{preview}</p>
@@ -579,7 +593,7 @@ function ArtifactResult({
           aria-label={`Download ${name}`}
         >
           <Download className="w-4 h-4" />
-          Download
+          {isMindMap ? 'Download HTML' : 'Download'}
         </button>
         <button
           onClick={onDismiss}
@@ -731,6 +745,7 @@ export function SovereignStudio() {
           <ArtifactResult
             name={generation.result.name}
             preview={generation.result.preview}
+            artifactType={generation.artifact ?? undefined}
             onDownload={handleDownload}
             onDismiss={handleDismiss}
           />

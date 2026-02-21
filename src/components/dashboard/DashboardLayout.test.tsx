@@ -46,6 +46,10 @@ jest.mock('./forge/ForgePanel', () => ({
   ForgePanel: () => <div data-testid="forge-panel" />,
 }))
 
+jest.mock('./chat', () => ({
+  CenterChat: () => <div data-testid="center-chat" />,
+}))
+
 import { DashboardLayout } from './DashboardLayout'
 
 // ── Tests ───────────────────────────────────────────────────────

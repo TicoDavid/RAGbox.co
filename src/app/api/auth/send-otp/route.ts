@@ -7,6 +7,7 @@
  * Falls back to in-memory OTP store when Redis is unavailable.
  */
 
+import { randomInt } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { getRedis } from '@/lib/cache/redisClient'
 import { generateOTP } from '@/lib/auth'
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
     }
 
     const normalizedEmail = email.toLowerCase().trim()
-    const code = Math.floor(100000 + Math.random() * 900000).toString()
+    const code = randomInt(100000, 999999).toString()
 
     // Store in Redis (primary) with 10-minute TTL
     const redis = getRedis()

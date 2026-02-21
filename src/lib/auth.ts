@@ -1,3 +1,4 @@
+import { randomInt } from "crypto";
 import { NextAuthOptions, CookieOption } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import AzureADProvider from "next-auth/providers/azure-ad";
@@ -192,7 +193,7 @@ export const authOptions: NextAuthOptions = {
 // Helper to generate and store OTP
 export function generateOTP(email: string): string {
   const normalizedEmail = email.toLowerCase().trim();
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const code = randomInt(100000, 999999).toString();
 
   otpStore.set(normalizedEmail, {
     code,

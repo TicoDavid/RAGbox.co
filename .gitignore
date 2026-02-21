@@ -51,3 +51,6 @@ test-document.txt
 # Generated artifacts
 artifacts/
 private.key
+
+# Server build output
+server/dist/
