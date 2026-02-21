@@ -268,7 +268,7 @@ export function GlobalHeader() {
         {/* Right Section - Actions */}
         <div className="flex items-center gap-2 shrink-0">
           {/* Persona Selector - Compact Mask Icon */}
-          <div className="relative" ref={personaMenuRef}>
+          <div className="relative group/lens" ref={personaMenuRef}>
             <button
               onClick={() => setPersonaMenuOpen(!personaMenuOpen)}
               aria-label={`Select persona: ${currentPersona.label}`}
@@ -293,6 +293,23 @@ export function GlobalHeader() {
               <span className="hidden lg:inline text-xs">{currentPersona.label}</span>
               <ChevronDown className={`w-3.5 h-3.5 transition-transform ${personaMenuOpen ? 'rotate-180' : ''}`} />
             </button>
+            {/* CEO Lens Tooltip */}
+            {!personaMenuOpen && (
+              <div className="absolute right-0 top-full mt-2 w-64 p-3 bg-[var(--bg-primary)]/95 backdrop-blur-xl border border-[var(--border-default)] rounded-lg shadow-2xl opacity-0 invisible group-hover/lens:opacity-100 group-hover/lens:visible transition-all duration-200 z-50 pointer-events-none">
+                <div className="flex items-center gap-2 mb-2">
+                  <CurrentPersonaIcon size={16} color={isWhistleblowerMode ? 'var(--warning)' : 'var(--brand-blue)'} />
+                  <span className={`text-sm font-semibold ${isWhistleblowerMode ? 'text-[var(--warning)]' : 'text-[var(--text-secondary)]'}`}>
+                    CEO Lens: {currentPersona.label}
+                  </span>
+                </div>
+                <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                  {currentPersona.description}. Switch personas to change how Mercury analyzes your documents.
+                </p>
+                <div className="mt-2 pt-2 border-t border-[var(--border-subtle)] text-[10px] text-[var(--text-tertiary)]">
+                  Click to switch lens
+                </div>
+              </div>
+            )}
 
             {/* Persona Dropdown */}
             {personaMenuOpen && (
@@ -835,6 +852,171 @@ function ProfileSettings() {
           <p className="text-sm font-medium text-[var(--text-primary)]">Sovereign Administrator</p>
         </div>
       </div>
+
+      {/* Work Profile Sub-Section */}
+      <WorkProfileSettings />
+    </div>
+  )
+}
+
+const INDUSTRIES = [
+  'Legal', 'Finance', 'Healthcare', 'Technology', 'Government',
+  'Education', 'Consulting', 'Real Estate', 'Insurance', 'Manufacturing', 'Other',
+] as const
+
+const COMPANY_SIZES = ['1-10', '11-50', '51-200', '201-500', '501-1000', '1001-5000', '5000+'] as const
+
+function WorkProfileSettings() {
+  const [workProfile, setWorkProfile] = useState({
+    companyName: '',
+    jobTitle: '',
+    industry: '',
+    companySize: '',
+    useCase: '',
+  })
+  const [saving, setSaving] = useState(false)
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/user/work-profile')
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && json.data) {
+          setWorkProfile({
+            companyName: json.data.companyName || '',
+            jobTitle: json.data.jobTitle || '',
+            industry: json.data.industry || '',
+            companySize: json.data.companySize || '',
+            useCase: json.data.useCase || '',
+          })
+        }
+        setLoaded(true)
+      })
+      .catch((err) => {
+        console.error('Failed to load work profile:', err)
+        setLoaded(true)
+      })
+  }, [])
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      const res = await fetch('/api/user/work-profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName: workProfile.companyName || null,
+          jobTitle: workProfile.jobTitle || null,
+          industry: workProfile.industry || null,
+          companySize: workProfile.companySize || null,
+          useCase: workProfile.useCase || null,
+        }),
+      })
+      if (!res.ok) {
+        const json = await res.json()
+        throw new Error(json.error || 'Failed to save work profile')
+      }
+      toast.success('Work profile saved')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save work profile')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const updateField = (field: string, value: string) => {
+    setWorkProfile((prev) => ({ ...prev, [field]: value }))
+  }
+
+  if (!loaded) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="w-5 h-5 animate-spin text-[var(--text-tertiary)]" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4 pt-4 border-t border-[var(--border-default)]">
+      <div>
+        <h4 className="text-sm font-semibold text-[var(--text-primary)]">Work Profile</h4>
+        <p className="text-xs text-[var(--text-tertiary)]">Your professional details for personalized experiences</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs text-[var(--text-tertiary)] mb-1">Company Name</label>
+          <input
+            type="text"
+            value={workProfile.companyName}
+            onChange={(e) => updateField('companyName', e.target.value)}
+            maxLength={200}
+            className="w-full px-3 py-1.5 rounded-lg bg-[var(--bg-primary)]/50 border border-[var(--border-default)] text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-blue)] transition-colors"
+            placeholder="Acme Corp"
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-[var(--text-tertiary)] mb-1">Job Title</label>
+          <input
+            type="text"
+            value={workProfile.jobTitle}
+            onChange={(e) => updateField('jobTitle', e.target.value)}
+            maxLength={100}
+            className="w-full px-3 py-1.5 rounded-lg bg-[var(--bg-primary)]/50 border border-[var(--border-default)] text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-blue)] transition-colors"
+            placeholder="General Counsel"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs text-[var(--text-tertiary)] mb-1">Industry</label>
+          <select
+            value={workProfile.industry}
+            onChange={(e) => updateField('industry', e.target.value)}
+            className="w-full px-3 py-1.5 rounded-lg bg-[var(--bg-primary)]/50 border border-[var(--border-default)] text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-blue)] transition-colors"
+          >
+            <option value="">Select industry</option>
+            {INDUSTRIES.map((ind) => (
+              <option key={ind} value={ind}>{ind}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs text-[var(--text-tertiary)] mb-1">Company Size</label>
+          <select
+            value={workProfile.companySize}
+            onChange={(e) => updateField('companySize', e.target.value)}
+            className="w-full px-3 py-1.5 rounded-lg bg-[var(--bg-primary)]/50 border border-[var(--border-default)] text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-blue)] transition-colors"
+          >
+            <option value="">Select size</option>
+            {COMPANY_SIZES.map((size) => (
+              <option key={size} value={size}>{size} employees</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-xs text-[var(--text-tertiary)] mb-1">Use Case</label>
+        <textarea
+          value={workProfile.useCase}
+          onChange={(e) => updateField('useCase', e.target.value)}
+          maxLength={500}
+          rows={3}
+          className="w-full px-3 py-1.5 rounded-lg bg-[var(--bg-primary)]/50 border border-[var(--border-default)] text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-blue)] resize-none transition-colors"
+          placeholder="Describe how you plan to use RAGbox..."
+        />
+      </div>
+
+      <button
+        onClick={handleSave}
+        disabled={saving}
+        className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] text-white rounded-lg transition-colors disabled:opacity-50"
+      >
+        {saving && <Loader2 className="w-3 h-3 animate-spin" />}
+        Save Work Profile
+      </button>
     </div>
   )
 }
