@@ -24,7 +24,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const { searchParams } = new URL(request.url)
     const threadId = searchParams.get('threadId')
-    const channel = searchParams.get('channel') as 'dashboard' | 'whatsapp' | 'voice' | null
+    const channel = searchParams.get('channel') as 'dashboard' | 'whatsapp' | 'voice' | 'email' | 'sms' | 'roam' | null
     const after = searchParams.get('after') // ISO timestamp for polling
     const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 200)
     const cursor = searchParams.get('cursor') // message id for cursor-based pagination
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (!['user', 'assistant'].includes(role)) {
       return NextResponse.json({ success: false, error: 'Invalid role' }, { status: 400 })
     }
-    if (!['dashboard', 'whatsapp', 'voice', 'roam', 'email'].includes(channel)) {
+    if (!['dashboard', 'whatsapp', 'voice', 'roam', 'email', 'sms'].includes(channel)) {
       return NextResponse.json({ success: false, error: 'Invalid channel' }, { status: 400 })
     }
 

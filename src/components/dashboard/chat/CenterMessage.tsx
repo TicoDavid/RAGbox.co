@@ -12,6 +12,7 @@ import { useVaultStore } from '@/stores/vaultStore'
 import { useChatStore } from '@/stores/chatStore'
 import { usePrivilegeStore } from '@/stores/privilegeStore'
 import type { ChatMessage, Citation } from '@/types/ragbox'
+import { ChannelBadge } from './ChannelBadge'
 
 type ResponseTab = 'answer' | 'sources' | 'evidence'
 
@@ -183,6 +184,7 @@ export function CenterMessage({ message }: { message: ChatMessage }) {
         <span className="text-sm font-medium text-[var(--text-primary)]">
           {isUser ? 'You' : 'RAGböx'}
         </span>
+        <ChannelBadge channel={message.channel} />
       </div>
 
       {/* Message body */}

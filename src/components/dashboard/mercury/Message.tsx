@@ -63,6 +63,7 @@ const CHANNEL_BADGE: Record<MercuryChannel, { label: string; color: string }> = 
   voice: { label: 'Voice', color: 'bg-[var(--text-accent)]/20 text-[var(--text-accent)] border-[var(--text-accent)]/30' },
   roam: { label: 'ROAM', color: 'bg-[var(--warning)]/20 text-[var(--warning)] border-[var(--warning)]/30' },
   email: { label: 'Email', color: 'bg-[var(--danger)]/20 text-[var(--danger)] border-[var(--danger)]/30' },
+  sms: { label: 'SMS', color: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' },
 }
 
 function ChannelBadge({ channel, isUser }: { channel?: MercuryChannel; isUser?: boolean }) {
