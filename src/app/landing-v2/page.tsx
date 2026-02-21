@@ -1,4 +1,7 @@
 // THEME-EXEMPT: Landing V3 — Pure black, Three.js orb, premium
+// Landing-only design tokens (not in design-tokens.css — see BRANDING_GUIDELINES.md §0)
+// --bg-void: #000000    --accent-glow: #3B82F6
+// --accent-warm: #D4A853  --text-muted: #4A5568
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
@@ -158,7 +161,17 @@ function LandingV3Content() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-[#E6F1FF]" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }}>
+    <main
+      className="min-h-screen bg-black text-[#E6F1FF]"
+      style={{
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+        // Landing-only tokens (BRANDING_GUIDELINES.md §0)
+        '--bg-void': '#000000',
+        '--accent-glow': '#3B82F6',
+        '--accent-warm': '#D4A853',
+        '--text-muted': '#4A5568',
+      } as React.CSSProperties}
+    >
 
       {/* ━━━ NAVBAR (Floating, transparent → dark on scroll) ━━━ */}
       <nav

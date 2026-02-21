@@ -12,11 +12,24 @@ import type { ChatMessage, Citation } from '@/types/ragbox'
 import { apiFetch } from '@/lib/api'
 import { toCitationBlocks } from '@/lib/citations/transform'
 
+export interface ThreadSummary {
+  id: string
+  title: string
+  createdAt: string
+  updatedAt: string
+  messageCount: number
+}
+
 export interface ChatState {
   // Thread
   threadId: string | null
   threadTitle: string
   messages: ChatMessage[]
+
+  // Thread history
+  threads: ThreadSummary[]
+  threadsLoading: boolean
+  sidebarOpen: boolean
 
   // Input
   inputValue: string
@@ -47,6 +60,9 @@ export interface ChatState {
   startDocumentChat: (docId: string, docName: string) => Promise<void>
   stopStreaming: () => void
   clearThread: () => void
+  fetchThreads: () => Promise<void>
+  loadThread: (threadId: string) => Promise<void>
+  setSidebarOpen: (open: boolean) => void
 }
 
 // Generate a short thread title from the first query
@@ -65,6 +81,51 @@ async function generateTitle(query: string): Promise<string> {
   }
 }
 
+// ── DB persistence helpers (fire-and-forget) ──
+
+async function createDbThread(): Promise<string | null> {
+  try {
+    const res = await fetch('/api/mercury/thread', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    return data.data?.id || null
+  } catch {
+    return null
+  }
+}
+
+function persistMessage(
+  threadId: string,
+  role: string,
+  content: string,
+  confidence?: number,
+  citations?: Citation[],
+) {
+  fetch('/api/mercury/thread/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      threadId,
+      role,
+      channel: 'dashboard',
+      content,
+      confidence,
+      citations,
+    }),
+  }).catch(() => {})
+}
+
+function patchThreadTitle(threadId: string, title: string) {
+  fetch('/api/mercury/thread', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ threadId, title }),
+  }).catch(() => {})
+}
+
 export const useChatStore = create<ChatState>()(
   devtools(
     persist(
@@ -72,6 +133,9 @@ export const useChatStore = create<ChatState>()(
       threadId: null,
       threadTitle: 'New Chat',
       messages: [],
+      threads: [],
+      threadsLoading: false,
+      sidebarOpen: false,
       inputValue: '',
       isStreaming: false,
       streamingContent: '',
@@ -129,6 +193,67 @@ export const useChatStore = create<ChatState>()(
           documentScope: null,
           documentScopeName: null,
         }),
+
+      setSidebarOpen: (open) => set({ sidebarOpen: open }),
+
+      fetchThreads: async () => {
+        set({ threadsLoading: true })
+        try {
+          const res = await fetch('/api/mercury/thread/list?limit=50')
+          if (!res.ok) throw new Error('Failed to fetch threads')
+          const data = await res.json()
+          const threads: ThreadSummary[] = (data.data?.threads || []).map(
+            (t: Record<string, unknown>) => ({
+              id: t.id as string,
+              title: (t.title as string) || 'Untitled',
+              createdAt: t.createdAt as string,
+              updatedAt: t.updatedAt as string,
+              messageCount: (t._count as Record<string, number>)?.messages ?? 0,
+            }),
+          )
+          set({ threads, threadsLoading: false })
+        } catch {
+          set({ threadsLoading: false })
+        }
+      },
+
+      loadThread: async (threadId) => {
+        try {
+          const res = await fetch(
+            `/api/mercury/thread/messages?threadId=${threadId}&limit=200`,
+          )
+          if (!res.ok) throw new Error('Failed to load thread')
+          const data = await res.json()
+          const apiMessages = data.data?.messages || []
+          const messages: ChatMessage[] = apiMessages.map(
+            (m: Record<string, unknown>) => ({
+              id: m.id as string,
+              role: m.role as 'user' | 'assistant',
+              content: m.content as string,
+              timestamp: new Date(m.createdAt as string),
+              confidence: m.confidence as number | undefined,
+              citations: m.citations as Citation[] | undefined,
+              channel: m.channel as string | undefined,
+            }),
+          )
+
+          // Find thread title from thread list
+          const thread = get().threads.find((t) => t.id === threadId)
+          set({
+            threadId,
+            threadTitle: thread?.title || 'Chat',
+            messages,
+            inputValue: '',
+            isStreaming: false,
+            streamingContent: '',
+            abortController: null,
+            documentScope: null,
+            documentScopeName: null,
+          })
+        } catch {
+          // Silently fail — thread may have been deleted
+        }
+      },
 
       sendMessage: async (privilegeMode) => {
         const { inputValue, messages, safetyMode, selectedModel, documentScope, incognitoMode } = get()
@@ -341,10 +466,35 @@ export const useChatStore = create<ChatState>()(
             abortController: null,
           }))
 
+          // Persist to database (fire-and-forget, skip in incognito)
+          if (!incognitoMode) {
+            ;(async () => {
+              let tid = get().threadId
+              if (!tid) {
+                tid = await createDbThread()
+                if (tid) set({ threadId: tid })
+              }
+              if (tid) {
+                persistMessage(tid, 'user', inputValue)
+                persistMessage(
+                  tid,
+                  'assistant',
+                  fullContent,
+                  confidence,
+                  citations,
+                )
+              }
+            })()
+          }
+
           // Auto-title after first exchange (skip in incognito)
           if (isFirstMessage && !incognitoMode) {
             generateTitle(queryForTitle)
-              .then((title) => set({ threadTitle: title }))
+              .then((title) => {
+                set({ threadTitle: title })
+                const tid = get().threadId
+                if (tid) patchThreadTitle(tid, title)
+              })
               .catch(() => set({ threadTitle: queryForTitle.slice(0, 50) }))
           }
         } catch (error) {
@@ -387,6 +537,7 @@ export const useChatStore = create<ChatState>()(
               documentScope: state.documentScope,
               documentScopeName: state.documentScopeName,
               selectedModel: state.selectedModel,
+              sidebarOpen: state.sidebarOpen,
             },
     },
     ),

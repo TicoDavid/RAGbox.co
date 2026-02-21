@@ -32,6 +32,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         title: true,
         createdAt: true,
         updatedAt: true,
+        _count: { select: { messages: true } },
       },
     })
 

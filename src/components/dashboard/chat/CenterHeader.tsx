@@ -1,7 +1,7 @@
 'use client'
 
 import { useChatStore } from '@/stores/chatStore'
-import { MessageSquare, FileText, X, PenLine, EyeOff } from 'lucide-react'
+import { MessageSquare, FileText, X, PenLine, EyeOff, PanelLeft } from 'lucide-react'
 
 export function CenterHeader() {
   const messages = useChatStore((s) => s.messages)
@@ -11,13 +11,26 @@ export function CenterHeader() {
   const setDocumentScope = useChatStore((s) => s.setDocumentScope)
   const clearThread = useChatStore((s) => s.clearThread)
   const incognitoMode = useChatStore((s) => s.incognitoMode)
+  const sidebarOpen = useChatStore((s) => s.sidebarOpen)
+  const setSidebarOpen = useChatStore((s) => s.setSidebarOpen)
   const queryCount = messages.filter((m) => m.role === 'user').length
 
   return (
     <div className="shrink-0 flex flex-col border-b border-[var(--border-default)]">
       <div className="flex items-center justify-between px-8 py-3">
         <div className="flex items-center gap-2 text-sm">
-          <MessageSquare className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className={`p-1.5 rounded-md transition-colors ${
+              sidebarOpen
+                ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)]'
+                : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]'
+            }`}
+            aria-label="Toggle thread history"
+            title="Thread history"
+          >
+            <PanelLeft className="w-3.5 h-3.5" />
+          </button>
           <span className="text-[var(--text-primary)] font-medium truncate max-w-[300px]">
             {threadTitle || 'New Chat'}
           </span>

@@ -5,6 +5,7 @@ import { useChatStore } from '@/stores/chatStore'
 import { CenterHeader } from './CenterHeader'
 import { CenterMessage } from './CenterMessage'
 import { CenterInputBar } from './CenterInputBar'
+import { ThreadSidebar } from './ThreadSidebar'
 
 // ============================================================================
 // EMPTY STATE — RAGböx watermark (Perplexity-style)
@@ -62,6 +63,7 @@ export function CenterChat() {
   const streamingContent = useChatStore((s) => s.streamingContent)
   const incognitoMode = useChatStore((s) => s.incognitoMode)
   const clearThread = useChatStore((s) => s.clearThread)
+  const sidebarOpen = useChatStore((s) => s.sidebarOpen)
 
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -79,28 +81,34 @@ export function CenterChat() {
   }, [incognitoMode, clearThread])
 
   return (
-    <div className={`flex flex-col h-full bg-[var(--bg-primary)]${incognitoMode ? ' border-t-2 border-[var(--warning)]' : ''}`}>
-      {/* Header */}
-      <CenterHeader />
+    <div className="flex h-full">
+      {/* Thread history sidebar */}
+      {sidebarOpen && <ThreadSidebar />}
 
-      {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto">
-        {messages.length === 0 && !isStreaming ? (
-          <EmptyState />
-        ) : (
-          <div className="max-w-[800px] mx-auto px-8 py-6">
-            {messages.map((msg) => (
-              <CenterMessage key={msg.id} message={msg} />
-            ))}
-            {isStreaming && <StreamingIndicator content={streamingContent} />}
+      {/* Main chat area */}
+      <div className={`flex flex-col flex-1 min-w-0 bg-[var(--bg-primary)]${incognitoMode ? ' border-t-2 border-[var(--warning)]' : ''}`}>
+        {/* Header */}
+        <CenterHeader />
+
+        {/* Messages */}
+        <div ref={scrollRef} className="flex-1 overflow-y-auto">
+          {messages.length === 0 && !isStreaming ? (
+            <EmptyState />
+          ) : (
+            <div className="max-w-[800px] mx-auto px-8 py-6">
+              {messages.map((msg) => (
+                <CenterMessage key={msg.id} message={msg} />
+              ))}
+              {isStreaming && <StreamingIndicator content={streamingContent} />}
+            </div>
+          )}
+        </div>
+
+        {/* Input bar */}
+        <div className="shrink-0">
+          <div className="max-w-[800px] mx-auto px-8 py-4">
+            <CenterInputBar />
           </div>
-        )}
-      </div>
-
-      {/* Input bar */}
-      <div className="shrink-0">
-        <div className="max-w-[800px] mx-auto px-8 py-4">
-          <CenterInputBar />
         </div>
       </div>
     </div>
