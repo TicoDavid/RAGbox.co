@@ -12,6 +12,13 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
+// ── Mock next/navigation ────────────────────────────────────────
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn(), refresh: jest.fn() }),
+  usePathname: () => '/dashboard',
+  useSearchParams: () => new URLSearchParams(),
+}))
+
 // ── Mock sonner ──────────────────────────────────────────────────
 jest.mock('sonner', () => ({ toast: { success: jest.fn(), error: jest.fn() } }))
 
@@ -84,7 +91,12 @@ function getPostBody(): Record<string, unknown> | null {
 
 async function renderAndWaitForLoad() {
   render(<MercurySettingsModal open={true} onClose={jest.fn()} onSaved={jest.fn()} />)
-  // Wait for IdentitySection content to render (not just sidebar nav)
+  // Wait for Identity section content to render (default active tab)
+  await waitFor(() => {
+    expect(screen.getByText('Agent Name')).toBeInTheDocument()
+  })
+  // Switch to Persona tab where Personality/Role selectors live
+  fireEvent.click(screen.getByText('Persona'))
   await waitFor(() => {
     expect(screen.getByText('Personality')).toBeInTheDocument()
   })

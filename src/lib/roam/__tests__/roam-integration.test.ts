@@ -125,6 +125,11 @@ const mockCreate = jest.fn()
 const mockUpdate = jest.fn()
 const mockThreadCreate = jest.fn()
 const mockActionCreate = jest.fn()
+const mockDocumentCreate = jest.fn()
+const mockRoamIntegrationFindFirst = jest.fn()
+const mockRoamIntegrationFindUnique = jest.fn()
+const mockRoamIntegrationUpdate = jest.fn()
+const mockMercuryPersonaFindUnique = jest.fn()
 
 jest.mock('@/lib/prisma', () => ({
   __esModule: true,
@@ -141,18 +146,50 @@ jest.mock('@/lib/prisma', () => ({
     mercuryAction: {
       create: (...args: unknown[]) => mockActionCreate(...args),
     },
+    document: {
+      create: (...args: unknown[]) => mockDocumentCreate(...args),
+    },
+    roamIntegration: {
+      findFirst: (...args: unknown[]) => mockRoamIntegrationFindFirst(...args),
+      findUnique: (...args: unknown[]) => mockRoamIntegrationFindUnique(...args),
+      update: (...args: unknown[]) => mockRoamIntegrationUpdate(...args),
+    },
+    mercuryPersona: {
+      findUnique: (...args: unknown[]) => mockMercuryPersonaFindUnique(...args),
+    },
   },
 }))
 
 const mockSendMessage = jest.fn()
+const mockGetTranscriptInfo = jest.fn()
 jest.mock('@/lib/roam/roamClient', () => ({
   sendMessage: (...args: unknown[]) => mockSendMessage(...args),
+  sendTypingIndicator: jest.fn(),
+  getTranscriptInfo: (...args: unknown[]) => mockGetTranscriptInfo(...args),
+  RoamApiError: class RoamApiError extends Error {
+    status: number
+    constructor(message: string, status: number) { super(message); this.status = status }
+  },
 }))
 
 jest.mock('@/lib/roam/roamFormat', () => ({
   formatForRoam: jest.fn((text: string) => text),
   formatSilenceForRoam: jest.fn(() => 'SILENCE'),
   formatErrorForRoam: jest.fn(() => 'ERROR'),
+  formatMeetingSummary: jest.fn(
+    (title: string, participants: string[], summary: string) =>
+      `Meeting Summary: ${title}\nParticipants: ${participants.join(', ')}\n${summary}`
+  ),
+}))
+
+jest.mock('@/lib/roam/deadLetterWriter', () => ({
+  writeDeadLetter: jest.fn(),
+}))
+
+jest.mock('@/lib/utils/kms', () => ({
+  encryptKey: jest.fn((v: string) => Promise.resolve(`kms-stub:${Buffer.from(v).toString('base64')}`)),
+  decryptKey: jest.fn((v: string) => Promise.resolve(Buffer.from(v.replace('kms-stub:', ''), 'base64').toString())),
+  isEncrypted: jest.fn((v: string) => v.startsWith('kms-stub:') || v.startsWith('kms:')),
 }))
 
 jest.mock('@/lib/mercury/sseParser', () => ({
@@ -205,6 +242,10 @@ describe('Mention → Mercury → ROAM pipeline', () => {
     mockActionCreate.mockResolvedValue({})
     mockSendMessage.mockResolvedValue({})
 
+    // Tenant resolution mocks
+    mockRoamIntegrationFindFirst.mockResolvedValue(null) // default tenant
+    mockMercuryPersonaFindUnique.mockResolvedValue(null)
+
     // Mock Go backend fetch
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
@@ -230,12 +271,10 @@ describe('Mention → Mercury → ROAM pipeline', () => {
     )
 
     // Reply should have been sent to ROAM
-    expect(mockSendMessage).toHaveBeenCalledWith(
-      expect.objectContaining({
-        groupId: 'group-123',
-        text: expect.any(String),
-      }),
-    )
+    expect(mockSendMessage).toHaveBeenCalled()
+    const sendCall = mockSendMessage.mock.calls[0][0]
+    expect(sendCall.groupId).toBe('group-123')
+    expect(typeof sendCall.text).toBe('string')
 
     // Audit record should have been written
     expect(mockActionCreate).toHaveBeenCalledWith(
@@ -273,6 +312,10 @@ describe('DM → Mercury response pipeline', () => {
     mockActionCreate.mockResolvedValue({})
     mockSendMessage.mockResolvedValue({})
 
+    // Tenant resolution mocks
+    mockRoamIntegrationFindFirst.mockResolvedValue(null)
+    mockMercuryPersonaFindUnique.mockResolvedValue(null)
+
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       text: () => Promise.resolve('data: {"text":"DM answer"}\n\n'),
@@ -294,25 +337,112 @@ describe('DM → Mercury response pipeline', () => {
     expect(global.fetch).toHaveBeenCalled()
 
     // Reply sent to DM group
-    expect(mockSendMessage).toHaveBeenCalledWith(
-      expect.objectContaining({
-        groupId: 'dm-alice-mercury',
-      }),
-    )
+    expect(mockSendMessage).toHaveBeenCalled()
+    const dmCall = mockSendMessage.mock.calls[0][0]
+    expect(dmCall.groupId).toBe('dm-alice-mercury')
   })
 })
 
 // ── 4. Meeting transcript.saved → summary posted ─────────────────
 
 describe('Meeting transcript.saved → summary', () => {
-  it.todo('fetches transcript → summarizes via Mercury → posts to group (STORY-103)')
-  // Will be implemented when Sheldon delivers STORY-103.
-  // Expected flow:
-  //   1. transcript.saved event arrives with transcript_id
-  //   2. GET /transcript.info fetches full transcript
-  //   3. POST /api/chat with "summarize this meeting" prompt
-  //   4. POST /chat.post with summary + action items
-  //   5. Store transcript document in Vault
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockFindFirst.mockResolvedValue(null)
+    mockThreadCreate.mockResolvedValue({ id: 'thread-transcript' })
+    mockCreate.mockResolvedValue({ id: 'msg-transcript' })
+    mockUpdate.mockResolvedValue({})
+    mockActionCreate.mockResolvedValue({})
+    mockDocumentCreate.mockResolvedValue({ id: 'doc-transcript' })
+    mockSendMessage.mockResolvedValue({})
+
+    // Tenant resolution: roamIntegration lookup → persona lookup
+    mockRoamIntegrationFindFirst.mockResolvedValue({
+      tenantId: 'default',
+      userId: 'user_test_123',
+      apiKeyEncrypted: null,
+      targetGroupId: 'group-meeting-1',
+      status: 'connected',
+      meetingSummaries: true,
+    })
+    mockMercuryPersonaFindUnique.mockResolvedValue({
+      personalityPrompt: 'You are precise and formal.',
+    })
+
+    // Transcript fetch from ROAM
+    mockGetTranscriptInfo.mockResolvedValue({
+      id: 'transcript-abc',
+      groupId: 'group-meeting-1',
+      title: 'Q1 Planning Review',
+      participants: ['Alice', 'Bob', 'Charlie'],
+      content: 'Alice: We need to finalize the roadmap.\nBob: Agreed, let me share the priorities.\nCharlie: Action item — update the Jira board by Friday.',
+      duration: 1800,
+      createdAt: '2026-02-22T14:00:00Z',
+    })
+
+    // Go backend RAG response for summarization
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve('data: {"text":"Key points: roadmap finalization, priorities shared, action item for Jira board update by Friday."}\n\n'),
+    }) as jest.Mock
+  })
+
+  it('fetches transcript → summarizes via Mercury → posts to group → stores in Vault', async () => {
+    const req = makePubSubRequest('transcript.saved', {
+      transcript_id: 'transcript-abc',
+      chat: { id: 'group-meeting-1' },
+      title: 'Q1 Planning Review',
+    })
+
+    const res = await processEventPOST(req)
+    expect(res.status).toBe(200)
+
+    // 1. Transcript fetched from ROAM
+    expect(mockGetTranscriptInfo).toHaveBeenCalledWith('transcript-abc', undefined)
+
+    // 2. RAG backend called with summarization prompt
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/chat'),
+      expect.objectContaining({ method: 'POST' }),
+    )
+    const ragBody = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body)
+    expect(ragBody.query).toContain('Summarize this meeting transcript')
+    expect(ragBody.mode).toBe('concise')
+
+    // 3. Summary posted to ROAM group
+    expect(mockSendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        groupId: 'group-meeting-1',
+        text: expect.stringContaining('Q1 Planning Review'),
+      }),
+      undefined,
+    )
+
+    // 4. Transcript stored as document in Vault
+    expect(mockDocumentCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: 'user_test_123',
+          mimeType: 'text/plain',
+          indexStatus: 'Pending',
+          metadata: expect.objectContaining({
+            source: 'roam_transcript',
+            transcriptId: 'transcript-abc',
+          }),
+        }),
+      }),
+    )
+
+    // 5. Audit record written
+    expect(mockActionCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          actionType: 'roam_meeting_summary',
+          status: 'completed',
+        }),
+      }),
+    )
+  })
 })
 
 // ── 5. Credential encrypt/decrypt round-trip ─────────────────────
@@ -353,13 +483,75 @@ describe('Credential encrypt/decrypt (KMS stub)', () => {
 
 // ── 6. Disconnect cleanup ────────────────────────────────────────
 
-describe('Disconnect cleanup', () => {
-  it.todo('unsubscribes webhook + deletes stored key (STORY-101)')
-  // Will be implemented when Sheldon delivers STORY-101.
-  // Expected flow:
-  //   1. POST /api/integrations/roam/disconnect
-  //   2. Calls ROAM /webhook.unsubscribe with stored subscription_id
-  //   3. Clears encrypted API key from DB
-  //   4. Sets status to 'disconnected'
-  //   5. Audit log entry written
+describe('Disconnect cleanup (STORY-101)', () => {
+  // Mock next-auth/jwt for the disconnect route
+  jest.mock('next-auth/jwt', () => ({
+    getToken: jest.fn().mockResolvedValue({
+      id: 'user_test_123',
+      email: 'test@ragbox.co',
+    }),
+  }))
+
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { POST: disconnectPOST } = require('@/app/api/integrations/roam/disconnect/route')
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  it('clears API key and sets status to disconnected', async () => {
+    // Existing connected integration
+    mockRoamIntegrationFindUnique.mockResolvedValue({
+      id: 'int-1',
+      tenantId: 'default',
+      apiKeyEncrypted: 'kms-stub:encryptedkey',
+      status: 'connected',
+      targetGroupId: 'group-1',
+    })
+
+    // After disconnect
+    mockRoamIntegrationUpdate.mockResolvedValue({
+      id: 'int-1',
+      tenantId: 'default',
+      apiKeyEncrypted: null,
+      status: 'disconnected',
+    })
+
+    const req = new Request('http://localhost:3000/api/integrations/roam/disconnect', {
+      method: 'POST',
+    })
+
+    const res = await disconnectPOST(req)
+    expect(res.status).toBe(200)
+
+    const json = await res.json()
+    expect(json.success).toBe(true)
+    expect(json.data.status).toBe('disconnected')
+
+    // Verify update cleared the key and set status
+    expect(mockRoamIntegrationUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { tenantId: 'default' },
+        data: {
+          apiKeyEncrypted: null,
+          status: 'disconnected',
+        },
+      }),
+    )
+  })
+
+  it('returns 404 when no integration exists', async () => {
+    mockRoamIntegrationFindUnique.mockResolvedValue(null)
+
+    const req = new Request('http://localhost:3000/api/integrations/roam/disconnect', {
+      method: 'POST',
+    })
+
+    const res = await disconnectPOST(req)
+    expect(res.status).toBe(404)
+
+    const json = await res.json()
+    expect(json.success).toBe(false)
+    expect(json.error).toContain('No ROAM integration found')
+  })
 })
