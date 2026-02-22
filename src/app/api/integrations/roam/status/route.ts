@@ -30,6 +30,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       mentionOnly: true,
       meetingSummaries: true,
       connectedAt: true,
+      lastHealthCheckAt: true,
+      errorReason: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -38,12 +40,31 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   if (!integration) {
     return NextResponse.json({
       success: true,
-      data: { status: 'not_configured' },
+      data: { status: 'not_configured', healthStatus: 'unknown' as const },
     })
+  }
+
+  // Compute health status from integration state
+  const ONE_HOUR_MS = 60 * 60 * 1000
+  let healthStatus: 'error' | 'disconnected' | 'stale' | 'healthy' | 'unknown'
+
+  if (integration.status === 'error' || integration.errorReason) {
+    healthStatus = 'error'
+  } else if (integration.status === 'disconnected') {
+    healthStatus = 'disconnected'
+  } else if (
+    integration.lastHealthCheckAt &&
+    Date.now() - new Date(integration.lastHealthCheckAt).getTime() > ONE_HOUR_MS
+  ) {
+    healthStatus = 'stale'
+  } else if (integration.status === 'connected') {
+    healthStatus = 'healthy'
+  } else {
+    healthStatus = 'unknown'
   }
 
   return NextResponse.json({
     success: true,
-    data: integration,
+    data: { ...integration, healthStatus },
   })
 }

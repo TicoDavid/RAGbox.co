@@ -661,11 +661,35 @@ model RoamIntegration {
   meetingSummaries       Boolean   @default(true) @map("meeting_summaries")
   status                String    @default("disconnected")
   connectedAt           DateTime? @map("connected_at")
+  lastHealthCheckAt     DateTime? @map("last_health_check_at")
+  errorReason           String?   @map("error_reason")
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
 
   @@index([targetGroupId])
   @@map("roam_integrations")
+}
+
+// ============================================
+// ROAM Dead Letter Queue (Failed Event Replay)
+// ============================================
+
+model RoamDeadLetter {
+  id              String    @id @default(cuid())
+  tenantId        String    @map("tenant_id")
+  pubsubMessageId String    @unique @map("pubsub_message_id")
+  eventType       String    @map("event_type")
+  payload         Json
+  errorMessage    String    @map("error_message")
+  errorStatus     Int?      @map("error_status")
+  attemptCount    Int       @default(1) @map("attempt_count")
+  retried         Boolean   @default(false)
+  retriedAt       DateTime? @map("retried_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([retried])
+  @@map("roam_dead_letters")
 }
 
 // ============================================

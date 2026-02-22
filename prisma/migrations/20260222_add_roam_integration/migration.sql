@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS "roam_integrations" (
     "meeting_summaries" BOOLEAN NOT NULL DEFAULT true,
     "status" TEXT NOT NULL DEFAULT 'disconnected',
     "connected_at" TIMESTAMP(3),
+    "last_health_check_at" TIMESTAMP(3),
+    "error_reason" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
