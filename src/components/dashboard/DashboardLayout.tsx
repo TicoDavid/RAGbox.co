@@ -34,6 +34,7 @@ import {
 import IngestionModal from '@/app/dashboard/components/IngestionModal'
 import { apiFetch } from '@/lib/api'
 import { ExportPanel } from './export'
+import { WhatsAppPanel } from './whatsapp/WhatsAppPanel'
 
 // ============================================================================
 // PANEL CONTENT COMPONENTS
@@ -500,6 +501,8 @@ export function DashboardLayout() {
         return <AuditPanel />
       case 'export':
         return <ExportPanel />
+      case 'whatsapp':
+        return <WhatsAppPanel />
       default:
         return null
     }

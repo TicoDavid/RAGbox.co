@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Mic,
+  MessageSquare,
   Maximize2,
 } from 'lucide-react'
 
@@ -21,7 +22,7 @@ import {
 // ============================================================================
 
 export type LeftRailTab = 'vault' | 'recent' | 'starred'
-export type RightRailTab = 'mercury' | 'studio' | 'audit' | 'export'
+export type RightRailTab = 'mercury' | 'studio' | 'audit' | 'export' | 'whatsapp'
 
 interface RailIconProps {
   icon: React.ElementType
@@ -280,6 +281,17 @@ export function RightStealthRail({
           onClick={() => onTabClick('export')}
           side="right"
         />
+
+        {/* WhatsApp */}
+        <div className="relative">
+          <RailIcon
+            icon={MessageSquare}
+            label="WhatsApp"
+            isActive={isExpanded && activeTab === 'whatsapp'}
+            onClick={() => onTabClick('whatsapp')}
+            side="right"
+          />
+        </div>
       </div>
 
       {/* Collapse Toggle (shown when expanded) */}
