@@ -518,6 +518,82 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     await prisma.$executeRawUnsafe(`UPDATE "users" SET "subscription_tier" = 'free' WHERE "subscription_tier" IN ('starter', 'professional') AND "subscription_status" = 'inactive'`)
     results.push('users tier migration (professional→free): OK')
 
+    // ========================================
+    // EPIC-010: ROAM Integration table
+    // ========================================
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "roam_integrations" (
+        "id" TEXT NOT NULL,
+        "tenant_id" TEXT NOT NULL,
+        "user_id" TEXT NOT NULL,
+        "api_key_encrypted" TEXT,
+        "webhook_subscription_id" TEXT,
+        "target_group_id" TEXT,
+        "target_group_name" TEXT,
+        "mention_only" BOOLEAN NOT NULL DEFAULT true,
+        "meeting_summaries" BOOLEAN NOT NULL DEFAULT true,
+        "status" TEXT NOT NULL DEFAULT 'disconnected',
+        "connected_at" TIMESTAMP(3),
+        "last_health_check_at" TIMESTAMP(3),
+        "error_reason" TEXT,
+        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "roam_integrations_pkey" PRIMARY KEY ("id")
+      )
+    `)
+    await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "roam_integrations_tenant_id_key" ON "roam_integrations"("tenant_id")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "roam_integrations_target_group_id_idx" ON "roam_integrations"("target_group_id")`)
+    results.push('roam_integrations: OK')
+
+    // ========================================
+    // STORY-104: ROAM Dead Letter Queue
+    // ========================================
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "roam_dead_letters" (
+        "id" TEXT NOT NULL,
+        "tenant_id" TEXT NOT NULL,
+        "pubsub_message_id" TEXT NOT NULL,
+        "event_type" TEXT NOT NULL,
+        "payload" JSONB NOT NULL,
+        "error_message" TEXT NOT NULL,
+        "error_status" INTEGER,
+        "attempt_count" INTEGER NOT NULL DEFAULT 1,
+        "retried" BOOLEAN NOT NULL DEFAULT false,
+        "retried_at" TIMESTAMP(3),
+        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "roam_dead_letters_pkey" PRIMARY KEY ("id")
+      )
+    `)
+    await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "roam_dead_letters_pubsub_message_id_key" ON "roam_dead_letters"("pubsub_message_id")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "roam_dead_letters_tenant_id_created_at_idx" ON "roam_dead_letters"("tenant_id", "created_at" DESC)`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "roam_dead_letters_retried_idx" ON "roam_dead_letters"("retried")`)
+    results.push('roam_dead_letters: OK')
+
+    // ========================================
+    // EPIC-010: MercuryPersona preset columns
+    // ========================================
+    await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "mercury_personas" ADD COLUMN "personality_preset" TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
+    await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "mercury_personas" ADD COLUMN "role_preset" TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
+    results.push('mercury_personas preset columns: OK')
+
+    // ========================================
+    // EPIC-010: notification_settings table
+    // ========================================
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "notification_settings" (
+        "id" TEXT NOT NULL,
+        "user_id" TEXT NOT NULL,
+        "email" BOOLEAN NOT NULL DEFAULT true,
+        "push" BOOLEAN NOT NULL DEFAULT false,
+        "audit" BOOLEAN NOT NULL DEFAULT true,
+        "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "notification_settings_pkey" PRIMARY KEY ("id"),
+        CONSTRAINT "notification_settings_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE
+      )
+    `)
+    await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "notification_settings_user_id_key" ON "notification_settings"("user_id")`)
+    results.push('notification_settings: OK')
+
     return NextResponse.json({ success: true, results })
   } catch (error) {
     return NextResponse.json({
