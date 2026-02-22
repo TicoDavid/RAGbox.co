@@ -173,12 +173,15 @@ export default function IntegrationsSettings() {
         throw new Error(data.error || 'Failed to fetch groups')
       }
       const data = await res.json()
-      setRoamGroups(data.data || [])
-      if (data.data?.length > 0 && !roamSelectedGroup) {
-        setRoamSelectedGroup(data.data[0].id)
+      const groups = data.data?.groups || data.data || []
+      setRoamGroups(groups)
+      if (groups.length > 0 && !roamSelectedGroup) {
+        setRoamSelectedGroup(groups[0].id)
       }
     } catch (err) {
-      setRoamError(err instanceof Error ? err.message : 'Failed to fetch groups')
+      const message = err instanceof Error ? err.message : 'Failed to fetch groups'
+      setRoamError(message)
+      setRoamStatus({ status: 'error', error: message })
       setRoamGroups([])
     } finally {
       setRoamLoadingGroups(false)

@@ -290,6 +290,21 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
     return
   }
 
+  // mentionOnly enforcement: skip non-mention group messages
+  if (tenant.tenantId !== 'default') {
+    const integration = await prisma.roamIntegration.findFirst({
+      where: { tenantId: tenant.tenantId, status: 'connected' },
+      select: { mentionOnly: true },
+    })
+    if (integration?.mentionOnly) {
+      const isMention = event.type === 'chat.message.mention' || /^@\S/i.test(text)
+      if (!isMention) {
+        console.log(`[ROAM Processor] Skipping non-mention message for tenant ${tenant.tenantId} (mentionOnly=true)`)
+        return
+      }
+    }
+  }
+
   // Send typing indicator (fire-and-forget)
   sendTypingIndicator(groupId, tenant.apiKey || undefined)
 
