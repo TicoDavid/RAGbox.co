@@ -6,6 +6,7 @@
  *
  * — Sarah, Engineering
  */
+export {} // Ensure this file is treated as a module (avoids TS2451 conflict with Next.js route types)
 
 // ── Mock next-auth/jwt ───────────────────────────────────────────
 jest.mock('next-auth/jwt', () => ({
@@ -50,7 +51,9 @@ jest.mock('@/lib/prisma', () => ({
 
 // ── Import route handlers ────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { GET, POST } = require('../config/route')
+const routeHandlers = require('../config/route')
+const GET = routeHandlers.GET as (req: Request) => Promise<Response>
+const POST = routeHandlers.POST as (req: Request) => Promise<Response>
 
 // ── Helpers ──────────────────────────────────────────────────────
 

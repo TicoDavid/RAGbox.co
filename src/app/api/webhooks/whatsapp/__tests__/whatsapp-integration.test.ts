@@ -8,6 +8,7 @@
  *
  * — Sarah, Engineering
  */
+export {} // Ensure this file is treated as a module (avoids TS2451 conflict with Next.js route types)
 
 // ── Environment setup (before imports) ───────────────────────────
 process.env.WHATSAPP_DEFAULT_USER_ID = 'test-user-id'
@@ -100,7 +101,8 @@ function makeRequest(body: Record<string, unknown>): Request {
 
 // ── Import route handler ─────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { POST } = require('../route')
+const whatsappRoute = require('../route')
+const POST = whatsappRoute.POST as (req: Request) => Promise<Response>
 
 // ── Setup ────────────────────────────────────────────────────────
 
