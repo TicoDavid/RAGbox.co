@@ -50,6 +50,12 @@ jest.mock('./chat', () => ({
   CenterChat: () => <div data-testid="center-chat" />,
 }))
 
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn(), prefetch: jest.fn() }),
+  usePathname: () => '/dashboard',
+  useSearchParams: () => new URLSearchParams(),
+}))
+
 import { DashboardLayout } from './DashboardLayout'
 
 // ── Tests ───────────────────────────────────────────────────────

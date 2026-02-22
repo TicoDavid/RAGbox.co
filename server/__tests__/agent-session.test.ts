@@ -4,6 +4,23 @@
  * Validates session bootstrap, WS handshake, and tool registry.
  */
 
+const mockPrisma = {
+  document: {
+    count: jest.fn().mockResolvedValue(5),
+    groupBy: jest.fn().mockResolvedValue([
+      { mimeType: 'application/pdf', _count: 3 },
+      { mimeType: 'text/plain', _count: 2 },
+    ]),
+    findMany: jest.fn().mockResolvedValue([
+      { filename: 'test.pdf', createdAt: new Date() },
+    ]),
+  },
+}
+
+jest.mock('@prisma/client', () => ({
+  PrismaClient: jest.fn(() => mockPrisma),
+}))
+
 import { executeTool, type ToolCall, type ToolContext } from '../tools'
 import { checkToolPermission } from '../tools/permissions'
 
