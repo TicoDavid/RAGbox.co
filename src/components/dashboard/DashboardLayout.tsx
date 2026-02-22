@@ -283,6 +283,12 @@ export function DashboardLayout() {
   const [rightTab, setRightTab] = useState<RightRailTab>('studio')
   const mercuryEnabled = isMercuryEnabled()
   const [mercuryOpen, setMercuryOpen] = useState(false)
+  const [mercuryWidth, setMercuryWidth] = useState(() => {
+    if (typeof window === 'undefined') return 400
+    const stored = localStorage.getItem('mercury-panel-width')
+    return stored ? Math.max(320, Math.min(Number(stored), window.innerWidth * 0.5)) : 400
+  })
+  const mercuryDragRef = useRef(false)
   const [isIngestionOpen, setIsIngestionOpen] = useState(false)
 
   // Mobile overlay state
@@ -430,11 +436,46 @@ export function DashboardLayout() {
     setMercuryOpen((prev) => !prev)
   }, [])
 
+  // Mercury resize drag handler
+  const handleMercuryDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    mercuryDragRef.current = true
+    const startX = e.clientX
+    const startWidth = mercuryWidth
+    const maxWidth = Math.floor(window.innerWidth * 0.5)
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!mercuryDragRef.current) return
+      // Dragging left edge: moving left increases width
+      const delta = startX - ev.clientX
+      const newWidth = Math.max(320, Math.min(startWidth + delta, maxWidth))
+      setMercuryWidth(newWidth)
+    }
+
+    const onMouseUp = () => {
+      mercuryDragRef.current = false
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      // Persist final width
+      setMercuryWidth((w) => {
+        localStorage.setItem('mercury-panel-width', String(w))
+        return w
+      })
+    }
+
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+  }, [mercuryWidth])
+
   // Widths
   const RAIL_WIDTH = 64
   const LEFT_PANEL_WIDTH = 420
   const RIGHT_PANEL_WIDTH = 380
-  const MERCURY_PANEL_WIDTH = 400
+  const MERCURY_PANEL_WIDTH = mercuryWidth
 
   // Render left panel content based on tab
   const renderLeftContent = () => {
@@ -554,8 +595,17 @@ export function DashboardLayout() {
                 initial={false}
                 animate={{ width: mercuryOpen ? MERCURY_PANEL_WIDTH : 0 }}
                 transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                className="overflow-hidden border-l border-[var(--border-subtle)]"
+                className="overflow-hidden border-l border-[var(--border-subtle)] relative"
               >
+                {/* Drag handle — left edge resize grip */}
+                {mercuryOpen && (
+                  <div
+                    onMouseDown={handleMercuryDragStart}
+                    className="absolute left-0 top-0 bottom-0 w-1.5 z-10 cursor-col-resize group hover:bg-[var(--brand-blue)]/20 transition-colors"
+                  >
+                    <div className="absolute left-0.5 top-1/2 -translate-y-1/2 h-8 w-0.5 rounded-full bg-[var(--text-tertiary)] opacity-40 group-hover:opacity-80 transition-opacity" />
+                  </div>
+                )}
                 <div style={{ width: MERCURY_PANEL_WIDTH }} className="h-full bg-[var(--bg-secondary)]">
                   <MercuryWindow />
                 </div>
