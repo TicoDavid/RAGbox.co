@@ -25,11 +25,6 @@ jest.mock('@/contexts/SettingsContext', () => ({
 const mockToast = { success: jest.fn(), error: jest.fn() }
 jest.mock('sonner', () => ({ toast: mockToast }))
 
-// ── Mock AIModelSettings (external dependency) ──────────────────
-jest.mock('../../settings/AIModelSettings', () => ({
-  AIModelSettings: () => <div data-testid="ai-model-settings">AI Model Settings</div>,
-}))
-
 // ── Mock framer-motion ──────────────────────────────────────────
 jest.mock('framer-motion', () => ({
   motion: {
@@ -107,7 +102,6 @@ describe('MercurySettingsModal', () => {
     })
     expect(screen.getByText('Silence Protocol')).toBeInTheDocument()
     expect(screen.getByText('Connections')).toBeInTheDocument()
-    expect(screen.getByText('AI Model')).toBeInTheDocument()
     expect(screen.getByText('Voice')).toBeInTheDocument()
     expect(screen.getByText('Email')).toBeInTheDocument()
     expect(screen.getByText('WhatsApp')).toBeInTheDocument()
