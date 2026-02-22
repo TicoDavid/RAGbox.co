@@ -321,3 +321,93 @@ describe('mercuryStore – sendMessage with apiFetch', () => {
     expect(useMercuryStore.getState().inputValue).toBe('')
   })
 })
+
+// ═══════════════════════════════════════════════════════════════
+// STORY-090: Independent LLM selection (Mercury vs Main Chat)
+// ═══════════════════════════════════════════════════════════════
+
+describe('STORY-090 — Mercury Independent LLM Selector', () => {
+  beforeEach(() => {
+    useMercuryStore.setState({
+      mercuryIntelligence: { id: 'aegis-core', displayName: 'Aegis', provider: 'RAGbox', tier: 'native' },
+      selectedLlm: { provider: 'aegis', model: 'aegis-core' },
+    })
+  })
+
+  it('setMercuryIntelligence updates mercuryIntelligence independently', () => {
+    const claude = {
+      id: 'anthropic/claude-3.5-sonnet',
+      displayName: 'Claude 3.5 Sonnet',
+      provider: 'openrouter',
+      tier: 'private' as const,
+    }
+    useMercuryStore.getState().setMercuryIntelligence(claude)
+
+    const state = useMercuryStore.getState()
+    expect(state.mercuryIntelligence.id).toBe('anthropic/claude-3.5-sonnet')
+    expect(state.mercuryIntelligence.tier).toBe('private')
+  })
+
+  it('setMercuryIntelligence also derives selectedLlm for BYOLLM', () => {
+    useMercuryStore.getState().setMercuryIntelligence({
+      id: 'openai/gpt-4o',
+      displayName: 'GPT-4o',
+      provider: 'openai',
+      tier: 'private',
+    })
+
+    const { selectedLlm } = useMercuryStore.getState()
+    expect(selectedLlm.provider).toBe('byollm')
+    expect(selectedLlm.model).toBe('openai/gpt-4o')
+  })
+
+  it('setMercuryIntelligence derives selectedLlm for AEGIS', () => {
+    // First set to BYOLLM
+    useMercuryStore.getState().setMercuryIntelligence({
+      id: 'openai/gpt-4o', displayName: 'GPT-4o', provider: 'openai', tier: 'private',
+    })
+    // Then switch back to AEGIS
+    useMercuryStore.getState().setMercuryIntelligence({
+      id: 'aegis-core', displayName: 'Aegis', provider: 'RAGbox', tier: 'native',
+    })
+
+    const { selectedLlm } = useMercuryStore.getState()
+    expect(selectedLlm.provider).toBe('aegis')
+    expect(selectedLlm.model).toBe('aegis-core')
+  })
+
+  it('Mercury and Main Chat hold different models simultaneously', async () => {
+    // Import chatStore dynamically to avoid module-level side effects
+    const { useChatStore } = await import('../chatStore')
+
+    // Set Mercury to Claude
+    useMercuryStore.getState().setMercuryIntelligence({
+      id: 'anthropic/claude-3.5-sonnet',
+      displayName: 'Claude 3.5 Sonnet',
+      provider: 'openrouter',
+      tier: 'private',
+    })
+
+    // Set Main Chat to AEGIS
+    useChatStore.getState().setModel('aegis')
+
+    // Verify independent state
+    const mercuryState = useMercuryStore.getState()
+    const chatState = useChatStore.getState()
+
+    expect(mercuryState.selectedLlm.provider).toBe('byollm')
+    expect(mercuryState.selectedLlm.model).toBe('anthropic/claude-3.5-sonnet')
+    expect(mercuryState.mercuryIntelligence.tier).toBe('private')
+
+    expect(chatState.selectedModel).toBe('aegis')
+
+    // Now flip: Mercury=AEGIS, Chat=BYOLLM
+    useMercuryStore.getState().setMercuryIntelligence({
+      id: 'aegis-core', displayName: 'Aegis', provider: 'RAGbox', tier: 'native',
+    })
+    useChatStore.getState().setModel('openai/gpt-4o')
+
+    expect(useMercuryStore.getState().selectedLlm.provider).toBe('aegis')
+    expect(useChatStore.getState().selectedModel).toBe('openai/gpt-4o')
+  })
+})

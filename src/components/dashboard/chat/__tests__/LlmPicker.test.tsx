@@ -324,4 +324,92 @@ describe('LlmPicker', () => {
     fireEvent.click(screen.getByText('claude-sonnet-4-20250514'))
     expect(mockSetActiveIntelligence).toHaveBeenCalled()
   })
+
+  // ── STORY-087: BYOLLM localStorage persistence ────────────────
+
+  it('saves BYOLLM choice to localStorage when model is selected', () => {
+    withByollmConnection()
+    render(<LlmPicker />)
+
+    // Open selector and pick GPT-4o
+    fireEvent.click(screen.getByText('claude-sonnet-4-20250514'))
+    fireEvent.click(screen.getByText('GPT-4o'))
+
+    const stored = localStorage.getItem('ragbox:lastByollmModel')
+    expect(stored).toBeTruthy()
+    const parsed = JSON.parse(stored!)
+    expect(parsed.modelId).toBe('openai/gpt-4o')
+    expect(parsed.displayName).toBe('GPT-4o')
+    expect(parsed.provider).toBe('openrouter')
+  })
+
+  it('restores saved BYOLLM choice when toggling back from AEGIS', () => {
+    // Pre-seed localStorage with a previous choice
+    localStorage.setItem('ragbox:lastByollmModel', JSON.stringify({
+      modelId: 'openai/gpt-4o-mini',
+      displayName: 'GPT-4o Mini',
+      provider: 'openrouter',
+    }))
+
+    withByollmConnection()
+    render(<LlmPicker />)
+
+    // Click Private LLM card while on AEGIS — should restore saved choice
+    fireEvent.click(screen.getByText('claude-sonnet-4-20250514'))
+
+    // Should have called setActiveIntelligence with restored model
+    expect(mockSetActiveIntelligence).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'openai/gpt-4o-mini',
+        displayName: 'GPT-4o Mini',
+        tier: 'private',
+      })
+    )
+  })
+
+  it('falls back to connection default when no saved BYOLLM choice exists', () => {
+    localStorage.removeItem('ragbox:lastByollmModel')
+
+    withByollmConnection()
+    render(<LlmPicker />)
+
+    // Click Private LLM card — no saved choice, uses connection's selectedModel
+    fireEvent.click(screen.getByText('claude-sonnet-4-20250514'))
+
+    expect(mockSetActiveIntelligence).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'anthropic/claude-sonnet-4-20250514',
+        tier: 'private',
+      })
+    )
+  })
+
+  it('persists across re-renders (simulating page reload)', () => {
+    withByollmConnection()
+
+    // First render — select a model
+    const { unmount } = render(<LlmPicker />)
+    fireEvent.click(screen.getByText('claude-sonnet-4-20250514'))
+    fireEvent.click(screen.getByText('Gemini 2.0 Flash'))
+    unmount()
+
+    // Verify it was saved
+    const stored = JSON.parse(localStorage.getItem('ragbox:lastByollmModel')!)
+    expect(stored.modelId).toBe('google/gemini-2.0-flash-001')
+    expect(stored.displayName).toBe('Gemini 2.0 Flash')
+
+    // Second render — toggle back from AEGIS
+    jest.clearAllMocks()
+    withByollmConnection()
+    render(<LlmPicker />)
+    fireEvent.click(screen.getByText('claude-sonnet-4-20250514'))
+
+    // Should restore saved Gemini choice
+    expect(mockSetActiveIntelligence).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'google/gemini-2.0-flash-001',
+        displayName: 'Gemini 2.0 Flash',
+      })
+    )
+  })
 })

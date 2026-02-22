@@ -1,25 +1,7 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
-// ── Mock useSettings ────────────────────────────────────────────
-const mockSetTheme = jest.fn()
-const mockSetDensity = jest.fn()
-
-jest.mock('@/contexts/SettingsContext', () => ({
-  useSettings: () => ({
-    theme: 'cobalt',
-    setTheme: mockSetTheme,
-    density: 'comfortable',
-    setDensity: mockSetDensity,
-    connections: [],
-    activeIntelligence: { id: 'aegis-core', displayName: 'Aegis', provider: 'RAGbox', tier: 'native' },
-    setActiveIntelligence: jest.fn(),
-    llmPolicy: 'choice',
-    setLlmPolicy: jest.fn(),
-    hasVerifiedConnection: false,
-    isAegisActive: true,
-  }),
-}))
+// ── Note: useSettings no longer imported by MercurySettingsModal (STORY-085) ──
 
 // ── Mock sonner ─────────────────────────────────────────────────
 const mockToast = { success: jest.fn(), error: jest.fn() }
@@ -95,20 +77,33 @@ describe('MercurySettingsModal', () => {
     expect(container.querySelector('[class*="fixed"]')).toBeNull()
   })
 
-  it('renders all nav sections in sidebar', async () => {
+  it('renders only Identity and Silence Protocol sections (STORY-085)', async () => {
     render(<MercurySettingsModal {...defaultProps} />)
     await waitFor(() => {
       expect(screen.getByText('Name & Persona')).toBeInTheDocument()
     })
     expect(screen.getByText('Silence Protocol')).toBeInTheDocument()
-    expect(screen.getByText('Connections')).toBeInTheDocument()
-    expect(screen.getByText('Voice')).toBeInTheDocument()
-    expect(screen.getByText('Email')).toBeInTheDocument()
-    expect(screen.getByText('WhatsApp')).toBeInTheDocument()
-    expect(screen.getByText('Permissions')).toBeInTheDocument()
-    expect(screen.getByText('Appearance')).toBeInTheDocument()
-    expect(screen.getByText('Alerts')).toBeInTheDocument()
-    expect(screen.getByText('Security')).toBeInTheDocument()
+
+    // Gutted sections should NOT be present
+    expect(screen.queryByText('Connections')).not.toBeInTheDocument()
+    expect(screen.queryByText('Voice')).not.toBeInTheDocument()
+    expect(screen.queryByText('Email')).not.toBeInTheDocument()
+    expect(screen.queryByText('WhatsApp')).not.toBeInTheDocument()
+    expect(screen.queryByText('Permissions')).not.toBeInTheDocument()
+    expect(screen.queryByText('Appearance')).not.toBeInTheDocument()
+    expect(screen.queryByText('Alerts')).not.toBeInTheDocument()
+    expect(screen.queryByText('Security')).not.toBeInTheDocument()
+  })
+
+  it('shows voice selector merged into Identity section (STORY-085)', async () => {
+    render(<MercurySettingsModal {...defaultProps} />)
+    await waitFor(() => {
+      expect(screen.getByText('Name & Persona')).toBeInTheDocument()
+    })
+    // Voice Gender is now inside Identity, not a separate section
+    expect(screen.getByText('Voice Gender')).toBeInTheDocument()
+    expect(screen.getByText('Male')).toBeInTheDocument()
+    expect(screen.getByText('Female')).toBeInTheDocument()
   })
 
   it('switches sections when nav item is clicked', async () => {
