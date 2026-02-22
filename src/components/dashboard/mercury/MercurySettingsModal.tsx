@@ -9,14 +9,13 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useSettings, type DensityId } from '@/contexts/SettingsContext'
-import { AIModelSettings } from '../settings/AIModelSettings'
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
 type SectionId =
-  | 'identity' | 'intelligence' | 'connections' | 'ai-model'
+  | 'identity' | 'intelligence' | 'connections'
   | 'voice' | 'email' | 'whatsapp' | 'permissions'
   | 'appearance' | 'alerts' | 'security'
 
@@ -31,7 +30,6 @@ const SECTIONS: SectionDef[] = [
   { id: 'identity', label: 'Name & Persona', icon: User, group: 'IDENTITY' },
   { id: 'intelligence', label: 'Silence Protocol', icon: Brain, group: 'INTELLIGENCE' },
   { id: 'connections', label: 'Connections', icon: Link2, group: 'INTELLIGENCE' },
-  { id: 'ai-model', label: 'AI Model', icon: Cpu, group: 'INTELLIGENCE' },
   { id: 'voice', label: 'Voice', icon: Mic, group: 'CHANNELS' },
   { id: 'email', label: 'Email', icon: Mail, group: 'CHANNELS' },
   { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, group: 'CHANNELS' },
@@ -308,7 +306,6 @@ export function MercurySettingsModal({ open, onClose, onSaved }: MercurySettings
                         <IntelligenceSection config={config} updateField={updateField} />
                       )}
                       {activeSection === 'connections' && <ConnectionsSection />}
-                      {activeSection === 'ai-model' && <AIModelSection />}
                       {activeSection === 'voice' && (
                         <VoiceSection config={config} updateField={updateField} updateChannel={updateChannel} />
                       )}
@@ -588,22 +585,9 @@ function ConnectionsSection() {
         <Link2 className="w-8 h-8 text-[var(--text-tertiary)] mx-auto mb-3" />
         <p className="text-sm text-[var(--text-secondary)] mb-1">Managed in System Control Panel</p>
         <p className="text-xs text-[var(--text-tertiary)]">
-          Open the gear icon in the top header to configure API connections, OpenRouter keys, and model providers.
+          Open gear icon &rarr; Intelligence &rarr; AI Model to configure providers.
         </p>
       </div>
-    </div>
-  )
-}
-
-// ============================================================================
-// SECTION: AI Model
-// ============================================================================
-
-function AIModelSection() {
-  return (
-    <div className="space-y-6">
-      <SectionHeader title="AI Model" description="Configure AEGIS and Private LLM routing." />
-      <AIModelSettings />
     </div>
   )
 }
