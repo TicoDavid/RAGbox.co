@@ -22,7 +22,9 @@ jest.mock('lucide-react', () => ({
 // ── Inline SecuritySettings (from GlobalHeader.tsx ~line 1374) ──
 // Testing the revoke logic directly rather than importing the 1800-line GlobalHeader
 function SecuritySettings() {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { useState } = require('react')
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { toast } = require('sonner')
 
   const [confirmOpen, setConfirmOpen] = useState(false)

@@ -30,7 +30,9 @@ function AvatarDropdown({
   onProfile: () => void
   onBilling: () => void
 }) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { signOut } = require('next-auth/react')
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { User, CreditCard, LogOut } = require('lucide-react')
 
   return (
