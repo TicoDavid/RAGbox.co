@@ -1155,9 +1155,19 @@ function MercurySettings() {
     if (loaded.current) return
     loaded.current = true
     fetch('/api/mercury/config')
-      .then((res) => (res.ok ? res.json() : MERCURY_DEFAULTS))
-      .then((data) => setConfig({ ...MERCURY_DEFAULTS, ...data }))
-      .catch(() => setConfig(MERCURY_DEFAULTS))
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to load config')
+        return res.json()
+      })
+      .then((json) => {
+        if (json.success && json.data?.config) {
+          setConfig({ ...MERCURY_DEFAULTS, ...json.data.config })
+        }
+      })
+      .catch(() => {
+        toast.error('Failed to load Mercury configuration')
+        setConfig(MERCURY_DEFAULTS)
+      })
   }, [])
 
   const handleNameChange = (name: string) => {
@@ -1174,15 +1184,24 @@ function MercurySettings() {
   const handleSave = async () => {
     setSaving(true)
     try {
-      await fetch('/api/mercury/config', {
+      const res = await fetch('/api/mercury/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config),
+        body: JSON.stringify({
+          name: config.name,
+          greeting: config.greeting,
+          channels: { voice: { enabled: true, voiceId: config.voiceId } },
+        }),
       })
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}))
+        throw new Error(json.error || 'Save failed')
+      }
+      toast.success('Mercury configuration saved')
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
-    } catch {
-      // Endpoint may not exist yet — graceful fallback
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save Mercury configuration')
     } finally {
       setSaving(false)
     }
