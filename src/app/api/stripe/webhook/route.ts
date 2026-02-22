@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { provisionFromCheckout, updateSubscription, handlePaymentFailed } from '@/lib/billing/provision'
+import { provisionFromCheckout, updateSubscription, handlePaymentFailed, sendInvoiceEmail } from '@/lib/billing/provision'
 
 let _stripe: Stripe | null = null
 
@@ -95,6 +95,7 @@ export async function POST(req: NextRequest) {
         break
       }
 
+      case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription
         const priceIds = extractSubscriptionPriceIds(subscription)
@@ -114,6 +115,22 @@ export async function POST(req: NextRequest) {
           stripeSubscriptionId: subscription.id,
           status: 'cancelled',
         })
+        break
+      }
+
+      case 'invoice.paid': {
+        const invoice = event.data.object as Stripe.Invoice
+        const invoiceEmail = invoice.customer_email
+        const amountPaid = invoice.amount_paid
+        const invoiceUrl = invoice.hosted_invoice_url
+
+        if (invoiceEmail) {
+          sendInvoiceEmail({
+            email: invoiceEmail,
+            amountCents: amountPaid,
+            invoiceUrl: invoiceUrl || undefined,
+          }).catch((err) => console.error('[Stripe] Invoice email failed:', err))
+        }
         break
       }
 

@@ -17,6 +17,7 @@ const mockFindUnique = jest.fn()
 const mockCreate = jest.fn()
 const mockUpdate = jest.fn()
 const mockDelete = jest.fn()
+const mockUserFindUnique = jest.fn()
 jest.mock('@/lib/prisma', () => ({
   __esModule: true,
   default: {
@@ -25,6 +26,9 @@ jest.mock('@/lib/prisma', () => ({
       create: (...args: unknown[]) => mockCreate(...args),
       update: (...args: unknown[]) => mockUpdate(...args),
       delete: (...args: unknown[]) => mockDelete(...args),
+    },
+    user: {
+      findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
     },
   },
 }))
@@ -92,6 +96,8 @@ beforeEach(() => {
   authenticateAs()
   mockDecryptKey.mockResolvedValue('sk-raw-api-key-1234567890')
   mockEncryptKey.mockResolvedValue('kms-stub:encrypted')
+  // Default: sovereign tier (allows BYOLLM)
+  mockUserFindUnique.mockResolvedValue({ subscriptionTier: 'sovereign', subscriptionStatus: 'active' })
 })
 
 // ═══════════════════════════════════════════════════════════

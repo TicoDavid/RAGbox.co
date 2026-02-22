@@ -17,6 +17,7 @@ import { z } from 'zod'
 import prisma from '@/lib/prisma'
 import { maskApiKey } from '@/lib/utils/mask-key'
 import { encryptKey, decryptKey } from '@/lib/utils/kms'
+import { checkByollm } from '@/lib/auth/tierCheck'
 
 const DEFAULT_TENANT = 'default'
 
@@ -105,13 +106,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 export async function PUT(request: NextRequest): Promise<NextResponse> {
   try {
-    const token = await getToken({ req: request })
-    if (!token) {
-      return NextResponse.json(
-        { success: false, error: 'Authentication required' },
-        { status: 401 },
-      )
-    }
+    // Tier enforcement: BYOLLM requires sovereign+ tier
+    const gate = await checkByollm(request)
+    if (!gate.allowed) return gate.response
 
     const body = await request.json()
     const parsed = PutSchema.safeParse(body)

@@ -10,6 +10,7 @@ import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
 import { generateApiKey, revokeApiKey } from '@/lib/api/apiKeyManager'
 import { writeAuditEntry } from '@/lib/audit/auditWriter'
+import { checkApiKeyCreation } from '@/lib/auth/tierCheck'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const token = await getToken({ req: request })
@@ -37,12 +38,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const token = await getToken({ req: request })
-  if (!token) {
-    return NextResponse.json({ success: false, error: 'Session authentication required' }, { status: 401 })
-  }
+  // Tier enforcement: check API key limit
+  const gate = await checkApiKeyCreation(request)
+  if (!gate.allowed) return gate.response
 
-  const userId = (token.id as string) || token.email || ''
+  const userId = gate.userId
 
   let body: { name?: string; scopes?: string[] }
   try {

@@ -18,6 +18,8 @@ const mockFindUnique = jest.fn()
 const mockCreate = jest.fn()
 const mockUpdateMany = jest.fn()
 const mockUpdate = jest.fn()
+const mockCount = jest.fn()
+const mockUserFindUnique = jest.fn()
 jest.mock('@/lib/prisma', () => ({
   __esModule: true,
   default: {
@@ -27,6 +29,10 @@ jest.mock('@/lib/prisma', () => ({
       create: (...args: unknown[]) => mockCreate(...args),
       updateMany: (...args: unknown[]) => mockUpdateMany(...args),
       update: (...args: unknown[]) => mockUpdate(...args),
+      count: (...args: unknown[]) => mockCount(...args),
+    },
+    user: {
+      findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
     },
   },
 }))
@@ -80,6 +86,10 @@ beforeEach(() => {
   jest.clearAllMocks()
   authenticateAs()
   mockWriteAuditEntry.mockResolvedValue(undefined)
+  // Default: sovereign tier (allows API key creation)
+  mockUserFindUnique.mockResolvedValue({ subscriptionTier: 'sovereign', subscriptionStatus: 'active' })
+  // Default: 0 existing keys (under limit)
+  mockCount.mockResolvedValue(0)
 })
 
 // ═══════════════════════════════════════════════════════════

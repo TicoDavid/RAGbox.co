@@ -57,6 +57,9 @@ jest.mock('@/lib/prisma', () => ({
     mercuryPersona: {
       findUnique: jest.fn().mockResolvedValue(null),
     },
+    user: {
+      findUnique: jest.fn().mockResolvedValue({ subscriptionTier: 'sovereign', subscriptionStatus: 'active' }),
+    },
   },
 }))
 

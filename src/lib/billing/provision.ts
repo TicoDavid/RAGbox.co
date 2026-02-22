@@ -1,7 +1,7 @@
 /**
  * Stripe webhook provisioning pipeline.
  *
- * Handles the full lifecycle: checkout → user creation → entitlements → email.
+ * Handles the full lifecycle: checkout → user creation → tenant → vault → email.
  * Designed to be idempotent — safe to call multiple times for the same event.
  */
 
@@ -10,6 +10,8 @@ import { Prisma } from '@prisma/client'
 import { type BillingTier, getEntitlements, resolveTierFromPriceIds } from './entitlements'
 import { welcomeSovereignEmail } from '@/lib/email/templates/welcome-sovereign'
 import { welcomeMercuryEmail } from '@/lib/email/templates/welcome-mercury-addon'
+import { isGmailConfigured, sendViaGmail } from '@/lib/email/gmail'
+import { writeAuditEntry } from '@/lib/audit/auditWriter'
 
 export interface ProvisionResult {
   userId: string
@@ -59,16 +61,51 @@ export async function provisionFromCheckout(params: {
 
   const action = user.createdAt.getTime() >= now.getTime() - 1000 ? 'created' : 'updated'
 
-  // Send welcome email (log-only until email transport is wired)
+  // Create tenant record (idempotent — upsert by slug)
+  const slug = email.split('@')[0].toLowerCase().replace(/[^a-z0-9-]/g, '-')
+  await prisma.tenant.upsert({
+    where: { slug },
+    create: {
+      name: user.name || slug,
+      slug,
+    },
+    update: {},
+  })
+
+  // Create default vault for user (only if none exist)
+  const existingVaults = await prisma.vault.count({ where: { userId: user.id } })
+  if (existingVaults === 0) {
+    await prisma.vault.create({
+      data: {
+        name: 'My Vault',
+        userId: user.id,
+        status: 'open',
+      },
+    })
+  }
+
+  // Audit trail
+  writeAuditEntry(user.id, 'billing.provision', user.id, {
+    tier,
+    action,
+    stripeCustomerId,
+  }).catch(() => {}) // fire-and-forget
+
+  // Send welcome email
   const emailTemplate = tier === 'mercury'
     ? welcomeMercuryEmail({ userName: user.name || email, mercuryName: 'Mercury' })
     : welcomeSovereignEmail({ userName: user.name || email, mercuryName: 'Mercury' })
 
-  console.info('[Billing] Welcome email prepared (send pending transport config):', {
-    to: email,
-    subject: emailTemplate.subject,
-    tier,
-  })
+  if (isGmailConfigured()) {
+    sendViaGmail(email, emailTemplate.subject, emailTemplate.html)
+      .then((res) => console.info('[Billing] Welcome email sent:', { to: email, messageId: res.id }))
+      .catch((err) => console.error('[Billing] Welcome email failed:', err))
+  } else {
+    console.info('[Billing] Welcome email skipped (Gmail not configured):', {
+      to: email,
+      subject: emailTemplate.subject,
+    })
+  }
 
   console.info('[Billing] User provisioned:', {
     userId: user.id,
@@ -154,4 +191,26 @@ export async function handlePaymentFailed(params: {
     userId: user.id,
     email: user.email,
   })
+}
+
+/**
+ * Send invoice receipt email after Stripe invoice.paid event.
+ */
+export async function sendInvoiceEmail(params: {
+  email: string
+  amountCents: number
+  invoiceUrl?: string
+}): Promise<void> {
+  const { email, amountCents, invoiceUrl } = params
+  const { invoicePaidEmail } = await import('@/lib/email/templates/invoice-paid')
+
+  const amountFormatted = `$${(amountCents / 100).toFixed(2)}`
+  const template = invoicePaidEmail({ amountFormatted, invoiceUrl })
+
+  if (isGmailConfigured()) {
+    const res = await sendViaGmail(email, template.subject, template.html)
+    console.info('[Billing] Invoice email sent:', { to: email, messageId: res.id })
+  } else {
+    console.info('[Billing] Invoice email skipped (Gmail not configured):', { to: email })
+  }
 }
