@@ -7,19 +7,6 @@ import { CenterMessage } from './CenterMessage'
 import { CenterInputBar } from './CenterInputBar'
 import { ThreadSidebar } from './ThreadSidebar'
 import { FileText, MessageSquare, Quote, Activity, Upload } from 'lucide-react'
-import type { MercuryChannel } from '@/types/ragbox'
-
-// ============================================================================
-// CHANNEL FILTER BAR — filter unified thread by origin channel
-// ============================================================================
-
-const CHANNEL_FILTERS: { value: MercuryChannel | 'all'; label: string; color: string }[] = [
-  { value: 'all',       label: 'All',      color: 'text-[var(--text-primary)] bg-[var(--bg-elevated)]' },
-  { value: 'dashboard', label: 'Chat',     color: 'text-[var(--brand-blue)] bg-[var(--brand-blue)]/10' },
-  { value: 'whatsapp',  label: 'WhatsApp', color: 'text-[var(--success)] bg-[var(--success)]/10' },
-  { value: 'voice',     label: 'Voice',    color: 'text-purple-400 bg-purple-500/10' },
-  { value: 'email',     label: 'Email',    color: 'text-[var(--warning)] bg-[var(--warning)]/10' },
-]
 
 // ============================================================================
 // DASHBOARD HOME — Stats cards shown when no chat is active
@@ -241,13 +228,7 @@ export function CenterChat() {
   const sidebarOpen = useChatStore((s) => s.sidebarOpen)
   const isThreadLoading = useChatStore((s) => s.isThreadLoading)
 
-  const [channelFilter, setChannelFilter] = useState<MercuryChannel | 'all'>('all')
   const scrollRef = useRef<HTMLDivElement>(null)
-
-  // Filter messages by channel (default to 'dashboard' if unset)
-  const filteredMessages = channelFilter === 'all'
-    ? messages
-    : messages.filter((m) => (m.channel ?? 'dashboard') === channelFilter)
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -280,27 +261,7 @@ export function CenterChat() {
             <DashboardHome />
           ) : (
             <div className="max-w-[800px] mx-auto px-4 sm:px-8 py-6">
-              {/* Channel filter bar — only show when thread has messages */}
-              {messages.length > 0 && (
-                <div className="flex items-center gap-1.5 mb-4">
-                  {CHANNEL_FILTERS.map((f) => (
-                    <button
-                      key={f.value}
-                      onClick={() => setChannelFilter(f.value)}
-                      className={`px-3 py-1 rounded-full text-[11px] font-medium transition-all border ${
-                        channelFilter === f.value
-                          ? `${f.color} border-current`
-                          : 'text-[var(--text-tertiary)] bg-transparent border-transparent hover:bg-[var(--bg-elevated)]/50'
-                      }`}
-                      aria-pressed={channelFilter === f.value}
-                    >
-                      {f.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {filteredMessages.map((msg) => (
+              {messages.map((msg) => (
                 <CenterMessage key={msg.id} message={msg} />
               ))}
               {isStreaming && <StreamingIndicator content={streamingContent} />}

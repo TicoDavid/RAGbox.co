@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react'
 import { Zap, Lock, Search, X, Check, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
-import { useSettings, type SecureConnection } from '@/contexts/SettingsContext'
+import { useSettings, type SecureConnection, type ActiveIntelligence } from '@/contexts/SettingsContext'
 
 // ============================================================================
 // MODEL CATALOG — curated per-provider model list
@@ -241,7 +241,12 @@ function ByollmSelectorModal({ isOpen, onClose, connection, currentModelId, onSe
 // LLM PICKER — AEGIS + Private LLM cards
 // ============================================================================
 
-export function LlmPicker() {
+interface LlmPickerProps {
+  activeIntel?: ActiveIntelligence
+  onIntelChange?: (intel: ActiveIntelligence) => void
+}
+
+export function LlmPicker({ activeIntel, onIntelChange }: LlmPickerProps = {}) {
   const {
     connections,
     activeIntelligence,
@@ -249,13 +254,17 @@ export function LlmPicker() {
     llmPolicy,
   } = useSettings()
 
+  // Use prop overrides when provided (Mercury independent mode)
+  const currentIntel = activeIntel ?? activeIntelligence
+  const updateIntel = onIntelChange ?? setActiveIntelligence
+
   const [selectorOpen, setSelectorOpen] = useState(false)
 
   const byollmConnection = connections.find(
     (c) => c.verified && c.selectedModel && c.type !== 'local' && c.type !== 'custom'
   )
 
-  const isAegis = activeIntelligence.tier === 'native'
+  const isAegis = currentIntel.tier === 'native'
   const modelName = byollmConnection?.selectedModel?.split('/').pop() || ''
   const providerName = byollmConnection?.type || ''
 
@@ -265,7 +274,7 @@ export function LlmPicker() {
 
   const switchToAegis = () => {
     if (isAegis || llmPolicy === 'byollm_only') return
-    setActiveIntelligence({
+    updateIntel({
       id: 'aegis-core',
       displayName: 'Aegis',
       provider: 'RAGbox',
@@ -276,7 +285,7 @@ export function LlmPicker() {
 
   const handleModelSelect = (modelId: string, displayName: string) => {
     if (!byollmConnection) return
-    setActiveIntelligence({
+    updateIntel({
       id: modelId,
       displayName,
       provider: byollmConnection.type,
@@ -289,7 +298,7 @@ export function LlmPicker() {
     if (!byollmConnection?.selectedModel) return
     // If already on AEGIS, switch to Private first
     if (isAegis) {
-      setActiveIntelligence({
+      updateIntel({
         id: byollmConnection.selectedModel!,
         displayName: modelName,
         provider: byollmConnection.type,
@@ -344,7 +353,7 @@ export function LlmPicker() {
             </div>
             <div className="min-w-0 flex-1">
               <span className={`block text-xs font-bold tracking-wide truncate ${!isAegis ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
-                {isAegis ? modelName : activeIntelligence.displayName}
+                {isAegis ? modelName : currentIntel.displayName}
               </span>
               <span className="block text-[10px] leading-tight text-[var(--text-tertiary)]">
                 via {providerName}
@@ -371,7 +380,7 @@ export function LlmPicker() {
           isOpen={selectorOpen}
           onClose={() => setSelectorOpen(false)}
           connection={byollmConnection}
-          currentModelId={activeIntelligence.id}
+          currentModelId={currentIntel.id}
           onSelect={handleModelSelect}
         />
       )}

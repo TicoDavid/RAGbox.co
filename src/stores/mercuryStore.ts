@@ -1,10 +1,18 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import type { ChatMessage, Citation, TemperaturePreset, MercuryChannel } from '@/types/ragbox'
+import type { ActiveIntelligence } from '@/contexts/SettingsContext'
 import { apiFetch } from '@/lib/api'
 import { detectToolIntent } from '@/lib/mercury/toolRouter'
 import { executeTool, type ToolResult } from '@/lib/mercury/toolExecutor'
 import { toCitationBlocks } from '@/lib/citations/transform'
+
+const AEGIS_INTELLIGENCE: ActiveIntelligence = {
+  id: 'aegis-core',
+  displayName: 'Aegis',
+  provider: 'RAGbox',
+  tier: 'native',
+}
 
 // Ad-Hoc Attachment (Session-only, not persisted to Vault)
 export interface SessionAttachment {
@@ -50,6 +58,7 @@ interface MercuryState {
 
   // BYOLLM selection
   selectedLlm: SelectedLlm
+  mercuryIntelligence: ActiveIntelligence
 
   // Context
   temperaturePreset: TemperaturePreset
@@ -83,6 +92,7 @@ interface MercuryState {
 
   // BYOLLM Actions
   setSelectedLlm: (llm: SelectedLlm) => void
+  setMercuryIntelligence: (intel: ActiveIntelligence) => void
 
   // Neural Shift Actions
   setPersona: (persona: PersonaId) => void
@@ -147,6 +157,7 @@ export const useMercuryStore = create<MercuryState>()(
     abortController: null,
     attachments: [],
     selectedLlm: { provider: 'aegis', model: 'aegis-core' },
+    mercuryIntelligence: AEGIS_INTELLIGENCE,
     activePersona: 'ceo',
     isRefocusing: false,
     activeSessionId: null,
@@ -560,6 +571,12 @@ export const useMercuryStore = create<MercuryState>()(
 
     // BYOLLM Actions
     setSelectedLlm: (llm) => set({ selectedLlm: llm }),
+    setMercuryIntelligence: (intel) => {
+      const llm: SelectedLlm = intel.tier === 'native'
+        ? { provider: 'aegis', model: 'aegis-core' }
+        : { provider: 'byollm', model: intel.id }
+      set({ mercuryIntelligence: intel, selectedLlm: llm })
+    },
 
     // Neural Shift Actions
     setPersona: (persona) => {
