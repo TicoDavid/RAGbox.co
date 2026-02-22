@@ -291,13 +291,19 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
   }
 
   // mentionOnly enforcement: skip non-mention group messages
-  if (tenant.tenantId !== 'default') {
+  // BUG-1 fix: DMs always bypass mentionOnly — it only applies to group messages
+  const isDM = event.type === 'chat.message.dm'
+  if (!isDM && tenant.tenantId !== 'default') {
     const integration = await prisma.roamIntegration.findFirst({
       where: { tenantId: tenant.tenantId, status: 'connected' },
       select: { mentionOnly: true },
     })
     if (integration?.mentionOnly) {
-      const isMention = event.type === 'chat.message.mention' || /^@\S/i.test(text)
+      // BUG-2 fix: match Mercury-specific mentions, not any @username
+      // BUG-3 fix: removed dead 'chat.message.mention' event type check
+      const mentionPatterns = ['@mercury', '@m.e.r.c.u.r.y']
+      const textLower = text.toLowerCase()
+      const isMention = mentionPatterns.some(p => textLower.includes(p))
       if (!isMention) {
         console.log(`[ROAM Processor] Skipping non-mention message for tenant ${tenant.tenantId} (mentionOnly=true)`)
         return
