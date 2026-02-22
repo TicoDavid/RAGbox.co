@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   const apiKey = process.env.DEEPGRAM_API_KEY;
 
   if (!apiKey) {
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
 
     // Step 2: Create a temporary key with 30-second TTL
     const tempKeyRes = await fetch(
-      `https://api.deepgram.com/v1/manage/projects/${projectId}/keys`,
+      `https://api.deepgram.com/v1/projects/${projectId}/keys`,
       {
         method: 'POST',
         headers: {
