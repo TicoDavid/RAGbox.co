@@ -260,6 +260,23 @@ export function LlmPicker({ activeIntel, onIntelChange }: LlmPickerProps = {}) {
 
   const [selectorOpen, setSelectorOpen] = useState(false)
 
+  // Persist last BYOLLM selection in localStorage
+  const BYOLLM_STORAGE_KEY = 'ragbox:lastByollmModel'
+
+  const saveByollmChoice = (modelId: string, displayName: string, provider: string) => {
+    try {
+      localStorage.setItem(BYOLLM_STORAGE_KEY, JSON.stringify({ modelId, displayName, provider }))
+    } catch { /* localStorage unavailable */ }
+  }
+
+  const loadByollmChoice = (): { modelId: string; displayName: string; provider: string } | null => {
+    try {
+      const stored = localStorage.getItem(BYOLLM_STORAGE_KEY)
+      if (stored) return JSON.parse(stored)
+    } catch { /* localStorage unavailable */ }
+    return null
+  }
+
   const byollmConnection = connections.find(
     (c) => c.verified && c.selectedModel && c.type !== 'local' && c.type !== 'custom'
   )
@@ -291,16 +308,20 @@ export function LlmPicker({ activeIntel, onIntelChange }: LlmPickerProps = {}) {
       provider: byollmConnection.type,
       tier: 'private',
     })
+    saveByollmChoice(modelId, displayName, byollmConnection.type)
     toast.success(`Switched to ${displayName}`, { description: `via ${providerName}` })
   }
 
   const handlePrivateCardClick = () => {
     if (!byollmConnection?.selectedModel) return
-    // If already on AEGIS, switch to Private first
+    // If already on AEGIS, switch to Private — restore last BYOLLM choice
     if (isAegis) {
+      const saved = loadByollmChoice()
+      const restoredId = saved?.modelId || byollmConnection.selectedModel!
+      const restoredName = saved?.displayName || modelName
       updateIntel({
-        id: byollmConnection.selectedModel!,
-        displayName: modelName,
+        id: restoredId,
+        displayName: restoredName,
         provider: byollmConnection.type,
         tier: 'private',
       })
