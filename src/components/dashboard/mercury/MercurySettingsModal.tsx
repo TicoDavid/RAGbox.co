@@ -4,8 +4,9 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   X, Save, Loader2,
-  User, Brain, Cpu, Mic, Sparkles,
+  User, Brain, Cpu, Mic, Sparkles, Plug,
 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
 // ============================================================================
@@ -115,6 +116,7 @@ interface MercurySettingsModalProps {
 }
 
 export function MercurySettingsModal({ open, onClose, onSaved }: MercurySettingsModalProps) {
+  const router = useRouter()
   const [activeSection, setActiveSection] = useState<SectionId>('identity')
   const [config, setConfig] = useState<ConfigState>(DEFAULT_CONFIG)
   const [loading, setLoading] = useState(false)
@@ -300,7 +302,15 @@ export function MercurySettingsModal({ open, onClose, onSaved }: MercurySettings
               </div>
 
               {/* ─── Footer ─── */}
-              <div className="shrink-0 flex items-center justify-end gap-3 px-6 py-3 border-t border-[var(--border-default)]">
+              <div className="shrink-0 flex items-center justify-between px-6 py-3 border-t border-[var(--border-default)]">
+                <button
+                  onClick={() => { onClose(); router.push('/dashboard/settings/integrations') }}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]/30 transition-colors"
+                >
+                  <Plug className="w-3.5 h-3.5" />
+                  Integrations
+                </button>
+                <div className="flex items-center gap-3">
                 <button
                   onClick={onClose}
                   className="px-4 py-2 rounded-lg text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]/30 transition-colors"
@@ -318,6 +328,7 @@ export function MercurySettingsModal({ open, onClose, onSaved }: MercurySettings
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   Save Changes
                 </button>
+                </div>
               </div>
             </div>
           </motion.div>

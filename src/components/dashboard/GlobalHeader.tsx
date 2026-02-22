@@ -36,6 +36,7 @@ import {
   AlertTriangle,
   Glasses,
   Brain,
+  Plug,
   Server,
   Loader2,
 } from 'lucide-react'
@@ -46,6 +47,7 @@ import { PERSONAS } from './mercury/personaData'
 import { useSettings, type CachedModel, LANGUAGES, type LanguageId, type DensityId } from '@/contexts/SettingsContext'
 import { getModelDisplayName, OPENROUTER_ENDPOINT } from '@/services/OpenRouterService'
 import { AIModelSettings } from './settings/AIModelSettings'
+import IntegrationsSettings from '@/app/dashboard/settings/integrations/page'
 
 // Profile types for multi-profile switching
 interface Profile {
@@ -577,7 +579,7 @@ export function GlobalHeader() {
 
 type SettingsSection =
   | 'profile' | 'language' | 'billing'  // General
-  | 'connections' | 'aimodel'                         // Intelligence
+  | 'connections' | 'aimodel' | 'integrations'         // Intelligence
   | 'appearance'                         // Interface
   | 'alerts' | 'security'                // System
   | 'docs' | 'report' | 'community'      // Support
@@ -604,6 +606,7 @@ const SIDEBAR_CATEGORIES: SidebarCategory[] = [
     items: [
       { id: 'connections', label: 'Connections', icon: <Key className="w-4 h-4" /> },
       { id: 'aimodel', label: 'AI Model', icon: <Brain className="w-4 h-4" /> },
+      { id: 'integrations', label: 'Integrations', icon: <Plug className="w-4 h-4" /> },
     ],
   },
   {
@@ -698,6 +701,7 @@ function SettingsModal({ onClose, initialSection }: { onClose: () => void; initi
             {activeSection === 'billing' && <BillingSettings />}
             {activeSection === 'connections' && <APIKeysSettings />}
             {activeSection === 'aimodel' && <AIModelSettings />}
+            {activeSection === 'integrations' && <IntegrationsSettings />}
             {activeSection === 'appearance' && <AppearanceSettings />}
             {activeSection === 'alerts' && <NotificationSettings />}
             {activeSection === 'security' && <SecuritySettings />}
