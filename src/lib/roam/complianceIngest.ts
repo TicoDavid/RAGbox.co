@@ -28,9 +28,10 @@ export interface IngestResult {
 
 /**
  * Full daily compliance ingest pipeline.
- * @param date YYYY-MM-DD or "yesterday"
+ * @param date    YYYY-MM-DD or "yesterday"
+ * @param apiKey  Per-tenant key override (falls back to env var)
  */
-export async function ingestDailyCompliance(date: string): Promise<IngestResult> {
+export async function ingestDailyCompliance(date: string, apiKey?: string): Promise<IngestResult> {
   const resolvedDate = date === 'yesterday'
     ? formatDate(new Date(Date.now() - 86400000))
     : date
@@ -48,7 +49,7 @@ export async function ingestDailyCompliance(date: string): Promise<IngestResult>
   // 1. Fetch compliance export
   let ndjson: string
   try {
-    ndjson = await fetchComplianceExport(resolvedDate)
+    ndjson = await fetchComplianceExport(resolvedDate, apiKey)
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
     console.error('[Compliance Ingest] Fetch failed:', msg)

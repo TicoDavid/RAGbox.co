@@ -34,16 +34,19 @@ export interface TextMessage {
 
 /**
  * Fetch compliance export NDJSON for a given date.
+ * @param date    YYYY-MM-DD
+ * @param apiKey  Per-tenant key override (falls back to env var)
  */
-export async function fetchComplianceExport(date: string): Promise<string> {
-  if (!ROAM_API_KEY) {
-    throw new Error('ROAM_API_KEY not configured')
+export async function fetchComplianceExport(date: string, apiKey?: string): Promise<string> {
+  const key = apiKey || ROAM_API_KEY
+  if (!key) {
+    throw new Error('ROAM API key not configured')
   }
 
   const res = await fetch(`${ROAM_API_URL}/messageevent.export`, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${ROAM_API_KEY}`,
+      'Authorization': `Bearer ${key}`,
       'Content-Type': 'application/json',
       'Accept': 'application/x-ndjson, text/plain, */*',
     },

@@ -3,6 +3,12 @@
  *
  * Thin wrapper around ROAM's REST API v1.
  * All methods throw on non-2xx responses with structured error info.
+ *
+ * Per-tenant support: all public functions accept an optional `apiKey`
+ * parameter. When provided, it overrides the env-var default.
+ * When omitted, falls back to ROAM_API_KEY env var (backward compat).
+ *
+ * STORY-102 — EPIC-010
  */
 
 const ROAM_API_URL = process.env.ROAM_API_URL || 'https://api.ro.am/v1'
@@ -32,6 +38,16 @@ export interface RoamSendMessagePayload {
   threadId?: string
 }
 
+export interface RoamTranscriptInfo {
+  id: string
+  groupId: string
+  title?: string
+  participants?: string[]
+  content?: string
+  duration?: number
+  createdAt: string
+}
+
 export interface RoamWebhookEvent {
   id: string
   type: string
@@ -54,17 +70,19 @@ export class RoamApiError extends Error {
 
 async function roamFetch<T>(
   path: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  apiKey?: string
 ): Promise<T> {
-  if (!ROAM_API_KEY) {
-    throw new RoamApiError('ROAM_API_KEY not configured', 500, 'CONFIG_ERROR')
+  const key = apiKey || ROAM_API_KEY
+  if (!key) {
+    throw new RoamApiError('ROAM API key not configured', 500, 'CONFIG_ERROR')
   }
 
   const url = `${ROAM_API_URL}${path}`
   const res = await fetch(url, {
     ...options,
     headers: {
-      'Authorization': `Bearer ${ROAM_API_KEY}`,
+      'Authorization': `Bearer ${key}`,
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       ...options.headers,
@@ -95,9 +113,11 @@ async function roamFetch<T>(
 
 /**
  * Send a message to a ROAM group (or thread within a group).
+ * @param apiKey  Per-tenant key override (falls back to env var)
  */
 export async function sendMessage(
-  payload: RoamSendMessagePayload
+  payload: RoamSendMessagePayload,
+  apiKey?: string
 ): Promise<RoamMessage> {
   const body: Record<string, string> = {
     // ROAM uses addressId as the chat/group identifier
@@ -110,13 +130,33 @@ export async function sendMessage(
   return roamFetch<RoamMessage>('/messages', {
     method: 'POST',
     body: JSON.stringify(body),
-  })
+  }, apiKey)
+}
+
+/**
+ * Send a typing indicator to a ROAM group.
+ * Fire-and-forget — errors are logged but not thrown.
+ * @param apiKey  Per-tenant key override (falls back to env var)
+ */
+export async function sendTypingIndicator(
+  groupId: string,
+  apiKey?: string
+): Promise<void> {
+  try {
+    await roamFetch<void>('/chat.typing', {
+      method: 'POST',
+      body: JSON.stringify({ addressId: groupId }),
+    }, apiKey)
+  } catch (error) {
+    console.warn('[ROAM] Typing indicator failed (non-fatal):', error)
+  }
 }
 
 /**
  * List groups the ROAM app (M.E.R.C.U.R.Y) has access to.
+ * @param apiKey  Per-tenant key override (falls back to env var)
  */
-export async function listGroups(): Promise<RoamGroup[]> {
+export async function listGroups(apiKey?: string): Promise<RoamGroup[]> {
   interface RoamGroupRaw {
     id?: string
     addressId?: string
@@ -124,7 +164,7 @@ export async function listGroups(): Promise<RoamGroup[]> {
     description?: string
     memberCount?: number
   }
-  const res = await roamFetch<{ groups: RoamGroupRaw[] }>('/groups')
+  const res = await roamFetch<{ groups: RoamGroupRaw[] }>('/groups', {}, apiKey)
   // ROAM returns addressId as the primary identifier; normalize to id
   return (res.groups ?? []).map(g => ({
     id: g.addressId || g.id || '',
@@ -135,15 +175,25 @@ export async function listGroups(): Promise<RoamGroup[]> {
 }
 
 /**
+ * List groups using a specific API key (for pre-connect validation).
+ * Alias for listGroups() with explicit key — does NOT fall back to env var.
+ */
+export async function listGroupsWithKey(apiKey: string): Promise<RoamGroup[]> {
+  return listGroups(apiKey)
+}
+
+/**
  * Export messages from a group (paginated).
  * @param groupId  ROAM group ID
  * @param limit    Max messages to return (default 50)
  * @param before   Cursor — return messages before this message ID
+ * @param apiKey   Per-tenant key override (falls back to env var)
  */
 export async function exportMessages(
   groupId: string,
   limit = 50,
-  before?: string
+  before?: string,
+  apiKey?: string
 ): Promise<RoamMessage[]> {
   const params = new URLSearchParams({
     group_id: groupId,
@@ -152,7 +202,26 @@ export async function exportMessages(
   if (before) params.set('before', before)
 
   const res = await roamFetch<{ messages: RoamMessage[] }>(
-    `/messages?${params.toString()}`
+    `/messages?${params.toString()}`,
+    {},
+    apiKey
   )
   return res.messages ?? []
+}
+
+/**
+ * Get transcript info by ID.
+ * @param transcriptId  ROAM transcript ID
+ * @param apiKey        Per-tenant key override (falls back to env var)
+ */
+export async function getTranscriptInfo(
+  transcriptId: string,
+  apiKey?: string
+): Promise<RoamTranscriptInfo> {
+  const params = new URLSearchParams({ id: transcriptId })
+  return roamFetch<RoamTranscriptInfo>(
+    `/transcript.info?${params.toString()}`,
+    {},
+    apiKey
+  )
 }
