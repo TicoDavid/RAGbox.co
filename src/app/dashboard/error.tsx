@@ -1,5 +1,6 @@
 'use client'
 
+import * as Sentry from '@sentry/nextjs'
 import { useEffect } from 'react'
 
 export default function DashboardError({
@@ -10,9 +11,9 @@ export default function DashboardError({
   reset: () => void
 }) {
   useEffect(() => {
-    if (process.env.NODE_ENV === 'production') {
-      // TODO: Send to error tracking
-    }
+    Sentry.captureException(error, {
+      extra: { digest: error.digest, component: 'DashboardError' },
+    })
   }, [error])
 
   return (

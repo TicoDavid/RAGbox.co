@@ -24,6 +24,8 @@ const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
 const DEFAULT_TENANT = 'default'
 
 export async function POST(request: NextRequest): Promise<NextResponse | Response> {
+  const t0 = Date.now()
+
   try {
     // Auth check — decode JWT directly from cookie (no internal HTTP call)
     const token = await getToken({ req: request })
@@ -41,6 +43,8 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
         { status: 401 }
       )
     }
+
+    const tAuth = Date.now()
 
     const body = await request.json()
     const { query, stream, privilegeMode, history, maxTier, personaId, safetyMode, documentScope } = body
@@ -107,6 +111,10 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
     if (isSimpleQuery && !incognito) {
       const cached = await getCachedQuery(query, userId)
       if (cached) {
+        console.info('[Chat Latency]', JSON.stringify({
+          total_ms: Date.now() - t0, auth_ms: tAuth - t0,
+          cached: true, streaming: false,
+        }))
         return NextResponse.json({
           success: true,
           data: {
@@ -120,6 +128,7 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
     }
 
     // ── BYOLLM: resolve provider routing (STORY-022) ──────────
+    const tByollmStart = Date.now()
     const { llmProvider, llmModel } = body
     let byollmFields: Record<string, string> = {}
 
@@ -169,6 +178,8 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
     }
 
     // Forward to Go backend with internal auth
+    const tByollm = Date.now()
+    const tBackendStart = Date.now()
     const targetUrl = `${GO_BACKEND_URL}/api/chat`
     const backendResponse = await fetch(targetUrl, {
       method: 'POST',
@@ -190,6 +201,8 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
         ...byollmFields,
       }),
     })
+
+    const tBackendFirstByte = Date.now()
 
     // If backend returned a tool error
     if (!backendResponse.ok) {
@@ -216,8 +229,20 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
 
     const contentType = backendResponse.headers.get('content-type') ?? ''
 
+    const modelLabel = byollmFields.llmModel || byollmFields.llmProvider || 'aegis'
+
     // Handle SSE streaming response — pass through directly (no caching for streams)
     if (contentType.includes('text/event-stream') && stream) {
+      console.info('[Chat Latency]', JSON.stringify({
+        ttfb_ms: tBackendFirstByte - tBackendStart,
+        auth_ms: tAuth - t0,
+        byollm_ms: tByollm - tByollmStart,
+        backend_ms: tBackendFirstByte - tBackendStart,
+        total_ms: Date.now() - t0,
+        model: modelLabel,
+        cached: false,
+        streaming: true,
+      }))
       return new Response(backendResponse.body, {
         headers: {
           'Content-Type': 'text/event-stream',
@@ -229,6 +254,17 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
 
     // Handle JSON response — cache if it's a simple query with a successful answer
     const data = await backendResponse.json()
+
+    console.info('[Chat Latency]', JSON.stringify({
+      ttfb_ms: tBackendFirstByte - tBackendStart,
+      auth_ms: tAuth - t0,
+      byollm_ms: tByollm - tByollmStart,
+      backend_ms: tBackendFirstByte - tBackendStart,
+      total_ms: Date.now() - t0,
+      model: modelLabel,
+      cached: false,
+      streaming: false,
+    }))
 
     if (isSimpleQuery && !incognito && data.success !== false) {
       const answer = data.data?.answer ?? data.answer
