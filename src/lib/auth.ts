@@ -3,6 +3,7 @@ import { NextAuthOptions, CookieOption } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import AzureADProvider from "next-auth/providers/azure-ad";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { getRedis } from "@/lib/cache/redisClient";
 
 const useSecureCookies = (process.env.NEXTAUTH_URL ?? "").startsWith("https://");
 
@@ -167,6 +168,24 @@ export const authOptions: NextAuthOptions = {
         token.accessTokenExpires = account.expires_at ? account.expires_at * 1000 : 0;
         token.provider = account.provider;
       }
+
+      // Session revocation check — reject tokens issued before revocation
+      if (!user && token.id) {
+        const redis = getRedis();
+        if (redis) {
+          try {
+            const revokedAt = await redis.get(`session:revoked:${token.id}`);
+            const iat = (token as Record<string, unknown>).iat as number | undefined;
+            if (revokedAt && iat && iat < parseInt(revokedAt, 10)) {
+              // Token predates revocation — force sign-out
+              return {} as typeof token;
+            }
+          } catch {
+            // Redis unavailable — fail open (don't lock users out)
+          }
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {

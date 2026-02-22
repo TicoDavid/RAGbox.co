@@ -1383,7 +1383,7 @@ function SecuritySettings() {
   const handleRevoke = async () => {
     setRevoking(true)
     try {
-      const res = await fetch('/api/v1/keys', { method: 'DELETE' })
+      const res = await fetch('/api/v1/sessions', { method: 'DELETE' })
       if (!res.ok) {
         const json = await res.json().catch(() => ({}))
         throw new Error(json.error || 'Failed to revoke sessions')
