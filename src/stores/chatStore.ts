@@ -444,13 +444,19 @@ export const useChatStore = create<ChatState>()(
           const blocks =
             citations && citations.length > 0
               ? toCitationBlocks(
-                  citations.map((c, i) => ({
-                    citationIndex: c.citationIndex ?? i,
-                    documentId: c.documentId ?? '',
-                    documentName: c.documentName ?? 'Document',
-                    excerpt: c.excerpt ?? '',
-                    relevanceScore: c.relevanceScore ?? 0,
-                  })),
+                  citations.map((c, i) => {
+                    // Go backend sends two citation shapes:
+                    // SSE citations event: {index, excerpt, relevance}
+                    // Done event: {chunkIndex, snippet, relevanceScore}
+                    const raw = c as unknown as Record<string, unknown>
+                    return {
+                      citationIndex: c.citationIndex ?? (raw.index as number) ?? i,
+                      documentId: c.documentId ?? '',
+                      documentName: c.documentName ?? 'Document',
+                      excerpt: c.excerpt ?? (raw.snippet as string) ?? '',
+                      relevanceScore: c.relevanceScore ?? (raw.relevance as number) ?? 0,
+                    }
+                  }),
                   inputValue,
                   fullContent,
                 )
