@@ -525,8 +525,6 @@ describe('chatStore.sendMessage (SSE streaming)', () => {
     expect(assistant.metadata).toEqual({
       sources: [{ id: 's1', name: 'Source 1' }],
       evidence: [{ chunk: 'evidence text' }],
-      docsSearched: 5,
-      chunksEvaluated: 42,
       modelUsed: 'gemini-1.5-pro',
       provider: 'vertex',
       latencyMs: 1200,

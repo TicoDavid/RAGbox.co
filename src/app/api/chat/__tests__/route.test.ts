@@ -217,7 +217,8 @@ describe('POST /api/chat — safety mode URL fetching', () => {
     // Two fetch calls: URL + backend
     expect(global.fetch).toHaveBeenCalledTimes(2)
     const backendBody = JSON.parse((global.fetch as jest.Mock).mock.calls[1][1].body)
-    expect(backendBody.query).toContain('[Web content from https://example.com/page]')
+    // Web content is sent as separate webContext field, not prepended to query
+    expect(backendBody.webContext).toContain('[Web content from https://example.com/page]')
   })
 
   test('skips web context when fetched content is too short', async () => {

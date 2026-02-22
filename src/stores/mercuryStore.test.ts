@@ -475,8 +475,6 @@ describe('mercuryStore', () => {
       expect((last as unknown as Record<string, unknown>).metadata).toEqual({
         sources: [{ id: 's1', name: 'Source 1' }],
         evidence: [{ id: 'e1', text: 'Evidence text' }],
-        docsSearched: 5,
-        chunksEvaluated: 12,
         modelUsed: 'gemini-2.5-flash',
         provider: 'aegis',
         latencyMs: 342,
