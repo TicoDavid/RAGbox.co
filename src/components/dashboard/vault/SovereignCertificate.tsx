@@ -25,7 +25,7 @@ export function SovereignCertificate({ document, userName = 'Sovereign User' }: 
   // Generate a deterministic "hash" display from the document ID
   const truncatedHash = document.checksum
     ? `${document.checksum.slice(0, 8)}...${document.checksum.slice(-6)}`
-    : `${document.id.slice(0, 8)}...${document.id.slice(-4)}`
+    : 'Pending verification'
 
   // Handle verification animation
   const handleVerify = useCallback(async () => {

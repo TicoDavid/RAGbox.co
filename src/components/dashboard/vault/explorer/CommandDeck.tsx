@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import {
   ChevronRight,
   Plus,
@@ -32,6 +32,8 @@ interface CommandDeckProps {
   onVectorize: () => void
   onMoveTo: () => void
   onSecurity: () => void
+  filteredCount?: number
+  totalCount?: number
   onClose?: () => void
 }
 
@@ -49,9 +51,35 @@ export function CommandDeck({
   onVectorize,
   onMoveTo,
   onSecurity,
+  filteredCount,
+  totalCount,
   onClose,
 }: CommandDeckProps) {
   const [showNewMenu, setShowNewMenu] = useState(false)
+  const [inputValue, setInputValue] = useState(searchQuery)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Sync external searchQuery → inputValue (e.g. when cleared from parent)
+  useEffect(() => {
+    setInputValue(searchQuery)
+  }, [searchQuery])
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
+  }, [])
+
+  const handleInputChange = useCallback((value: string) => {
+    setInputValue(value)
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => onSearchChange(value), 300)
+  }, [onSearchChange])
+
+  const handleClear = useCallback(() => {
+    setInputValue('')
+    if (timerRef.current) clearTimeout(timerRef.current)
+    onSearchChange('')
+  }, [onSearchChange])
 
   return (
     <div className="shrink-0 bg-[var(--bg-primary)] border-b border-[var(--border-default)]">
@@ -93,12 +121,28 @@ export function CommandDeck({
               id="vault-search"
               name="vault-search"
               type="text"
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
+              value={inputValue}
+              onChange={(e) => handleInputChange(e.target.value)}
               placeholder="Search vault..."
-              className="w-64 h-8 pl-9 pr-3 bg-[var(--bg-elevated)]/20 border border-[var(--border-default)] rounded-lg text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--brand-blue)] focus:ring-1 focus:ring-[var(--brand-blue)]/30 transition-colors"
+              className="w-64 h-8 pl-9 pr-8 bg-[var(--bg-elevated)]/20 border border-[var(--border-default)] rounded-lg text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--brand-blue)] focus:ring-1 focus:ring-[var(--brand-blue)]/30 transition-colors"
             />
+            {inputValue && (
+              <button
+                onClick={handleClear}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+                aria-label="Clear search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
+
+          {/* Document count */}
+          {filteredCount !== undefined && totalCount !== undefined && (
+            <span className="text-xs text-[var(--text-tertiary)] whitespace-nowrap">
+              {filteredCount} of {totalCount}
+            </span>
+          )}
 
           {onClose && (
             <button

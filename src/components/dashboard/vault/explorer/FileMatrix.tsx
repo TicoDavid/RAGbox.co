@@ -67,6 +67,7 @@ interface FileMatrixProps {
   onToggleSort: (field: SortField) => void
   onToggleStar?: (id: string) => void
   onDelete?: (id: string) => void
+  searchQuery?: string
 }
 
 export function FileMatrix({
@@ -80,6 +81,7 @@ export function FileMatrix({
   onToggleSort,
   onToggleStar,
   onDelete,
+  searchQuery,
 }: FileMatrixProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -126,7 +128,7 @@ export function FileMatrix({
   }, [handleKeyDown])
 
   if (viewMode === 'grid') {
-    return <GridView items={items} selectedId={selectedId} onSelect={onSelect} onDoubleClick={onDoubleClick} onToggleStar={onToggleStar} />
+    return <GridView items={items} selectedId={selectedId} onSelect={onSelect} onDoubleClick={onDoubleClick} onToggleStar={onToggleStar} searchQuery={searchQuery} />
   }
 
   return (
@@ -247,11 +249,17 @@ export function FileMatrix({
             <tr>
               <td colSpan={7} className="px-4 py-16 text-center">
                 <FolderIcon className="w-16 h-16 text-[var(--text-muted)] mx-auto mb-4" />
-                <p className="text-base text-[var(--text-secondary)]">This folder is empty</p>
-                <p className="text-sm text-[var(--text-tertiary)] mt-2 flex items-center justify-center gap-1.5">
-                  <Upload className="w-4 h-4" />
-                  Drop files here or click Upload
-                </p>
+                {searchQuery ? (
+                  <p className="text-base text-[var(--text-secondary)]">No files match &ldquo;{searchQuery}&rdquo;</p>
+                ) : (
+                  <>
+                    <p className="text-base text-[var(--text-secondary)]">This folder is empty</p>
+                    <p className="text-sm text-[var(--text-tertiary)] mt-2 flex items-center justify-center gap-1.5">
+                      <Upload className="w-4 h-4" />
+                      Drop files here or click Upload
+                    </p>
+                  </>
+                )}
               </td>
             </tr>
           )}
@@ -271,12 +279,14 @@ function GridView({
   onSelect,
   onDoubleClick,
   onToggleStar,
+  searchQuery,
 }: {
   items: ExplorerItem[]
   selectedId: string | null
   onSelect: (id: string) => void
   onDoubleClick: (item: ExplorerItem) => void
   onToggleStar?: (id: string) => void
+  searchQuery?: string
 }) {
   return (
     <div className="flex-1 overflow-auto">
@@ -328,11 +338,17 @@ function GridView({
         {items.length === 0 && (
           <div className="col-span-4 flex flex-col items-center py-16">
             <FolderIcon className="w-16 h-16 text-[var(--text-muted)] mb-4" />
-            <p className="text-base text-[var(--text-secondary)]">This folder is empty</p>
-            <p className="text-sm text-[var(--text-tertiary)] mt-2 flex items-center gap-1.5">
-              <Upload className="w-4 h-4" />
-              Drop files here or click Upload
-            </p>
+            {searchQuery ? (
+              <p className="text-base text-[var(--text-secondary)]">No files match &ldquo;{searchQuery}&rdquo;</p>
+            ) : (
+              <>
+                <p className="text-base text-[var(--text-secondary)]">This folder is empty</p>
+                <p className="text-sm text-[var(--text-tertiary)] mt-2 flex items-center gap-1.5">
+                  <Upload className="w-4 h-4" />
+                  Drop files here or click Upload
+                </p>
+              </>
+            )}
           </div>
         )}
       </div>

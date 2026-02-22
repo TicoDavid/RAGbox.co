@@ -188,7 +188,7 @@ export function VaultPanel() {
     <div className="flex flex-col h-full bg-[var(--bg-secondary)]">
       {/* Header with rim lighting — always visible */}
       <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-[var(--border-default)] border-t border-t-[var(--border-default)]">
-        <span className="text-base font-bold text-[var(--text-primary)] tracking-wide uppercase">Vault</span>
+        <span className="text-base font-bold text-[var(--text-primary)] tracking-wide">Vault</span>
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => setIsIngestionOpen(true)}

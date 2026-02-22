@@ -243,6 +243,7 @@ export function SovereignExplorer({ onClose }: SovereignExplorerProps) {
   }, [fetchDocuments])
 
   const handleDelete = useCallback((id: string) => {
+    if (!window.confirm('Are you sure you want to delete this document?')) return
     deleteDocument(id)
     setSelectedId(null)
   }, [deleteDocument])
@@ -423,6 +424,8 @@ export function SovereignExplorer({ onClose }: SovereignExplorerProps) {
         searchQuery={searchQuery}
         viewMode={viewMode}
         isVectorizing={isVectorizing}
+        filteredCount={sortedItems.length}
+        totalCount={currentFolderItems.length}
         onNavigate={handleSelectFolder}
         onSearchChange={setSearchQuery}
         onViewModeChange={setViewMode}
@@ -459,6 +462,7 @@ export function SovereignExplorer({ onClose }: SovereignExplorerProps) {
             selectedId={selectedId}
             sortField={sortField}
             sortAsc={sortAsc}
+            searchQuery={searchQuery}
             onSelect={setSelectedId}
             onDoubleClick={handleDoubleClick}
             onToggleSort={handleToggleSort}

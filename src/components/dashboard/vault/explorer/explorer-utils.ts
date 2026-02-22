@@ -48,11 +48,8 @@ export function vaultItemToExplorerItem(
 ): ExplorerItem {
   const security = tierToSecurity(doc.securityTier ?? 1)
   const isIndexed = doc.status === 'Indexed' || doc.status === 'ready'
-  const daysSinceCreated = Math.floor(
-    (Date.now() - new Date(doc.createdAt).getTime()) / (1000 * 60 * 60 * 24)
-  )
-  const citations = isIndexed ? Math.max(0, Math.floor(Math.random() * 50) + daysSinceCreated) : 0
-  const relevanceScore = isIndexed ? 0.5 + Math.random() * 0.5 : 0
+  const citations = 0
+  const relevanceScore = 0
 
   return {
     id: doc.id,
