@@ -17,8 +17,10 @@ import {
   Mic,
   MicOff,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { PERSONAS } from './personaData'
 import { LlmPicker } from './ChatModelPicker'
+import { useDeepgramSTT } from '@/hooks/useDeepgramSTT'
 
 export { PERSONAS, type Persona, type PersonaCategory } from './personaData'
 
@@ -44,9 +46,7 @@ export function InputBar() {
   const [showUrlInput, setShowUrlInput] = useState(false)
   const [urlValue, setUrlValue] = useState('')
 
-  // VAD mic — placeholder until Sheldon's hook spec arrives
-  const [isListening, setIsListening] = useState(false)
-  const [audioLevel, setAudioLevel] = useState(0)
+  const { isListening, transcript, audioLevel, error: micError, startListening, stopListening } = useDeepgramSTT()
 
   const currentPersona = PERSONAS.find((p) => p.id === activePersona) || PERSONAS[0]
   const isAegisActive = mercuryIntelligence.tier === 'native'
@@ -143,23 +143,27 @@ export function InputBar() {
 
   const handleSubmit = () => sendMessage(privilegeMode)
 
-  // Toggle VAD mic — placeholder: simulate audio levels while listening
   const handleMicToggle = useCallback(() => {
-    setIsListening((prev) => !prev)
-    setAudioLevel(0)
-  }, [])
-
-  // Placeholder: simulate audio level fluctuation while listening
-  useEffect(() => {
-    if (!isListening) {
-      setAudioLevel(0)
-      return
+    if (isListening) {
+      stopListening()
+    } else {
+      startListening()
     }
-    const interval = setInterval(() => {
-      setAudioLevel(Math.random() * 0.8 + 0.1)
-    }, 120)
-    return () => clearInterval(interval)
-  }, [isListening])
+  }, [isListening, startListening, stopListening])
+
+  // Sync STT transcript to input field while listening
+  useEffect(() => {
+    if (isListening && transcript) {
+      setInputValue(transcript)
+    }
+  }, [isListening, transcript, setInputValue])
+
+  // Show mic errors as toast
+  useEffect(() => {
+    if (micError) {
+      toast.error(micError)
+    }
+  }, [micError])
 
   const canSend = (inputValue.trim().length > 0 || attachments.length > 0) && !isStreaming
 
