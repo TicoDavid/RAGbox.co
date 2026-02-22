@@ -14,6 +14,9 @@ import {
   EyeOff,
   Link2,
   Unlink,
+  Copy,
+  ExternalLink,
+  Phone,
 } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { toast } from 'sonner'
@@ -519,117 +522,162 @@ export default function IntegrationsSettings() {
       </div>
 
       {/* ================================================================== */}
-      {/* SECTION 1: WhatsApp Connection */}
+      {/* SECTION 1: WhatsApp — Vonage Demo */}
       {/* ================================================================== */}
       <div className="rounded-lg border border-[var(--bg-tertiary)] bg-[var(--bg-primary)] p-4 mb-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <MessageCircle size={14} className="text-[var(--success)]" />
-            <span className="text-xs font-medium text-[var(--text-primary)]">WhatsApp Connection</span>
+            <div className="w-5 h-5 rounded bg-[#25D366] flex items-center justify-center">
+              <MessageCircle size={11} className="text-white" />
+            </div>
+            <span className="text-xs font-medium text-[var(--text-primary)]">WhatsApp</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]">Vonage</span>
           </div>
-          <Toggle
-            checked={settings.whatsappEnabled}
-            onChange={(v) => saveField({ whatsappEnabled: v })}
-          />
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-full bg-[var(--success)] animate-pulse" />
+            <span className="text-[10px] text-[var(--success)]">Connected</span>
+          </div>
         </div>
 
-        {settings.whatsappEnabled && (
-          <div className="space-y-3 mt-3 pt-3 border-t border-[var(--bg-tertiary)]">
-            {/* Provider */}
+        <div className="space-y-3 mt-3 pt-3 border-t border-[var(--bg-tertiary)]">
+          {/* Connection info */}
+          <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="text-[10px] text-[var(--text-tertiary)] block mb-1">Provider</label>
-              <select
-                value={settings.whatsappProvider}
-                onChange={(e) => saveField({ whatsappProvider: e.target.value })}
-                className="w-full bg-[var(--bg-secondary)] border border-[var(--bg-elevated)] rounded px-2 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-blue)]"
-              >
-                <option value="vonage">Vonage</option>
-                <option value="meta">Meta (WhatsApp Cloud API)</option>
-              </select>
-            </div>
-
-            {/* Vonage fields */}
-            {settings.whatsappProvider === 'vonage' && (
-              <>
-                <CredentialField
-                  label="API Key"
-                  value={settings.vonageApiKey}
-                  onChange={(v) => saveField({ vonageApiKey: v })}
-                />
-                <CredentialField
-                  label="API Secret"
-                  value={settings.vonageApiSecret}
-                  onChange={(v) => saveField({ vonageApiSecret: v })}
-                  type="password"
-                />
-                <CredentialField
-                  label="Application ID"
-                  value={settings.vonageApplicationId}
-                  onChange={(v) => saveField({ vonageApplicationId: v })}
-                />
-                <CredentialField
-                  label="WhatsApp Number"
-                  value={settings.vonageWhatsAppNumber}
-                  onChange={(v) => saveField({ vonageWhatsAppNumber: v })}
-                  placeholder="14157386102"
-                />
-              </>
-            )}
-
-            {/* Meta fields */}
-            {settings.whatsappProvider === 'meta' && (
-              <>
-                <CredentialField
-                  label="Access Token"
-                  value={settings.metaAccessToken}
-                  onChange={(v) => saveField({ metaAccessToken: v })}
-                  type="password"
-                />
-                <CredentialField
-                  label="Phone Number ID"
-                  value={settings.metaPhoneNumberId}
-                  onChange={(v) => saveField({ metaPhoneNumberId: v })}
-                />
-                <CredentialField
-                  label="App Secret"
-                  value={settings.metaAppSecret}
-                  onChange={(v) => saveField({ metaAppSecret: v })}
-                  type="password"
-                />
-              </>
-            )}
-
-            {/* Test Connection */}
-            <div className="pt-2 border-t border-[var(--bg-tertiary)]">
-              <label className="text-[10px] text-[var(--text-tertiary)] block mb-1">Test Connection</label>
-              <div className="flex gap-2">
-                <input
-                  type="tel"
-                  value={testPhone}
-                  onChange={(e) => setTestPhone(e.target.value)}
-                  placeholder="+1234567890"
-                  className="flex-1 bg-[var(--bg-secondary)] border border-[var(--bg-elevated)] rounded px-2 py-1.5 text-xs text-[var(--text-primary)] placeholder:text-[var(--border-default)] focus:outline-none focus:border-[var(--brand-blue)]"
-                />
-                <button
-                  onClick={handleTestConnection}
-                  disabled={testStatus === 'sending'}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-green-600 hover:bg-green-500 disabled:opacity-50 rounded text-xs text-[var(--text-primary)] transition-colors"
-                >
-                  {testStatus === 'sending' ? (
-                    <Loader2 size={12} className="animate-spin" />
-                  ) : testStatus === 'success' ? (
-                    <CheckCircle2 size={12} />
-                  ) : testStatus === 'error' ? (
-                    <AlertCircle size={12} />
-                  ) : (
-                    <Send size={12} />
-                  )}
-                  Test
-                </button>
+              <div className="text-[10px] text-[var(--text-tertiary)]">Phone Number</div>
+              <div className="text-xs text-[var(--text-primary)] font-mono flex items-center gap-1">
+                <Phone size={10} className="text-[var(--text-tertiary)]" />
+                {settings.vonageWhatsAppNumber || '+1 (415) 738-6102'}
               </div>
             </div>
+            <div>
+              <div className="text-[10px] text-[var(--text-tertiary)]">Messages</div>
+              <div className="text-xs text-[var(--text-primary)]">—</div>
+            </div>
+            <div>
+              <div className="text-[10px] text-[var(--text-tertiary)]">Last Active</div>
+              <div className="text-xs text-[var(--text-primary)]">—</div>
+            </div>
           </div>
-        )}
+
+          {/* Auto-respond toggle */}
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-xs text-[var(--text-primary)]">Auto-respond to inbound</div>
+              <div className="text-[10px] text-[var(--text-tertiary)]">Mercury replies to incoming messages</div>
+            </div>
+            <Toggle
+              checked={settings.mercuryAutoReply}
+              onChange={(v) => saveField({ mercuryAutoReply: v })}
+            />
+          </div>
+
+          {/* Test Connection */}
+          <div className="pt-2 border-t border-[var(--bg-tertiary)]">
+            <label className="text-[10px] text-[var(--text-tertiary)] block mb-1">Test Connection</label>
+            <div className="flex gap-2">
+              <input
+                type="tel"
+                value={testPhone}
+                onChange={(e) => setTestPhone(e.target.value)}
+                placeholder="+1234567890"
+                className="flex-1 bg-[var(--bg-secondary)] border border-[var(--bg-elevated)] rounded px-2 py-1.5 text-xs text-[var(--text-primary)] placeholder:text-[var(--border-default)] focus:outline-none focus:border-[var(--brand-blue)]"
+              />
+              <button
+                onClick={handleTestConnection}
+                disabled={testStatus === 'sending'}
+                className="flex items-center gap-1 px-3 py-1.5 bg-green-600 hover:bg-green-500 disabled:opacity-50 rounded text-xs text-[var(--text-primary)] transition-colors"
+              >
+                {testStatus === 'sending' ? (
+                  <Loader2 size={12} className="animate-spin" />
+                ) : testStatus === 'success' ? (
+                  <CheckCircle2 size={12} />
+                ) : testStatus === 'error' ? (
+                  <AlertCircle size={12} />
+                ) : (
+                  <Send size={12} />
+                )}
+                Test
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ================================================================== */}
+      {/* SECTION 1b: WhatsApp — Meta Cloud API (Coming Soon) */}
+      {/* ================================================================== */}
+      <div className="rounded-lg border border-[var(--bg-tertiary)] bg-[var(--bg-primary)] p-4 mb-4 opacity-60">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded bg-[#25D366]/50 flex items-center justify-center">
+              <MessageCircle size={11} className="text-white/70" />
+            </div>
+            <span className="text-xs font-medium text-[var(--text-primary)]">WhatsApp</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]">Meta Cloud API</span>
+          </div>
+        </div>
+
+        {/* Coming Soon banner */}
+        <div className="rounded-lg bg-[var(--warning)]/10 border border-[var(--warning)]/20 px-3 py-2 mb-3">
+          <div className="text-xs font-medium text-[var(--warning)]">Coming Soon</div>
+          <div className="text-[10px] text-[var(--text-tertiary)]">Meta Business Verification Required</div>
+        </div>
+
+        <div className="space-y-3 mt-3 pt-3 border-t border-[var(--bg-tertiary)]">
+          {/* Meta Cloud inputs (greyed out) */}
+          <div>
+            <label className="text-[10px] text-[var(--text-tertiary)] block mb-1">Business Account ID</label>
+            <input
+              type="text"
+              disabled
+              placeholder="Enter WhatsApp Business Account ID"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--bg-elevated)] rounded px-2 py-1.5 text-xs text-[var(--text-tertiary)] placeholder:text-[var(--border-default)] cursor-not-allowed"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] text-[var(--text-tertiary)] block mb-1">Phone Number ID</label>
+            <input
+              type="text"
+              disabled
+              placeholder="Enter Phone Number ID"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--bg-elevated)] rounded px-2 py-1.5 text-xs text-[var(--text-tertiary)] placeholder:text-[var(--border-default)] cursor-not-allowed"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] text-[var(--text-tertiary)] block mb-1">Permanent Access Token</label>
+            <input
+              type="password"
+              disabled
+              placeholder="Enter Access Token"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--bg-elevated)] rounded px-2 py-1.5 text-xs text-[var(--text-tertiary)] placeholder:text-[var(--border-default)] cursor-not-allowed"
+            />
+          </div>
+
+          {/* Webhook URL + Verify Token (read-only) */}
+          <div className="pt-2 border-t border-[var(--bg-tertiary)]">
+            <ReadOnlyCopyField
+              label="Webhook URL"
+              value={`${typeof window !== 'undefined' ? window.location.origin : ''}/api/webhooks/whatsapp`}
+            />
+            <div className="mt-2">
+              <ReadOnlyCopyField
+                label="Verify Token"
+                value="ragbox-whatsapp-verify-token"
+              />
+            </div>
+          </div>
+
+          {/* Meta setup guide link */}
+          <a
+            href="https://developers.facebook.com/docs/whatsapp/cloud-api/get-started"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-[10px] text-[var(--brand-blue)] hover:underline"
+          >
+            <ExternalLink size={10} />
+            Meta WhatsApp Cloud API Setup Guide
+          </a>
+        </div>
       </div>
 
       {/* ================================================================== */}
@@ -862,6 +910,40 @@ function CredentialField({
         placeholder={placeholder}
         className="w-full bg-[var(--bg-secondary)] border border-[var(--bg-elevated)] rounded px-2 py-1.5 text-xs text-[var(--text-primary)] placeholder:text-[var(--border-default)] focus:outline-none focus:border-[var(--brand-blue)]"
       />
+    </div>
+  )
+}
+
+function ReadOnlyCopyField({ label, value }: { label: string; value: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      toast.error('Failed to copy')
+    }
+  }
+
+  return (
+    <div>
+      <label className="text-[10px] text-[var(--text-tertiary)] block mb-1">{label}</label>
+      <div className="flex gap-1">
+        <input
+          type="text"
+          readOnly
+          value={value}
+          className="flex-1 bg-[var(--bg-secondary)] border border-[var(--bg-elevated)] rounded px-2 py-1.5 text-xs text-[var(--text-tertiary)] font-mono cursor-default"
+        />
+        <button
+          onClick={handleCopy}
+          className="px-2 py-1.5 rounded bg-[var(--bg-tertiary)] hover:bg-[var(--bg-elevated)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+        >
+          {copied ? <CheckCircle2 size={12} /> : <Copy size={12} />}
+        </button>
+      </div>
     </div>
   )
 }
