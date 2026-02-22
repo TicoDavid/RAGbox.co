@@ -277,7 +277,7 @@ export function DashboardLayout() {
   const uploadDocuments = useVaultStore((s) => s.uploadDocuments)
 
   // Rail state
-  const [leftExpanded, setLeftExpanded] = useState(!isVaultCollapsed)
+  const [leftExpanded, setLeftExpanded] = useState(false)
   const [leftTab, setLeftTab] = useState<LeftRailTab>('vault')
   const [rightExpanded, setRightExpanded] = useState(false)
   const [rightTab, setRightTab] = useState<RightRailTab>('studio')
