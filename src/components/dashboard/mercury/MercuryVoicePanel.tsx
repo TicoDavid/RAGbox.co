@@ -91,7 +91,11 @@ function StateIndicator({
 // MAIN PANEL
 // ============================================================================
 
-export function MercuryVoicePanel() {
+interface MercuryVoicePanelProps {
+  agentName?: string
+}
+
+export function MercuryVoicePanel({ agentName = 'Mercury' }: MercuryVoicePanelProps) {
   const { data: session } = useSession()
   const privilegeMode = usePrivilegeStore((s) => s.isEnabled)
 
@@ -158,7 +162,7 @@ export function MercuryVoicePanel() {
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
             <Mic className="w-4 h-4 text-[var(--brand-blue)]" />
-            Mercury
+            {agentName}
           </h3>
           <StateIndicator
             state={state}
@@ -254,7 +258,7 @@ export function MercuryVoicePanel() {
           {!isPoweredOn ? (
             <div className="h-full flex items-center justify-center">
               <p className="text-xs text-[var(--text-muted)] text-center">
-                Press power to activate<br />Mercury voice agent
+                Press power to activate<br />{agentName} voice agent
               </p>
             </div>
           ) : (
@@ -277,7 +281,7 @@ export function MercuryVoicePanel() {
                         entry.type === 'user' ? 'text-[var(--brand-blue)]' : 'text-[var(--success)]'
                       }`}
                     >
-                      {entry.type === 'user' ? 'You' : 'Mercury'}
+                      {entry.type === 'user' ? 'You' : agentName}
                     </span>
                   )}
                   <span className={!entry.isFinal ? 'opacity-60' : ''}>
@@ -289,7 +293,7 @@ export function MercuryVoicePanel() {
               {/* Empty state */}
               {transcript.length === 0 && (
                 <p className="text-xs text-[var(--text-muted)] text-center py-4">
-                  Start speaking to Mercury
+                  Start speaking to {agentName}
                 </p>
               )}
             </div>

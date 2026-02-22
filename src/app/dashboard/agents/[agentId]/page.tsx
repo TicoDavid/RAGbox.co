@@ -261,14 +261,14 @@ function ActivityFeedSkeleton() {
 // Recent Activity Feed
 // ---------------------------------------------------------------------------
 
-function RecentActivityFeed({ messages }: { messages: ThreadMessage[] }) {
+function RecentActivityFeed({ messages, agentName }: { messages: ThreadMessage[]; agentName: string }) {
   if (!messages || messages.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center py-12 text-center">
         <div className="w-16 h-16 rounded-full bg-[var(--brand-blue)]/10 flex items-center justify-center mb-4">
           <MessageCircle className="w-7 h-7 text-[var(--brand-blue)]/50" />
         </div>
-        <p className="text-sm text-[var(--text-secondary)] font-medium">Mercury is ready.</p>
+        <p className="text-sm text-[var(--text-secondary)] font-medium">Agent is ready.</p>
         <p className="text-xs text-[var(--text-tertiary)] mt-1">Send the first message.</p>
       </div>
     )
@@ -293,7 +293,7 @@ function RecentActivityFeed({ messages }: { messages: ThreadMessage[] }) {
             <div className="flex-1 min-w-0">
               <p className="text-sm text-[var(--text-secondary)] truncate">{msg.content}</p>
               <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5">
-                {msg.role === 'assistant' ? 'Mercury' : 'You'} &middot; {dateStr} {timeStr}
+                {msg.role === 'assistant' ? agentName : 'You'} &middot; {dateStr} {timeStr}
               </p>
             </div>
           </div>
@@ -312,9 +312,10 @@ interface QuickActionsProps {
   onAsk: () => void
   onAudit: () => void
   actionLoading: string | null
+  agentName: string
 }
 
-function QuickActions({ onCompose, onAsk, onAudit, actionLoading }: QuickActionsProps) {
+function QuickActions({ onCompose, onAsk, onAudit, actionLoading, agentName }: QuickActionsProps) {
   const actions = [
     {
       id: 'email',
@@ -332,7 +333,7 @@ function QuickActions({ onCompose, onAsk, onAudit, actionLoading }: QuickActions
     },
     {
       id: 'ask',
-      label: 'Ask Mercury',
+      label: `Ask ${agentName}`,
       icon: <Send className="w-4 h-4" />,
       onClick: onAsk,
       color: 'bg-[var(--warning)]/15 hover:bg-[var(--warning)]/25 text-[var(--warning)] border border-[var(--warning)]/20',
@@ -717,7 +718,7 @@ export default function AgentPage() {
                   <InlineError message={feedError} onRetry={loadFeed} />
                 </div>
               ) : (
-                <RecentActivityFeed messages={messages} />
+                <RecentActivityFeed messages={messages} agentName={persona.firstName} />
               )}
             </div>
           </div>
@@ -736,6 +737,7 @@ export default function AgentPage() {
                 onAsk={handleAsk}
                 onAudit={handleAudit}
                 actionLoading={actionLoading}
+                agentName={persona.firstName}
               />
             </div>
           </div>
