@@ -133,6 +133,8 @@ model MercuryPersona {
   lastName              String   @default("") @map("last_name")
   title                 String?  @default("AI Assistant")
   personalityPrompt     String   @map("personality_prompt") @db.Text
+  personalityPreset     String?  @map("personality_preset")
+  rolePreset            String?  @map("role_preset")
   voiceId               String?  @map("voice_id")
   avatarUrl             String?  @map("avatar_url")
   greeting              String?
@@ -641,6 +643,29 @@ model IntegrationSettings {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("integration_settings")
+}
+
+// ============================================
+// ROAM Integration (Per-Tenant Credential Storage)
+// ============================================
+
+model RoamIntegration {
+  id                    String    @id @default(cuid())
+  tenantId              String    @unique @map("tenant_id")
+  userId                String    @map("user_id")
+  apiKeyEncrypted       String?   @map("api_key_encrypted") @db.Text
+  webhookSubscriptionId String?   @map("webhook_subscription_id")
+  targetGroupId         String?   @map("target_group_id")
+  targetGroupName       String?   @map("target_group_name")
+  mentionOnly           Boolean   @default(true) @map("mention_only")
+  meetingSummaries       Boolean   @default(true) @map("meeting_summaries")
+  status                String    @default("disconnected")
+  connectedAt           DateTime? @map("connected_at")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  @@index([targetGroupId])
+  @@map("roam_integrations")
 }
 
 // ============================================

@@ -128,9 +128,15 @@ export function MercurySettingsModal({ open, onClose, onSaved }: MercurySettings
       if (!res.ok) throw new Error('Failed to load config')
       const json = await res.json()
       if (json.success && json.data?.config) {
-        setConfig(json.data.config)
+        const c = json.data.config
+        setConfig({
+          ...DEFAULT_CONFIG,
+          ...c,
+          // Restore preset keys from persisted DB columns
+          personality: c.personalityPreset || '',
+          role: c.rolePreset || '',
+        })
       }
-      // presets from backend stored in config.personality/config.role
     } catch (err) {
       console.error('Mercury config load failed:', err)
       toast.error('Failed to load Mercury configuration')

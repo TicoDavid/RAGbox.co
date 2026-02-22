@@ -51,6 +51,8 @@ interface MercuryConfigPayload {
   title: string
   greeting: string
   personalityPrompt: string
+  personalityPreset: string
+  rolePreset: string
   voiceGender: 'male' | 'female'
   silenceThreshold: number
   channels: {
@@ -78,6 +80,8 @@ function toConfigPayload(persona: {
   title: string | null
   greeting: string | null
   personalityPrompt: string
+  personalityPreset: string | null
+  rolePreset: string | null
   voiceId: string | null
   silenceHighThreshold: number
   channelConfig: unknown
@@ -95,6 +99,8 @@ function toConfigPayload(persona: {
     title: persona.title || 'AI Assistant',
     greeting: persona.greeting || '',
     personalityPrompt: persona.personalityPrompt,
+    personalityPreset: persona.personalityPreset || '',
+    rolePreset: persona.rolePreset || '',
     voiceGender: inferGender(persona.voiceId),
     silenceThreshold: persona.silenceHighThreshold,
     channels: {
@@ -226,6 +232,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       updateData.emailAddress = body.channels.email.address
     }
   }
+  // Persist preset keys so GET can identify them on reload
+  if (personalityKey !== undefined) updateData.personalityPreset = personalityKey || null
+  if (roleKey !== undefined) updateData.rolePreset = roleKey || null
 
   const persona = await prisma.mercuryPersona.upsert({
     where: { tenantId: auth.tenantId },
