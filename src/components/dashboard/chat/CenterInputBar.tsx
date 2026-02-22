@@ -1,22 +1,36 @@
 'use client'
 
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect, useState, useCallback } from 'react'
 import { useChatStore } from '@/stores/chatStore'
 import { usePrivilegeStore } from '@/stores/privilegeStore'
 import { useSettings } from '@/contexts/SettingsContext'
 import { LlmPicker } from '@/components/dashboard/mercury/ChatModelPicker'
 import {
-  Plus,
+  Paperclip,
   Shield,
   ShieldOff,
   Mic,
   ArrowUp,
   Square,
   FileUp,
+  FileText,
   Link2,
   Search,
   EyeOff,
+  X,
+  Image,
+  Loader2,
 } from 'lucide-react'
+
+interface ChatAttachment {
+  id: string
+  name: string
+  type: 'file' | 'image'
+  mimeType: string
+  size: number
+  content?: string
+  status: 'pending' | 'ready' | 'error'
+}
 
 export function CenterInputBar() {
   // Chat store (independent from Mercury)
@@ -37,9 +51,43 @@ export function CenterInputBar() {
 
   // Local UI state
   const [showPlusMenu, setShowPlusMenu] = useState(false)
+  const [attachments, setAttachments] = useState<ChatAttachment[]>([])
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFileSelect = useCallback((files: FileList | null) => {
+    if (!files) return
+    setShowPlusMenu(false)
+    for (const file of Array.from(files)) {
+      const id = `att-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+      const isImage = file.type.startsWith('image/')
+      setAttachments((prev) => [...prev, {
+        id,
+        name: file.name,
+        type: isImage ? 'image' : 'file',
+        mimeType: file.type,
+        size: file.size,
+        status: 'pending',
+      }])
+      const reader = new FileReader()
+      reader.onload = () => {
+        setAttachments((prev) =>
+          prev.map((a) => a.id === id ? { ...a, content: reader.result as string, status: 'ready' } : a)
+        )
+      }
+      reader.onerror = () => {
+        setAttachments((prev) =>
+          prev.map((a) => a.id === id ? { ...a, status: 'error' } : a)
+        )
+      }
+      reader.readAsDataURL(file)
+    }
+  }, [])
+
+  const removeAttachment = (id: string) => {
+    setAttachments((prev) => prev.filter((a) => a.id !== id))
+  }
 
   // Auto-resize textarea
   useEffect(() => {
@@ -59,8 +107,18 @@ export function CenterInputBar() {
   }, [activeIntelligence, setModel])
 
   const handleSubmit = () => {
-    if (!inputValue.trim() || isStreaming) return
+    if ((!inputValue.trim() && attachments.length === 0) || isStreaming) return
+    // Prepend attachment context to the query
+    const readyAttachments = attachments.filter((a) => a.status === 'ready')
+    if (readyAttachments.length > 0) {
+      const context = readyAttachments
+        .map((a) => `[Attached file: ${a.name}]\n${a.content}`)
+        .join('\n\n')
+      const fullMessage = context + (inputValue.trim() ? '\n\n' + inputValue : '')
+      setInputValue(fullMessage)
+    }
     sendMessage(privilegeMode)
+    setAttachments([])
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -70,7 +128,7 @@ export function CenterInputBar() {
     }
   }
 
-  const canSend = inputValue.trim().length > 0 && !isStreaming
+  const canSend = (inputValue.trim().length > 0 || attachments.length > 0) && !isStreaming
 
   return (
     <div className="rounded-2xl bg-[var(--bg-primary)] border border-[var(--border-default)] focus-within:border-[var(--brand-blue)]/50 transition-all shadow-lg shadow-black/10 overflow-visible">
@@ -78,6 +136,42 @@ export function CenterInputBar() {
       <div className="px-3 sm:px-5 pt-3 pb-0">
         <LlmPicker />
       </div>
+
+      {/* Attachment pills */}
+      {attachments.length > 0 && (
+        <div className="flex flex-wrap gap-2 px-3 sm:px-5 pt-3 pb-0">
+          {attachments.map((att) => (
+            <div
+              key={att.id}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
+                att.status === 'error'
+                  ? 'bg-[var(--danger)]/20 text-[var(--danger)] border border-[var(--danger)]/30'
+                  : att.status === 'pending'
+                    ? 'bg-[var(--warning)]/20 text-[var(--warning)] border border-[var(--warning)]/30'
+                    : 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border border-[var(--brand-blue)]/30'
+              }`}
+            >
+              {att.status === 'pending' ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : att.type === 'image' ? (
+                <Image className="w-3 h-3" />
+              ) : att.mimeType?.includes('pdf') ? (
+                <FileText className="w-3 h-3" />
+              ) : (
+                <FileUp className="w-3 h-3" />
+              )}
+              <span className="max-w-[120px] truncate">{att.name}</span>
+              <button
+                onClick={() => removeAttachment(att.id)}
+                className="ml-0.5 p-0.5 rounded-full hover:bg-[var(--bg-elevated)] transition-colors"
+                aria-label={`Remove ${att.name}`}
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Textarea area */}
       <div className="px-3 sm:px-5 pt-3 pb-2">
@@ -87,9 +181,11 @@ export function CenterInputBar() {
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={
-            safetyMode
-              ? 'Ask anything...'
-              : 'Ask anything... or paste a URL to analyze'
+            attachments.length > 0
+              ? 'Ask about attached files...'
+              : safetyMode
+                ? 'Ask anything...'
+                : 'Ask anything... or paste a URL to analyze'
           }
           className="w-full bg-transparent text-[var(--text-primary)] placeholder-[var(--text-tertiary)] resize-none outline-none border-0 shadow-none focus:ring-0 focus:border-0 focus:shadow-none focus:outline-none text-base leading-relaxed max-h-[200px]"
           rows={2}
@@ -99,7 +195,7 @@ export function CenterInputBar() {
 
       {/* Bottom toolbar — inside the input container */}
       <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2.5 border-t border-[var(--border-subtle)]">
-        {/* ── Plus button ── */}
+        {/* ── Attach button ── */}
         <div className="relative">
           <button
             onClick={() => setShowPlusMenu(!showPlusMenu)}
@@ -112,7 +208,7 @@ export function CenterInputBar() {
             aria-label="Attach files or sources"
             aria-expanded={showPlusMenu}
           >
-            <Plus className="w-4 h-4" />
+            <Paperclip className="w-4 h-4" />
           </button>
 
           {showPlusMenu && (
@@ -163,6 +259,7 @@ export function CenterInputBar() {
             className="hidden"
             accept=".pdf,.doc,.docx,.txt,.md,.csv,.xlsx,.xls,image/*"
             multiple
+            onChange={(e) => { handleFileSelect(e.target.files); e.target.value = '' }}
             aria-label="Upload files"
           />
         </div>
