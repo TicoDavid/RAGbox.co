@@ -14,6 +14,8 @@ import {
   X,
   FileText,
   Loader2,
+  Mic,
+  MicOff,
 } from 'lucide-react'
 import { PERSONAS } from './personaData'
 import { LlmPicker } from './ChatModelPicker'
@@ -41,6 +43,10 @@ export function InputBar() {
   const [isInjectMenuOpen, setIsInjectMenuOpen] = useState(false)
   const [showUrlInput, setShowUrlInput] = useState(false)
   const [urlValue, setUrlValue] = useState('')
+
+  // VAD mic — placeholder until Sheldon's hook spec arrives
+  const [isListening, setIsListening] = useState(false)
+  const [audioLevel, setAudioLevel] = useState(0)
 
   const currentPersona = PERSONAS.find((p) => p.id === activePersona) || PERSONAS[0]
   const isAegisActive = mercuryIntelligence.tier === 'native'
@@ -136,6 +142,24 @@ export function InputBar() {
   }
 
   const handleSubmit = () => sendMessage(privilegeMode)
+
+  // Toggle VAD mic — placeholder: simulate audio levels while listening
+  const handleMicToggle = useCallback(() => {
+    setIsListening((prev) => !prev)
+    setAudioLevel(0)
+  }, [])
+
+  // Placeholder: simulate audio level fluctuation while listening
+  useEffect(() => {
+    if (!isListening) {
+      setAudioLevel(0)
+      return
+    }
+    const interval = setInterval(() => {
+      setAudioLevel(Math.random() * 0.8 + 0.1)
+    }, 120)
+    return () => clearInterval(interval)
+  }, [isListening])
 
   const canSend = (inputValue.trim().length > 0 || attachments.length > 0) && !isStreaming
 
@@ -239,6 +263,44 @@ export function InputBar() {
           />
 
           <div className="flex items-center gap-1 shrink-0">
+            {/* VAD Mic Button + Voice Level */}
+            <div className="relative flex items-center">
+              <button
+                onClick={handleMicToggle}
+                className={`p-2 rounded-full transition-all duration-300 ${
+                  isListening
+                    ? 'bg-[var(--danger)]/20 text-[var(--danger)] shadow-[0_0_12px_rgba(239,68,68,0.3)]'
+                    : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]/50'
+                }`}
+                title={isListening ? 'Stop listening' : 'Voice input'}
+                aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
+                aria-pressed={isListening}
+              >
+                {isListening ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+                {/* Pulsing ring when active */}
+                {isListening && (
+                  <span className="absolute inset-0 rounded-full border-2 border-[var(--danger)] animate-ping opacity-40" />
+                )}
+              </button>
+
+              {/* Voice level indicator — visible only while listening */}
+              {isListening && (
+                <div className="flex items-end gap-[2px] h-4 ml-1" aria-label={`Audio level ${Math.round(audioLevel * 100)}%`}>
+                  {[0.2, 0.4, 0.6, 0.8, 1.0].map((threshold) => (
+                    <div
+                      key={threshold}
+                      className={`w-[3px] rounded-full transition-all duration-75 ${
+                        audioLevel >= threshold
+                          ? 'bg-[var(--danger)]'
+                          : 'bg-[var(--text-tertiary)]/30'
+                      }`}
+                      style={{ height: `${threshold * 16}px` }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
             {isStreaming ? (
               <button onClick={stopStreaming} className="p-2 rounded-full bg-[var(--danger)]/20 text-[var(--danger)] hover:bg-[var(--danger)]/30 transition-colors" title="Stop" aria-label="Stop streaming">
                 <Square className="w-4 h-4" />
