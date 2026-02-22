@@ -223,6 +223,9 @@ export function GlobalHeader() {
 
           {/* Active Model Badge */}
           <ActiveModelBadge />
+
+          {/* Integration Status Indicators */}
+          <IntegrationStatusDots />
         </div>
 
         {/* Center Section - Search (Absolutely Centered) */}
@@ -1490,6 +1493,33 @@ function ActiveModelBadge() {
       <span className={`text-xs font-medium ${isNative ? 'text-[var(--warning)]' : 'text-[var(--brand-blue)]'}`}>
         M.E.R.C.U.R.Y.
       </span>
+    </div>
+  )
+}
+
+// Integration status dots — mock state until Sheldon's routes exist
+function IntegrationStatusDots() {
+  // TODO: Read from /api/integrations/roam/status and /api/integrations/whatsapp/status
+  const roamConnected = false
+  const whatsappConnected = false
+
+  // Hide entirely if nothing is connected
+  if (!roamConnected && !whatsappConnected) return null
+
+  return (
+    <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-[var(--bg-elevated)]/20 border border-[var(--border-subtle)]">
+      {roamConnected && (
+        <div className="flex items-center gap-1" title="ROAM connected">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)]" />
+          <span className="text-[10px] font-medium text-[var(--text-tertiary)]">ROAM</span>
+        </div>
+      )}
+      {whatsappConnected && (
+        <div className="flex items-center gap-1" title="WhatsApp connected">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#25D366]" />
+          <span className="text-[10px] font-medium text-[var(--text-tertiary)]">WhatsApp</span>
+        </div>
+      )}
     </div>
   )
 }
