@@ -269,4 +269,59 @@ describe('LlmPicker', () => {
     // AEGIS card should not exist
     expect(screen.queryByText('AEGIS')).not.toBeInTheDocument()
   })
+
+  // ── STORY-090: Independent mode tests ──────────────────────────
+
+  it('uses prop activeIntel instead of context when provided', () => {
+    withByollmConnection()
+    const customIntel = {
+      id: 'openai/gpt-4o',
+      displayName: 'GPT-4o',
+      provider: 'openai',
+      tier: 'private' as const,
+    }
+    render(<LlmPicker activeIntel={customIntel} />)
+    // Should show the prop value, not the context value (Aegis)
+    expect(screen.getByText('GPT-4o')).toBeInTheDocument()
+  })
+
+  it('calls onIntelChange instead of setActiveIntelligence when provided', () => {
+    withByollmConnection({
+      activeIntelligence: {
+        id: 'anthropic/claude-sonnet-4-20250514',
+        displayName: 'Claude Sonnet 4',
+        provider: 'openrouter',
+        tier: 'private',
+      },
+    })
+    const onIntelChange = jest.fn()
+    render(
+      <LlmPicker
+        activeIntel={{
+          id: 'anthropic/claude-sonnet-4-20250514',
+          displayName: 'Claude Sonnet 4',
+          provider: 'openrouter',
+          tier: 'private',
+        }}
+        onIntelChange={onIntelChange}
+      />
+    )
+
+    // Click AEGIS to switch
+    fireEvent.click(screen.getByText('AEGIS'))
+
+    // Should call onIntelChange, NOT setActiveIntelligence
+    expect(onIntelChange).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'aegis-core', tier: 'native' })
+    )
+    expect(mockSetActiveIntelligence).not.toHaveBeenCalled()
+  })
+
+  it('falls back to context when no props provided', () => {
+    withByollmConnection()
+    render(<LlmPicker />)
+
+    fireEvent.click(screen.getByText('claude-sonnet-4-20250514'))
+    expect(mockSetActiveIntelligence).toHaveBeenCalled()
+  })
 })
