@@ -481,7 +481,170 @@ describe('Credential encrypt/decrypt (KMS stub)', () => {
   })
 })
 
-// ── 6. Disconnect cleanup ────────────────────────────────────────
+// ── 7. ROAM mentionOnly enforcement (EPIC-011) ──────────────────
+
+describe('ROAM mentionOnly enforcement', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockFindFirst.mockResolvedValue(null)
+    mockThreadCreate.mockResolvedValue({ id: 'thread-mo' })
+    mockCreate.mockResolvedValue({ id: 'msg-mo' })
+    mockUpdate.mockResolvedValue({})
+    mockActionCreate.mockResolvedValue({})
+    mockSendMessage.mockResolvedValue({})
+    mockMercuryPersonaFindUnique.mockResolvedValue(null)
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve('data: {"text":"answer"}\n\n'),
+    }) as jest.Mock
+  })
+
+  it('skips non-mention group message when mentionOnly=true', async () => {
+    mockRoamIntegrationFindFirst
+      .mockResolvedValueOnce({
+        tenantId: 'tenant-mo', userId: 'user-1', apiKeyEncrypted: null,
+        targetGroupId: 'group-mo', status: 'connected',
+      })
+      .mockResolvedValueOnce({ mentionOnly: true })
+
+    const req = makePubSubRequest('chat.message.group', {
+      text: 'hey team, roadmap thoughts?',
+      sender: { id: 'user-bob', name: 'Bob' },
+      chat: { id: 'group-mo' },
+      timestamp: '1708617800',
+    })
+
+    const res = await processEventPOST(req)
+    expect(res.status).toBe(200)
+
+    // Non-mention message should be skipped entirely
+    expect(global.fetch).not.toHaveBeenCalled()
+    expect(mockSendMessage).not.toHaveBeenCalled()
+  })
+
+  it('processes @mention message when mentionOnly=true', async () => {
+    mockRoamIntegrationFindFirst
+      .mockResolvedValueOnce({
+        tenantId: 'tenant-mo', userId: 'user-1', apiKeyEncrypted: null,
+        targetGroupId: 'group-mo', status: 'connected',
+      })
+      .mockResolvedValueOnce({ mentionOnly: true })
+
+    const req = makePubSubRequest('chat.message.group', {
+      text: '@Mercury what does clause 4.2 say?',
+      sender: { id: 'user-bob', name: 'Bob' },
+      chat: { id: 'group-mo' },
+      timestamp: '1708617801',
+    })
+
+    const res = await processEventPOST(req)
+    expect(res.status).toBe(200)
+
+    // @mention bypasses mentionOnly filter — RAG + reply sent
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/chat'),
+      expect.objectContaining({ method: 'POST' }),
+    )
+    expect(mockSendMessage).toHaveBeenCalled()
+  })
+
+  it('processes any message when mentionOnly=false', async () => {
+    mockRoamIntegrationFindFirst
+      .mockResolvedValueOnce({
+        tenantId: 'tenant-mo', userId: 'user-1', apiKeyEncrypted: null,
+        targetGroupId: 'group-mo', status: 'connected',
+      })
+      .mockResolvedValueOnce({ mentionOnly: false })
+
+    const req = makePubSubRequest('chat.message.group', {
+      text: 'what about the roadmap?',
+      sender: { id: 'user-bob', name: 'Bob' },
+      chat: { id: 'group-mo' },
+      timestamp: '1708617802',
+    })
+
+    const res = await processEventPOST(req)
+    expect(res.status).toBe(200)
+
+    // mentionOnly=false allows all messages — RAG + reply sent
+    expect(global.fetch).toHaveBeenCalled()
+    expect(mockSendMessage).toHaveBeenCalled()
+  })
+})
+
+// ── 8. Key revocation — 401 handling (EPIC-011) ─────────────────
+
+describe('Key revocation (401)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const roamClientMock = require('@/lib/roam/roamClient')
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockFindFirst.mockResolvedValue(null)
+    mockThreadCreate.mockResolvedValue({ id: 'thread-401' })
+    mockCreate.mockResolvedValue({ id: 'msg-401' })
+    mockUpdate.mockResolvedValue({})
+    mockActionCreate.mockResolvedValue({})
+    mockSendMessage.mockResolvedValue({})
+    mockRoamIntegrationUpdate.mockResolvedValue({})
+    mockMercuryPersonaFindUnique.mockResolvedValue(null)
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve('data: {"text":"answer"}\n\n'),
+    }) as jest.Mock
+  })
+
+  it('sets integration status to error and writes audit on 401', async () => {
+    // Tenant resolution → mentionOnly check → outer 401 handler lookup
+    mockRoamIntegrationFindFirst
+      .mockResolvedValueOnce({
+        tenantId: 'tenant-401', userId: 'user-1',
+        apiKeyEncrypted: null, targetGroupId: 'group-401', status: 'connected',
+      })
+      .mockResolvedValueOnce({ mentionOnly: false })
+      .mockResolvedValueOnce({ tenantId: 'tenant-401', userId: 'user-1' })
+
+    // sendTypingIndicator throws 401 — propagates to outer catch
+    roamClientMock.sendTypingIndicator.mockImplementationOnce(() => {
+      throw new roamClientMock.RoamApiError('Unauthorized', 401)
+    })
+
+    const req = makePubSubRequest('chat.message.group', {
+      text: 'what is TUMM?',
+      sender: { id: 'user-bob', name: 'Bob' },
+      chat: { id: 'group-401' },
+      timestamp: '1708617900',
+    })
+
+    const res = await processEventPOST(req)
+    expect(res.status).toBe(500)
+
+    // Integration status updated to 'error'
+    expect(mockRoamIntegrationUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { tenantId: 'tenant-401' },
+        data: expect.objectContaining({
+          status: 'error',
+          errorReason: expect.stringContaining('401'),
+        }),
+      }),
+    )
+
+    // Audit record with roam_key_revoked
+    expect(mockActionCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          actionType: 'roam_key_revoked',
+          status: 'completed',
+        }),
+      }),
+    )
+  })
+})
+
+// ── 9. Disconnect cleanup ────────────────────────────────────────
 
 describe('Disconnect cleanup (STORY-101)', () => {
   // Mock next-auth/jwt for the disconnect route
