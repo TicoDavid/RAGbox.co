@@ -10,6 +10,10 @@ import {
   AlertCircle,
   Send,
   X,
+  Eye,
+  EyeOff,
+  Link2,
+  Unlink,
 } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { toast } from 'sonner'
@@ -43,6 +47,23 @@ interface Vault {
   name: string
 }
 
+interface RoamGroup {
+  id: string
+  name: string
+  description?: string
+  memberCount?: number
+}
+
+interface RoamStatus {
+  status: 'connected' | 'disconnected' | 'error'
+  targetGroupName?: string
+  targetGroupId?: string
+  mentionOnly?: boolean
+  meetingSummaries?: boolean
+  connectedAt?: string
+  error?: string
+}
+
 const VOICE_MODELS = [
   { value: 'aura-asteria-en', label: 'Asteria (Female, US)' },
   { value: 'aura-luna-en', label: 'Luna (Female, US)' },
@@ -65,6 +86,18 @@ export default function IntegrationsSettings() {
   const [testPhone, setTestPhone] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // ROAM state
+  const [roamApiKey, setRoamApiKey] = useState('')
+  const [roamKeyVisible, setRoamKeyVisible] = useState(false)
+  const [roamGroups, setRoamGroups] = useState<RoamGroup[]>([])
+  const [roamSelectedGroup, setRoamSelectedGroup] = useState('')
+  const [roamMentionOnly, setRoamMentionOnly] = useState(true)
+  const [roamMeetingSummaries, setRoamMeetingSummaries] = useState(true)
+  const [roamStatus, setRoamStatus] = useState<RoamStatus>({ status: 'disconnected' })
+  const [roamLoadingGroups, setRoamLoadingGroups] = useState(false)
+  const [roamConnecting, setRoamConnecting] = useState(false)
+  const [roamError, setRoamError] = useState('')
 
   // --------------------------------------------------------------------------
   // FETCH SETTINGS + VAULTS
@@ -96,6 +129,115 @@ export default function IntegrationsSettings() {
     }
     load()
   }, [])
+
+  // --------------------------------------------------------------------------
+  // ROAM: FETCH STATUS ON MOUNT
+  // --------------------------------------------------------------------------
+
+  useEffect(() => {
+    async function loadRoamStatus() {
+      try {
+        const res = await apiFetch('/api/integrations/roam/status')
+        if (res.ok) {
+          const data = await res.json()
+          if (data.data) {
+            setRoamStatus(data.data)
+            if (data.data.mentionOnly !== undefined) setRoamMentionOnly(data.data.mentionOnly)
+            if (data.data.meetingSummaries !== undefined) setRoamMeetingSummaries(data.data.meetingSummaries)
+          }
+        }
+      } catch {
+        // ROAM status not available yet — that's OK
+      }
+    }
+    loadRoamStatus()
+  }, [])
+
+  // --------------------------------------------------------------------------
+  // ROAM: FETCH GROUPS ON API KEY BLUR
+  // --------------------------------------------------------------------------
+
+  const fetchRoamGroups = useCallback(async () => {
+    if (!roamApiKey.trim()) return
+    setRoamLoadingGroups(true)
+    setRoamError('')
+    try {
+      const res = await apiFetch('/api/integrations/roam/groups', {
+        headers: { 'X-Roam-Api-Key': roamApiKey },
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to fetch groups')
+      }
+      const data = await res.json()
+      setRoamGroups(data.data || [])
+      if (data.data?.length > 0 && !roamSelectedGroup) {
+        setRoamSelectedGroup(data.data[0].id)
+      }
+    } catch (err) {
+      setRoamError(err instanceof Error ? err.message : 'Failed to fetch groups')
+      setRoamGroups([])
+    } finally {
+      setRoamLoadingGroups(false)
+    }
+  }, [roamApiKey, roamSelectedGroup])
+
+  // --------------------------------------------------------------------------
+  // ROAM: CONNECT / DISCONNECT
+  // --------------------------------------------------------------------------
+
+  const handleRoamConnect = async () => {
+    if (!roamApiKey.trim() || !roamSelectedGroup) {
+      toast.error('Enter an API key and select a group')
+      return
+    }
+    setRoamConnecting(true)
+    setRoamError('')
+    try {
+      const res = await apiFetch('/api/integrations/roam/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiKey: roamApiKey,
+          targetGroupId: roamSelectedGroup,
+          targetGroupName: roamGroups.find((g) => g.id === roamSelectedGroup)?.name || '',
+          mentionOnly: roamMentionOnly,
+          meetingSummaries: roamMeetingSummaries,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Connection failed')
+      }
+      const data = await res.json()
+      setRoamStatus(data.data || { status: 'connected', targetGroupName: roamGroups.find((g) => g.id === roamSelectedGroup)?.name })
+      setRoamApiKey('')
+      toast.success('ROAM connected successfully')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Connection failed'
+      setRoamError(msg)
+      setRoamStatus({ status: 'error', error: msg })
+      toast.error(msg)
+    } finally {
+      setRoamConnecting(false)
+    }
+  }
+
+  const handleRoamDisconnect = async () => {
+    setRoamConnecting(true)
+    try {
+      const res = await apiFetch('/api/integrations/roam/disconnect', { method: 'POST' })
+      if (!res.ok) throw new Error('Disconnect failed')
+      setRoamStatus({ status: 'disconnected' })
+      setRoamGroups([])
+      setRoamSelectedGroup('')
+      toast.success('ROAM disconnected')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to disconnect')
+    } finally {
+      setRoamConnecting(false)
+    }
+  }
 
   // --------------------------------------------------------------------------
   // AUTO-SAVE
@@ -219,6 +361,160 @@ export default function IntegrationsSettings() {
             <Loader2 size={10} className="animate-spin" />
             Saving...
           </span>
+        )}
+      </div>
+
+      {/* ================================================================== */}
+      {/* SECTION 0: ROAM Integration */}
+      {/* ================================================================== */}
+      <div className="rounded-lg border border-[var(--bg-tertiary)] bg-[var(--bg-primary)] p-4 mb-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+              <span className="text-[9px] font-bold text-white">R</span>
+            </div>
+            <span className="text-xs font-medium text-[var(--text-primary)]">ROAM</span>
+          </div>
+          {roamStatus.status === 'connected' && (
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-[var(--success)] animate-pulse" />
+              <span className="text-[10px] text-[var(--success)]">Connected</span>
+            </div>
+          )}
+          {roamStatus.status === 'error' && (
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-[var(--danger)]" />
+              <span className="text-[10px] text-[var(--danger)]">Error</span>
+            </div>
+          )}
+        </div>
+
+        {/* Connected state */}
+        {roamStatus.status === 'connected' && (
+          <div className="space-y-3 mt-3 pt-3 border-t border-[var(--bg-tertiary)]">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs text-[var(--text-primary)] font-medium">{roamStatus.targetGroupName || 'Connected Group'}</div>
+                <div className="text-[10px] text-[var(--text-tertiary)]">
+                  {roamStatus.mentionOnly ? '@mentions only' : 'All messages'}
+                  {roamStatus.meetingSummaries ? ' · Meeting summaries ON' : ''}
+                </div>
+              </div>
+              <button
+                onClick={handleRoamDisconnect}
+                disabled={roamConnecting}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-[var(--danger)] border border-[var(--danger)]/30 hover:bg-[var(--danger)]/10 transition-colors disabled:opacity-50"
+              >
+                {roamConnecting ? <Loader2 size={12} className="animate-spin" /> : <Unlink size={12} />}
+                Disconnect
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Error state */}
+        {roamStatus.status === 'error' && (
+          <div className="mt-3 pt-3 border-t border-[var(--bg-tertiary)]">
+            <div className="flex items-center justify-between">
+              <div className="text-xs text-[var(--danger)]">{roamStatus.error || roamError || 'Connection failed'}</div>
+              <button
+                onClick={() => { setRoamStatus({ status: 'disconnected' }); setRoamError('') }}
+                className="px-3 py-1.5 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-default)] hover:bg-[var(--bg-elevated)]/30 transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Disconnected state — setup form */}
+        {roamStatus.status === 'disconnected' && (
+          <div className="space-y-3 mt-3 pt-3 border-t border-[var(--bg-tertiary)]">
+            {/* API Key */}
+            <div>
+              <label className="text-[10px] text-[var(--text-tertiary)] block mb-1">ROAM API Key</label>
+              <div className="relative">
+                <input
+                  type={roamKeyVisible ? 'text' : 'password'}
+                  value={roamApiKey}
+                  onChange={(e) => setRoamApiKey(e.target.value)}
+                  onBlur={fetchRoamGroups}
+                  placeholder="Paste your ROAM API key"
+                  className="w-full bg-[var(--bg-secondary)] border border-[var(--bg-elevated)] rounded px-2 py-1.5 pr-8 text-xs text-[var(--text-primary)] placeholder:text-[var(--border-default)] focus:outline-none focus:border-[var(--brand-blue)]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setRoamKeyVisible(!roamKeyVisible)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                >
+                  {roamKeyVisible ? <EyeOff size={12} /> : <Eye size={12} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Groups dropdown */}
+            <div>
+              <label className="text-[10px] text-[var(--text-tertiary)] block mb-1">Target Group</label>
+              {roamLoadingGroups ? (
+                <div className="flex items-center gap-2 py-2 text-[10px] text-[var(--text-tertiary)]">
+                  <Loader2 size={12} className="animate-spin" />
+                  Loading groups...
+                </div>
+              ) : roamGroups.length > 0 ? (
+                <select
+                  value={roamSelectedGroup}
+                  onChange={(e) => setRoamSelectedGroup(e.target.value)}
+                  className="w-full bg-[var(--bg-secondary)] border border-[var(--bg-elevated)] rounded px-2 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-blue)]"
+                >
+                  {roamGroups.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}{g.memberCount ? ` (${g.memberCount} members)` : ''}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="text-[10px] text-[var(--text-tertiary)] py-1">
+                  {roamApiKey ? 'Enter API key and press Tab to load groups' : 'Enter API key above to load groups'}
+                </div>
+              )}
+            </div>
+
+            {/* Toggles */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-[var(--text-primary)]">@mentions only</div>
+                  <div className="text-[10px] text-[var(--text-tertiary)]">Only respond when mentioned</div>
+                </div>
+                <Toggle checked={roamMentionOnly} onChange={setRoamMentionOnly} />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-[var(--text-primary)]">Meeting summaries</div>
+                  <div className="text-[10px] text-[var(--text-tertiary)]">Post summaries after meetings</div>
+                </div>
+                <Toggle checked={roamMeetingSummaries} onChange={setRoamMeetingSummaries} />
+              </div>
+            </div>
+
+            {/* Error message */}
+            {roamError && (
+              <div className="flex items-center gap-1.5 text-xs text-[var(--danger)]">
+                <AlertCircle size={12} />
+                {roamError}
+              </div>
+            )}
+
+            {/* Activate button */}
+            <button
+              onClick={handleRoamConnect}
+              disabled={roamConnecting || !roamApiKey.trim() || !roamSelectedGroup}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-medium bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {roamConnecting ? <Loader2 size={12} className="animate-spin" /> : <Link2 size={12} />}
+              Activate
+            </button>
+          </div>
         )}
       </div>
 
