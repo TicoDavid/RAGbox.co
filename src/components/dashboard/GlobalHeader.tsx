@@ -75,6 +75,7 @@ export function GlobalHeader() {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [activeProfile, setActiveProfile] = useState<string>('work')
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsInitialSection, setSettingsInitialSection] = useState<SettingsSection | undefined>(undefined)
   const [isSwitching, setIsSwitching] = useState(false)
   const [personaMenuOpen, setPersonaMenuOpen] = useState(false)
   const [hoveredPersona, setHoveredPersona] = useState<string | null>(null)
@@ -512,14 +513,14 @@ export function GlobalHeader() {
                 {/* Menu Items */}
                 <div className="py-2">
                   <button
-                    onClick={() => { setProfileMenuOpen(false); setSettingsOpen(true) }}
+                    onClick={() => { setProfileMenuOpen(false); setSettingsInitialSection('profile'); setSettingsOpen(true) }}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]/30 transition-colors"
                   >
                     <User className="w-4 h-4" />
                     <span className="text-sm">Profile</span>
                   </button>
                   <button
-                    onClick={() => { setProfileMenuOpen(false); setSettingsOpen(true) }}
+                    onClick={() => { setProfileMenuOpen(false); setSettingsInitialSection('billing'); setSettingsOpen(true) }}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]/30 transition-colors"
                   >
                     <CreditCard className="w-4 h-4" />
@@ -548,7 +549,7 @@ export function GlobalHeader() {
 
       {/* Settings Modal */}
       {settingsOpen && (
-        <SettingsModal onClose={() => setSettingsOpen(false)} />
+        <SettingsModal onClose={() => { setSettingsOpen(false); setSettingsInitialSection(undefined) }} initialSection={settingsInitialSection} />
       )}
 
       {/* Profile Switch Overlay */}
@@ -635,8 +636,8 @@ const SIDEBAR_CATEGORIES: SidebarCategory[] = [
   },
 ]
 
-function SettingsModal({ onClose }: { onClose: () => void }) {
-  const [activeSection, setActiveSection] = useState<SettingsSection>('connections')
+function SettingsModal({ onClose, initialSection }: { onClose: () => void; initialSection?: SettingsSection }) {
+  const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection || 'connections')
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
