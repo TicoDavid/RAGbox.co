@@ -1,44 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-
-interface TocEntry {
-  id: string
-  text: string
-  level: number
-}
-
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '')
-}
-
-export function extractHeadings(markdown: string): TocEntry[] {
-  const entries: TocEntry[] = []
-  const lines = markdown.split('\n')
-  let inCodeBlock = false
-
-  for (const line of lines) {
-    if (line.startsWith('```')) {
-      inCodeBlock = !inCodeBlock
-      continue
-    }
-    if (inCodeBlock) continue
-
-    const match = line.match(/^(#{2,3})\s+(.+)/)
-    if (match) {
-      const text = match[2].replace(/\*\*/g, '').replace(/`/g, '')
-      entries.push({
-        id: slugify(text),
-        text,
-        level: match[1].length,
-      })
-    }
-  }
-  return entries
-}
+import type { TocEntry } from '@/lib/docs'
 
 export function TableOfContents({ entries }: { entries: TocEntry[] }) {
   const [activeId, setActiveId] = useState('')

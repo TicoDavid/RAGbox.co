@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, FileText, Shield, Book, Zap, Server } from 'lucide-react'
-import { getDocBySlug, getAllDocSlugs } from '@/lib/docs'
+import { getDocBySlug, getAllDocSlugs, extractHeadings } from '@/lib/docs'
 import { DocContent } from '@/components/docs/DocContent'
-import { TableOfContents, extractHeadings } from '@/components/docs/TableOfContents'
+import { TableOfContents } from '@/components/docs/TableOfContents'
 
 // Generate static params for all docs
 export async function generateStaticParams() {

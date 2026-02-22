@@ -1,6 +1,12 @@
 import fs from 'fs'
 import path from 'path'
 
+export interface TocEntry {
+  id: string
+  text: string
+  level: number
+}
+
 export interface DocMeta {
   slug: string
   title: string
@@ -92,4 +98,39 @@ export function docExists(slug: string): boolean {
   } catch {
     return false
   }
+}
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+}
+
+/**
+ * Extract h2/h3 headings from markdown for table of contents
+ */
+export function extractHeadings(markdown: string): TocEntry[] {
+  const entries: TocEntry[] = []
+  const lines = markdown.split('\n')
+  let inCodeBlock = false
+
+  for (const line of lines) {
+    if (line.startsWith('```')) {
+      inCodeBlock = !inCodeBlock
+      continue
+    }
+    if (inCodeBlock) continue
+
+    const match = line.match(/^(#{2,3})\s+(.+)/)
+    if (match) {
+      const text = match[2].replace(/\*\*/g, '').replace(/`/g, '')
+      entries.push({
+        id: slugify(text),
+        text,
+        level: match[1].length,
+      })
+    }
+  }
+  return entries
 }
