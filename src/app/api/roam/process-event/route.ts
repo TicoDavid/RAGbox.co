@@ -19,8 +19,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
 import prisma from '@/lib/prisma'
 import { parseSSEText } from '@/lib/mercury/sseParser'
-import { sendMessage, sendTypingIndicator, getTranscriptInfo } from '@/lib/roam/roamClient'
+import { sendMessage, sendTypingIndicator, getTranscriptInfo, RoamApiError } from '@/lib/roam/roamClient'
 import { formatForRoam, formatSilenceForRoam, formatErrorForRoam, formatMeetingSummary } from '@/lib/roam/roamFormat'
+import { writeDeadLetter } from '@/lib/roam/deadLetterWriter'
 import { decryptKey } from '@/lib/utils/kms'
 import type { Citation } from '@/types/ragbox'
 
@@ -101,6 +102,37 @@ interface TenantContext {
   personalityPrompt: string | null
 }
 
+// ── Key revocation handler ──────────────────────────────────────────
+
+async function handleKeyRevoked(tenantId: string, userId: string): Promise<void> {
+  try {
+    await prisma.roamIntegration.update({
+      where: { tenantId },
+      data: {
+        status: 'error',
+        errorReason: 'API key revoked or invalid (401)',
+      },
+    })
+
+    await prisma.mercuryAction.create({
+      data: {
+        userId,
+        actionType: 'roam_key_revoked',
+        status: 'completed',
+        metadata: {
+          channel: 'roam',
+          tenantId,
+          reason: 'Received 401 from ROAM API — key may be revoked',
+        } as Prisma.InputJsonValue,
+      },
+    })
+
+    console.warn(`[ROAM Processor] Key revoked for tenant ${tenantId} — integration set to error`)
+  } catch (error) {
+    console.error('[ROAM Processor] handleKeyRevoked failed:', error)
+  }
+}
+
 // ── Route handler ──────────────────────────────────────────────────
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -141,6 +173,35 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
   } catch (error) {
     console.error('[ROAM Processor] Processing error:', error)
+
+    // Detect 401 — key revoked
+    if (error instanceof RoamApiError && error.status === 401) {
+      const decoded = Buffer.from(envelope.message.data, 'base64').toString('utf-8')
+      const parsed = JSON.parse(decoded) as { data?: { chat?: { id?: string }; group_id?: string } }
+      const groupId = parsed.data?.chat?.id || parsed.data?.group_id || ''
+      if (groupId) {
+        const integration = await prisma.roamIntegration.findFirst({
+          where: { targetGroupId: groupId },
+          select: { tenantId: true, userId: true },
+        })
+        if (integration) {
+          await handleKeyRevoked(integration.tenantId, integration.userId)
+        }
+      }
+    }
+
+    // Write to dead letter queue
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+    const errorStatus = error instanceof RoamApiError ? error.status : undefined
+    await writeDeadLetter({
+      tenantId: 'unknown', // best-effort — tenant may not be resolved yet
+      pubsubMessageId: envelope.message.messageId,
+      eventType: event.type,
+      payload: event as unknown as Record<string, unknown>,
+      errorMessage: errorMsg,
+      errorStatus,
+    })
+
     // Return 500 so Pub/Sub retries (up to max-delivery-attempts)
     return NextResponse.json({ error: 'Processing failed' }, { status: 500 })
   }

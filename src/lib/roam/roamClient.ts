@@ -66,6 +66,16 @@ export class RoamApiError extends Error {
   }
 }
 
+// ── Retry config (mirrors backend/internal/gcpclient/retry.go) ────
+
+const RETRY_DELAYS = [500, 1000, 2000] // ms
+const RETRYABLE_CODES = new Set([429, 503])
+const NON_RETRYABLE_CODES = new Set([400, 401, 403, 404])
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
 // ── Internal fetch helper ──────────────────────────────────────────
 
 async function roamFetch<T>(
@@ -79,7 +89,7 @@ async function roamFetch<T>(
   }
 
   const url = `${ROAM_API_URL}${path}`
-  const res = await fetch(url, {
+  const reqInit: RequestInit = {
     ...options,
     headers: {
       'Authorization': `Bearer ${key}`,
@@ -87,26 +97,50 @@ async function roamFetch<T>(
       'Accept': 'application/json',
       ...options.headers,
     },
-  })
+  }
 
-  if (!res.ok) {
+  let lastError: RoamApiError | undefined
+
+  for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
+    if (attempt > 0) {
+      const delay = RETRY_DELAYS[attempt - 1]
+      console.warn(`[ROAM] Retry ${attempt}/${RETRY_DELAYS.length} for ${path} after ${delay}ms`)
+      await sleep(delay)
+    }
+
+    const res = await fetch(url, reqInit)
+
+    if (res.ok) {
+      if (res.status === 204) return undefined as T
+      return res.json() as Promise<T>
+    }
+
     const body = await res.text().catch(() => '')
     let code: string | undefined
     try {
       const parsed = JSON.parse(body)
       code = parsed.error?.code || parsed.code
     } catch { /* ignore */ }
-    throw new RoamApiError(
+
+    lastError = new RoamApiError(
       `ROAM API ${res.status}: ${body.slice(0, 200)}`,
       res.status,
       code
     )
+
+    // Non-retryable status codes — throw immediately
+    if (NON_RETRYABLE_CODES.has(res.status)) {
+      throw lastError
+    }
+
+    // Only retry on retryable codes
+    if (!RETRYABLE_CODES.has(res.status)) {
+      throw lastError
+    }
   }
 
-  // 204 No Content
-  if (res.status === 204) return undefined as T
-
-  return res.json() as Promise<T>
+  // All retries exhausted
+  throw lastError!
 }
 
 // ── Public API ─────────────────────────────────────────────────────
