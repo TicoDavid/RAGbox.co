@@ -23,7 +23,6 @@ import {
   X,
   Globe,
   CreditCard,
-  Mic,
   Monitor,
   Lock,
   Shield,
@@ -37,7 +36,6 @@ import {
   AlertTriangle,
   Glasses,
   Brain,
-  Bot,
   Server,
   Loader2,
 } from 'lucide-react'
@@ -579,7 +577,7 @@ export function GlobalHeader() {
 
 type SettingsSection =
   | 'profile' | 'language' | 'billing'  // General
-  | 'connections' | 'voice' | 'aimodel' | 'mercury'  // Intelligence
+  | 'connections' | 'aimodel'                         // Intelligence
   | 'appearance'                         // Interface
   | 'alerts' | 'security'                // System
   | 'docs' | 'report' | 'community'      // Support
@@ -605,8 +603,6 @@ const SIDEBAR_CATEGORIES: SidebarCategory[] = [
     label: 'Intelligence',
     items: [
       { id: 'connections', label: 'Connections', icon: <Key className="w-4 h-4" /> },
-      { id: 'mercury', label: 'Mercury', icon: <Bot className="w-4 h-4" /> },
-      { id: 'voice', label: 'Voice', icon: <Mic className="w-4 h-4" /> },
       { id: 'aimodel', label: 'AI Model', icon: <Brain className="w-4 h-4" /> },
     ],
   },
@@ -701,8 +697,6 @@ function SettingsModal({ onClose, initialSection }: { onClose: () => void; initi
             {activeSection === 'language' && <LanguageSettings />}
             {activeSection === 'billing' && <BillingSettings />}
             {activeSection === 'connections' && <APIKeysSettings />}
-            {activeSection === 'mercury' && <MercurySettings />}
-            {activeSection === 'voice' && <VoiceSettings />}
             {activeSection === 'aimodel' && <AIModelSettings />}
             {activeSection === 'appearance' && <AppearanceSettings />}
             {activeSection === 'alerts' && <NotificationSettings />}
@@ -1125,244 +1119,6 @@ function BillingSettings() {
         </div>
         <ExternalLink className="w-4 h-4 text-[var(--text-tertiary)] group-hover:text-[var(--text-primary)] transition-colors" />
       </button>
-    </div>
-  )
-}
-
-// ============================================================================
-// INTELLIGENCE SECTION COMPONENTS
-// ============================================================================
-
-const MERCURY_VOICES = [
-  { id: 'Ashley', label: 'Ashley — Warm, professional' },
-  { id: 'Dennis', label: 'Dennis — Authoritative, deep' },
-  { id: 'Luna', label: 'Luna — Friendly, approachable' },
-  { id: 'Mark', label: 'Mark — Calm, measured' },
-]
-
-const MERCURY_DEFAULTS = {
-  name: 'Mercury',
-  voiceId: 'Ashley',
-  greeting: "Hello, I'm Mercury. How can I help you today?",
-}
-
-function MercurySettings() {
-  const [config, setConfig] = useState(MERCURY_DEFAULTS)
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const loaded = useRef(false)
-
-  useEffect(() => {
-    if (loaded.current) return
-    loaded.current = true
-    fetch('/api/mercury/config', { credentials: 'include' })
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to load config')
-        return res.json()
-      })
-      .then((json) => {
-        if (json.success && json.data?.config) {
-          const c = json.data.config
-          setConfig({
-            ...MERCURY_DEFAULTS,
-            ...c,
-            voiceId: c.channels?.voice?.voiceId ?? c.voiceId ?? MERCURY_DEFAULTS.voiceId,
-          })
-        }
-      })
-      .catch(() => {
-        toast.error('Failed to load Mercury configuration')
-        setConfig(MERCURY_DEFAULTS)
-      })
-  }, [])
-
-  const handleNameChange = (name: string) => {
-    setConfig((prev) => ({
-      ...prev,
-      name,
-      greeting:
-        prev.greeting === `Hello, I'm ${prev.name}. How can I help you today?`
-          ? `Hello, I'm ${name}. How can I help you today?`
-          : prev.greeting,
-    }))
-  }
-
-  const handleSave = async () => {
-    setSaving(true)
-    try {
-      const res = await fetch('/api/mercury/config', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: config.name,
-          greeting: config.greeting,
-          channels: { voice: { enabled: true, voiceId: config.voiceId } },
-        }),
-      })
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}))
-        throw new Error(json.error || 'Save failed')
-      }
-      toast.success('Mercury configuration saved')
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to save Mercury configuration')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <div className="space-y-6">
-      <SectionHeader
-        title="Mercury Configuration"
-        description="Customize your AI assistant's identity, voice, and greeting"
-      />
-
-      {/* Name */}
-      <div>
-        <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-          Name
-        </label>
-        <input
-          type="text"
-          value={config.name}
-          onChange={(e) => handleNameChange(e.target.value)}
-          className="w-full px-4 py-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--brand-blue)] transition-colors"
-          placeholder="Mercury"
-        />
-      </div>
-
-      {/* Voice */}
-      <div>
-        <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-          Voice
-        </label>
-        <div className="space-y-2">
-          {MERCURY_VOICES.map((v) => (
-            <button
-              key={v.id}
-              onClick={() => setConfig((prev) => ({ ...prev, voiceId: v.id }))}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all ${
-                config.voiceId === v.id
-                  ? 'border-[var(--brand-blue)] bg-[var(--brand-blue)]/10'
-                  : 'border-[var(--border-default)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)]/30'
-              }`}
-            >
-              <div
-                className={`w-3 h-3 rounded-full border-2 shrink-0 ${
-                  config.voiceId === v.id
-                    ? 'border-[var(--brand-blue)] bg-[var(--brand-blue)]'
-                    : 'border-[var(--text-tertiary)]'
-                }`}
-              />
-              <span className="text-sm text-[var(--text-primary)]">{v.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Greeting */}
-      <div>
-        <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-          Greeting
-        </label>
-        <textarea
-          value={config.greeting}
-          onChange={(e) =>
-            setConfig((prev) => ({ ...prev, greeting: e.target.value }))
-          }
-          rows={3}
-          className="w-full px-4 py-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)] text-sm resize-none focus:outline-none focus:border-[var(--brand-blue)] transition-colors"
-          placeholder="Hello, I'm Mercury. How can I help you today?"
-        />
-      </div>
-
-      {/* Actions */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="px-6 py-2.5 rounded-xl text-sm font-semibold bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] text-white transition-colors disabled:opacity-50"
-        >
-          {saving ? 'Saving...' : saved ? 'Saved' : 'Save Changes'}
-        </button>
-        <button
-          onClick={() => setConfig(MERCURY_DEFAULTS)}
-          className="px-4 py-2.5 rounded-xl text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-        >
-          Reset to Defaults
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function VoiceSettings() {
-  const { voice, updateVoice } = useSettings()
-
-  return (
-    <div className="space-y-6">
-      <SectionHeader
-        title="Voice Configuration"
-        description="Configure Mercury Voice Engine and speech recognition"
-      />
-
-      <div className="space-y-4">
-        <ToggleSetting
-          label="Voice Input Enabled"
-          description="Enable microphone input for voice commands"
-          enabled={voice.enabled}
-          onToggle={() => updateVoice({ enabled: !voice.enabled })}
-        />
-
-        <ToggleSetting
-          label="Auto-Submit on Silence"
-          description="Automatically send message after silence detection"
-          enabled={voice.autoSubmit}
-          onToggle={() => updateVoice({ autoSubmit: !voice.autoSubmit })}
-        />
-
-        {/* Silence Threshold Slider */}
-        <div className="p-4 bg-[var(--bg-elevated)]/30 border border-[var(--border-default)] rounded-lg">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <p className="text-sm font-medium text-[var(--text-primary)]">Silence Threshold</p>
-              <p className="text-xs text-[var(--text-secondary)]">Time before auto-submit triggers</p>
-            </div>
-            <span className="text-sm font-mono text-[var(--brand-blue)]">{voice.silenceThreshold}ms</span>
-          </div>
-          <input
-            id="silence-threshold"
-            name="silence-threshold"
-            type="range"
-            min="1000"
-            max="5000"
-            step="500"
-            value={voice.silenceThreshold}
-            onChange={(e) => updateVoice({ silenceThreshold: parseInt(e.target.value) })}
-            aria-label="Silence threshold"
-            className="w-full h-2 bg-[var(--bg-tertiary)] rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[var(--brand-blue)]"
-          />
-          <div className="flex justify-between text-[10px] text-[var(--text-tertiary)] mt-1">
-            <span>1s (Fast)</span>
-            <span>5s (Slow)</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Voice Engine Status */}
-      <div className="p-4 bg-[var(--success)]/10 border border-[var(--success)]/30 rounded-lg">
-        <div className="flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-[var(--success)] animate-pulse" />
-          <div>
-            <p className="text-sm font-medium text-[var(--success)]">Mercury Voice Engine Connected</p>
-            <p className="text-xs text-[var(--text-tertiary)]">Voice: mercury_professional</p>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }

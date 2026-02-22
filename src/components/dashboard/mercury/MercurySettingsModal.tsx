@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   X, Save, Loader2,
-  User, Brain, Cpu,
+  User, Brain, Cpu, Mic, Sparkles,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -12,7 +12,7 @@ import { toast } from 'sonner'
 // TYPES
 // ============================================================================
 
-type SectionId = 'identity' | 'intelligence'
+type SectionId = 'identity' | 'voice' | 'persona' | 'intelligence'
 
 interface SectionDef {
   id: SectionId
@@ -22,7 +22,9 @@ interface SectionDef {
 }
 
 const SECTIONS: SectionDef[] = [
-  { id: 'identity', label: 'Name & Persona', icon: User, group: 'IDENTITY' },
+  { id: 'identity', label: 'Identity', icon: User, group: 'IDENTITY' },
+  { id: 'voice', label: 'Voice', icon: Mic, group: 'IDENTITY' },
+  { id: 'persona', label: 'Persona', icon: Sparkles, group: 'PERSONA' },
   { id: 'intelligence', label: 'Silence Protocol', icon: Brain, group: 'INTELLIGENCE' },
 ]
 
@@ -94,6 +96,13 @@ const ROLES = [
   { key: 'auditor', label: 'Auditor', group: 'specialist' },
   { key: 'whistleblower', label: 'Whistleblower', group: 'specialist' },
 ] as const
+
+const MERCURY_VOICES = [
+  { id: 'Ashley', label: 'Ashley', description: 'Warm, professional' },
+  { id: 'Dennis', label: 'Dennis', description: 'Authoritative, deep' },
+  { id: 'Luna', label: 'Luna', description: 'Friendly, approachable' },
+  { id: 'Mark', label: 'Mark', description: 'Calm, measured' },
+]
 
 // ============================================================================
 // MODAL
@@ -268,10 +277,13 @@ export function MercurySettingsModal({ open, onClose, onSaved }: MercurySettings
                   ) : (
                     <>
                       {activeSection === 'identity' && (
-                        <IdentitySection
-                          config={config}
-                          updateField={updateField}
-                        />
+                        <IdentitySection config={config} updateField={updateField} />
+                      )}
+                      {activeSection === 'voice' && (
+                        <VoiceSection config={config} updateField={updateField} />
+                      )}
+                      {activeSection === 'persona' && (
+                        <PersonaSection config={config} updateField={updateField} />
                       )}
                       {activeSection === 'intelligence' && (
                         <IntelligenceSection config={config} updateField={updateField} />
@@ -335,7 +347,7 @@ const inputClass =
   'w-full px-3 py-2 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--warning)]/50 transition-colors'
 
 // ============================================================================
-// SECTION: Identity (with voice selector merged in)
+// SECTION: Identity (Name, Title, Greeting)
 // ============================================================================
 
 function IdentitySection({
@@ -345,17 +357,9 @@ function IdentitySection({
   config: ConfigState
   updateField: <K extends keyof ConfigState>(key: K, value: ConfigState[K]) => void
 }) {
-  const togglePersonality = (key: string) => {
-    updateField('personality', config.personality === key ? '' : key)
-  }
-
-  const toggleRole = (key: string) => {
-    updateField('role', config.role === key ? '' : key)
-  }
-
   return (
     <div className="space-y-6">
-      <SectionHeader title="Name & Persona" description="Configure your Mercury agent's identity and personality." />
+      <SectionHeader title="Identity" description="Configure your Mercury agent's name and greeting." />
 
       {/* Name & Title */}
       <div className="grid grid-cols-2 gap-4">
@@ -389,8 +393,87 @@ function IdentitySection({
           placeholder="Welcome to RAGbox..."
         />
       </FieldLabel>
+    </div>
+  )
+}
 
-      {/* Personality — tone/style (independent from role) */}
+// ============================================================================
+// SECTION: Voice (Voice selector — Ashley/Dennis/Luna/Mark)
+// ============================================================================
+
+function VoiceSection({
+  config,
+  updateField,
+}: {
+  config: ConfigState
+  updateField: <K extends keyof ConfigState>(key: K, value: ConfigState[K]) => void
+}) {
+  const currentVoiceId = config.channels.voice?.voiceId || ''
+
+  const selectVoice = (voiceId: string) => {
+    updateField('channels', {
+      ...config.channels,
+      voice: { ...config.channels.voice, enabled: true, voiceId },
+    })
+  }
+
+  return (
+    <div className="space-y-6">
+      <SectionHeader title="Voice" description="Select the voice for Mercury's text-to-speech output." />
+
+      <div className="space-y-2">
+        {MERCURY_VOICES.map((v) => (
+          <button
+            key={v.id}
+            onClick={() => selectVoice(v.id)}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all ${
+              currentVoiceId === v.id
+                ? 'border-[var(--warning)]/60 bg-[var(--warning)]/10'
+                : 'border-[var(--border-default)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)]/30'
+            }`}
+          >
+            <div
+              className={`w-3 h-3 rounded-full border-2 shrink-0 ${
+                currentVoiceId === v.id
+                  ? 'border-[var(--warning)] bg-[var(--warning)]'
+                  : 'border-[var(--text-tertiary)]'
+              }`}
+            />
+            <div>
+              <span className="text-sm font-medium text-[var(--text-primary)]">{v.label}</span>
+              <span className="text-xs text-[var(--text-tertiary)] ml-2">{v.description}</span>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ============================================================================
+// SECTION: Persona (Personality, Role, Custom Instructions)
+// ============================================================================
+
+function PersonaSection({
+  config,
+  updateField,
+}: {
+  config: ConfigState
+  updateField: <K extends keyof ConfigState>(key: K, value: ConfigState[K]) => void
+}) {
+  const togglePersonality = (key: string) => {
+    updateField('personality', config.personality === key ? '' : key)
+  }
+
+  const toggleRole = (key: string) => {
+    updateField('role', config.role === key ? '' : key)
+  }
+
+  return (
+    <div className="space-y-6">
+      <SectionHeader title="Persona" description="Set Mercury's personality tone and domain expertise." />
+
+      {/* Personality — tone/style */}
       <div>
         <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Personality</label>
         <p className="text-[10px] text-[var(--text-tertiary)] mb-2">Tone and communication style. Does not affect role.</p>
@@ -411,7 +494,7 @@ function IdentitySection({
         </div>
       </div>
 
-      {/* Role — perspective/skills (independent from personality) */}
+      {/* Role — perspective/skills */}
       <div>
         <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Role</label>
         <p className="text-[10px] text-[var(--text-tertiary)] mb-2">Perspective and domain expertise. Does not affect personality.</p>
@@ -461,26 +544,6 @@ function IdentitySection({
           className={`${inputClass} resize-none font-mono text-xs`}
           placeholder="Additional personality instructions..."
         />
-      </div>
-
-      {/* Voice Gender (merged from Voice section) */}
-      <div className="p-4 rounded-xl bg-[var(--bg-tertiary)]/50 border border-[var(--border-default)]">
-        <label className="block text-xs font-medium text-[var(--text-secondary)] mb-3">Voice Gender</label>
-        <div className="flex gap-3">
-          {(['female', 'male'] as const).map((g) => (
-            <button
-              key={g}
-              onClick={() => updateField('voiceGender', g)}
-              className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                config.voiceGender === g
-                  ? 'bg-[var(--warning)]/15 text-[var(--warning)] border border-[var(--warning)]/40'
-                  : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border border-[var(--border-default)] hover:border-[var(--border-strong)]'
-              }`}
-            >
-              {g.charAt(0).toUpperCase() + g.slice(1)}
-            </button>
-          ))}
-        </div>
       </div>
     </div>
   )
