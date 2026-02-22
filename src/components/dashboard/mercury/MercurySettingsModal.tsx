@@ -52,6 +52,8 @@ interface ConfigState {
   name: string
   title: string
   greeting: string
+  personality: string
+  role: string
   personalityPrompt: string
   voiceGender: 'male' | 'female'
   silenceThreshold: number
@@ -62,6 +64,8 @@ const DEFAULT_CONFIG: ConfigState = {
   name: 'Mercury',
   title: 'AI Assistant',
   greeting: 'Welcome to RAGbox. Upload documents to your vault and ask me anything.',
+  personality: '',
+  role: '',
   personalityPrompt: '',
   voiceGender: 'female',
   silenceThreshold: 0.60,
@@ -72,10 +76,13 @@ const DEFAULT_CONFIG: ConfigState = {
   },
 }
 
-const PRESETS = [
-  { key: 'professional', label: 'Professional', group: 'style' },
-  { key: 'friendly', label: 'Friendly', group: 'style' },
-  { key: 'technical', label: 'Technical', group: 'style' },
+const PERSONALITIES = [
+  { key: 'professional', label: 'Professional' },
+  { key: 'friendly', label: 'Friendly' },
+  { key: 'technical', label: 'Technical' },
+] as const
+
+const ROLES = [
   { key: 'ceo', label: 'CEO', group: 'csuite' },
   { key: 'cfo', label: 'CFO', group: 'csuite' },
   { key: 'cmo', label: 'CMO', group: 'csuite' },
@@ -101,7 +108,6 @@ interface MercurySettingsModalProps {
 export function MercurySettingsModal({ open, onClose, onSaved }: MercurySettingsModalProps) {
   const [activeSection, setActiveSection] = useState<SectionId>('identity')
   const [config, setConfig] = useState<ConfigState>(DEFAULT_CONFIG)
-  const [presets, setPresets] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [dirty, setDirty] = useState(false)
@@ -115,9 +121,7 @@ export function MercurySettingsModal({ open, onClose, onSaved }: MercurySettings
       if (json.success && json.data?.config) {
         setConfig(json.data.config)
       }
-      if (json.data?.presets) {
-        setPresets(json.data.presets)
-      }
+      // presets from backend stored in config.personality/config.role
     } catch (err) {
       console.error('Mercury config load failed:', err)
       toast.error('Failed to load Mercury configuration')
@@ -169,14 +173,6 @@ export function MercurySettingsModal({ open, onClose, onSaved }: MercurySettings
     setConfig((prev) => ({ ...prev, [key]: value }))
     setDirty(true)
   }
-
-  const applyPreset = (key: string) => {
-    if (presets[key]) {
-      updateField('personalityPrompt', presets[key])
-    }
-  }
-
-  const activePreset = PRESETS.find((p) => presets[p.key] === config.personalityPrompt)?.key
 
   return (
     <AnimatePresence>
@@ -269,9 +265,6 @@ export function MercurySettingsModal({ open, onClose, onSaved }: MercurySettings
                         <IdentitySection
                           config={config}
                           updateField={updateField}
-                          presets={presets}
-                          activePreset={activePreset}
-                          applyPreset={applyPreset}
                         />
                       )}
                       {activeSection === 'intelligence' && (
@@ -342,16 +335,18 @@ const inputClass =
 function IdentitySection({
   config,
   updateField,
-  presets,
-  activePreset,
-  applyPreset,
 }: {
   config: ConfigState
   updateField: <K extends keyof ConfigState>(key: K, value: ConfigState[K]) => void
-  presets: Record<string, string>
-  activePreset?: string
-  applyPreset: (key: string) => void
 }) {
+  const togglePersonality = (key: string) => {
+    updateField('personality', config.personality === key ? '' : key)
+  }
+
+  const toggleRole = (key: string) => {
+    updateField('role', config.role === key ? '' : key)
+  }
+
   return (
     <div className="space-y-6">
       <SectionHeader title="Name & Persona" description="Configure your Mercury agent's identity and personality." />
@@ -389,17 +384,17 @@ function IdentitySection({
         />
       </FieldLabel>
 
-      {/* Personality Presets */}
+      {/* Personality — tone/style (independent from role) */}
       <div>
-        <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">Personality</label>
-        {/* Style presets */}
-        <div className="flex flex-wrap gap-1.5 mb-2">
-          {PRESETS.filter((p) => p.group === 'style').map((p) => (
+        <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Personality</label>
+        <p className="text-[10px] text-[var(--text-tertiary)] mb-2">Tone and communication style. Does not affect role.</p>
+        <div className="flex flex-wrap gap-1.5">
+          {PERSONALITIES.map((p) => (
             <button
               key={p.key}
-              onClick={() => applyPreset(p.key)}
+              onClick={() => togglePersonality(p.key)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                activePreset === p.key
+                config.personality === p.key
                   ? 'bg-[var(--warning)] text-black'
                   : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
               }`}
@@ -408,46 +403,57 @@ function IdentitySection({
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Role — perspective/skills (independent from personality) */}
+      <div>
+        <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Role</label>
+        <p className="text-[10px] text-[var(--text-tertiary)] mb-2">Perspective and domain expertise. Does not affect personality.</p>
         {/* C-Suite */}
         <div className="flex flex-wrap gap-1.5 mb-1.5">
           <span className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider w-full">C-Suite</span>
-          {PRESETS.filter((p) => p.group === 'csuite').map((p) => (
+          {ROLES.filter((r) => r.group === 'csuite').map((r) => (
             <button
-              key={p.key}
-              onClick={() => applyPreset(p.key)}
+              key={r.key}
+              onClick={() => toggleRole(r.key)}
               className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                activePreset === p.key
+                config.role === r.key
                   ? 'bg-[var(--warning)] text-black'
                   : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
               }`}
             >
-              {p.label}
+              {r.label}
             </button>
           ))}
         </div>
         {/* Specialist */}
-        <div className="flex flex-wrap gap-1.5 mb-3">
+        <div className="flex flex-wrap gap-1.5">
           <span className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider w-full">Specialist</span>
-          {PRESETS.filter((p) => p.group === 'specialist').map((p) => (
+          {ROLES.filter((r) => r.group === 'specialist').map((r) => (
             <button
-              key={p.key}
-              onClick={() => applyPreset(p.key)}
+              key={r.key}
+              onClick={() => toggleRole(r.key)}
               className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                activePreset === p.key
+                config.role === r.key
                   ? 'bg-[var(--warning)] text-black'
                   : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
               }`}
             >
-              {p.label}
+              {r.label}
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Custom personality prompt */}
+      <div>
+        <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">Custom Instructions</label>
         <textarea
           value={config.personalityPrompt}
           onChange={(e) => updateField('personalityPrompt', e.target.value)}
-          rows={4}
+          rows={3}
           className={`${inputClass} resize-none font-mono text-xs`}
-          placeholder="Describe your agent's personality..."
+          placeholder="Additional personality instructions..."
         />
       </div>
 
