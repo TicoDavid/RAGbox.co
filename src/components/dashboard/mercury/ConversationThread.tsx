@@ -150,7 +150,7 @@ export function ConversationThread() {
         {/* Streaming indicator */}
         {isStreaming && streamingContent && (
           <div className="flex justify-start mb-4">
-            <div className="max-w-[85%] rounded-xl px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-default)]">
+            <div className="max-w-[85%] rounded-xl px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-default)] overflow-hidden break-words">
               <div className="text-sm leading-relaxed text-[var(--text-primary)] prose-sm prose-invert max-w-none">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {extractProse(streamingContent)}

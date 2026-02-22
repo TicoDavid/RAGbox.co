@@ -146,7 +146,7 @@ export function Message({ message }: MessageProps) {
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4 group`}>
       <div
-        className={`max-w-[75%] rounded-xl px-4 py-3 ${
+        className={`max-w-[75%] rounded-xl px-4 py-3 overflow-hidden break-words ${
           isUser
             ? 'bg-[var(--brand-blue)] text-[var(--text-primary)]'
             : message.isError
