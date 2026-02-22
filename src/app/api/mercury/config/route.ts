@@ -61,8 +61,11 @@ interface MercuryConfigPayload {
 }
 
 async function getAuth(request: NextRequest) {
-  const token = await getToken({ req: request })
-  if (!token) return null
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
+  if (!token) {
+    console.warn('[mercury/config] getToken returned null — session cookie may be missing or NEXTAUTH_SECRET mismatch')
+    return null
+  }
   return { userId: (token.id as string) || token.email || '', tenantId: DEFAULT_TENANT }
 }
 

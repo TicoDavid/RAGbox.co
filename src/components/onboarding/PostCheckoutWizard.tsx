@@ -410,6 +410,7 @@ export function PostCheckoutWizard() {
     try {
       await fetch('/api/mercury/config', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: state.mercuryName,

@@ -71,7 +71,7 @@ export function MercuryConfigModal({ isOpen, onClose, onSaved }: MercuryConfigMo
   const fetchConfig = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/mercury/config')
+      const res = await fetch('/api/mercury/config', { credentials: 'include' })
       if (!res.ok) throw new Error('Failed to load config')
       const json = await res.json()
       if (json.success && json.data?.config) {
@@ -97,6 +97,7 @@ export function MercuryConfigModal({ isOpen, onClose, onSaved }: MercuryConfigMo
     try {
       const res = await fetch('/api/mercury/config', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config),
       })

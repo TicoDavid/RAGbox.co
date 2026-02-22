@@ -1155,7 +1155,7 @@ function MercurySettings() {
   useEffect(() => {
     if (loaded.current) return
     loaded.current = true
-    fetch('/api/mercury/config')
+    fetch('/api/mercury/config', { credentials: 'include' })
       .then((res) => {
         if (!res.ok) throw new Error('Failed to load config')
         return res.json()
@@ -1192,6 +1192,7 @@ function MercurySettings() {
     try {
       const res = await fetch('/api/mercury/config', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: config.name,

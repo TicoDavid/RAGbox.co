@@ -17,7 +17,7 @@ export function MercuryWindow() {
   // Load agent identity from config on mount
   const loadIdentity = useCallback(async () => {
     try {
-      const res = await fetch('/api/mercury/config')
+      const res = await fetch('/api/mercury/config', { credentials: 'include' })
       if (!res.ok) return
       const json = await res.json()
       if (json.success && json.data?.config) {
