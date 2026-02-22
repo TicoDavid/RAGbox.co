@@ -172,15 +172,6 @@ describe('getFileExtension', () => {
 /* ------------------------------------------------------------------ */
 
 describe('vaultItemToExplorerItem', () => {
-  beforeEach(() => {
-    // Seed Math.random so citations / relevanceScore are deterministic
-    jest.spyOn(Math, 'random').mockReturnValue(0.5)
-  })
-
-  afterEach(() => {
-    jest.restoreAllMocks()
-  })
-
   it('transforms an indexed VaultItem', () => {
     const doc = makeVaultItem({ status: 'Indexed', securityTier: 3 })
     const result = vaultItemToExplorerItem(doc)
@@ -194,16 +185,16 @@ describe('vaultItemToExplorerItem', () => {
     expect(result.security).toEqual({ level: 3, label: 'T3' })
     expect(result.isIndexed).toBe(true)
     expect(result.isStarred).toBe(false)
-    // citations > 0 for indexed docs
-    expect(result.citations).toBeGreaterThanOrEqual(0)
-    expect(result.relevanceScore).toBeGreaterThan(0)
+    // deterministic zeros until real citation data is wired
+    expect(result.citations).toBe(0)
+    expect(result.relevanceScore).toBe(0)
   })
 
   it('treats status "ready" as indexed', () => {
     const doc = makeVaultItem({ status: 'ready' })
     const result = vaultItemToExplorerItem(doc)
     expect(result.isIndexed).toBe(true)
-    expect(result.relevanceScore).toBeGreaterThan(0)
+    expect(result.relevanceScore).toBe(0)
   })
 
   it('treats non-indexed statuses correctly', () => {
