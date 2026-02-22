@@ -120,6 +120,37 @@ export function formatWithCitationBlocks(
   return enforceCharLimit(text)
 }
 
+/**
+ * Format a meeting summary for ROAM delivery.
+ * Includes title, participants, summary text, and duration.
+ * STORY-103 — EPIC-010
+ */
+export function formatMeetingSummary(
+  title: string,
+  participants: string[],
+  summaryText: string,
+  durationSeconds?: number
+): string {
+  const lines: string[] = [
+    '📋 M.E.R.C.U.R.Y. — Meeting Summary',
+    '',
+    `Meeting: ${title}`,
+  ]
+
+  if (participants.length > 0) {
+    lines.push(`Participants: ${participants.join(', ')}`)
+  }
+
+  if (durationSeconds && durationSeconds > 0) {
+    const mins = Math.round(durationSeconds / 60)
+    lines.push(`Duration: ${mins} min`)
+  }
+
+  lines.push('', '───', '', stripMarkdown(summaryText))
+
+  return enforceCharLimit(lines.join('\n'))
+}
+
 // ── Helpers ─────────────────────────────────────────────────────────
 
 /**

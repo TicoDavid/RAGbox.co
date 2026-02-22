@@ -7,15 +7,21 @@
  * Processes chat messages through the RAG pipeline and replies via ROAM API.
  * Writes every interaction to the Mercury Unified Thread + audit log.
  *
+ * Per-tenant wiring: resolves tenant from groupId via RoamIntegration,
+ * decrypts tenant API key, and routes through tenant's credentials.
+ *
  * Silence Protocol: confidence < 0.65 → structured refusal.
+ *
+ * STORY-102 — EPIC-010
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
 import prisma from '@/lib/prisma'
 import { parseSSEText } from '@/lib/mercury/sseParser'
-import { sendMessage } from '@/lib/roam/roamClient'
-import { formatForRoam, formatSilenceForRoam, formatErrorForRoam } from '@/lib/roam/roamFormat'
+import { sendMessage, sendTypingIndicator, getTranscriptInfo } from '@/lib/roam/roamClient'
+import { formatForRoam, formatSilenceForRoam, formatErrorForRoam, formatMeetingSummary } from '@/lib/roam/roamFormat'
+import { decryptKey } from '@/lib/utils/kms'
 import type { Citation } from '@/types/ragbox'
 
 const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
@@ -66,7 +72,17 @@ interface RoamReactionEvent {
   }
 }
 
-type RoamEvent = RoamChatEvent | RoamReactionEvent | { type: string; data: Record<string, unknown> }
+interface RoamTranscriptEvent {
+  type: 'transcript.saved'
+  data: {
+    transcript_id: string
+    group_id?: string
+    chat?: { id: string }
+    title?: string
+  }
+}
+
+type RoamEvent = RoamChatEvent | RoamReactionEvent | RoamTranscriptEvent | { type: string; data: Record<string, unknown> }
 
 /** Event types that contain a chat message to process */
 const CHAT_EVENT_TYPES = new Set([
@@ -75,6 +91,15 @@ const CHAT_EVENT_TYPES = new Set([
   'chat.message.group',
   'chat.message',
 ])
+
+// ── Tenant resolution result ─────────────────────────────────────
+
+interface TenantContext {
+  tenantId: string
+  userId: string
+  apiKey: string | null
+  personalityPrompt: string | null
+}
 
 // ── Route handler ──────────────────────────────────────────────────
 
@@ -107,6 +132,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     if (CHAT_EVENT_TYPES.has(event.type)) {
       await processMessage(event as RoamChatEvent)
+    } else if (event.type === 'transcript.saved') {
+      await processTranscript(event as RoamTranscriptEvent)
     } else if (event.type === 'reaction.added') {
       console.log(`[ROAM Processor] Reaction: ${(event as RoamReactionEvent).data.emoji}`)
     } else {
@@ -119,6 +146,40 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   return NextResponse.json({ ok: true }, { status: 200 })
+}
+
+// ── Tenant resolution ────────────────────────────────────────────
+
+async function resolveTenant(groupId: string): Promise<TenantContext> {
+  // Look up per-tenant integration by target group
+  const integration = await prisma.roamIntegration.findFirst({
+    where: { targetGroupId: groupId, status: 'connected' },
+  })
+
+  let apiKey: string | null = null
+  let personalityPrompt: string | null = null
+
+  if (integration?.apiKeyEncrypted) {
+    try {
+      apiKey = await decryptKey(integration.apiKeyEncrypted)
+    } catch (error) {
+      console.error('[ROAM Processor] Key decryption failed for tenant:', integration.tenantId, error)
+    }
+  }
+
+  const tenantId = integration?.tenantId || 'default'
+  const userId = integration?.userId || ROAM_DEFAULT_USER_ID
+
+  // Load persona for personality context
+  const persona = await prisma.mercuryPersona.findUnique({
+    where: { tenantId },
+    select: { personalityPrompt: true },
+  })
+  if (persona) {
+    personalityPrompt = persona.personalityPrompt
+  }
+
+  return { tenantId, userId, apiKey, personalityPrompt }
 }
 
 // ── Message processor ──────────────────────────────────────────────
@@ -159,11 +220,17 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
     return
   }
 
-  const userId = ROAM_DEFAULT_USER_ID
+  // Resolve tenant from groupId
+  const tenant = await resolveTenant(groupId)
+  const userId = tenant.userId
+
   if (!userId) {
-    console.error('[ROAM Processor] No ROAM_DEFAULT_USER_ID configured')
+    console.error('[ROAM Processor] No userId resolved for group:', groupId)
     return
   }
+
+  // Send typing indicator (fire-and-forget)
+  sendTypingIndicator(groupId, tenant.apiKey || undefined)
 
   // Strip @mention prefix from query (e.g. "@M.E.R.C.U.R.Y what is TUMM?" → "what is TUMM?")
   const queryText = text.replace(/^@\S+\s*/i, '').trim() || text
@@ -175,6 +242,7 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
     roamSenderId: senderId,
     roamSenderName: senderName,
     roamThreadId: threadId,
+    tenantId: tenant.tenantId,
   })
 
   // 2. Query Go backend RAG pipeline
@@ -183,6 +251,19 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
   let citations: Citation[] = []
 
   try {
+    const ragBody: Record<string, unknown> = {
+      query: queryText,
+      mode: 'concise',
+      privilegeMode: false,
+      maxTier: 3,
+      history: [],
+    }
+
+    // Include persona personality context if available
+    if (tenant.personalityPrompt) {
+      ragBody.systemPrompt = tenant.personalityPrompt
+    }
+
     const ragResponse = await fetch(`${GO_BACKEND_URL}/api/chat`, {
       method: 'POST',
       headers: {
@@ -190,13 +271,7 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
         'X-Internal-Auth': INTERNAL_AUTH_SECRET,
         'X-User-ID': userId,
       },
-      body: JSON.stringify({
-        query: queryText,
-        mode: 'concise',
-        privilegeMode: false,
-        maxTier: 3,
-        history: [],
-      }),
+      body: JSON.stringify(ragBody),
     })
 
     if (!ragResponse.ok) {
@@ -231,14 +306,13 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
     replyText = formatErrorForRoam()
   }
 
-  // 3. Send reply via ROAM API
+  // 3. Send reply via ROAM API (use tenant key if available)
   try {
-    await sendMessage({
-      groupId,
-      text: replyText,
-      threadId: threadId || undefined,
-    })
-    console.log(`[ROAM Processor] Reply sent to group=${groupId} (confidence: ${confidence ?? 'N/A'})`)
+    await sendMessage(
+      { groupId, text: replyText, threadId: threadId || undefined },
+      tenant.apiKey || undefined
+    )
+    console.log(`[ROAM Processor] Reply sent to group=${groupId} tenant=${tenant.tenantId} (confidence: ${confidence ?? 'N/A'})`)
   } catch (error) {
     console.error('[ROAM Processor] ROAM send failed:', error)
     // Still write to thread — reply failed but we have the content
@@ -249,10 +323,170 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
     roamGroupId: groupId,
     roamThreadId: threadId,
     citationCount: citations.length,
+    tenantId: tenant.tenantId,
   })
 
   // 5. Write audit record
   await writeAuditRecord(userId, queryText, replyText, confidence, groupId)
+}
+
+// ── Transcript processor ───────────────────────────────────────────
+
+async function processTranscript(event: RoamTranscriptEvent): Promise<void> {
+  const d = event.data
+  const transcriptId = d.transcript_id
+  const groupId = d.chat?.id || d.group_id || ''
+
+  if (!transcriptId) {
+    console.log('[ROAM Processor] transcript.saved missing transcript_id — skipping')
+    return
+  }
+
+  // Resolve tenant from groupId
+  const tenant = await resolveTenant(groupId)
+  const userId = tenant.userId
+
+  if (!userId) {
+    console.error('[ROAM Processor] No userId resolved for transcript group:', groupId)
+    return
+  }
+
+  // Check if meeting summaries are enabled for this tenant
+  if (tenant.tenantId !== 'default') {
+    const integration = await prisma.roamIntegration.findUnique({
+      where: { tenantId: tenant.tenantId },
+      select: { meetingSummaries: true },
+    })
+    if (integration && !integration.meetingSummaries) {
+      console.log(`[ROAM Processor] Meeting summaries disabled for tenant ${tenant.tenantId} — skipping`)
+      return
+    }
+  }
+
+  // Fetch transcript from ROAM
+  let transcript
+  try {
+    transcript = await getTranscriptInfo(transcriptId, tenant.apiKey || undefined)
+  } catch (error) {
+    console.error('[ROAM Processor] Transcript fetch failed:', error)
+    return
+  }
+
+  const transcriptContent = transcript.content || ''
+  if (!transcriptContent.trim()) {
+    console.log('[ROAM Processor] Empty transcript content — skipping')
+    return
+  }
+
+  // Send to Go backend for summarization
+  let summaryText: string
+  try {
+    const ragResponse = await fetch(`${GO_BACKEND_URL}/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-Auth': INTERNAL_AUTH_SECRET,
+        'X-User-ID': userId,
+      },
+      body: JSON.stringify({
+        query: `Summarize this meeting transcript. Include key discussion points, decisions made, and action items:\n\n${transcriptContent.slice(0, 8000)}`,
+        mode: 'concise',
+        privilegeMode: false,
+        maxTier: 3,
+        history: [],
+      }),
+    })
+
+    if (!ragResponse.ok) {
+      console.error(`[ROAM Processor] RAG summarization error: ${ragResponse.status}`)
+      return
+    }
+
+    const responseText = await ragResponse.text()
+    const parsed = parseSSEText(responseText)
+    summaryText = parsed.text
+  } catch (error) {
+    console.error('[ROAM Processor] Transcript summarization failed:', error)
+    return
+  }
+
+  if (!summaryText.trim()) {
+    console.log('[ROAM Processor] Empty summary generated — skipping')
+    return
+  }
+
+  // Format summary for ROAM
+  const formattedSummary = formatMeetingSummary(
+    transcript.title || 'Meeting',
+    transcript.participants || [],
+    summaryText,
+    transcript.duration
+  )
+
+  // Post summary to source group
+  try {
+    await sendMessage(
+      { groupId, text: formattedSummary },
+      tenant.apiKey || undefined
+    )
+    console.log(`[ROAM Processor] Meeting summary sent to group=${groupId} transcript=${transcriptId}`)
+  } catch (error) {
+    console.error('[ROAM Processor] Summary send failed:', error)
+  }
+
+  // Store transcript as document in Vault for indexing
+  try {
+    await prisma.document.create({
+      data: {
+        tenantId: tenant.tenantId,
+        userId,
+        filename: `roam-transcript-${transcriptId.slice(0, 8)}.txt`,
+        originalName: transcript.title || `Meeting Transcript — ${new Date().toISOString().split('T')[0]}`,
+        mimeType: 'text/plain',
+        fileType: 'txt',
+        sizeBytes: Buffer.byteLength(transcriptContent, 'utf-8'),
+        extractedText: transcriptContent,
+        indexStatus: 'Pending',
+        metadata: {
+          source: 'roam_transcript',
+          transcriptId,
+          groupId,
+          participants: transcript.participants,
+          duration: transcript.duration,
+        },
+      },
+    })
+  } catch (error) {
+    console.error('[ROAM Processor] Transcript document creation failed:', error)
+  }
+
+  // Write to Mercury Thread
+  await writeMercuryThreadMessage(userId, 'assistant', formattedSummary, undefined, {
+    roamGroupId: groupId,
+    transcriptId,
+    type: 'meeting_summary',
+    tenantId: tenant.tenantId,
+  })
+
+  // Audit record
+  try {
+    await prisma.mercuryAction.create({
+      data: {
+        userId,
+        actionType: 'roam_meeting_summary',
+        status: 'completed',
+        metadata: {
+          channel: 'roam',
+          transcriptId,
+          groupId,
+          summaryLength: formattedSummary.length,
+          participantCount: transcript.participants?.length || 0,
+        } as Prisma.InputJsonValue,
+      },
+    })
+  } catch (error) {
+    console.error('[ROAM Processor] Meeting summary audit write failed:', error)
+  }
 }
 
 // ── Mercury Unified Thread Writer ──────────────────────────────────
