@@ -150,10 +150,15 @@ export function MercurySettingsModal({ open, onClose, onSaved }: MercurySettings
   const handleSave = async () => {
     setSaving(true)
     try {
+      const payload = {
+        ...config,
+        personalityPreset: config.personality,  // Map to what API expects
+        rolePreset: config.role,                // Map role preset for API
+      }
       const res = await fetch('/api/mercury/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) {
         const json = await res.json()

@@ -155,7 +155,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 })
   }
 
-  let body: Partial<MercuryConfigPayload & { personalityPreset?: string }>
+  let body: Partial<MercuryConfigPayload & { personalityPreset?: string; personality?: string; role?: string; rolePreset?: string }>
   try {
     body = await request.json()
   } catch {
@@ -180,10 +180,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const firstName = nameParts[0]
   const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined
 
-  // Resolve personality from preset if provided
+  // Resolve personality from preset if provided (accept either field name)
+  const personalityKey = body.personalityPreset || body.personality
+  const roleKey = body.rolePreset || body.role
   let personalityPrompt = body.personalityPrompt
-  if (body.personalityPreset && PERSONALITY_PRESETS[body.personalityPreset]) {
-    personalityPrompt = PERSONALITY_PRESETS[body.personalityPreset]
+
+  if (personalityKey && PERSONALITY_PRESETS[personalityKey]) {
+    personalityPrompt = PERSONALITY_PRESETS[personalityKey]
+  }
+  if (roleKey && PERSONALITY_PRESETS[roleKey]) {
+    const rolePrompt = PERSONALITY_PRESETS[roleKey]
+    personalityPrompt = personalityPrompt
+      ? `${personalityPrompt}\n\n${rolePrompt}`
+      : rolePrompt
   }
 
   // Build channel config JSON
