@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   const deepgramKey = process.env.DEEPGRAM_API_KEY
   const results: Record<string, { status: string; latencyMs?: number; error?: string }> = {}
