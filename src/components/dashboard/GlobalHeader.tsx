@@ -1162,7 +1162,12 @@ function MercurySettings() {
       })
       .then((json) => {
         if (json.success && json.data?.config) {
-          setConfig({ ...MERCURY_DEFAULTS, ...json.data.config })
+          const c = json.data.config
+          setConfig({
+            ...MERCURY_DEFAULTS,
+            ...c,
+            voiceId: c.channels?.voice?.voiceId ?? c.voiceId ?? MERCURY_DEFAULTS.voiceId,
+          })
         }
       })
       .catch(() => {
