@@ -41,28 +41,28 @@ export default function FeatureGrid() {
             icon={<ShieldIcon />}
             title="Sovereign Knowledge"
             desc="AES-256-GCM encrypted vault with zero-retention architecture. Your documents stay yours — we never train on your data."
-            tag="VAULT + ENCRYPTION"
+            tag="Vault + Encryption"
           />
 
           <FeatureCard
             icon={<PersonaIcon />}
             title="10 AI Personas"
             desc="From CEO strategic briefs to Whistleblower evidence logs — choose the lens that fits your analysis. Each persona sees your documents differently."
-            tag="CEO TO WHISTLEBLOWER"
+            tag="CEO to Whistleblower"
           />
 
           <FeatureCard
             icon={<FileIcon />}
             title="Sovereign Studio"
             desc="Generate compliance reports, executive decks, evidence timelines, and research briefs — all grounded in your actual documents with verifiable citations."
-            tag="REPORTS + DECKS"
+            tag="Reports + Decks"
           />
 
           <FeatureCard
             icon={<MicIcon />}
             title="Mercury Assistant"
             desc="Talk, type, or email your questions. Mercury works across every channel — voice, chat, WhatsApp, SMS — so your knowledge base is always one message away."
-            tag="VOICE + CHAT + EMAIL"
+            tag="Voice + Chat + Email"
           />
 
         </div>

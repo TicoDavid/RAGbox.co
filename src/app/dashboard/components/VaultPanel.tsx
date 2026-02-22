@@ -383,7 +383,7 @@ const VaultPanel: React.FC<VaultPanelProps> = ({
         {vaults.length === 0 && (
           <div className="vault-empty-state">
             <EmptyVaultIcon />
-            <h4 className="vault-empty-title">NO VAULT INITIALIZED</h4>
+            <h4 className="vault-empty-title">No Vault Initialized</h4>
             <p className="vault-empty-subtitle">
               Initialize a new sovereign container above.
             </p>
