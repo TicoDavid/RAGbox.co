@@ -407,9 +407,11 @@ export const useChatStore = create<ChatState>()(
                         // Everything else → metadata (sources, evidence, model info).
                         // These are rendered by Sources/Evidence tabs, never by Answer tab.
                         if (d.sources) doneMetadata.sources = d.sources
-                        if (d.evidence) doneMetadata.evidence = d.evidence
-                        if (d.documents_searched != null) doneMetadata.docsSearched = d.documents_searched
-                        if (d.chunks_evaluated != null) doneMetadata.chunksEvaluated = d.chunks_evaluated
+                        if (d.evidence) {
+                          doneMetadata.evidence = d.evidence
+                          if (d.evidence.totalDocumentsSearched != null) doneMetadata.docsSearched = d.evidence.totalDocumentsSearched
+                          if (d.evidence.totalChunksSearched != null) doneMetadata.chunksEvaluated = d.evidence.totalChunksSearched
+                        }
                         if (d.model_used) { modelUsed = d.model_used; doneMetadata.modelUsed = d.model_used }
                         if (d.provider) { provider = d.provider; doneMetadata.provider = d.provider }
                         if (d.latency_ms != null) { latencyMs = d.latency_ms; doneMetadata.latencyMs = d.latency_ms }

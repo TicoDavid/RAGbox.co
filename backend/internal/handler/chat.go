@@ -273,7 +273,7 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 				byollmGen.SetPromptLoader(gs.PromptLoader())
 			}
 			generator = byollmGen
-			selfRAG = service.NewSelfRAGService(byollmGen, 3, 0.85)
+			selfRAG = service.NewSelfRAGService(byollmGen, deps.SelfRAG.MaxIterations(), deps.SelfRAG.Threshold())
 			byollmActive = true
 			slog.Info("[DEBUG-CHAT] BYOLLM active",
 				"user_id", userID,
@@ -496,7 +496,7 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 				}
 				tokenJSON, _ := json.Marshal(map[string]string{"text": token})
 				sendEvent(w, flusher, "token", string(tokenJSON))
-				time.Sleep(15 * time.Millisecond)
+				time.Sleep(5 * time.Millisecond)
 			}
 
 			citationsJSON, _ := json.Marshal(result.Citations)

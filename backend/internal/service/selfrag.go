@@ -59,6 +59,16 @@ func NewSelfRAGService(generator Generator, maxIter int, threshold float64) *Sel
 	}
 }
 
+// MaxIterations returns the configured maximum number of reflection iterations.
+func (s *SelfRAGService) MaxIterations() int {
+	return s.maxIter
+}
+
+// Threshold returns the configured confidence threshold for early exit.
+func (s *SelfRAGService) Threshold() float64 {
+	return s.threshold
+}
+
 // Reflect runs the Self-RAG reflection loop on an initial generation result.
 // It iteratively critiques relevance, support, and completeness, dropping weak
 // citations and regenerating if confidence is below threshold.
