@@ -2,6 +2,8 @@ package handler
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -163,6 +165,9 @@ type ChatRequest struct {
 	Mode          string `json:"mode"` // "concise", "detailed", "risk-analysis"
 	Persona       string `json:"persona"`
 	StrictMode    bool   `json:"strictMode"`
+	// Safety mode: when false, web-fetched content is accepted as pseudo-chunks
+	SafetyMode *bool  `json:"safetyMode,omitempty"`
+	WebContext string `json:"webContext,omitempty"`
 	// BYOLLM fields (optional — absent means use AEGIS/Vertex AI)
 	LLMProvider string `json:"llmProvider,omitempty"`
 	LLMModel    string `json:"llmModel,omitempty"`
@@ -339,6 +344,21 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			}
 			if deps.QueryCache != nil {
 				deps.QueryCache.Set(userID, req.Query, req.PrivilegeMode, retrieval)
+			}
+		}
+
+		// Inject web pseudo-chunks when safety mode is off and web content was fetched
+		if req.SafetyMode != nil && !*req.SafetyMode && req.WebContext != "" {
+			webChunks := buildWebPseudoChunks(req.WebContext)
+			if len(webChunks) > 0 {
+				retrieval.Chunks = append(retrieval.Chunks, webChunks...)
+				retrieval.TotalCandidates += len(webChunks)
+				retrieval.TotalDocumentsFound++
+				slog.Info("[DEBUG-CHAT] web pseudo-chunks injected",
+					"user_id", userID,
+					"web_chunks", len(webChunks),
+					"total_chunks_now", len(retrieval.Chunks),
+				)
 			}
 		}
 
@@ -627,4 +647,72 @@ func splitIntoTokens(text string) []string {
 		}
 	}
 	return tokens
+}
+
+// buildWebPseudoChunks creates ephemeral RankedChunk entries from web-fetched content.
+// These are NOT persisted — they exist only for the duration of this request.
+// Content is split into chunks of ~3000 characters to match typical chunk sizes.
+func buildWebPseudoChunks(webContext string) []service.RankedChunk {
+	webContext = strings.TrimSpace(webContext)
+	if webContext == "" {
+		return nil
+	}
+
+	// Extract URL from the web context header if present: "[Web content from URL]:\n..."
+	sourceURL := "web-content"
+	if strings.HasPrefix(webContext, "[Web content from ") {
+		end := strings.Index(webContext, "]:")
+		if end > 18 {
+			sourceURL = webContext[18:end]
+			// Strip the header line from the content
+			if nl := strings.Index(webContext, "\n"); nl >= 0 {
+				webContext = strings.TrimSpace(webContext[nl+1:])
+			}
+		}
+	}
+
+	// Hash the content for a stable pseudo-ID
+	hash := sha256.Sum256([]byte(webContext))
+	docID := "web-" + hex.EncodeToString(hash[:8])
+
+	doc := model.Document{
+		ID:           docID,
+		UserID:       "ephemeral",
+		Filename:     sourceURL,
+		OriginalName: sourceURL,
+		MimeType:     "text/html",
+		FileType:     "web",
+		IndexStatus:  model.IndexIndexed,
+	}
+
+	const maxChunkChars = 3000
+	var chunks []service.RankedChunk
+
+	for i := 0; i < len(webContext); i += maxChunkChars {
+		end := i + maxChunkChars
+		if end > len(webContext) {
+			end = len(webContext)
+		}
+		chunkContent := webContext[i:end]
+
+		chunkHash := sha256.Sum256([]byte(chunkContent))
+		chunkID := fmt.Sprintf("%s-chunk-%d", docID, len(chunks))
+
+		chunks = append(chunks, service.RankedChunk{
+			Chunk: model.DocumentChunk{
+				ID:          chunkID,
+				DocumentID:  docID,
+				ChunkIndex:  len(chunks),
+				Content:     chunkContent,
+				ContentHash: hex.EncodeToString(chunkHash[:16]),
+				TokenCount:  len(strings.Fields(chunkContent)),
+				CreatedAt:   time.Now(),
+			},
+			Similarity: 0.95,
+			FinalScore: 0.95,
+			Document:   doc,
+		})
+	}
+
+	return chunks
 }

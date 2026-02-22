@@ -97,8 +97,9 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
       }
     }
 
-    // Build the effective query — prepend web context if fetched
-    const effectiveQuery = webContext ? `${webContext}User question: ${query}` : query
+    // Web context is sent as a separate field to the Go backend, which creates
+    // ephemeral pseudo-chunks. The query stays clean (no prepending).
+    const effectiveQuery = query
 
     // Check cache for non-streaming requests (or when explicitly not streaming)
     // Only cache simple queries (no conversation history — those are context-dependent)
@@ -184,6 +185,8 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
         maxTier: maxTier ?? 3,
         ...(personaId ? { persona: personaId } : {}),
         ...(documentScope ? { documentScope } : {}),
+        ...(safetyMode === false ? { safetyMode: false } : {}),
+        ...(webContext ? { webContext } : {}),
         ...byollmFields,
       }),
     })
