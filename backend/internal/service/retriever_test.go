@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"strings"
 	"testing"
 	"time"
 
@@ -576,6 +577,62 @@ func (m *tenantAwareMockSearcher) SimilaritySearch(ctx context.Context, queryVec
 		return nil, nil
 	}
 	return results, nil
+}
+
+// ── STORY-189: Failure-Path Tests ──────────────────────────────
+
+// TestRetrieve_VectorDBConnectionTimeout verifies that when AlloyDB is
+// unreachable (connection timeout): (a) no crash/panic, (b) error returned
+// with meaningful message, (c) system recovers on subsequent call.
+func TestRetrieve_VectorDBConnectionTimeout(t *testing.T) {
+	timeoutErr := fmt.Errorf("pq: connection timeout: dial tcp 10.128.0.5:5432: i/o timeout")
+	searcher := &mockVectorSearcher{err: timeoutErr}
+	svc := NewRetrieverService(&mockQueryEmbedder{}, searcher)
+
+	// (a) No panic — we call Retrieve and it returns
+	_, err := svc.Retrieve(context.Background(), "test-user", "find my contracts", false)
+
+	// (b) Meaningful error returned
+	if err == nil {
+		t.Fatal("expected error when vector DB is unreachable")
+	}
+	if !strings.Contains(err.Error(), "search") {
+		t.Errorf("error should reference search stage, got: %v", err)
+	}
+
+	// (c) System recovers: fix the searcher and retry
+	now := time.Now().UTC()
+	searcher.err = nil
+	searcher.results = []VectorSearchResult{
+		makeResult("doc-1", "recovered chunk", 0.90, now, 10),
+	}
+	result, err := svc.Retrieve(context.Background(), "test-user", "find my contracts", false)
+	if err != nil {
+		t.Fatalf("expected recovery after DB comes back, got: %v", err)
+	}
+	if len(result.Chunks) == 0 {
+		t.Error("expected results after recovery")
+	}
+}
+
+// TestRetrieve_HybridBM25Timeout_VectorStillFails verifies that when both
+// vector search AND BM25 are unavailable, the error is clean and the system
+// does not hang or panic.
+func TestRetrieve_HybridBM25Timeout_VectorStillFails(t *testing.T) {
+	vectorSearcher := &mockVectorSearcher{
+		err: fmt.Errorf("pq: connection timeout: AlloyDB unreachable"),
+	}
+	bm25Mock := &mockBM25Searcher{
+		err: fmt.Errorf("pq: connection timeout: AlloyDB unreachable"),
+	}
+
+	svc := NewRetrieverService(&mockQueryEmbedder{}, vectorSearcher)
+	svc.SetBM25(bm25Mock)
+
+	_, err := svc.Retrieve(context.Background(), "test-user", "contract terms", false)
+	if err == nil {
+		t.Fatal("expected error when both vector and BM25 search fail")
+	}
 }
 
 func TestRerank(t *testing.T) {

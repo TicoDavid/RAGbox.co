@@ -115,6 +115,41 @@ func TestGenerate_ClientError(t *testing.T) {
 	}
 }
 
+// ── STORY-189: Failure-Path Tests ──────────────────────────────
+
+// TestGenerate_GeminiTimeout_CleanError verifies that when Vertex AI
+// GenerateContent exceeds the timeout (>30s): (a) no panic, (b) clean
+// error returned to caller, (c) system recovers on next call.
+func TestGenerate_GeminiTimeout_CleanError(t *testing.T) {
+	client := &mockGenAIClient{err: fmt.Errorf("context deadline exceeded: Vertex AI GenerateContent took >30s")}
+	svc := NewGeneratorService(client, "gemini-1.5-pro")
+
+	// (a) No panic — we call Generate and it returns
+	_, err := svc.Generate(context.Background(), "Summarize the contract", testChunks(), GenerateOpts{Mode: "concise"})
+
+	// (b) Clean error returned
+	if err == nil {
+		t.Fatal("expected error when Gemini times out")
+	}
+	if !strings.Contains(err.Error(), "deadline") {
+		t.Errorf("error should reference deadline/timeout, got: %v", err)
+	}
+
+	// (c) System recovers: fix the client and retry
+	client.err = nil
+	client.response = `{"answer": "The contract expires in March.", "citations": [{"chunkIndex": 1, "excerpt": "expires on March 2025", "relevance": 0.95}], "confidence": 0.88}`
+	result, err := svc.Generate(context.Background(), "Summarize the contract", testChunks(), GenerateOpts{Mode: "concise"})
+	if err != nil {
+		t.Fatalf("expected recovery after Gemini comes back, got: %v", err)
+	}
+	if result.Answer == "" {
+		t.Error("expected non-empty answer after recovery")
+	}
+	if result.Confidence < 0.8 {
+		t.Errorf("expected confidence >= 0.8 after recovery, got: %f", result.Confidence)
+	}
+}
+
 func TestGenerate_MalformedJSON(t *testing.T) {
 	// Model returns plain text instead of JSON
 	client := &mockGenAIClient{response: "The contract expires next year."}

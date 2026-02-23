@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/connexus-ai/ragbox-backend/internal/model"
@@ -269,6 +270,87 @@ func TestProcessDocument_PIIScanFailsNonFatal(t *testing.T) {
 	if repo.statuses[len(repo.statuses)-1] != model.IndexIndexed {
 		t.Errorf("final status = %q, want %q — pipeline should complete despite PII scan failure",
 			repo.statuses[len(repo.statuses)-1], model.IndexIndexed)
+	}
+}
+
+// ── STORY-189: Failure-Path Tests ──────────────────────────────
+
+// TestProcessDocument_EmbeddingAPI500_FailsGracefully verifies that when the
+// embedding API returns a 500 error: (a) no panic, (b) meaningful error returned,
+// (c) document status is set to Failed with error details stored in metadata.
+func TestProcessDocument_EmbeddingAPI500_FailsGracefully(t *testing.T) {
+	svc, repo, _ := newTestPipeline()
+	svc.embedder = &pipelineMockEmbedder{err: fmt.Errorf("embedding API returned HTTP 500: internal server error")}
+
+	err := svc.ProcessDocument(context.Background(), "doc-1")
+
+	// (a) No panic — we reached this line
+	// (b) Meaningful error returned
+	if err == nil {
+		t.Fatal("expected error when embedding API returns 500")
+	}
+	if !strings.Contains(err.Error(), "embed") {
+		t.Errorf("error should reference embed stage, got: %v", err)
+	}
+
+	// (c) Document status set to Failed
+	foundFailed := false
+	for _, s := range repo.statuses {
+		if s == model.IndexFailed {
+			foundFailed = true
+		}
+	}
+	if !foundFailed {
+		t.Error("expected document status to be set to Failed after embedding API 500")
+	}
+
+	// Verify error details stored in document text (failDocument writes JSON metadata)
+	if repo.text == "" {
+		t.Error("expected error details to be stored in document text")
+	}
+	if !strings.Contains(repo.text, "embed_failed") {
+		t.Errorf("expected error details to contain 'embed_failed', got: %s", repo.text)
+	}
+	if !strings.Contains(repo.text, "500") {
+		t.Errorf("expected error details to contain '500', got: %s", repo.text)
+	}
+
+	// Verify system recovers: can process another document after failure
+	svc.embedder = &pipelineMockEmbedder{} // restore healthy embedder
+	repo.statuses = nil                     // reset
+	repo.text = ""
+	err = svc.ProcessDocument(context.Background(), "doc-1")
+	if err != nil {
+		t.Fatalf("pipeline should recover after failure, got: %v", err)
+	}
+	if repo.statuses[len(repo.statuses)-1] != model.IndexIndexed {
+		t.Errorf("recovered pipeline should reach Indexed, got: %v", repo.statuses)
+	}
+}
+
+// TestProcessDocument_AuditLogDown_PipelineCompletes verifies that when the
+// audit service is down (like Redis cache failure): (a) no panic, (b) pipeline
+// still completes, (c) document reaches Indexed status (degraded, not broken).
+func TestProcessDocument_AuditLogDown_PipelineCompletes(t *testing.T) {
+	svc, repo, audit := newTestPipeline()
+	audit.err = fmt.Errorf("redis connection refused: dial tcp 10.215.185.51:6379")
+
+	err := svc.ProcessDocument(context.Background(), "doc-1")
+
+	// (a) No panic — we reached this line
+	// (b) Pipeline completes without error (audit failure is non-fatal)
+	if err != nil {
+		t.Fatalf("pipeline should complete despite audit log failure: %v", err)
+	}
+
+	// (c) Document reaches Indexed status
+	if repo.statuses[len(repo.statuses)-1] != model.IndexIndexed {
+		t.Errorf("expected final status Indexed despite audit failure, got: %v", repo.statuses)
+	}
+
+	// Chunks were still stored
+	if repo.chunkCount != 2 {
+		t.Errorf("chunkCount = %d, want 2 — pipeline should complete despite audit failure", repo.chunkCount)
 	}
 }
 
