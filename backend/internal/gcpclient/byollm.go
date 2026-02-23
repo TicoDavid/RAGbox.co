@@ -1,6 +1,7 @@
 package gcpclient
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -45,6 +46,7 @@ type openAIRequest struct {
 	Messages    []openAIMessage `json:"messages"`
 	MaxTokens   int             `json:"max_tokens"`
 	Temperature float64         `json:"temperature"`
+	Stream      bool            `json:"stream,omitempty"`
 }
 
 type openAIMessage struct {
@@ -58,6 +60,19 @@ type openAIResponse struct {
 		Message struct {
 			Content string `json:"content"`
 		} `json:"message"`
+	} `json:"choices"`
+	Error *struct {
+		Message string `json:"message"`
+	} `json:"error,omitempty"`
+}
+
+// openAIStreamChunk is a single SSE chunk from the OpenAI-compatible streaming API.
+type openAIStreamChunk struct {
+	Choices []struct {
+		Delta struct {
+			Content string `json:"content"`
+		} `json:"delta"`
+		FinishReason *string `json:"finish_reason"`
 	} `json:"choices"`
 	Error *struct {
 		Message string `json:"message"`
@@ -132,6 +147,111 @@ func (c *BYOLLMClient) GenerateContent(ctx context.Context, systemPrompt string,
 	}
 
 	return parsed.Choices[0].Message.Content, nil
+}
+
+// GenerateContentStream implements service.StreamingGenAIClient using the
+// OpenAI-compatible streaming API (stream: true → SSE chunks).
+func (c *BYOLLMClient) GenerateContentStream(ctx context.Context, systemPrompt, userPrompt string) (<-chan string, <-chan error) {
+	textCh := make(chan string, 64)
+	errCh := make(chan error, 1)
+
+	go func() {
+		defer close(textCh)
+		defer close(errCh)
+
+		reqBody := openAIRequest{
+			Model:       c.model,
+			MaxTokens:   4096,
+			Temperature: 0.3,
+			Stream:      true,
+			Messages: []openAIMessage{
+				{Role: "system", Content: systemPrompt},
+				{Role: "user", Content: userPrompt},
+			},
+		}
+
+		bodyBytes, err := json.Marshal(reqBody)
+		if err != nil {
+			errCh <- fmt.Errorf("byollm stream: marshal request: %w", err)
+			return
+		}
+
+		endpoint := c.baseURL + "/chat/completions"
+
+		req, err := http.NewRequestWithContext(ctx, "POST", endpoint, bytes.NewReader(bodyBytes))
+		if err != nil {
+			errCh <- fmt.Errorf("byollm stream: create request: %w", err)
+			return
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+c.apiKey)
+
+		// Use a separate client without the global timeout — streaming responses
+		// can legitimately take longer than 30s. Context cancellation still works.
+		streamHTTP := &http.Client{Timeout: 0}
+		resp, err := streamHTTP.Do(req)
+		if err != nil {
+			if ctx.Err() != nil {
+				errCh <- fmt.Errorf("byollm stream: request cancelled: %w", ctx.Err())
+				return
+			}
+			errCh <- fmt.Errorf("byollm stream: request failed: %w", err)
+			return
+		}
+		defer resp.Body.Close()
+
+		switch {
+		case resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden:
+			errCh <- fmt.Errorf("byollm auth failed: %d", resp.StatusCode)
+			return
+		case resp.StatusCode == http.StatusTooManyRequests:
+			errCh <- fmt.Errorf("byollm rate limited")
+			return
+		case resp.StatusCode >= 500:
+			errCh <- fmt.Errorf("byollm server error: %d", resp.StatusCode)
+			return
+		case resp.StatusCode != http.StatusOK:
+			errCh <- fmt.Errorf("byollm stream: unexpected status %d", resp.StatusCode)
+			return
+		}
+
+		scanner := bufio.NewScanner(resp.Body)
+		for scanner.Scan() {
+			if ctx.Err() != nil {
+				errCh <- fmt.Errorf("byollm stream: context cancelled: %w", ctx.Err())
+				return
+			}
+
+			line := scanner.Text()
+			if !strings.HasPrefix(line, "data: ") {
+				continue
+			}
+			data := strings.TrimPrefix(line, "data: ")
+			if data == "[DONE]" {
+				break
+			}
+
+			var chunk openAIStreamChunk
+			if err := json.Unmarshal([]byte(data), &chunk); err != nil {
+				continue // skip malformed chunks
+			}
+
+			if chunk.Error != nil {
+				errCh <- fmt.Errorf("byollm stream: API error: %s", chunk.Error.Message)
+				return
+			}
+
+			if len(chunk.Choices) > 0 && chunk.Choices[0].Delta.Content != "" {
+				textCh <- chunk.Choices[0].Delta.Content
+			}
+		}
+
+		if err := scanner.Err(); err != nil {
+			errCh <- fmt.Errorf("byollm stream: read error: %w", err)
+		}
+	}()
+
+	return textCh, errCh
 }
 
 // isTimeoutError checks if an error is a timeout (net.Error with Timeout()).
