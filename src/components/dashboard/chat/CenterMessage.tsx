@@ -401,12 +401,22 @@ function EvidencePanel({
   citations?: Citation[]
 }) {
   const meta = message.metadata as Record<string, unknown> | undefined
-  const docsSearched = (meta?.docsSearched as number) ?? null
-  const chunksEvaluated = (meta?.chunksEvaluated as number) ?? null
-  const citationCount = citations?.length ?? 0
-  const displayModel = maskModel(message.modelUsed ?? (meta?.modelUsed as string))
+  const docsSearched = (meta?.docsSearched as number) ?? (meta?.totalDocumentsSearched as number) ?? null
+  const chunksEvaluated = (meta?.chunksEvaluated as number) ?? (meta?.totalChunksSearched as number) ?? null
+  const citationCount = citations?.length ?? (meta?.citationCount as number) ?? 0
+  const displayModel = maskModel(message.modelUsed ?? (meta?.modelUsed as string) ?? (meta?.model as string))
   const displayProvider = maskProvider(message.provider ?? (meta?.provider as string))
   const latency = message.latencyMs ?? (meta?.latencyMs as number | undefined)
+
+  // Extended latency fields from STORY-150 done payload
+  const embedMs = (meta?.embed_ms as number) ?? null
+  const searchMs = (meta?.search_ms as number) ?? null
+  const generateMs = (meta?.generate_ms as number) ?? null
+  const selfragMs = (meta?.selfrag_ms as number) ?? null
+  const totalMs = (meta?.total_ms as number) ?? latency ?? null
+  const embedCached = (meta?.embed_cached as boolean) ?? false
+  const selfragSkipped = (meta?.selfrag_skipped as boolean) ?? true
+  const hasBreakdown = embedMs != null && searchMs != null && generateMs != null
 
   return (
     <div className="space-y-5">
@@ -430,11 +440,40 @@ function EvidencePanel({
           />
           <EvidenceRow
             label="Latency"
-            value={latency != null ? `${(latency / 1000).toFixed(1)}s` : '--'}
+            value={totalMs != null ? `${(totalMs / 1000).toFixed(1)}s` : latency != null ? `${(latency / 1000).toFixed(1)}s` : '--'}
           />
           <EvidenceRow label="Time" value={formatTime(message.timestamp)} />
         </div>
       </div>
+
+      {/* Pipeline Breakdown — only when extended fields are available */}
+      {hasBreakdown && (
+        <div className="p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)]">
+          <p className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] font-semibold mb-3">
+            Pipeline Breakdown
+          </p>
+          <LatencyBar
+            embedMs={embedMs}
+            searchMs={searchMs}
+            generateMs={generateMs}
+            selfragMs={selfragSkipped ? 0 : (selfragMs ?? 0)}
+            totalMs={totalMs ?? 0}
+          />
+          {/* Badges */}
+          <div className="flex items-center gap-2 mt-3">
+            {embedCached && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                Cached
+              </span>
+            )}
+            {selfragSkipped && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                SelfRAG Skipped
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Retrieval stats */}
       <div className="p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)]">
@@ -475,6 +514,68 @@ function EvidenceRow({ label, value }: { label: string; value: string }) {
     <div>
       <p className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)]">{label}</p>
       <p className="text-sm font-medium text-[var(--text-primary)] truncate">{value}</p>
+    </div>
+  )
+}
+
+// Stacked horizontal bar showing pipeline stage latencies
+function LatencyBar({
+  embedMs,
+  searchMs,
+  generateMs,
+  selfragMs,
+  totalMs,
+}: {
+  embedMs: number
+  searchMs: number
+  generateMs: number
+  selfragMs: number
+  totalMs: number
+}) {
+  const total = totalMs || (embedMs + searchMs + generateMs + selfragMs) || 1
+
+  const segments = [
+    { label: 'Embed', ms: embedMs, color: 'bg-blue-400' },
+    { label: 'Search', ms: searchMs, color: 'bg-emerald-400' },
+    { label: 'Generate', ms: generateMs, color: 'bg-amber-400' },
+    ...(selfragMs > 0 ? [{ label: 'SelfRAG', ms: selfragMs, color: 'bg-purple-400' }] : []),
+  ]
+
+  return (
+    <div>
+      {/* Bar */}
+      <div className="flex h-6 rounded-md overflow-hidden border border-[var(--border-default)]">
+        {segments.map((seg) => (
+          <div
+            key={seg.label}
+            className={`${seg.color} flex items-center justify-center min-w-[2rem] transition-all`}
+            style={{ width: `${(seg.ms / total) * 100}%` }}
+            title={`${seg.label}: ${seg.ms.toLocaleString()}ms`}
+          >
+            {(seg.ms / total) > 0.12 && (
+              <span className="text-[10px] font-semibold text-black/70 truncate px-1">
+                {seg.label}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+      {/* Labels below */}
+      <div className="flex items-center justify-between mt-2">
+        <div className="flex items-center gap-3">
+          {segments.map((seg) => (
+            <div key={seg.label} className="flex items-center gap-1">
+              <span className={`w-2 h-2 rounded-full ${seg.color}`} />
+              <span className="text-[10px] text-[var(--text-tertiary)]">
+                {seg.label} {seg.ms.toLocaleString()}ms
+              </span>
+            </div>
+          ))}
+        </div>
+        <span className="text-xs font-medium text-[var(--text-secondary)]">
+          Total: {total.toLocaleString()}ms
+        </span>
+      </div>
     </div>
   )
 }
