@@ -69,6 +69,8 @@ export function CenterInputBar() {
     for (const file of Array.from(files)) {
       const id = `att-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
       const isImage = file.type.startsWith('image/')
+      const isTextFile = file.type.startsWith('text/') ||
+        /\.(txt|md|csv|json|xml|html|css|js|ts|tsx|py|yaml|yml|log|sql)$/i.test(file.name)
       setAttachments((prev) => [...prev, {
         id,
         name: file.name,
@@ -84,11 +86,15 @@ export function CenterInputBar() {
         )
       }
       reader.onerror = () => {
-        setAttachments((prev) =>
-          prev.map((a) => a.id === id ? { ...a, status: 'error' } : a)
-        )
+        setAttachments((prev) => prev.filter((a) => a.id !== id))
+        toast.error(`Failed to read ${file.name}`)
       }
-      reader.readAsDataURL(file)
+      // Text files → readable text; binary → data URL (not injected into query)
+      if (isTextFile) {
+        reader.readAsText(file)
+      } else {
+        reader.readAsDataURL(file)
+      }
     }
   }, [])
 
@@ -113,20 +119,41 @@ export function CenterInputBar() {
     }
   }, [activeIntelligence, setModel])
 
-  const handleSubmit = () => {
+  const handleSubmit = useCallback(() => {
     if ((!inputValue.trim() && attachments.length === 0) || isStreaming) return
-    // Prepend attachment context to the query
+
+    // Block send while files are still loading
+    if (attachments.some((a) => a.status === 'pending')) {
+      toast('Files still loading...', { duration: 2000 })
+      return
+    }
+
+    // Remove failed attachments and bail so user can retry
+    if (attachments.some((a) => a.status === 'error')) {
+      setAttachments((prev) => prev.filter((a) => a.status !== 'error'))
+      toast.error('Failed files removed — please re-attach and try again')
+      return
+    }
+
+    // Build query with attachment context (text only — never inject base64)
     const readyAttachments = attachments.filter((a) => a.status === 'ready')
     if (readyAttachments.length > 0) {
       const context = readyAttachments
-        .map((a) => `[Attached file: ${a.name}]\n${a.content}`)
+        .map((a) => {
+          // Only include readable text content, not data URLs
+          if (a.content && !a.content.startsWith('data:')) {
+            return `[Attached file: ${a.name}]\n${a.content}`
+          }
+          return `[Attached file: ${a.name}]`
+        })
         .join('\n\n')
       const fullMessage = context + (inputValue.trim() ? '\n\n' + inputValue : '')
       setInputValue(fullMessage)
     }
+
     sendMessage(privilegeMode)
     setAttachments([])
-  }
+  }, [inputValue, attachments, isStreaming, sendMessage, privilegeMode, setInputValue])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
