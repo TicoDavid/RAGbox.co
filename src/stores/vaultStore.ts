@@ -4,6 +4,26 @@ import type { VaultItem, FolderNode } from '@/types/ragbox'
 import { apiFetch } from '@/lib/api'
 import { toast } from 'sonner'
 
+const ALLOWED_EXTENSIONS = new Set([
+  '.pdf', '.doc', '.docx', '.txt', '.csv', '.xlsx', '.xls', '.pptx',
+  '.png', '.jpg', '.jpeg', '.gif', '.webp', '.md', '.json',
+])
+
+const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50 MB
+
+// Rate limiting: track upload timestamps
+let uploadTimestamps: number[] = []
+
+function checkRateLimit(): boolean {
+  const now = Date.now()
+  uploadTimestamps = uploadTimestamps.filter((t) => now - t < 60_000)
+  return uploadTimestamps.length < 10
+}
+
+function recordUpload(): void {
+  uploadTimestamps.push(Date.now())
+}
+
 interface VaultState {
   // Data
   documents: Record<string, VaultItem>
@@ -216,8 +236,41 @@ export const useVaultStore = create<VaultState>()(
 
         uploadDocuments: async (files, folderId) => {
           const uploaded: Array<{ filename: string; size: number }> = []
+          const existingNames = new Set(
+            Object.values(get().documents).map((d) => d.name.toLowerCase())
+          )
+
           for (const file of files) {
+            // Rate limit check
+            if (!checkRateLimit()) {
+              toast.error('Please wait before uploading more files', { duration: 4000 })
+              break
+            }
+
+            // Size guard
+            if (file.size > MAX_FILE_SIZE) {
+              toast.error(`${file.name} exceeds 50 MB limit`, { duration: 4000 })
+              continue
+            }
+
+            // File type guard
+            const ext = file.name.toLowerCase().match(/\.[^.]+$/)?.[0] || ''
+            if (!ALLOWED_EXTENSIONS.has(ext)) {
+              toast.error(`${file.name}: unsupported format. Supported: PDF, DOCX, TXT, MD, CSV, XLSX, PPTX`, { duration: 5000 })
+              continue
+            }
+
+            // Duplicate name check
+            if (existingNames.has(file.name.toLowerCase())) {
+              const replace = window.confirm(
+                `A file named "${file.name}" already exists. Replace it?`
+              )
+              if (!replace) continue
+            }
+
             await get().uploadDocument(file, folderId)
+            recordUpload()
+            existingNames.add(file.name.toLowerCase())
             uploaded.push({ filename: file.name, size: file.size })
           }
 

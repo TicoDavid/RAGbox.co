@@ -74,6 +74,12 @@ export function InputBar() {
           continue
         }
 
+        // Duplicate name check
+        if (attachments.some((a) => a.name.toLowerCase() === file.name.toLowerCase())) {
+          toast.error(`${file.name} is already attached`, { duration: 3000 })
+          continue
+        }
+
         const attachmentId = addAttachment({
           name: file.name,
           type: isImage ? 'image' : 'file',
@@ -94,7 +100,7 @@ export function InputBar() {
         reader.readAsDataURL(file)
       }
     },
-    [addAttachment, updateAttachment]
+    [attachments, addAttachment, updateAttachment]
   )
 
   const handleUrlAdd = useCallback(() => {

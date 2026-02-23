@@ -77,6 +77,12 @@ export function CenterInputBar() {
         continue
       }
 
+      // Duplicate name check
+      if (attachments.some((a) => a.name.toLowerCase() === file.name.toLowerCase())) {
+        toast.error(`${file.name} is already attached`, { duration: 3000 })
+        continue
+      }
+
       const id = `att-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
       const isImage = file.type.startsWith('image/')
       const isTextFile = file.type.startsWith('text/') ||
@@ -112,7 +118,7 @@ export function CenterInputBar() {
         reader.readAsDataURL(file)
       }
     }
-  }, [])
+  }, [attachments])
 
   const removeAttachment = (id: string) => {
     setAttachments((prev) => prev.filter((a) => a.id !== id))
