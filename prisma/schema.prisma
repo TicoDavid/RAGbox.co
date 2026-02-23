@@ -60,6 +60,7 @@ model User {
   apiKeys               ApiKey[]
   knowledgeEvents       KnowledgeEvent[]
   notificationSettings  NotificationSettings?
+  feedbackReports       FeedbackReport[]
 
   @@map("users")
 }
@@ -919,4 +920,24 @@ model NotificationSettings {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notification_settings")
+}
+
+// ============================================
+// Feedback Reports (Bug/Feature/Question)
+// ============================================
+
+model FeedbackReport {
+  id          String   @id @default(uuid())
+  userId      String
+  userEmail   String?
+  type        String   // 'bug' | 'feature' | 'question'
+  description String
+  currentUrl  String?
+  browserInfo String?
+  status      String   @default("open") // 'open' | 'reviewed' | 'resolved'
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("feedback_reports")
 }

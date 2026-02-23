@@ -1344,13 +1344,14 @@ function ReportIssueSettings() {
           type: issueType,
           description: description.trim(),
           currentUrl: typeof window !== 'undefined' ? window.location.href : undefined,
+          browserInfo: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
         }),
       })
       if (!res.ok) {
         const json = await res.json()
         throw new Error(json.error || 'Failed to submit report')
       }
-      toast.success('Report submitted. Thank you for your feedback!')
+      toast.success('Report submitted successfully')
       setDescription('')
       setIssueType('bug')
     } catch (err) {

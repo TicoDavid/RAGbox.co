@@ -1,14 +1,16 @@
 /**
- * Report Issue API — Proxy to Go Backend
+ * Report Issue API — Persist to DB + optional Go backend forwarding
  *
  * POST /api/report-issue — Submit a bug report or feature request
  *
  * Rate limited: max 5 submissions per hour per user.
- * Forwards to Go backend when available, returns stub otherwise.
+ * Always persists to feedback_reports table. Also forwards to Go
+ * backend when BACKEND_URL is configured.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
+import prisma from '@/lib/prisma'
 
 // Simple in-memory rate limit (per-process; resets on deploy)
 const rateLimitMap = new Map<string, number[]>()
@@ -43,7 +45,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     )
   }
 
-  let body: { type?: string; description?: string; currentUrl?: string }
+  let body: { type?: string; description?: string; currentUrl?: string; browserInfo?: string }
   try {
     body = await request.json()
   } catch {
@@ -72,7 +74,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     )
   }
 
-  // Attempt to forward to Go backend
+  // Persist to database
+  const userEmail = (token.email as string) || null
+  try {
+    await prisma.feedbackReport.create({
+      data: {
+        userId,
+        userEmail,
+        type: body.type,
+        description: trimmed,
+        currentUrl: body.currentUrl || null,
+        browserInfo: body.browserInfo || null,
+      },
+    })
+  } catch (dbErr) {
+    console.error('Failed to persist feedback report:', dbErr)
+    // Continue — don't block the user if DB write fails
+  }
+
+  // Also forward to Go backend if configured
   const backendUrl = process.env.BACKEND_URL
   if (backendUrl) {
     try {
@@ -95,13 +115,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
     } catch (err) {
       console.error('Go backend report-issue forwarding failed:', err)
-      // Fall through to stub response
     }
   }
 
-  // Stub response when backend is unavailable
   return NextResponse.json({
     success: true,
-    message: 'Report received. Thank you for your feedback.',
+    message: 'Report submitted successfully.',
   })
 }
