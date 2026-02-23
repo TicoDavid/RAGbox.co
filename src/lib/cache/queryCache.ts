@@ -1,7 +1,7 @@
 import { createHash } from 'crypto'
 import { getRedis } from './redisClient'
 
-const CACHE_TTL = 300 // 5 minutes
+const CACHE_TTL = parseInt(process.env.QUERY_CACHE_TTL || '900', 10) // 15 minutes (was 5min)
 
 interface CachedResponse {
   text: string

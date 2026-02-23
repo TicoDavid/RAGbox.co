@@ -594,6 +594,37 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "notification_settings_user_id_key" ON "notification_settings"("user_id")`)
     results.push('notification_settings: OK')
 
+    // ========================================
+    // EPIC-013 STORY-161: HNSW vector index (idempotent)
+    // ========================================
+    try {
+      await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS "document_chunks_embedding_hnsw"
+        ON "document_chunks" USING hnsw (embedding vector_cosine_ops)
+        WITH (m = 16, ef_construction = 64)
+      `)
+      results.push('HNSW vector index: OK')
+    } catch (hnswErr) {
+      results.push(`HNSW vector index: SKIPPED (${hnswErr instanceof Error ? hnswErr.message.slice(0, 80) : 'error'})`)
+    }
+
+    // ========================================
+    // EPIC-013 STORY-161: GIN full-text search index (BM25 prep)
+    // ========================================
+    try {
+      await prisma.$executeRawUnsafe(`
+        ALTER TABLE "document_chunks" ADD COLUMN IF NOT EXISTS "content_tsv" tsvector
+        GENERATED ALWAYS AS (to_tsvector('english', content)) STORED
+      `)
+      await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS "idx_chunks_content_gin"
+        ON "document_chunks" USING gin ("content_tsv")
+      `)
+      results.push('GIN full-text index: OK')
+    } catch (ginErr) {
+      results.push(`GIN full-text index: SKIPPED (${ginErr instanceof Error ? ginErr.message.slice(0, 80) : 'error'})`)
+    }
+
     return NextResponse.json({ success: true, results })
   } catch (error) {
     return NextResponse.json({
