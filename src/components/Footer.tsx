@@ -74,9 +74,9 @@ export default function Footer() {
         <div className="pt-8 border-t border-slate-200 dark:border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-400">
           <p>© 2026 ConnexUS AI Inc. All rights reserved.</p>
           <div className="flex gap-8">
-            <a href="#" className="hover:text-slate-900 dark:hover:text-white transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-slate-900 dark:hover:text-white transition-colors">Terms of Service</a>
-            <a href="#" className="hover:text-slate-900 dark:hover:text-white transition-colors">Security</a>
+            <span className="cursor-default hover:text-slate-900 dark:hover:text-white transition-colors">Privacy Policy</span>
+            <span className="cursor-default hover:text-slate-900 dark:hover:text-white transition-colors">Terms of Service</span>
+            <span className="cursor-default hover:text-slate-900 dark:hover:text-white transition-colors">Security</span>
           </div>
         </div>
       </div>
@@ -88,20 +88,20 @@ export default function Footer() {
 function FooterLink({ children }: { children: React.ReactNode }) {
   return (
     <li>
-      <a href="#" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+      <span className="cursor-default hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
         {children}
-      </a>
+      </span>
     </li>
   );
 }
 
 function SocialIcon({ path, circle }: { path: string, circle?: boolean }) {
   return (
-    <a href="#" className="w-8 h-8 rounded-full bg-slate-200 dark:bg-white/5 flex items-center justify-center text-slate-500 hover:bg-blue-600 hover:text-white transition-all">
+    <span className="w-8 h-8 rounded-full bg-slate-200 dark:bg-white/5 flex items-center justify-center text-slate-500 hover:bg-blue-600 hover:text-white transition-all cursor-default">
       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
         {circle && <circle cx="4" cy="4" r="2"></circle>}
         <path d={path}></path>
       </svg>
-    </a>
+    </span>
   );
 }

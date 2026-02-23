@@ -297,8 +297,8 @@ export function AuthModal({ isOpen, onClose, context = 'signin', errorMessage }:
             </motion.div>
           )}
 
-          {/* Dev Mode OTP Display */}
-          {devOtp && step === 'otp' && (
+          {/* Dev Mode OTP Display — only in development */}
+          {process.env.NODE_ENV === 'development' && devOtp && step === 'otp' && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
