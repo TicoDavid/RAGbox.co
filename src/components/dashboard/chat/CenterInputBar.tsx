@@ -63,10 +63,21 @@ export function CenterInputBar() {
   const { isListening, transcript, error: micError, startListening, stopListening } = useDeepgramSTT()
   const prevListeningRef = useRef(false)
 
+  const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50 MB
+
   const handleFileSelect = useCallback((files: FileList | null) => {
     if (!files) return
     setShowPlusMenu(false)
     for (const file of Array.from(files)) {
+      // Size guard
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error(`${file.name} exceeds 50 MB limit`, {
+          duration: 4000,
+          action: { label: 'Try again', onClick: () => fileInputRef.current?.click() },
+        })
+        continue
+      }
+
       const id = `att-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
       const isImage = file.type.startsWith('image/')
       const isTextFile = file.type.startsWith('text/') ||
@@ -86,8 +97,14 @@ export function CenterInputBar() {
         )
       }
       reader.onerror = () => {
-        setAttachments((prev) => prev.filter((a) => a.id !== id))
-        toast.error(`Failed to read ${file.name}`)
+        // Keep pill in error state (red outline) — user removes with X
+        setAttachments((prev) =>
+          prev.map((a) => a.id === id ? { ...a, status: 'error' as const } : a)
+        )
+        toast.error(`Failed to read ${file.name}`, {
+          duration: 4000,
+          action: { label: 'Try again', onClick: () => fileInputRef.current?.click() },
+        })
       }
       // Text files → readable text; binary → data URL (not injected into query)
       if (isTextFile) {

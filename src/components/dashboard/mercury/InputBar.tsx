@@ -59,11 +59,21 @@ export function InputBar() {
     }
   }, [inputValue])
 
+  const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50 MB
+
   const handleFileSelect = useCallback(
     async (files: FileList | null, isImage = false) => {
       if (!files) return
       setIsInjectMenuOpen(false)
       for (const file of Array.from(files)) {
+        if (file.size > MAX_FILE_SIZE) {
+          toast.error(`${file.name} exceeds 50 MB limit`, {
+            duration: 4000,
+            action: { label: 'Try again', onClick: () => (isImage ? imageInputRef : fileInputRef).current?.click() },
+          })
+          continue
+        }
+
         const attachmentId = addAttachment({
           name: file.name,
           type: isImage ? 'image' : 'file',
@@ -76,6 +86,10 @@ export function InputBar() {
         }
         reader.onerror = () => {
           updateAttachment(attachmentId, { status: 'error' })
+          toast.error(`Failed to read ${file.name}`, {
+            duration: 4000,
+            action: { label: 'Try again', onClick: () => (isImage ? imageInputRef : fileInputRef).current?.click() },
+          })
         }
         reader.readAsDataURL(file)
       }
@@ -99,7 +113,10 @@ export function InputBar() {
           status: 'ready',
         })
       })
-      .catch(() => updateAttachment(attachmentId, { status: 'error' }))
+      .catch(() => {
+        updateAttachment(attachmentId, { status: 'error' })
+        toast.error('Failed to fetch URL content', { duration: 4000 })
+      })
     setUrlValue('')
     setShowUrlInput(false)
     setIsInjectMenuOpen(false)
