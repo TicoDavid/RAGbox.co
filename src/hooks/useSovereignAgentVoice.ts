@@ -372,7 +372,11 @@ function createTTSPlayer(sampleRate: number): {
     play(pcm: ArrayBuffer) {
       if (!ctx) ctx = new AudioContext({ sampleRate })
 
-      const int16 = new Int16Array(pcm)
+      // Guard: Int16Array requires even byte length (2 bytes per sample)
+      const safePcm = pcm.byteLength % 2 !== 0
+        ? pcm.slice(0, pcm.byteLength - 1)
+        : pcm
+      const int16 = new Int16Array(safePcm)
       const float32 = new Float32Array(int16.length)
       for (let i = 0; i < int16.length; i++) {
         float32[i] = int16[i] / 32768

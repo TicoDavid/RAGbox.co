@@ -266,7 +266,9 @@ export function audioSamplesToBase64(samples: Float32Array): string {
  */
 export function base64ToAudioSamples(base64: string): Float32Array {
   const binary = Buffer.from(base64, 'base64');
-  const int16Array = new Int16Array(binary.buffer, binary.byteOffset, binary.length / 2);
+  // Guard: ensure even byte length for Int16Array (2 bytes per sample)
+  const safeLength = binary.length - (binary.length % 2);
+  const int16Array = new Int16Array(binary.buffer, binary.byteOffset, safeLength / 2);
 
   const float32Array = new Float32Array(int16Array.length);
   for (let i = 0; i < int16Array.length; i++) {
