@@ -4,12 +4,15 @@ import { useRef, useEffect, useState, useCallback } from 'react'
 import { useChatStore } from '@/stores/chatStore'
 import { usePrivilegeStore } from '@/stores/privilegeStore'
 import { useSettings } from '@/contexts/SettingsContext'
+import { useDeepgramSTT } from '@/hooks/useDeepgramSTT'
 import { LlmPicker } from '@/components/dashboard/mercury/ChatModelPicker'
+import { toast } from 'sonner'
 import {
   Paperclip,
   Shield,
   ShieldOff,
   Mic,
+  MicOff,
   ArrowUp,
   Square,
   FileUp,
@@ -55,6 +58,10 @@ export function CenterInputBar() {
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // ── Voice input (STT) ──
+  const { isListening, transcript, error: micError, startListening, stopListening } = useDeepgramSTT()
+  const prevListeningRef = useRef(false)
 
   const handleFileSelect = useCallback((files: FileList | null) => {
     if (!files) return
@@ -127,6 +134,41 @@ export function CenterInputBar() {
       handleSubmit()
     }
   }
+
+  // ── Mic toggle ──
+  const handleMicToggle = useCallback(() => {
+    if (isListening) {
+      stopListening()
+    } else {
+      startListening()
+    }
+  }, [isListening, startListening, stopListening])
+
+  // Sync live transcript into input while listening
+  useEffect(() => {
+    if (isListening && transcript) {
+      setInputValue(transcript)
+    }
+  }, [isListening, transcript, setInputValue])
+
+  // Auto-submit when listening stops with a non-empty transcript
+  useEffect(() => {
+    if (prevListeningRef.current && !isListening && transcript.trim()) {
+      setInputValue(transcript.trim())
+      setTimeout(() => {
+        handleSubmit()
+      }, 50)
+    }
+    prevListeningRef.current = isListening
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isListening, transcript])
+
+  // Show mic errors as toast
+  useEffect(() => {
+    if (micError) {
+      toast.error(micError)
+    }
+  }, [micError])
 
   const canSend = (inputValue.trim().length > 0 || attachments.length > 0) && !isStreaming
 
@@ -309,11 +351,16 @@ export function CenterInputBar() {
 
         {/* ── Mic button ── */}
         <button
-          className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-colors"
-          title="Voice input"
-          aria-label="Voice input"
+          onClick={handleMicToggle}
+          className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+            isListening
+              ? 'bg-[var(--danger)]/20 text-[var(--danger)]'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]'
+          }`}
+          title={isListening ? 'Stop listening' : 'Voice input'}
+          aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
         >
-          <Mic className="w-4 h-4" />
+          {isListening ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
         </button>
 
         {/* ── Send / Stop ── */}

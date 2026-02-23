@@ -1,8 +1,9 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { Settings } from 'lucide-react'
+import { Settings, Mic } from 'lucide-react'
 import { MercuryPanel } from './MercuryPanel'
+import { MercuryVoicePanel } from './MercuryVoicePanel'
 import { MercurySettingsModal } from './MercurySettingsModal'
 
 // ============================================================================
@@ -11,6 +12,7 @@ import { MercurySettingsModal } from './MercurySettingsModal'
 
 export function MercuryWindow() {
   const [configOpen, setConfigOpen] = useState(false)
+  const [voiceMode, setVoiceMode] = useState(false)
   const [agentName, setAgentName] = useState('Mercury')
   const [agentTitle, setAgentTitle] = useState('AI Assistant')
 
@@ -56,20 +58,39 @@ export function MercuryWindow() {
           </div>
         </div>
 
-        {/* Gear icon */}
-        <button
-          onClick={() => setConfigOpen(true)}
-          aria-label="Mercury configuration"
-          className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg rail-icon-glow
-                     text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
-        >
-          <Settings className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          {/* Voice toggle */}
+          <button
+            onClick={() => setVoiceMode(!voiceMode)}
+            aria-label={voiceMode ? 'Switch to text chat' : 'Switch to voice'}
+            className={`shrink-0 w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${
+              voiceMode
+                ? 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)]'
+                : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] rail-icon-glow'
+            }`}
+          >
+            <Mic className="w-4 h-4" />
+          </button>
+
+          {/* Gear icon */}
+          <button
+            onClick={() => setConfigOpen(true)}
+            aria-label="Mercury configuration"
+            className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg rail-icon-glow
+                       text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
-      {/* ─── Chat Panel ─── */}
+      {/* ─── Chat / Voice Panel ─── */}
       <div className="flex-1 min-h-0 overflow-hidden">
-        <MercuryPanel />
+        {voiceMode ? (
+          <MercuryVoicePanel agentName={agentName} />
+        ) : (
+          <MercuryPanel />
+        )}
       </div>
 
       {/* ─── Settings Modal ─── */}
