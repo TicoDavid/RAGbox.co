@@ -452,6 +452,132 @@ func (m *mockBM25Searcher) FullTextSearch(ctx context.Context, query string, top
 	return m.results, nil
 }
 
+// --- STORY-170: Tenant Isolation Tests ---
+
+// TestRetrieve_TenantIsolation_UserIDPassedToSearch verifies that the userID
+// from the caller is always forwarded to the vector searcher.
+func TestRetrieve_TenantIsolation_UserIDPassedToSearch(t *testing.T) {
+	searcher := &mockVectorSearcher{results: []VectorSearchResult{}}
+	svc := NewRetrieverService(&mockQueryEmbedder{}, searcher)
+
+	svc.Retrieve(context.Background(), "user-alice", "test query", false)
+	if searcher.capturedUserID != "user-alice" {
+		t.Errorf("capturedUserID = %q, want %q", searcher.capturedUserID, "user-alice")
+	}
+
+	svc.Retrieve(context.Background(), "user-bob", "test query", false)
+	if searcher.capturedUserID != "user-bob" {
+		t.Errorf("capturedUserID = %q, want %q", searcher.capturedUserID, "user-bob")
+	}
+}
+
+// TestRetrieve_TenantIsolation_UserANeverSeesBDocs creates two users' documents
+// and verifies that a search scoped to user A returns only user A's docs.
+func TestRetrieve_TenantIsolation_UserANeverSeesBDocs(t *testing.T) {
+	now := time.Now().UTC()
+
+	// Searcher that returns results tagged with the queried userID only
+	tenantAware := &tenantAwareMockSearcher{
+		docsByUser: map[string][]VectorSearchResult{
+			"user-alice": {
+				makeResult("doc-alice-1", "Alice's contract", 0.95, now, 10),
+			},
+			"user-bob": {
+				makeResult("doc-bob-1", "Bob's memo", 0.90, now, 5),
+			},
+			"demo-user": {
+				makeResult("doc-demo-1", "RAGbox_OpenClaw_Master_Research.md", 0.85, now, 3),
+				makeResult("doc-demo-2", "RAGbox_Build_Manifest_Phase0-3.md", 0.80, now, 2),
+			},
+		},
+	}
+
+	svc := NewRetrieverService(&mockQueryEmbedder{}, tenantAware)
+
+	// Alice queries
+	aliceResult, err := svc.Retrieve(context.Background(), "user-alice", "contract details", false)
+	if err != nil {
+		t.Fatalf("Alice Retrieve() error: %v", err)
+	}
+	for _, c := range aliceResult.Chunks {
+		if c.Document.ID != "doc-alice-1" {
+			t.Errorf("Alice got doc %q — tenant isolation violated", c.Document.ID)
+		}
+	}
+
+	// Bob queries
+	bobResult, err := svc.Retrieve(context.Background(), "user-bob", "memo", false)
+	if err != nil {
+		t.Fatalf("Bob Retrieve() error: %v", err)
+	}
+	for _, c := range bobResult.Chunks {
+		if c.Document.ID != "doc-bob-1" {
+			t.Errorf("Bob got doc %q — tenant isolation violated", c.Document.ID)
+		}
+	}
+
+	// Alice should never see demo seed docs
+	aliceResult2, err := svc.Retrieve(context.Background(), "user-alice", "RAGbox research", false)
+	if err != nil {
+		t.Fatalf("Alice Retrieve() error: %v", err)
+	}
+	for _, c := range aliceResult2.Chunks {
+		if c.Document.ID == "doc-demo-1" || c.Document.ID == "doc-demo-2" {
+			t.Errorf("Alice got demo doc %q — demo seed isolation violated", c.Document.ID)
+		}
+	}
+}
+
+// TestRetrieve_TenantIsolation_DemoSeedNeverLeaks verifies that demo seed documents
+// (created by scripts/seed-demo.ts under demo@ragbox.co) never appear for non-demo users.
+func TestRetrieve_TenantIsolation_DemoSeedNeverLeaks(t *testing.T) {
+	now := time.Now().UTC()
+	tenantAware := &tenantAwareMockSearcher{
+		docsByUser: map[string][]VectorSearchResult{
+			"demo-user-id": {
+				makeResult("doc-seed-1", "RAGbox_OpenClaw_Master_Research.md", 0.95, now, 5),
+				makeResult("doc-seed-2", "RAGbox_Build_Manifest_Phase0-3.md", 0.90, now, 3),
+				makeResult("doc-seed-3", "RAGbox_Phase10_Settings_DemoSeed.md", 0.85, now, 2),
+			},
+			"evelyn-user-id": {
+				makeResult("doc-evelyn-1", "evelyns_document.pdf", 0.92, now, 8),
+			},
+		},
+	}
+
+	svc := NewRetrieverService(&mockQueryEmbedder{}, tenantAware)
+
+	// Evelyn queries — should only see her own docs
+	result, err := svc.Retrieve(context.Background(), "evelyn-user-id", "uploaded documents", false)
+	if err != nil {
+		t.Fatalf("Evelyn Retrieve() error: %v", err)
+	}
+
+	demoDocNames := map[string]bool{
+		"RAGbox_OpenClaw_Master_Research.md":   true,
+		"RAGbox_Build_Manifest_Phase0-3.md":    true,
+		"RAGbox_Phase10_Settings_DemoSeed.md":  true,
+	}
+	for _, c := range result.Chunks {
+		if demoDocNames[c.Document.OriginalName] {
+			t.Errorf("Evelyn got demo seed doc %q — CRITICAL tenant isolation failure", c.Document.OriginalName)
+		}
+	}
+}
+
+// tenantAwareMockSearcher returns only documents belonging to the queried userID.
+type tenantAwareMockSearcher struct {
+	docsByUser map[string][]VectorSearchResult
+}
+
+func (m *tenantAwareMockSearcher) SimilaritySearch(ctx context.Context, queryVec []float32, topK int, threshold float64, userID string, excludePrivileged bool) ([]VectorSearchResult, error) {
+	results, ok := m.docsByUser[userID]
+	if !ok {
+		return nil, nil
+	}
+	return results, nil
+}
+
 func TestRerank(t *testing.T) {
 	now := time.Now().UTC()
 
