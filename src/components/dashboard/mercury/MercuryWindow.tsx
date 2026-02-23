@@ -37,7 +37,7 @@ export function MercuryWindow() {
       <div className="shrink-0 flex items-center justify-between px-4 py-2.5 border-b border-[var(--border-subtle)]">
         {/* Agent identity */}
         <div className="flex items-center gap-3 min-w-0">
-          <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-[var(--bg-tertiary)] to-[var(--bg-primary)] border border-[var(--border-strong)] flex items-center justify-center">
+          <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-[var(--bg-tertiary)] to-[var(--bg-primary)] border border-[var(--border-default)] flex items-center justify-center">
             <span className="text-xs font-bold text-[var(--warning)]/90">
               {agentName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
             </span>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useChatStore } from '@/stores/chatStore'
-import { MessageSquare, FileText, X, PenLine, EyeOff, PanelLeft } from 'lucide-react'
+import { MessageSquare, FileText, X, MessageSquarePlus, EyeOff, PanelLeft } from 'lucide-react'
 
 export function CenterHeader() {
   const messages = useChatStore((s) => s.messages)
@@ -52,7 +52,7 @@ export function CenterHeader() {
             aria-label="New chat"
             title="New Chat"
           >
-            <PenLine className="w-3.5 h-3.5" />
+            <MessageSquarePlus className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>

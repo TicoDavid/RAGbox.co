@@ -598,7 +598,7 @@ export function DashboardLayout() {
                 initial={false}
                 animate={{ width: mercuryOpen ? MERCURY_PANEL_WIDTH : 0 }}
                 transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                className="overflow-hidden border-l border-[var(--border-subtle)] relative"
+                className="overflow-hidden border-l border-[var(--border-default)] relative"
               >
                 {/* Drag handle — left edge resize grip */}
                 {mercuryOpen && (

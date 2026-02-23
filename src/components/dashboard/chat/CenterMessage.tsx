@@ -199,7 +199,7 @@ export function CenterMessage({ message }: { message: ChatMessage }) {
       </div>
 
       {/* Message body */}
-      <div className="pl-8">
+      <div>
         {/* ── Response tabs (AI only) ── */}
         {!isUser && visibleTabs.length > 1 && (
           <div className="flex items-center gap-4 mb-3 border-b border-[var(--border-subtle)]">

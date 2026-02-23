@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useChatStore, type ThreadSummary } from '@/stores/chatStore'
-import { PenLine, X, Loader2 } from 'lucide-react'
+import { MessageSquarePlus, X, Loader2 } from 'lucide-react'
 
 // ── Date grouping helpers ──
 
@@ -109,7 +109,7 @@ export function ThreadSidebar() {
           }}
           className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--brand-blue)] text-white text-sm font-medium hover:opacity-90 transition-opacity" /* THEME-EXEMPT: white on brand */
         >
-          <PenLine className="w-3.5 h-3.5" />
+          <MessageSquarePlus className="w-3.5 h-3.5" />
           New Chat
         </button>
         <button

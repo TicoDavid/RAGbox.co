@@ -18,7 +18,6 @@ import {
   FileUp,
   FileText,
   Link2,
-  Search,
   EyeOff,
   X,
   Image,
@@ -323,16 +322,6 @@ export function CenterInputBar() {
                   <span className="opacity-50">Connectors &amp; sources</span>
                   <span className="ml-auto text-[10px] bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded-full">
                     Soon
-                  </span>
-                </button>
-                <button
-                  disabled
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm text-[var(--text-tertiary)] cursor-not-allowed"
-                >
-                  <Search className="w-4 h-4 opacity-50" />
-                  <span className="opacity-50">Deep research</span>
-                  <span className="ml-auto text-[10px] bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] px-1.5 py-0.5 rounded-full font-medium">
-                    New
                   </span>
                 </button>
               </div>
