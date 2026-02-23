@@ -1,6 +1,7 @@
 package gcpclient
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -12,6 +13,7 @@ import (
 
 	"cloud.google.com/go/vertexai/genai"
 	"golang.org/x/oauth2/google"
+	"google.golang.org/api/iterator"
 )
 
 // GenAIAdapter wraps the Vertex AI Gemini client to implement service.GenAIClient.
@@ -196,6 +198,130 @@ func (a *GenAIAdapter) generateContentREST(ctx context.Context, systemPrompt str
 		return "", fmt.Errorf("gcpclient.GenerateContent: no text in response")
 	}
 	return strings.Join(parts, ""), nil
+}
+
+// GenerateContentStream sends a prompt and returns a channel of text chunks.
+// Caller reads tokens as they arrive. Channel closes when generation completes.
+func (a *GenAIAdapter) GenerateContentStream(ctx context.Context, systemPrompt, userPrompt string) (<-chan string, <-chan error) {
+	textCh := make(chan string, 64)
+	errCh := make(chan error, 1)
+
+	go func() {
+		defer close(textCh)
+		defer close(errCh)
+
+		if a.useREST {
+			if err := a.streamContentREST(ctx, systemPrompt, userPrompt, textCh); err != nil {
+				errCh <- err
+			}
+		} else {
+			if err := a.streamContentSDK(ctx, systemPrompt, userPrompt, textCh); err != nil {
+				errCh <- err
+			}
+		}
+	}()
+
+	return textCh, errCh
+}
+
+// streamContentSDK uses the Go SDK streaming API for regional endpoints.
+func (a *GenAIAdapter) streamContentSDK(ctx context.Context, systemPrompt, userPrompt string, textCh chan<- string) error {
+	model := a.client.GenerativeModel(a.model)
+	model.SystemInstruction = &genai.Content{
+		Parts: []genai.Part{genai.Text(systemPrompt)},
+	}
+
+	iter := model.GenerateContentStream(ctx, genai.Text(userPrompt))
+	for {
+		resp, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("gcpclient.StreamContentSDK: %w", err)
+		}
+
+		for _, cand := range resp.Candidates {
+			if cand.Content == nil {
+				continue
+			}
+			for _, part := range cand.Content.Parts {
+				if t, ok := part.(genai.Text); ok {
+					textCh <- string(t)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// streamContentREST uses the REST streaming endpoint for the global endpoint.
+// Reads SSE events from :streamGenerateContent?alt=sse.
+func (a *GenAIAdapter) streamContentREST(ctx context.Context, systemPrompt, userPrompt string, textCh chan<- string) error {
+	url := fmt.Sprintf(
+		"https://aiplatform.googleapis.com/v1/projects/%s/locations/global/publishers/google/models/%s:streamGenerateContent?alt=sse",
+		a.project, a.model,
+	)
+
+	reqBody := restGenerateRequest{
+		Contents: []restContent{
+			{Role: "user", Parts: []restPart{{Text: userPrompt}}},
+		},
+	}
+	if systemPrompt != "" {
+		reqBody.SystemInstruction = &restContent{
+			Role:  "user",
+			Parts: []restPart{{Text: systemPrompt}},
+		}
+	}
+
+	bodyBytes, err := json.Marshal(reqBody)
+	if err != nil {
+		return fmt.Errorf("gcpclient.StreamContentREST: marshal: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(bodyBytes))
+	if err != nil {
+		return fmt.Errorf("gcpclient.StreamContentREST: request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := a.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("gcpclient.StreamContentREST: call: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("gcpclient.StreamContentREST: status %d: %s", resp.StatusCode, body)
+	}
+
+	scanner := bufio.NewScanner(resp.Body)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if !strings.HasPrefix(line, "data: ") {
+			continue
+		}
+		data := strings.TrimPrefix(line, "data: ")
+		if data == "[DONE]" {
+			break
+		}
+
+		var chunk restGenerateResponse
+		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
+			continue
+		}
+
+		for _, cand := range chunk.Candidates {
+			for _, part := range cand.Content.Parts {
+				if part.Text != "" {
+					textCh <- part.Text
+				}
+			}
+		}
+	}
+	return scanner.Err()
 }
 
 // HealthCheck validates the Vertex AI connection by making a minimal API call.

@@ -15,6 +15,20 @@ type GenAIClient interface {
 	GenerateContent(ctx context.Context, systemPrompt string, userPrompt string) (string, error)
 }
 
+// StreamingGenAIClient extends GenAIClient with streaming support.
+type StreamingGenAIClient interface {
+	GenAIClient
+	GenerateContentStream(ctx context.Context, systemPrompt, userPrompt string) (<-chan string, <-chan error)
+}
+
+// StreamResult provides live token streaming with deferred full-text access.
+type StreamResult struct {
+	TokenCh <-chan string  // live tokens for SSE
+	Full    func() string  // call after TokenCh closes to get full text
+	ErrCh   <-chan error
+	Model   string         // model name for metadata
+}
+
 // GenerateOpts configures a generation call.
 type GenerateOpts struct {
 	Mode           string                // "concise", "detailed", "risk-analysis"
@@ -99,7 +113,7 @@ func (s *GeneratorService) Generate(ctx context.Context, query string, chunks []
 		return nil, fmt.Errorf("service.Generate: %w", err)
 	}
 
-	result, err := parseGenerationResponse(raw, chunks)
+	result, err := ParseGenerationResponse(raw, chunks)
 	if err != nil {
 		return nil, fmt.Errorf("service.Generate: parse: %w", err)
 	}
@@ -108,6 +122,68 @@ func (s *GeneratorService) Generate(ctx context.Context, query string, chunks []
 	result.LatencyMs = time.Since(start).Milliseconds()
 
 	return result, nil
+}
+
+// GenerateStream produces a streaming generation if the underlying client supports it.
+// Falls back to Generate + synthetic single-chunk delivery if the client does not
+// implement StreamingGenAIClient (e.g., test mocks, BYOLLM clients).
+func (s *GeneratorService) GenerateStream(ctx context.Context, query string, chunks []RankedChunk, opts GenerateOpts) (*StreamResult, error) {
+	if query == "" {
+		return nil, fmt.Errorf("service.GenerateStream: query is empty")
+	}
+
+	streamClient, ok := s.client.(StreamingGenAIClient)
+	if !ok {
+		// Fallback: non-streaming client — generate synchronously, deliver as one chunk
+		raw, err := s.client.GenerateContent(ctx, s.buildSystemPrompt(opts),
+			buildUserPrompt(query, chunks, opts.Mode, opts.CortexContext...))
+		if err != nil {
+			return nil, fmt.Errorf("service.GenerateStream: fallback: %w", err)
+		}
+		ch := make(chan string, 1)
+		errCh := make(chan error, 1)
+		ch <- raw
+		close(ch)
+		close(errCh)
+		return &StreamResult{
+			TokenCh: ch,
+			Full:    func() string { return raw },
+			ErrCh:   errCh,
+			Model:   s.model,
+		}, nil
+	}
+
+	// Build prompts (same logic as Generate)
+	mode := opts.Mode
+	if mode == "" {
+		switch opts.Persona {
+		case "legal", "persona_legal", "auditor", "persona_auditor":
+			mode = "detailed"
+		}
+	}
+
+	systemPrompt := s.buildSystemPrompt(opts)
+	userPrompt := buildUserPrompt(query, chunks, mode, opts.CortexContext...)
+
+	textCh, errCh := streamClient.GenerateContentStream(ctx, systemPrompt, userPrompt)
+
+	var accumulated strings.Builder
+	proxyCh := make(chan string, 64)
+
+	go func() {
+		defer close(proxyCh)
+		for token := range textCh {
+			accumulated.WriteString(token)
+			proxyCh <- token
+		}
+	}()
+
+	return &StreamResult{
+		TokenCh: proxyCh,
+		Full:    func() string { return accumulated.String() },
+		ErrCh:   errCh,
+		Model:   s.model,
+	}, nil
 }
 
 // buildSystemPrompt assembles the system prompt using the PromptLoader if available.
@@ -251,8 +327,8 @@ type generationJSON struct {
 	} `json:"citations"`
 }
 
-// parseGenerationResponse extracts structured data from the model's raw response.
-func parseGenerationResponse(raw string, chunks []RankedChunk) (*GenerationResult, error) {
+// ParseGenerationResponse extracts structured data from the model's raw response.
+func ParseGenerationResponse(raw string, chunks []RankedChunk) (*GenerationResult, error) {
 	// Strip markdown code fences if present
 	cleaned := strings.TrimSpace(raw)
 	if strings.HasPrefix(cleaned, "```") {

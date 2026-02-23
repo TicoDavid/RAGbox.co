@@ -44,6 +44,6 @@ func BenchmarkParseResponse(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = parseGenerationResponse(raw, chunks)
+		_, _ = ParseGenerationResponse(raw, chunks)
 	}
 }

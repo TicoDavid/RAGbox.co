@@ -394,7 +394,7 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 		if retrieval == nil {
 			tSearchStart := time.Now()
 			var err error
-			retrieval, err = deps.Retriever.RetrieveWithVec(ctx, userID, queryVec, req.PrivilegeMode)
+			retrieval, err = deps.Retriever.RetrieveWithVec(ctx, userID, req.Query, queryVec, req.PrivilegeMode)
 			if err != nil {
 				slog.Error("chat retrieval failed", "user_id", userID, "stage", "retrieval", "error", err)
 				sendEvent(w, flusher, "error", fmt.Sprintf(`{"message":%q}`, rateLimitMessage(err)))
@@ -504,7 +504,7 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			}
 		}
 
-		// Step 3: Generate
+		// Step 3: Generate (with streaming if supported — STORY-151)
 		sendEvent(w, flusher, "status", `{"stage":"generating","iteration":1}`)
 		tGenerateStart := time.Now()
 
@@ -517,23 +517,85 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			Instructions:   cortexInstructions,
 		}
 
-		initial, err := generator.Generate(ctx, req.Query, retrieval.Chunks, opts)
-		if err != nil && byollmActive {
-			slog.Warn("BYOLLM generation failed, falling back to AEGIS",
-				"user_id", userID,
-				"provider", req.LLMProvider,
-				"error", err,
-			)
-			generator = deps.Generator
-			selfRAG = deps.SelfRAG
-			byollmActive = false
-			initial, err = generator.Generate(ctx, req.Query, retrieval.Chunks, opts)
+		var initial *service.GenerationResult
+		var streamedTokens bool
+		var ttfbMs int64
+
+		// Try streaming generation (real TTFB breakthrough)
+		if gs, ok := generator.(*service.GeneratorService); ok {
+			streamResult, streamErr := gs.GenerateStream(ctx, req.Query, retrieval.Chunks, opts)
+			if streamErr != nil {
+				if byollmActive {
+					slog.Warn("BYOLLM streaming failed, falling back to AEGIS",
+						"user_id", userID, "provider", req.LLMProvider, "error", streamErr)
+					generator = deps.Generator
+					selfRAG = deps.SelfRAG
+					byollmActive = false
+					// Fall through to non-streaming path below
+				} else {
+					slog.Error("chat streaming generation failed", "user_id", userID, "error", streamErr)
+					sendEvent(w, flusher, "error", fmt.Sprintf(`{"message":%q}`, rateLimitMessage(streamErr)))
+					sendEvent(w, flusher, "done", `{}`)
+					return
+				}
+			} else {
+				// Stream tokens to client AS THEY ARRIVE
+				first := true
+				for token := range streamResult.TokenCh {
+					if ctx.Err() != nil {
+						return
+					}
+					if first {
+						ttfbMs = time.Since(tGenerateStart).Milliseconds()
+						first = false
+					}
+					tokenJSON, _ := json.Marshal(map[string]string{"text": token})
+					sendEvent(w, flusher, "token", string(tokenJSON))
+				}
+				streamedTokens = true
+
+				// Check for generation errors
+				select {
+				case genErr := <-streamResult.ErrCh:
+					if genErr != nil {
+						slog.Error("chat streaming generation error", "user_id", userID, "error", genErr)
+						sendEvent(w, flusher, "error", fmt.Sprintf(`{"message":%q}`, rateLimitMessage(genErr)))
+						sendEvent(w, flusher, "done", `{}`)
+						return
+					}
+				default:
+				}
+
+				// Parse full accumulated response for citations + confidence
+				fullText := streamResult.Full()
+				var parseErr error
+				initial, parseErr = service.ParseGenerationResponse(fullText, retrieval.Chunks)
+				if parseErr != nil {
+					slog.Error("chat parse failed", "user_id", userID, "error", parseErr)
+				}
+				initial.ModelUsed = streamResult.Model
+				initial.LatencyMs = time.Since(tGenerateStart).Milliseconds()
+			}
 		}
-		if err != nil {
-			slog.Error("chat generation failed", "user_id", userID, "stage", "generation", "error", err)
-			sendEvent(w, flusher, "error", fmt.Sprintf(`{"message":%q}`, rateLimitMessage(err)))
-			sendEvent(w, flusher, "done", `{}`)
-			return
+
+		// Non-streaming fallback (BYOLLM fallback or non-streaming client)
+		if initial == nil {
+			var err error
+			initial, err = generator.Generate(ctx, req.Query, retrieval.Chunks, opts)
+			if err != nil && byollmActive {
+				slog.Warn("BYOLLM generation failed, falling back to AEGIS",
+					"user_id", userID, "provider", req.LLMProvider, "error", err)
+				generator = deps.Generator
+				selfRAG = deps.SelfRAG
+				byollmActive = false
+				initial, err = generator.Generate(ctx, req.Query, retrieval.Chunks, opts)
+			}
+			if err != nil {
+				slog.Error("chat generation failed", "user_id", userID, "stage", "generation", "error", err)
+				sendEvent(w, flusher, "error", fmt.Sprintf(`{"message":%q}`, rateLimitMessage(err)))
+				sendEvent(w, flusher, "done", `{}`)
+				return
+			}
 		}
 
 		tGenerateEnd := time.Now()
@@ -545,7 +607,6 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 		skipThreshold := selfRAGSkipThreshold()
 
 		if initial.Confidence >= skipThreshold {
-			// High confidence — skip reflection, return directly
 			selfRAGSkipped = true
 			slog.Info("[SelfRAG] skipped — confidence above threshold",
 				"user_id", userID,
@@ -560,7 +621,6 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 				SilenceTriggered: false,
 			}
 		} else {
-			// Below threshold — run reflection as normal
 			var reflErr error
 			result, reflErr = selfRAG.Reflect(ctx, req.Query, retrieval.Chunks, initial)
 			if reflErr != nil {
@@ -573,9 +633,7 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 
 		tSelfRAGEnd := time.Now()
 
-		// Step 4: Stream result — tiered by confidence
-		// Whistleblower persona uses a lower silence threshold (0.40) to
-		// surface forensic findings even at low confidence.
+		// Step 4: Post-generation events
 		providerName := "aegis"
 		if byollmActive {
 			providerName = req.LLMProvider
@@ -597,15 +655,17 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 				go deps.ContentGapSvc.LogGap(context.Background(), userID, req.Query, result.FinalConfidence)
 			}
 		} else {
-			// Stream answer token by token
-			tokens := splitIntoTokens(result.FinalAnswer)
-			for _, token := range tokens {
-				if ctx.Err() != nil {
-					return // client disconnected
+			// Stream tokens only if NOT already streamed (non-streaming path)
+			if !streamedTokens {
+				tokens := splitIntoTokens(result.FinalAnswer)
+				for _, token := range tokens {
+					if ctx.Err() != nil {
+						return
+					}
+					tokenJSON, _ := json.Marshal(map[string]string{"text": token})
+					sendEvent(w, flusher, "token", string(tokenJSON))
+					time.Sleep(5 * time.Millisecond)
 				}
-				tokenJSON, _ := json.Marshal(map[string]string{"text": token})
-				sendEvent(w, flusher, "token", string(tokenJSON))
-				time.Sleep(5 * time.Millisecond)
 			}
 
 			citationsJSON, _ := json.Marshal(result.Citations)
@@ -620,7 +680,6 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			})
 			sendEvent(w, flusher, "confidence", string(confidenceJSON))
 
-			// Emit amber low-confidence flag for marginal answers (0.40-0.59)
 			if tier == "low_confidence" {
 				flag := service.BuildLowConfidenceFlag(result.FinalConfidence)
 				flagJSON, _ := json.Marshal(flag)
@@ -630,7 +689,6 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 				}
 			}
 
-			// Record query in learning session
 			if deps.SessionSvc != nil {
 				docIDs := make([]string, 0, len(retrieval.Chunks))
 				for _, c := range retrieval.Chunks {
@@ -640,16 +698,18 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			}
 		}
 
-		// Structured latency log (STORY-150)
+		// Structured latency log (STORY-150 + STORY-151)
 		slog.Info("[Chat Latency]",
 			"embed_ms", tEmbedEnd.Sub(tEmbedStart).Milliseconds(),
 			"search_ms", tGenerateStart.Sub(tEmbedEnd).Milliseconds(),
 			"generate_ms", tGenerateEnd.Sub(tGenerateStart).Milliseconds(),
 			"selfrag_ms", tSelfRAGEnd.Sub(tSelfRAGStart).Milliseconds(),
 			"total_ms", time.Since(startTime).Milliseconds(),
+			"ttfb_ms", ttfbMs,
 			"embed_cached", embedCached,
 			"selfrag_skipped", selfRAGSkipped,
 			"cache_hit", cacheHit,
+			"streamed", streamedTokens,
 			"model", initial.ModelUsed,
 			"user_id", userID,
 		)

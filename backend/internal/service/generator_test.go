@@ -225,9 +225,9 @@ func TestParseGenerationResponse_ValidJSON(t *testing.T) {
 	raw := `{"answer": "test answer", "citations": [{"chunkIndex": 1, "excerpt": "ex", "relevance": 0.9}], "confidence": 0.88}`
 	chunks := testChunks()
 
-	result, err := parseGenerationResponse(raw, chunks)
+	result, err := ParseGenerationResponse(raw, chunks)
 	if err != nil {
-		t.Fatalf("parseGenerationResponse() error: %v", err)
+		t.Fatalf("ParseGenerationResponse() error: %v", err)
 	}
 
 	if result.Answer != "test answer" {
@@ -242,7 +242,7 @@ func TestParseGenerationResponse_ZeroConfidenceWithCitations(t *testing.T) {
 	raw := `{"answer": "answer", "citations": [{"chunkIndex": 1, "excerpt": "ex", "relevance": 0.9}], "confidence": 0}`
 	chunks := testChunks()
 
-	result, _ := parseGenerationResponse(raw, chunks)
+	result, _ := ParseGenerationResponse(raw, chunks)
 	if result.Confidence <= 0 {
 		t.Errorf("confidence should be estimated from citations, got %f", result.Confidence)
 	}
