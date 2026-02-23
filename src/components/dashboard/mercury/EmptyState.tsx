@@ -15,7 +15,7 @@ export function EmptyState() {
   const setInputValue = useMercuryStore((s) => s.setInputValue)
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
+    <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 pb-24">
       {/* Icon */}
       <div className="w-14 h-14 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border-default)] flex items-center justify-center mb-5">
         <MessageSquare className="w-7 h-7 text-[var(--text-tertiary)]" />

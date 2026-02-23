@@ -10,23 +10,9 @@ import { CenterInputBar } from './CenterInputBar'
 import { ThreadSidebar } from './ThreadSidebar'
 // ============================================================================
 // DASHBOARD HOME — empty state shown when no chat is active
+// Rendered inline in CenterChat so the input bar can be part of the
+// vertically centered group (logo → caption → input).
 // ============================================================================
-
-function DashboardHome() {
-  return (
-    <div className="flex flex-col items-center justify-center h-full px-4 sm:px-8">
-      <img
-        src="https://storage.googleapis.com/connexusai-assets/RAGb%C3%B6x_ICON.png"
-        alt=""
-        className="w-48 sm:w-56 h-auto opacity-20 select-none mb-6"
-        draggable={false}
-      />
-      <p className="text-sm text-[var(--text-tertiary)]">
-        Ask anything about your documents
-      </p>
-    </div>
-  )
-}
 
 // ============================================================================
 // CHAT SKELETON — pulsing message bubbles during thread loading
@@ -158,6 +144,8 @@ export function CenterChat() {
     return () => { clearThread() }
   }, [incognitoMode, clearThread])
 
+  const isEmpty = messages.length === 0 && !isStreaming && !isThreadLoading
+
   return (
     <div className="flex h-full">
       {/* Thread history sidebar */}
@@ -168,28 +156,46 @@ export function CenterChat() {
         {/* Header */}
         <CenterHeader />
 
-        {/* Messages */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto">
-          {isThreadLoading ? (
-            <ChatSkeleton />
-          ) : messages.length === 0 && !isStreaming ? (
-            <DashboardHome />
-          ) : (
-            <div className="max-w-[800px] mx-auto px-4 sm:px-8 py-6">
-              {messages.map((msg) => (
-                <CenterMessage key={msg.id} message={msg} />
-              ))}
-              {isStreaming && <StreamingIndicator content={streamingContent} />}
+        {isEmpty ? (
+          /* Empty state: logo, caption, and input centered as one group */
+          <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-8 min-h-0">
+            <img
+              src="https://storage.googleapis.com/connexusai-assets/RAGb%C3%B6x_ICON.png"
+              alt=""
+              className="w-48 sm:w-56 h-auto opacity-20 select-none mb-6"
+              draggable={false}
+            />
+            <p className="text-sm text-[var(--text-tertiary)] mb-8">
+              Ask anything about your documents
+            </p>
+            <div className="w-full max-w-[800px]">
+              <CenterInputBar />
             </div>
-          )}
-        </div>
-
-        {/* Input bar */}
-        <div className="shrink-0">
-          <div className="max-w-[800px] mx-auto px-4 sm:px-8 py-4">
-            <CenterInputBar />
           </div>
-        </div>
+        ) : (
+          <>
+            {/* Messages */}
+            <div ref={scrollRef} className="flex-1 overflow-y-auto">
+              {isThreadLoading ? (
+                <ChatSkeleton />
+              ) : (
+                <div className="max-w-[800px] mx-auto px-4 sm:px-8 py-6">
+                  {messages.map((msg) => (
+                    <CenterMessage key={msg.id} message={msg} />
+                  ))}
+                  {isStreaming && <StreamingIndicator content={streamingContent} />}
+                </div>
+              )}
+            </div>
+
+            {/* Input bar — pinned to bottom when messages exist */}
+            <div className="shrink-0">
+              <div className="max-w-[800px] mx-auto px-4 sm:px-8 py-4">
+                <CenterInputBar />
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
