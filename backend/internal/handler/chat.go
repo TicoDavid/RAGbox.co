@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,6 +20,7 @@ import (
 	"github.com/connexus-ai/ragbox-backend/internal/middleware"
 	"github.com/connexus-ai/ragbox-backend/internal/model"
 	"github.com/connexus-ai/ragbox-backend/internal/service"
+	"golang.org/x/sync/errgroup"
 )
 
 // DonePayload is the structured payload sent with the final "done" SSE event.
@@ -198,8 +201,20 @@ type ChatDeps struct {
 	PersonaFetcher PersonaFetcher  // optional — nil means use file-based persona
 	CortexSvc      CortexSearcher  // optional — nil means no working memory
 	QueryCache     *cache.QueryCache // optional — nil disables retrieval caching
+	EmbedCache     *cache.EmbeddingCache // optional — nil disables embedding caching
 	UsageSvc       *service.UsageService // optional — nil disables usage metering
 	UserTierFunc   func(ctx context.Context, userID string) string // optional — returns user's subscription tier
+}
+
+// selfRAGSkipThreshold: skip SelfRAG reflection when initial confidence is above this.
+// Configurable via SELFRAG_SKIP_THRESHOLD env var (default 0.80).
+func selfRAGSkipThreshold() float64 {
+	if v := os.Getenv("SELFRAG_SKIP_THRESHOLD"); v != "" {
+		if f, err := strconv.ParseFloat(v, 64); err == nil && f > 0 && f <= 1 {
+			return f
+		}
+	}
+	return 0.80
 }
 
 // Chat returns an SSE streaming handler for Mercury chat.
@@ -320,28 +335,73 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			}
 		}
 
-		// Step 1: Retrieve (with cache)
+		// Step 1: Retrieve — parallel cache check + embedding (STORY-150)
 		sendEvent(w, flusher, "status", `{"stage":"retrieving"}`)
 
 		var retrieval *service.RetrievalResult
 		var cacheHit bool
+		var embedCached bool
 
-		if deps.QueryCache != nil {
-			if cached, ok := deps.QueryCache.Get(userID, req.Query, req.PrivilegeMode); ok {
-				retrieval = cached
-				cacheHit = true
+		tEmbedStart := time.Now()
+
+		// Run cache check and embedding in parallel via errgroup
+		var queryVec []float32
+		queryHash := cache.EmbeddingQueryHash(req.Query)
+
+		g, gCtx := errgroup.WithContext(ctx)
+
+		// Goroutine 1: check query result cache
+		g.Go(func() error {
+			if deps.QueryCache != nil {
+				if cached, ok := deps.QueryCache.Get(userID, req.Query, req.PrivilegeMode); ok {
+					retrieval = cached
+					cacheHit = true
+				}
 			}
+			return nil // cache miss is not an error
+		})
+
+		// Goroutine 2: embed query (check embedding cache first)
+		g.Go(func() error {
+			if deps.EmbedCache != nil {
+				if vec, ok := deps.EmbedCache.Get(queryHash); ok {
+					queryVec = vec
+					embedCached = true
+					return nil
+				}
+			}
+			vecs, err := deps.Retriever.Embedder().Embed(gCtx, []string{req.Query})
+			if err != nil {
+				return err
+			}
+			queryVec = vecs[0]
+			if deps.EmbedCache != nil {
+				deps.EmbedCache.Set(queryHash, queryVec)
+			}
+			return nil
+		})
+
+		if err := g.Wait(); err != nil {
+			slog.Error("chat embedding failed", "user_id", userID, "stage", "embedding", "error", err)
+			sendEvent(w, flusher, "error", fmt.Sprintf(`{"message":%q}`, rateLimitMessage(err)))
+			sendEvent(w, flusher, "done", `{}`)
+			return
 		}
 
+		tEmbedEnd := time.Now()
+
+		// If result cache hit, skip retrieval entirely
 		if retrieval == nil {
+			tSearchStart := time.Now()
 			var err error
-			retrieval, err = deps.Retriever.Retrieve(ctx, userID, req.Query, req.PrivilegeMode)
+			retrieval, err = deps.Retriever.RetrieveWithVec(ctx, userID, queryVec, req.PrivilegeMode)
 			if err != nil {
 				slog.Error("chat retrieval failed", "user_id", userID, "stage", "retrieval", "error", err)
 				sendEvent(w, flusher, "error", fmt.Sprintf(`{"message":%q}`, rateLimitMessage(err)))
 				sendEvent(w, flusher, "done", `{}`)
 				return
 			}
+			_ = tSearchStart // used in latency log below
 			if deps.QueryCache != nil {
 				deps.QueryCache.Set(userID, req.Query, req.PrivilegeMode, retrieval)
 			}
@@ -446,6 +506,7 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 
 		// Step 3: Generate
 		sendEvent(w, flusher, "status", `{"stage":"generating","iteration":1}`)
+		tGenerateStart := time.Now()
 
 		opts := service.GenerateOpts{
 			Mode:           req.Mode,
@@ -475,14 +536,42 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			return
 		}
 
-		// Step 3: Self-RAG Reflection
-		result, err := selfRAG.Reflect(ctx, req.Query, retrieval.Chunks, initial)
-		if err != nil {
-			slog.Error("chat self-rag reflection failed", "user_id", userID, "stage", "reflection", "error", err)
-			sendEvent(w, flusher, "error", fmt.Sprintf(`{"message":%q}`, rateLimitMessage(err)))
-			sendEvent(w, flusher, "done", `{}`)
-			return
+		tGenerateEnd := time.Now()
+
+		// Step 3b: Self-RAG Reflection — conditional skip (STORY-153)
+		tSelfRAGStart := time.Now()
+		var result *service.ReflectionResult
+		selfRAGSkipped := false
+		skipThreshold := selfRAGSkipThreshold()
+
+		if initial.Confidence >= skipThreshold {
+			// High confidence — skip reflection, return directly
+			selfRAGSkipped = true
+			slog.Info("[SelfRAG] skipped — confidence above threshold",
+				"user_id", userID,
+				"confidence", fmt.Sprintf("%.2f", initial.Confidence),
+				"threshold", fmt.Sprintf("%.2f", skipThreshold),
+			)
+			result = &service.ReflectionResult{
+				FinalAnswer:      initial.Answer,
+				FinalConfidence:  initial.Confidence,
+				Citations:        initial.Citations,
+				Iterations:       0,
+				SilenceTriggered: false,
+			}
+		} else {
+			// Below threshold — run reflection as normal
+			var reflErr error
+			result, reflErr = selfRAG.Reflect(ctx, req.Query, retrieval.Chunks, initial)
+			if reflErr != nil {
+				slog.Error("chat self-rag reflection failed", "user_id", userID, "stage", "reflection", "error", reflErr)
+				sendEvent(w, flusher, "error", fmt.Sprintf(`{"message":%q}`, rateLimitMessage(reflErr)))
+				sendEvent(w, flusher, "done", `{}`)
+				return
+			}
 		}
+
+		tSelfRAGEnd := time.Now()
 
 		// Step 4: Stream result — tiered by confidence
 		// Whistleblower persona uses a lower silence threshold (0.40) to
@@ -550,6 +639,20 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 				go deps.SessionSvc.RecordQuery(context.Background(), userID, req.Query, docIDs, time.Since(startTime).Milliseconds(), providerName, initial.ModelUsed)
 			}
 		}
+
+		// Structured latency log (STORY-150)
+		slog.Info("[Chat Latency]",
+			"embed_ms", tEmbedEnd.Sub(tEmbedStart).Milliseconds(),
+			"search_ms", tGenerateStart.Sub(tEmbedEnd).Milliseconds(),
+			"generate_ms", tGenerateEnd.Sub(tGenerateStart).Milliseconds(),
+			"selfrag_ms", tSelfRAGEnd.Sub(tSelfRAGStart).Milliseconds(),
+			"total_ms", time.Since(startTime).Milliseconds(),
+			"embed_cached", embedCached,
+			"selfrag_skipped", selfRAGSkipped,
+			"cache_hit", cacheHit,
+			"model", initial.ModelUsed,
+			"user_id", userID,
+		)
 
 		donePayload := buildDonePayload(retrieval, initial, result, startTime, providerName)
 		doneJSON, _ := json.Marshal(donePayload)

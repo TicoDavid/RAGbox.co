@@ -77,6 +77,11 @@ func NewRetrieverService(embedder QueryEmbedder, searcher VectorSearcher) *Retri
 	}
 }
 
+// Embedder returns the underlying QueryEmbedder for external embedding.
+func (s *RetrieverService) Embedder() QueryEmbedder {
+	return s.embedder
+}
+
 // Retrieve embeds a query, performs similarity search scoped to the user's documents,
 // re-ranks, deduplicates, and returns the top results.
 func (s *RetrieverService) Retrieve(ctx context.Context, userID string, query string, privilegeMode bool) (*RetrievalResult, error) {
@@ -91,6 +96,16 @@ func (s *RetrieverService) Retrieve(ctx context.Context, userID string, query st
 	}
 	queryVec := queryVecs[0]
 
+	return s.retrieveWithVec(ctx, userID, query, queryVec, privilegeMode)
+}
+
+// RetrieveWithVec performs retrieval using a pre-computed query embedding vector.
+// This skips the embedding step, enabling parallel cache check + embedding.
+func (s *RetrieverService) RetrieveWithVec(ctx context.Context, userID string, queryVec []float32, privilegeMode bool) (*RetrievalResult, error) {
+	return s.retrieveWithVec(ctx, userID, "", queryVec, privilegeMode)
+}
+
+func (s *RetrieverService) retrieveWithVec(ctx context.Context, userID string, query string, queryVec []float32, privilegeMode bool) (*RetrievalResult, error) {
 	slog.Info("[DEBUG-RETRIEVER] query embedded",
 		"query", query,
 		"user_id", userID,
