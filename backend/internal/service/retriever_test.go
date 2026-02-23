@@ -343,6 +343,115 @@ func TestDeduplicate(t *testing.T) {
 	}
 }
 
+func TestReciprocalRankFusion_CombinesResults(t *testing.T) {
+	now := time.Now().UTC()
+	vectorResults := []VectorSearchResult{
+		makeResult("doc-1", "vector match 1", 0.95, now, 10),
+		makeResult("doc-2", "vector match 2", 0.85, now, 5),
+	}
+	vectorResults[0].Chunk.ID = "chunk-v1"
+	vectorResults[1].Chunk.ID = "chunk-v2"
+
+	bm25Results := []VectorSearchResult{
+		makeResult("doc-2", "bm25 match (same as vector)", 0.90, now, 5),
+		makeResult("doc-3", "bm25 only match", 0.80, now, 8),
+	}
+	bm25Results[0].Chunk.ID = "chunk-v2" // same chunk as vector result
+	bm25Results[1].Chunk.ID = "chunk-b1"
+
+	fused := reciprocalRankFusion(vectorResults, bm25Results)
+
+	if len(fused) != 3 {
+		t.Fatalf("fused count = %d, want 3 (2 vector + 1 bm25-only, 1 overlap)", len(fused))
+	}
+
+	// chunk-v2 appears in both lists → should have highest RRF score
+	if fused[0].Chunk.ID != "chunk-v2" {
+		t.Errorf("expected chunk-v2 (in both lists) to rank first, got %s", fused[0].Chunk.ID)
+	}
+}
+
+func TestReciprocalRankFusion_EmptyBM25(t *testing.T) {
+	now := time.Now().UTC()
+	vectorResults := []VectorSearchResult{
+		makeResult("doc-1", "only vector", 0.95, now, 10),
+	}
+	vectorResults[0].Chunk.ID = "chunk-1"
+
+	fused := reciprocalRankFusion(vectorResults, nil)
+
+	if len(fused) != 1 {
+		t.Fatalf("fused count = %d, want 1", len(fused))
+	}
+	if fused[0].Chunk.ID != "chunk-1" {
+		t.Errorf("expected chunk-1, got %s", fused[0].Chunk.ID)
+	}
+}
+
+func TestRetrieve_BackwardCompatible_NilBM25(t *testing.T) {
+	now := time.Now().UTC()
+	searcher := &mockVectorSearcher{
+		results: []VectorSearchResult{
+			makeResult("doc-1", "vector only", 0.90, now, 10),
+		},
+	}
+	svc := NewRetrieverService(&mockQueryEmbedder{}, searcher)
+	// bm25 is nil by default — should work fine
+
+	result, err := svc.Retrieve(context.Background(), "test-user", "test", false)
+	if err != nil {
+		t.Fatalf("Retrieve with nil bm25 should succeed: %v", err)
+	}
+	if len(result.Chunks) != 1 {
+		t.Errorf("expected 1 chunk, got %d", len(result.Chunks))
+	}
+}
+
+func TestRetrieve_HybridWithBM25(t *testing.T) {
+	now := time.Now().UTC()
+	vectorSearcher := &mockVectorSearcher{
+		results: []VectorSearchResult{
+			makeResult("doc-1", "vector match", 0.90, now, 10),
+		},
+	}
+	vectorSearcher.results[0].Chunk.ID = "chunk-v1"
+
+	bm25Mock := &mockBM25Searcher{
+		results: []VectorSearchResult{
+			makeResult("doc-2", "bm25 match", 0.80, now, 5),
+		},
+	}
+	bm25Mock.results[0].Chunk.ID = "chunk-b1"
+
+	svc := NewRetrieverService(&mockQueryEmbedder{}, vectorSearcher)
+	svc.SetBM25(bm25Mock)
+
+	result, err := svc.Retrieve(context.Background(), "test-user", "Section 4.2", false)
+	if err != nil {
+		t.Fatalf("Retrieve with BM25 error: %v", err)
+	}
+
+	if len(result.Chunks) != 2 {
+		t.Errorf("expected 2 chunks (vector + bm25), got %d", len(result.Chunks))
+	}
+	if result.TotalDocumentsFound != 2 {
+		t.Errorf("TotalDocumentsFound = %d, want 2", result.TotalDocumentsFound)
+	}
+}
+
+// mockBM25Searcher implements BM25Searcher for testing.
+type mockBM25Searcher struct {
+	results []VectorSearchResult
+	err     error
+}
+
+func (m *mockBM25Searcher) FullTextSearch(ctx context.Context, query string, topK int, userID string) ([]VectorSearchResult, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.results, nil
+}
+
 func TestRerank(t *testing.T) {
 	now := time.Now().UTC()
 

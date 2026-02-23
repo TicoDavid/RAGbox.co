@@ -169,6 +169,11 @@ func run() error {
 	// Retriever service (embedding + vector search + re-ranking)
 	retrieverService := service.NewRetrieverService(embeddingAdapter, chunkRepo)
 
+	// BM25 full-text search (hybrid retrieval via Reciprocal Rank Fusion — STORY-154)
+	bm25Repo := repository.NewBM25Repository(pool)
+	retrieverService.SetBM25(bm25Repo)
+	slog.Info("hybrid BM25 search enabled")
+
 	// Forge service (template report generation)
 	forgeService := service.NewForgeService(genAI, storageAdapter, cfg.GCSBucketName)
 
@@ -255,6 +260,11 @@ func run() error {
 
 	slog.Info("query cache initialized", "ttl", "1h")
 
+	// Embedding cache (in-memory, deduplicates repeated query embeddings — STORY-152)
+	embedCache := cache.NewEmbeddingCache(15 * time.Minute)
+	defer embedCache.Stop()
+	slog.Info("embedding cache initialized", "ttl", "15m")
+
 	// ─── Router ────────────────────────────────────────────────────────
 
 	router := internalrouter.New(&internalrouter.Dependencies{
@@ -286,6 +296,7 @@ func run() error {
 			PersonaFetcher: personaRepo,
 			CortexSvc:      cortexSvc,
 			QueryCache:     queryCache,
+			EmbedCache:     embedCache,
 		},
 
 		ContentGapDeps: handler.ContentGapDeps{
