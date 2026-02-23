@@ -370,7 +370,7 @@ type qualityChunkIndex struct {
 
 // buildChunkIndex chunks all test documents with the real ChunkerService.
 func buildChunkIndex() (*qualityChunkIndex, error) {
-	chunker := NewChunkerService(512, 0.15)
+	chunker := NewLegacyChunkerService(512, 0.15)
 	ctx := context.Background()
 	var all []RankedChunk
 	now := time.Now()

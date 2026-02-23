@@ -8,21 +8,22 @@ import (
 	"strings"
 )
 
-// ChunkerService splits document text into overlapping chunks of configurable size.
-type ChunkerService struct {
+// LegacyChunkerService splits document text into overlapping chunks of configurable size.
+// Deprecated: Use SemanticChunkerService for new ingestions. Kept for reference.
+type LegacyChunkerService struct {
 	chunkSize  int     // target tokens per chunk (default 768)
 	overlapPct float64 // overlap between adjacent chunks (default 0.20)
 }
 
-// NewChunkerService creates a ChunkerService with the given parameters.
-func NewChunkerService(chunkSize int, overlapPct float64) *ChunkerService {
+// NewLegacyChunkerService creates a LegacyChunkerService with the given parameters.
+func NewLegacyChunkerService(chunkSize int, overlapPct float64) *LegacyChunkerService {
 	if chunkSize <= 0 {
 		chunkSize = 768
 	}
 	if overlapPct <= 0 || overlapPct >= 1 {
 		overlapPct = 0.20
 	}
-	return &ChunkerService{
+	return &LegacyChunkerService{
 		chunkSize:  chunkSize,
 		overlapPct: overlapPct,
 	}
@@ -30,7 +31,7 @@ func NewChunkerService(chunkSize int, overlapPct float64) *ChunkerService {
 
 // Chunk splits text into overlapping chunks and returns them with metadata.
 // Implements the Chunker interface used by PipelineService.
-func (s *ChunkerService) Chunk(ctx context.Context, text string, docID string) ([]Chunk, error) {
+func (s *LegacyChunkerService) Chunk(ctx context.Context, text string, docID string) ([]Chunk, error) {
 	if strings.TrimSpace(text) == "" {
 		return nil, fmt.Errorf("service.Chunk: text is empty")
 	}
@@ -85,7 +86,7 @@ type segment struct {
 }
 
 // buildSegments merges small paragraphs and splits large ones to fit chunkSize.
-func (s *ChunkerService) buildSegments(paragraphs []string) []segment {
+func (s *LegacyChunkerService) buildSegments(paragraphs []string) []segment {
 	var segments []segment
 	var current strings.Builder
 	currentSection := ""
@@ -157,7 +158,7 @@ func (s *ChunkerService) buildSegments(paragraphs []string) []segment {
 }
 
 // applyOverlap duplicates the last overlapPct of each chunk as prefix of the next.
-func (s *ChunkerService) applyOverlap(segments []segment) []segment {
+func (s *LegacyChunkerService) applyOverlap(segments []segment) []segment {
 	if len(segments) <= 1 {
 		return segments
 	}
@@ -213,6 +214,13 @@ func splitLargeParagraph(para string, chunkSize int) []string {
 			chunks = append(chunks, current.String())
 			current.Reset()
 		}
+
+		// If a single sentence exceeds chunkSize, split by words
+		if sentTokens > chunkSize && current.Len() == 0 {
+			chunks = append(chunks, splitByWords(sent, chunkSize)...)
+			continue
+		}
+
 		if current.Len() > 0 {
 			current.WriteString(" ")
 		}
@@ -223,7 +231,7 @@ func splitLargeParagraph(para string, chunkSize int) []string {
 		chunks = append(chunks, current.String())
 	}
 
-	// If we couldn't split by sentences (single huge sentence), split by words
+	// If we couldn't split at all, split by words
 	if len(chunks) == 0 && len(para) > 0 {
 		chunks = splitByWords(para, chunkSize)
 	}

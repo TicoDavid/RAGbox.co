@@ -178,7 +178,7 @@ func run() error {
 	forgeService := service.NewForgeService(genAI, storageAdapter, cfg.GCSBucketName)
 
 	// Pipeline service (document processing: parse → PII scan → chunk → embed)
-	chunkerSvc := service.NewChunkerService(cfg.ChunkSizeTokens, float64(cfg.ChunkOverlapPercent)/100.0)
+	chunkerSvc := service.NewSemanticChunkerService()
 	embedderSvc := service.NewEmbedderService(embeddingAdapter, chunkRepo)
 
 	var pipelineSvc *service.PipelineService

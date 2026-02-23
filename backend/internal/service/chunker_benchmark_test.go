@@ -31,7 +31,7 @@ func generateLongText(pageCount int) string {
 
 func BenchmarkChunker_SmallDoc(b *testing.B) {
 	text := generateLongText(1) // ~1 page
-	chunker := NewChunkerService(768, 0.20)
+	chunker := NewLegacyChunkerService(768, 0.20)
 	ctx := context.Background()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -41,7 +41,7 @@ func BenchmarkChunker_SmallDoc(b *testing.B) {
 
 func BenchmarkChunker_LargeDoc(b *testing.B) {
 	text := generateLongText(100) // ~100 pages
-	chunker := NewChunkerService(768, 0.20)
+	chunker := NewLegacyChunkerService(768, 0.20)
 	ctx := context.Background()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

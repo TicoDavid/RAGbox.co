@@ -7,7 +7,7 @@ import (
 )
 
 func TestChunker_BasicChunking(t *testing.T) {
-	svc := NewChunkerService(100, 0.20) // small chunk size for testing
+	svc := NewLegacyChunkerService(100, 0.20) // small chunk size for testing
 
 	// Build text with enough content to produce multiple chunks
 	var paragraphs []string
@@ -46,7 +46,7 @@ func TestChunker_BasicChunking(t *testing.T) {
 }
 
 func TestChunker_OverlapApplied(t *testing.T) {
-	svc := NewChunkerService(50, 0.20) // very small chunks to force many splits
+	svc := NewLegacyChunkerService(50, 0.20) // very small chunks to force many splits
 
 	var paragraphs []string
 	for i := 0; i < 15; i++ {
@@ -74,7 +74,7 @@ func TestChunker_OverlapApplied(t *testing.T) {
 }
 
 func TestChunker_SHA256Hash(t *testing.T) {
-	svc := NewChunkerService(768, 0.20)
+	svc := NewLegacyChunkerService(768, 0.20)
 
 	text := "This is a simple document with just enough text to form a single chunk."
 	chunks, err := svc.Chunk(context.Background(), text, "doc-hash")
@@ -99,7 +99,7 @@ func TestChunker_SHA256Hash(t *testing.T) {
 }
 
 func TestChunker_EmptyText(t *testing.T) {
-	svc := NewChunkerService(768, 0.20)
+	svc := NewLegacyChunkerService(768, 0.20)
 
 	_, err := svc.Chunk(context.Background(), "", "doc-empty")
 	if err == nil {
@@ -108,7 +108,7 @@ func TestChunker_EmptyText(t *testing.T) {
 }
 
 func TestChunker_WhitespaceOnly(t *testing.T) {
-	svc := NewChunkerService(768, 0.20)
+	svc := NewLegacyChunkerService(768, 0.20)
 
 	_, err := svc.Chunk(context.Background(), "   \n\n\t  \n  ", "doc-ws")
 	if err == nil {
@@ -117,7 +117,7 @@ func TestChunker_WhitespaceOnly(t *testing.T) {
 }
 
 func TestChunker_SectionTitleExtraction(t *testing.T) {
-	svc := NewChunkerService(768, 0.20)
+	svc := NewLegacyChunkerService(768, 0.20)
 
 	text := `# Introduction
 
@@ -154,7 +154,7 @@ California Consumer Privacy Act provides additional protections.`
 }
 
 func TestChunker_NoEmptyChunks(t *testing.T) {
-	svc := NewChunkerService(100, 0.20)
+	svc := NewLegacyChunkerService(100, 0.20)
 
 	text := "First paragraph.\n\n\n\n\n\nSecond paragraph.\n\n\n\n\n\nThird paragraph."
 	chunks, err := svc.Chunk(context.Background(), text, "doc-gaps")
@@ -170,7 +170,7 @@ func TestChunker_NoEmptyChunks(t *testing.T) {
 }
 
 func TestChunker_LargeParagraphSplit(t *testing.T) {
-	svc := NewChunkerService(50, 0.20) // Very small chunk size
+	svc := NewLegacyChunkerService(50, 0.20) // Very small chunk size
 
 	// Single paragraph with many sentences
 	var sentences []string
@@ -190,7 +190,7 @@ func TestChunker_LargeParagraphSplit(t *testing.T) {
 }
 
 func TestChunker_SingleParagraph(t *testing.T) {
-	svc := NewChunkerService(768, 0.20)
+	svc := NewLegacyChunkerService(768, 0.20)
 
 	text := "A simple short paragraph that fits in one chunk."
 	chunks, err := svc.Chunk(context.Background(), text, "doc-single")
@@ -208,7 +208,7 @@ func TestChunker_SingleParagraph(t *testing.T) {
 
 func TestChunker_DefaultParameters(t *testing.T) {
 	// Test that invalid parameters get sensible defaults
-	svc := NewChunkerService(0, -1)
+	svc := NewLegacyChunkerService(0, -1)
 	if svc.chunkSize != 768 {
 		t.Errorf("chunkSize = %d, want 768 (default)", svc.chunkSize)
 	}
