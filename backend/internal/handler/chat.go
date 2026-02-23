@@ -217,6 +217,21 @@ func selfRAGSkipThreshold() float64 {
 	return 0.80
 }
 
+// confidenceFloor returns the minimum confidence required to show citations.
+// Below this threshold, a clean "no relevant context" message is returned instead
+// of misleading citations with low confidence. (STORY-171)
+// Configurable via CONFIDENCE_FLOOR env var (default 0.30).
+func confidenceFloor() float64 {
+	if v := os.Getenv("CONFIDENCE_FLOOR"); v != "" {
+		if f, err := strconv.ParseFloat(v, 64); err == nil && f >= 0 && f <= 1 {
+			return f
+		}
+	}
+	return 0.30
+}
+
+const lowConfidenceMessage = "I don't have enough relevant context to answer this question. Please upload related documents or try a more specific query."
+
 // Chat returns an SSE streaming handler for Mercury chat.
 // POST /api/chat
 func Chat(deps ChatDeps) http.HandlerFunc {
@@ -632,6 +647,57 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 		}
 
 		tSelfRAGEnd := time.Now()
+
+		// STORY-171: Confidence floor — suppress misleading citations when confidence is too low.
+		floor := confidenceFloor()
+		if result.FinalConfidence < floor {
+			slog.Warn("[LOW_CONFIDENCE]",
+				"query", truncate(req.Query, 100),
+				"confidence", fmt.Sprintf("%.2f", result.FinalConfidence),
+				"floor", fmt.Sprintf("%.2f", floor),
+				"user_id", userID,
+			)
+
+			// Send clean response with zero citations
+			cleanTokens := splitIntoTokens(lowConfidenceMessage)
+			for _, token := range cleanTokens {
+				if ctx.Err() != nil {
+					return
+				}
+				tokenJSON, _ := json.Marshal(map[string]string{"text": token})
+				sendEvent(w, flusher, "token", string(tokenJSON))
+			}
+
+			emptyJSON, _ := json.Marshal([]interface{}{})
+			sendEvent(w, flusher, "citations", string(emptyJSON))
+
+			confidenceJSON, _ := json.Marshal(map[string]interface{}{
+				"score":      result.FinalConfidence,
+				"iterations": result.Iterations,
+				"modelUsed":  initial.ModelUsed,
+				"provider":   "aegis",
+				"latencyMs":  initial.LatencyMs,
+			})
+			sendEvent(w, flusher, "confidence", string(confidenceJSON))
+
+			donePayload := DonePayload{
+				Answer:    lowConfidenceMessage,
+				Sources:   []DoneSource{},
+				Citations: []DoneCitation{},
+				Evidence: DoneEvidence{
+					ConfidenceScore: result.FinalConfidence,
+					Model:           "aegis/" + initial.ModelUsed,
+					LatencyMs:       time.Since(startTime).Milliseconds(),
+				},
+			}
+			doneJSON, _ := json.Marshal(donePayload)
+			sendEvent(w, flusher, "done", string(doneJSON))
+
+			if deps.ContentGapSvc != nil {
+				go deps.ContentGapSvc.LogGap(context.Background(), userID, req.Query, result.FinalConfidence)
+			}
+			return
+		}
 
 		// Step 4: Post-generation events
 		providerName := "aegis"

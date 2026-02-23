@@ -481,6 +481,153 @@ func TestBuildDonePayload_AllNil(t *testing.T) {
 	}
 }
 
+// --- STORY-171: Confidence Floor Tests ---
+
+func TestChat_ConfidenceFloor_BelowThreshold(t *testing.T) {
+	t.Setenv("CONFIDENCE_FLOOR", "0.30")
+	// Skip SelfRAG so initial confidence passes through unmodified
+	t.Setenv("SELFRAG_SKIP_THRESHOLD", "0.10")
+
+	retriever := &mockRetriever{result: testRetrievalResult()}
+	// Generator returns low confidence (below floor)
+	generator := &mockChatGenerator{result: &service.GenerationResult{
+		Answer: "Some answer with citations [1] [2].",
+		Citations: []service.CitationRef{
+			{ChunkID: "c1", DocumentID: "d1", Excerpt: "test", Relevance: 0.2, Index: 1},
+		},
+		Confidence: 0.15, // Below 0.30 floor
+		ModelUsed:  "gemini-1.5-pro",
+	}}
+	deps := makeChatDeps(retriever, generator)
+
+	handler := Chat(deps)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, chatRequest("What is quantum computing?"))
+
+	events := parseSSEEvents(w.Body.String())
+
+	// Should end with done
+	lastEvent := events[len(events)-1]
+	if lastEvent.Event != "done" {
+		t.Fatalf("last event = %q, want 'done'", lastEvent.Event)
+	}
+
+	var payload DonePayload
+	if err := json.Unmarshal([]byte(lastEvent.Data), &payload); err != nil {
+		t.Fatalf("failed to parse done payload: %v", err)
+	}
+
+	// Answer should be the clean low-confidence message
+	expectedMsg := "I don't have enough relevant context to answer this question. Please upload related documents or try a more specific query."
+	if payload.Answer != expectedMsg {
+		t.Errorf("Answer = %q, want low-confidence message", payload.Answer)
+	}
+
+	// Sources and Citations should be empty
+	if len(payload.Sources) != 0 {
+		t.Errorf("Sources len = %d, want 0 (no sources for low confidence)", len(payload.Sources))
+	}
+	if len(payload.Citations) != 0 {
+		t.Errorf("Citations len = %d, want 0 (no citations for low confidence)", len(payload.Citations))
+	}
+
+	// Should NOT have citation events in the stream
+	for _, e := range events {
+		if e.Event == "citations" {
+			var cits []interface{}
+			if err := json.Unmarshal([]byte(e.Data), &cits); err == nil && len(cits) > 0 {
+				t.Error("expected empty citations array for low-confidence response")
+			}
+		}
+	}
+}
+
+func TestChat_ConfidenceFloor_AboveThreshold(t *testing.T) {
+	t.Setenv("CONFIDENCE_FLOOR", "0.30")
+
+	retriever := &mockRetriever{result: testRetrievalResult()}
+	// Generator returns confidence above floor
+	generator := &mockChatGenerator{result: &service.GenerationResult{
+		Answer: "The contract expires in March 2025 [1].",
+		Citations: []service.CitationRef{
+			{ChunkID: "c1", DocumentID: "d1", Excerpt: "expires March 2025", Relevance: 0.95, Index: 1},
+		},
+		Confidence: 0.92, // Well above 0.30 floor
+		ModelUsed:  "gemini-1.5-pro",
+	}}
+	deps := makeChatDeps(retriever, generator)
+
+	handler := Chat(deps)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, chatRequest("When does the contract expire?"))
+
+	events := parseSSEEvents(w.Body.String())
+
+	lastEvent := events[len(events)-1]
+	if lastEvent.Event != "done" {
+		t.Fatalf("last event = %q, want 'done'", lastEvent.Event)
+	}
+
+	var payload DonePayload
+	if err := json.Unmarshal([]byte(lastEvent.Data), &payload); err != nil {
+		t.Fatalf("failed to parse done payload: %v", err)
+	}
+
+	// Above threshold: normal answer with citations
+	if payload.Answer == "" {
+		t.Error("expected non-empty answer for above-threshold confidence")
+	}
+
+	// Should have citations
+	hasCitations := false
+	for _, e := range events {
+		if e.Event == "citations" {
+			hasCitations = true
+		}
+	}
+	if !hasCitations {
+		t.Error("expected citations event for above-threshold confidence")
+	}
+
+	// Evidence should have the real confidence
+	if payload.Evidence.ConfidenceScore < 0.3 {
+		t.Errorf("ConfidenceScore = %f, should be above floor", payload.Evidence.ConfidenceScore)
+	}
+}
+
+func TestChat_ConfidenceFloor_ExactlyAtThreshold(t *testing.T) {
+	t.Setenv("CONFIDENCE_FLOOR", "0.30")
+	// Skip SelfRAG so it doesn't reduce confidence below what we set
+	t.Setenv("SELFRAG_SKIP_THRESHOLD", "0.29")
+
+	retriever := &mockRetriever{result: testRetrievalResult()}
+	generator := &mockChatGenerator{result: &service.GenerationResult{
+		Answer:     "Answer at threshold.",
+		Confidence: 0.30, // Exactly at floor — should pass (not below)
+		ModelUsed:  "gemini-1.5-pro",
+		Citations: []service.CitationRef{
+			{ChunkID: "c1", DocumentID: "d1", Excerpt: "test", Relevance: 0.5, Index: 1},
+		},
+	}}
+	deps := makeChatDeps(retriever, generator)
+
+	handler := Chat(deps)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, chatRequest("test query"))
+
+	events := parseSSEEvents(w.Body.String())
+
+	lastEvent := events[len(events)-1]
+	var payload DonePayload
+	json.Unmarshal([]byte(lastEvent.Data), &payload)
+
+	// At threshold (not below) → normal behavior
+	lowConfMsg := "I don't have enough relevant context to answer this question."
+	if strings.Contains(payload.Answer, lowConfMsg) {
+		t.Error("confidence exactly at floor should NOT trigger low-confidence message")
+	}
+}
+
 func TestChat_SuccessStream_StructuredDone(t *testing.T) {
 	retriever := &mockRetriever{result: testRetrievalResult()}
 	generator := &mockChatGenerator{result: testGenerationResult()}

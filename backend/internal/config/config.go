@@ -44,6 +44,7 @@ type Config struct {
 	VonageWhatsAppFromNumber string
 	VonageDefaultTenant      string
 	RerankUseEmbeddings      bool
+	ConfidenceFloor          float64
 }
 
 // Load reads configuration from environment variables.
@@ -96,6 +97,7 @@ func Load() (*Config, error) {
 		VonageWhatsAppFromNumber: envStr("VONAGE_WHATSAPP_FROM_NUMBER", ""),
 		VonageDefaultTenant:      envStr("VONAGE_DEFAULT_TENANT", ""),
 		RerankUseEmbeddings:      envBool("RERANK_USE_EMBEDDINGS", true),
+		ConfidenceFloor:          envFloat("CONFIDENCE_FLOOR", 0.3),
 	}
 
 	// Internal auth secret is required in non-development environments
