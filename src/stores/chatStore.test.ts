@@ -466,8 +466,8 @@ describe('chatStore.sendMessage (SSE streaming)', () => {
     expect(s.messages[0].role).toBe('user')
     expect(s.messages[0].content).toBe('What is contract law?')
     expect(s.messages[1].role).toBe('assistant')
-    // done event answer replaces streamed content
-    expect(s.messages[1].content).toBe('Contract law is the body of law.')
+    // STORY-173: tokens streamed incrementally are preserved (done.answer is fallback only)
+    expect(s.messages[1].content).toBe('Contract law is...')
     expect(s.messages[1].confidence).toBe(0.91)
     expect(s.isStreaming).toBe(false)
     expect(s.inputValue).toBe('')
@@ -622,8 +622,8 @@ describe('chatStore.sendMessage (SSE streaming)', () => {
     await useChatStore.getState().sendMessage(false)
 
     const assistant = useChatStore.getState().messages[1]
-    // The final answer from done event should replace accumulated tokens
-    expect(assistant.content).toBe('Final answer.')
+    // STORY-173: streamed tokens are preserved; done.answer only used as fallback
+    expect(assistant.content).toBe('recovered')
   })
 
   it('falls back to accumulated tokens when done event has no answer', async () => {

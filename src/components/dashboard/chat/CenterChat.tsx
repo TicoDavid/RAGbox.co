@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useChatStore } from '@/stores/chatStore'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { CenterHeader } from './CenterHeader'
 import { CenterMessage } from './CenterMessage'
 import { CenterInputBar } from './CenterInputBar'
@@ -95,7 +97,14 @@ function StreamingIndicator({ content }: { content: string }) {
         <span className="text-sm font-medium text-[var(--text-primary)]">RAGböx</span>
       </div>
       <div className="pl-8 text-base leading-relaxed text-[var(--text-primary)]">
-        {content || (
+        {content ? (
+          <div className="prose prose-sm prose-invert max-w-none">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {content}
+            </ReactMarkdown>
+            <span className="inline-block w-2 h-4 bg-[var(--brand-blue)] ml-0.5 animate-pulse" />
+          </div>
+        ) : (
           <div className="flex items-center gap-2 text-sm text-[var(--text-tertiary)]">
             <span className="inline-flex gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-blue)] animate-bounce" style={{ animationDelay: '0ms' }} />

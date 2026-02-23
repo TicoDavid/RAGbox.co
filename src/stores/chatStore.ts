@@ -392,9 +392,10 @@ export const useChatStore = create<ChatState>()(
                         // Unwrap: backend may send { answer, ... } or { data: { answer, ... } }
                         const d = data.data ?? data
 
-                        // Extract prose answer — REPLACE streamed content, never append.
-                        // If no answer field, keep whatever token events accumulated.
-                        if (typeof d.answer === 'string') {
+                        // STORY-173: Only use done.answer as fallback when no tokens were
+                        // streamed. Previously this always replaced, causing a visual flash
+                        // where the incrementally-rendered text would reset then reappear.
+                        if (typeof d.answer === 'string' && !fullContent) {
                           fullContent = d.answer
                           set({ streamingContent: fullContent })
                         }
