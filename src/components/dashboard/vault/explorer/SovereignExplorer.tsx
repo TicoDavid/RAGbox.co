@@ -61,6 +61,9 @@ export function SovereignExplorer({ onClose }: SovereignExplorerProps) {
   const [isVectorizing, setIsVectorizing] = useState(false)
 
 
+  // Drag-and-drop on file area
+  const [isDragOver, setIsDragOver] = useState(false)
+
   // Vault access modal state
   const [vaultMembers, setVaultMembers] = useState<VaultMember[]>([])
 
@@ -301,11 +304,25 @@ export function SovereignExplorer({ onClose }: SovereignExplorerProps) {
   }, [toggleStar])
 
   const handleIngestionUpload = useCallback(async (files: File[]) => {
-    await uploadDocuments(files, selectedFolderId || undefined)
-    setIsIngestionOpen(false)
-    // Auto-refresh after pipeline has time to complete indexing
-    setTimeout(() => fetchDocuments(), 8000)
+    try {
+      await uploadDocuments(files, selectedFolderId || undefined)
+      toast.success(`${files.length} file${files.length !== 1 ? 's' : ''} uploaded`)
+      setIsIngestionOpen(false)
+      // Auto-refresh after pipeline has time to complete indexing
+      setTimeout(() => fetchDocuments(), 8000)
+    } catch {
+      toast.error('Upload failed — check file format and try again')
+    }
   }, [uploadDocuments, selectedFolderId, fetchDocuments])
+
+  const handleFileDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(false)
+    const files = Array.from(e.dataTransfer.files)
+    if (files.length === 0) return
+    handleIngestionUpload(files)
+  }, [handleIngestionUpload])
 
   const handleChat = useCallback(() => {
     if (selectedId) {
@@ -448,8 +465,13 @@ export function SovereignExplorer({ onClose }: SovereignExplorerProps) {
           onQuickAccessFilter={setQuickAccessFilter}
         />
 
-        {/* Center Stage */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Center Stage — drop zone */}
+        <div
+          className={`flex-1 flex flex-col min-w-0 overflow-hidden transition-colors ${isDragOver ? 'bg-[var(--brand-blue)]/5' : ''}`}
+          onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragOver(true) }}
+          onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragOver(false) }}
+          onDrop={handleFileDrop}
+        >
           <IntelligenceFeed
             items={mostCited}
             selectedId={selectedId}
