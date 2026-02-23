@@ -585,7 +585,7 @@ type SettingsSection =
   | 'connections' | 'aimodel' | 'integrations'         // Intelligence
   | 'appearance'                         // Interface
   | 'alerts' | 'security'                // System
-  | 'docs' | 'report' | 'community'      // Support
+  | 'docs' | 'report'                     // Support
 
 interface SidebarCategory {
   id: string
@@ -710,7 +710,6 @@ function SettingsModal({ onClose, initialSection }: { onClose: () => void; initi
             {activeSection === 'security' && <SecuritySettings />}
             {activeSection === 'docs' && <DocumentationSettings />}
             {activeSection === 'report' && <ReportIssueSettings />}
-            {activeSection === 'community' && <CommunitySettings />}
           </div>
         </div>
       </div>
