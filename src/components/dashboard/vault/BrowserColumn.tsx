@@ -34,9 +34,18 @@ function getStatusDot(status: string): string {
   switch (status) {
     case 'ready': return 'bg-[var(--success)]'
     case 'processing': return 'bg-[var(--warning)] animate-pulse'
-    case 'pending': return 'bg-[var(--text-tertiary)]'
+    case 'pending': return 'bg-[var(--text-tertiary)] animate-pulse'
     case 'error': return 'bg-[var(--danger)]'
     default: return 'bg-[var(--text-tertiary)]'
+  }
+}
+
+function getStatusLabel(status: string): { text: string; className: string } | null {
+  switch (status) {
+    case 'pending': return { text: 'Indexing...', className: 'text-[var(--text-tertiary)]' }
+    case 'processing': return { text: 'Processing...', className: 'text-[var(--warning)]' }
+    case 'error': return { text: 'Failed', className: 'text-[var(--danger)]' }
+    default: return null
   }
 }
 
@@ -90,6 +99,12 @@ function DraggableDocument({
         <p className={`text-xs mt-1 ${isSelected ? 'text-[var(--text-primary)]/70' : 'text-[var(--text-tertiary)]'}`}>
           {formatDate(doc.updatedAt)} &bull; {formatSize(doc.size)}
         </p>
+        {(() => {
+          const label = getStatusLabel(doc.status)
+          return label ? (
+            <p className={`text-[10px] mt-0.5 font-medium ${label.className}`}>{label.text}</p>
+          ) : null
+        })()}
       </div>
     </button>
   )

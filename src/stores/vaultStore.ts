@@ -227,6 +227,18 @@ export const useVaultStore = create<VaultState>()(
               detail: { files: uploaded },
             }))
           }
+
+          // Poll for ingestion progress until all docs are ready/error
+          const pollIngestion = () => {
+            const docs = Object.values(get().documents)
+            const pending = docs.some((d) => d.status === 'pending' || d.status === 'processing' || d.status === 'Pending' || d.status === 'Processing')
+            if (!pending) return
+            setTimeout(async () => {
+              await get().fetchDocuments()
+              pollIngestion()
+            }, 3000)
+          }
+          pollIngestion()
         },
 
         deleteDocument: async (id) => {

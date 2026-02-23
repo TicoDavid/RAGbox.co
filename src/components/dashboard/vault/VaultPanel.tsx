@@ -19,6 +19,10 @@ import {
   Trash2,
   Clock,
   MessageSquare,
+  Loader2,
+  CheckCircle2,
+  AlertTriangle,
+  RefreshCw,
 } from 'lucide-react'
 import IngestionModal from '@/app/dashboard/components/IngestionModal'
 
@@ -34,6 +38,7 @@ function VaultDetailView() {
   const toggleStar = useVaultStore((s) => s.toggleStar)
   const selectAndChat = useVaultStore((s) => s.selectAndChat)
   const selectItem = useVaultStore((s) => s.selectItem)
+  const fetchDocuments = useVaultStore((s) => s.fetchDocuments)
   const startDocumentChat = useChatStore((s) => s.startDocumentChat)
   const selectedDoc = selectedItemId ? documents[selectedItemId] : null
 
@@ -85,6 +90,40 @@ function VaultDetailView() {
             </p>
           </div>
         </div>
+
+        {/* Ingestion Status Indicator */}
+        {selectedDoc.status === 'ready' ? (
+          <div className="flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-[var(--success)]/10 border border-[var(--success)]/20">
+            <CheckCircle2 className="w-3.5 h-3.5 text-[var(--success)]" />
+            <span className="text-xs font-medium text-[var(--success)]">Indexed</span>
+          </div>
+        ) : selectedDoc.status === 'processing' ? (
+          <div className="flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-[var(--warning)]/10 border border-[var(--warning)]/20">
+            <Loader2 className="w-3.5 h-3.5 text-[var(--warning)] animate-spin" />
+            <span className="text-xs font-medium text-[var(--warning)]">Processing...</span>
+          </div>
+        ) : selectedDoc.status === 'pending' ? (
+          <div className="flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-default)]">
+            <Loader2 className="w-3.5 h-3.5 text-[var(--text-tertiary)] animate-spin" />
+            <span className="text-xs font-medium text-[var(--text-tertiary)]">Indexing...</span>
+          </div>
+        ) : selectedDoc.status === 'error' ? (
+          <div className="flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-[var(--danger)]/10 border border-[var(--danger)]/20">
+            <AlertTriangle className="w-3.5 h-3.5 text-[var(--danger)]" />
+            <span className="text-xs font-medium text-[var(--danger)]">Indexing Failed</span>
+            <button
+              onClick={() => {
+                fetch(`/api/documents/${selectedDoc.id}/ingest`, { method: 'POST', credentials: 'include' })
+                  .then(() => fetchDocuments())
+                  .catch(() => {})
+              }}
+              className="ml-1 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--danger)]/20 text-[var(--danger)] hover:bg-[var(--danger)]/30 transition-colors"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Retry
+            </button>
+          </div>
+        ) : null}
 
         {/* Sovereign Certificate — Chain of Custody */}
         <SovereignCertificate document={selectedDoc} />
