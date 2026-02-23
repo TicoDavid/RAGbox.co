@@ -200,7 +200,7 @@ export function CenterInputBar() {
   const canSend = (inputValue.trim().length > 0 || attachments.length > 0) && !isStreaming
 
   return (
-    <div className="rounded-2xl bg-[var(--bg-primary)] border border-[var(--border-default)] focus-within:border-[var(--brand-blue)]/50 transition-all shadow-lg shadow-black/10 overflow-visible">
+    <div className="rounded-[var(--input-radius)] bg-[var(--bg-primary)] border border-[var(--border-default)] focus-within:border-[var(--brand-blue)]/50 transition-all shadow-lg shadow-black/10 overflow-visible">
       {/* LLM Picker */}
       <div className="px-3 sm:px-5 pt-3 pb-0">
         <LlmPicker />

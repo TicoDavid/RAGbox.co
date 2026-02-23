@@ -204,7 +204,7 @@ export function InputBar() {
           <LlmPicker activeIntel={mercuryIntelligence} onIntelChange={setMercuryIntelligence} />
         </div>
 
-        <div className={`flex items-center gap-2 px-5 py-3.5 rounded-full bg-[var(--bg-primary)] transition-all duration-500 ease-out ${isAegisActive ? 'border border-[var(--warning)]/40 shadow-[0_0_40px_-10px_rgba(245,158,11,0.25),0_0_80px_-20px_rgba(245,158,11,0.10)] animate-[aegisBreathe_4s_ease-in-out_infinite]' : 'border border-[var(--privilege-border)]/30 border-t-[var(--privilege-border)]/40 shadow-2xl shadow-black/80 focus-within:border-[var(--warning)]/50 focus-within:shadow-[0_8px_32px_-8px_rgba(217,119,6,0.15)]'}`}>
+        <div className={`flex items-center gap-2 px-5 py-3.5 rounded-[var(--input-radius)] bg-[var(--bg-primary)] transition-all duration-500 ease-out ${isAegisActive ? 'border border-[var(--warning)]/40 shadow-[0_0_40px_-10px_rgba(245,158,11,0.25),0_0_80px_-20px_rgba(245,158,11,0.10)] animate-[aegisBreathe_4s_ease-in-out_infinite]' : 'border border-[var(--privilege-border)]/30 border-t-[var(--privilege-border)]/40 shadow-2xl shadow-black/80 focus-within:border-[var(--warning)]/50 focus-within:shadow-[0_8px_32px_-8px_rgba(217,119,6,0.15)]'}`}>
           <div className="relative shrink-0">
             <button
               onClick={() => setIsInjectMenuOpen(!isInjectMenuOpen)}
@@ -235,8 +235,8 @@ export function InputBar() {
                   {showUrlInput ? (
                     <div className="px-3 py-2 border-t border-[var(--border-subtle)]">
                       <div className="flex gap-2">
-                        <input id="inject-url" name="inject-url" type="url" value={urlValue} onChange={(e) => setUrlValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleUrlAdd()} placeholder="https://..." autoFocus className="flex-1 px-2 py-1.5 text-xs bg-[var(--bg-primary)]/50 border border-[var(--border-default)] rounded-md text-[var(--text-primary)] placeholder-[var(--text-placeholder)] focus:outline-none focus:border-[var(--brand-blue)]" aria-label="URL to scrape" />
-                        <button onClick={handleUrlAdd} disabled={!urlValue.trim()} className="px-2 py-1.5 text-xs bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] disabled:opacity-50 text-black font-medium rounded-md transition-colors" aria-label="Add URL">Add</button>
+                        <input id="inject-url" name="inject-url" type="url" value={urlValue} onChange={(e) => setUrlValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleUrlAdd()} placeholder="https://..." autoFocus className="flex-1 px-2 py-1.5 text-xs bg-[var(--bg-primary)]/50 border border-[var(--border-default)] rounded-full text-[var(--text-primary)] placeholder-[var(--text-placeholder)] focus:outline-none focus:border-[var(--brand-blue)]" aria-label="URL to scrape" />
+                        <button onClick={handleUrlAdd} disabled={!urlValue.trim()} className="px-2 py-1.5 text-xs bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] disabled:opacity-50 text-black font-medium rounded-full transition-colors" aria-label="Add URL">Add</button>
                       </div>
                     </div>
                   ) : (

@@ -59,6 +59,7 @@
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-xl: 16px;
+  --input-radius: 9999px;
 
   /* ===== Semantic Status Text ===== */
   --text-accent: var(--brand-blue);
