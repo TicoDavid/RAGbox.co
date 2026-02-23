@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { Components } from 'react-markdown'
 import {
-  Copy, ThumbsUp, ThumbsDown, Check,
+  Copy, ThumbsUp, ThumbsDown, Check, X,
   MessageSquare, FileText, ShieldCheck, RefreshCw, AlertTriangle,
 } from 'lucide-react'
 import { useVaultStore } from '@/stores/vaultStore'
@@ -105,15 +105,17 @@ export function CenterMessage({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user'
   const [copied, setCopied] = useState(false)
   const [activeTab, setActiveTab] = useState<ResponseTab>('answer')
+  const [dismissed, setDismissed] = useState(false)
   const selectItem = useVaultStore((s) => s.selectItem)
   const setInputValue = useChatStore((s) => s.setInputValue)
   const sendMessage = useChatStore((s) => s.sendMessage)
   const messages = useChatStore((s) => s.messages)
   const privilegeMode = usePrivilegeStore((s) => s.isEnabled)
 
-  // Error message with retry button
+  // Error message with retry + dismiss
   if (message.isError) {
-    // Find the last user message to retry
+    if (dismissed) return null
+
     const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user')
     const handleRetry = () => {
       if (lastUserMsg) {
@@ -123,26 +125,35 @@ export function CenterMessage({ message }: { message: ChatMessage }) {
     }
 
     return (
-      <div className="group mb-8">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-6 h-6 rounded-full bg-[var(--danger)]/20 flex items-center justify-center">
-            <AlertTriangle className="w-3.5 h-3.5 text-[var(--danger)]" />
-          </div>
-          <span className="text-sm font-medium text-[var(--danger)]">Error</span>
-        </div>
-        <div className="pl-8">
-          <p className="text-sm text-[var(--text-secondary)] mb-3">
-            Connection lost. {message.content}
-          </p>
-          {lastUserMsg && (
+      <div className="mb-8 max-w-full overflow-hidden">
+        <div className="p-4 rounded-xl bg-[var(--danger)]/10 border border-[var(--danger)]/20">
+          <div className="flex items-start gap-3">
+            <div className="w-6 h-6 rounded-full bg-[var(--danger)]/20 flex items-center justify-center shrink-0 mt-0.5">
+              <AlertTriangle className="w-3.5 h-3.5 text-[var(--danger)]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-[var(--danger)] mb-1">Connection lost</p>
+              <p className="text-sm text-[var(--text-secondary)] break-words">
+                {message.content}
+              </p>
+              {lastUserMsg && (
+                <button
+                  onClick={handleRetry}
+                  className="mt-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-[var(--brand-blue)]/10 text-[var(--brand-blue)] hover:bg-[var(--brand-blue)]/20 transition-colors"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  Retry
+                </button>
+              )}
+            </div>
             <button
-              onClick={handleRetry}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--brand-blue)]/10 text-[var(--brand-blue)] hover:bg-[var(--brand-blue)]/20 transition-colors"
+              onClick={() => setDismissed(true)}
+              className="p-1 rounded-full text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]/50 transition-colors shrink-0"
+              aria-label="Dismiss error"
             >
-              <RefreshCw className="w-3 h-3" />
-              Retry
+              <X className="w-4 h-4" />
             </button>
-          )}
+          </div>
         </div>
       </div>
     )
