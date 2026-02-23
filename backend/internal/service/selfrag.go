@@ -3,7 +3,9 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
+	"time"
 )
 
 const (
@@ -39,9 +41,10 @@ type Critique struct {
 
 // SelfRAGService applies iterative reflection to improve generation quality.
 type SelfRAGService struct {
-	generator Generator
-	maxIter   int
-	threshold float64
+	generator     Generator
+	maxIter       int
+	threshold     float64
+	useEmbeddings bool // true = embedding-based critique, false = keyword heuristics
 }
 
 // NewSelfRAGService creates a SelfRAGService.
@@ -69,6 +72,13 @@ func (s *SelfRAGService) Threshold() float64 {
 	return s.threshold
 }
 
+// SetUseEmbeddings enables or disables embedding-based re-ranking.
+// When true, critiqueRelevance and critiqueSupport use cosine similarity
+// instead of keyword heuristics. Default is false (keyword heuristics).
+func (s *SelfRAGService) SetUseEmbeddings(use bool) {
+	s.useEmbeddings = use
+}
+
 // Reflect runs the Self-RAG reflection loop on an initial generation result.
 // It iteratively critiques relevance, support, and completeness, dropping weak
 // citations and regenerating if confidence is below threshold.
@@ -81,20 +91,43 @@ func (s *SelfRAGService) Reflect(ctx context.Context, query string, chunks []Ran
 	var critiques []Critique
 
 	for i := 0; i < s.maxIter; i++ {
+		rerankStart := time.Now()
+
 		// 1. Relevance critique: score each citation against query
-		relevanceScore, droppedIndices := critiqueRelevance(current.Citations, query, chunks)
+		var relevanceScore float64
+		var droppedIndices []int
+		if s.useEmbeddings {
+			relevanceScore, droppedIndices = critiqueRelevanceEmbedding(current.Citations, chunks)
+		} else {
+			relevanceScore, droppedIndices = critiqueRelevance(current.Citations, query, chunks)
+		}
 
 		// 2. Filter out low-relevance citations
 		filtered := filterCitations(current.Citations, droppedIndices)
 
 		// 3. Support critique: is each claim grounded in chunks?
-		supportScore := critiqueSupport(current.Answer, chunks)
+		var supportScore float64
+		if s.useEmbeddings {
+			supportScore = critiqueSupportEmbedding(current.Citations, chunks)
+		} else {
+			supportScore = critiqueSupport(current.Answer, chunks)
+		}
 
 		// 4. Completeness critique: does the answer address the query?
 		completenessScore := critiqueCompleteness(query, current.Answer)
 
 		// 5. Overall confidence = average of three scores
 		confidence := (relevanceScore + supportScore + completenessScore) / 3.0
+
+		rerankMethod := "keyword"
+		if s.useEmbeddings {
+			rerankMethod = "embedding"
+		}
+		slog.Info("[Rerank Latency]",
+			"rerank_method", rerankMethod,
+			"rerank_ms", time.Since(rerankStart).Milliseconds(),
+			"iteration", i+1,
+		)
 
 		var refinements []string
 		if len(droppedIndices) > 0 {
@@ -352,6 +385,62 @@ func splitAnswerSentences(answer string) []string {
 		sentences = append(sentences, s)
 	}
 	return sentences
+}
+
+// critiqueRelevanceEmbedding uses pre-computed cosine similarity between
+// query embedding and chunk embedding to score citation relevance.
+// This replaces keyword overlap with semantic scoring.
+func critiqueRelevanceEmbedding(citations []CitationRef, chunks []RankedChunk) (float64, []int) {
+	if len(citations) == 0 {
+		return 0.5, nil
+	}
+
+	// Build chunk similarity lookup by ID
+	chunkSim := make(map[string]float64)
+	for _, c := range chunks {
+		chunkSim[c.Chunk.ID] = c.Similarity
+	}
+
+	var totalScore float64
+	var dropped []int
+
+	for _, cit := range citations {
+		score, ok := chunkSim[cit.ChunkID]
+		if !ok {
+			score = 0.5 // default if chunk not found in results
+		}
+		totalScore += score
+
+		if score < 0.5 {
+			dropped = append(dropped, cit.Index)
+		}
+	}
+
+	return totalScore / float64(len(citations)), dropped
+}
+
+// critiqueSupportEmbedding uses query-chunk cosine similarity as a proxy
+// for answer-chunk grounding. Chunks with similarity >= 0.5 are considered
+// well-supported; below 0.5 are flagged as weakly supported.
+func critiqueSupportEmbedding(citations []CitationRef, chunks []RankedChunk) float64 {
+	if len(citations) == 0 || len(chunks) == 0 {
+		return 0.5
+	}
+
+	// Build similarity lookup
+	chunkSim := make(map[string]float64)
+	for _, c := range chunks {
+		chunkSim[c.Chunk.ID] = c.Similarity
+	}
+
+	supported := 0
+	for _, cit := range citations {
+		if sim, ok := chunkSim[cit.ChunkID]; ok && sim >= 0.5 {
+			supported++
+		}
+	}
+
+	return float64(supported) / float64(len(citations))
 }
 
 // buildRefinedQuery appends refinement instructions to the original query.

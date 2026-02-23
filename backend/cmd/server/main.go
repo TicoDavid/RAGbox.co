@@ -165,6 +165,8 @@ func run() error {
 
 	// Self-RAG service (reflection loop)
 	selfRAGService := service.NewSelfRAGService(generatorService, cfg.SelfRAGMaxIter, cfg.ConfidenceThreshold)
+	selfRAGService.SetUseEmbeddings(cfg.RerankUseEmbeddings)
+	slog.Info("selfrag re-ranking configured", "use_embeddings", cfg.RerankUseEmbeddings)
 
 	// Retriever service (embedding + vector search + re-ranking)
 	retrieverService := service.NewRetrieverService(embeddingAdapter, chunkRepo)

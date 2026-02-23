@@ -311,3 +311,170 @@ func TestSplitAnswerSentences(t *testing.T) {
 		t.Errorf("expected 3 sentences, got %d: %v", len(sentences), sentences)
 	}
 }
+
+func TestCritiqueRelevanceEmbedding_HighSimilarity(t *testing.T) {
+	chunks := []RankedChunk{
+		{Chunk: model.DocumentChunk{ID: "c1"}, Similarity: 0.85},
+		{Chunk: model.DocumentChunk{ID: "c2"}, Similarity: 0.72},
+	}
+	citations := []CitationRef{
+		{ChunkID: "c1", Index: 1},
+		{ChunkID: "c2", Index: 2},
+	}
+
+	score, dropped := critiqueRelevanceEmbedding(citations, chunks)
+
+	if score < 0.7 {
+		t.Errorf("expected high relevance score, got %f", score)
+	}
+	if len(dropped) != 0 {
+		t.Errorf("expected no dropped citations for high similarity, got %v", dropped)
+	}
+}
+
+func TestCritiqueRelevanceEmbedding_LowSimilarity(t *testing.T) {
+	chunks := []RankedChunk{
+		{Chunk: model.DocumentChunk{ID: "c1"}, Similarity: 0.85},
+		{Chunk: model.DocumentChunk{ID: "c2"}, Similarity: 0.35},
+	}
+	citations := []CitationRef{
+		{ChunkID: "c1", Index: 1},
+		{ChunkID: "c2", Index: 2},
+	}
+
+	score, dropped := critiqueRelevanceEmbedding(citations, chunks)
+
+	if score <= 0 {
+		t.Errorf("score should be > 0, got %f", score)
+	}
+	// c2 has similarity 0.35 < 0.5, should be dropped
+	if len(dropped) == 0 {
+		t.Error("expected weak citation to be dropped")
+	}
+
+	droppedSet := make(map[int]bool)
+	for _, d := range dropped {
+		droppedSet[d] = true
+	}
+	if !droppedSet[2] {
+		t.Error("expected citation index 2 to be dropped (similarity 0.35)")
+	}
+}
+
+func TestCritiqueRelevanceEmbedding_NoCitations(t *testing.T) {
+	score, dropped := critiqueRelevanceEmbedding(nil, nil)
+	if score != 0.5 {
+		t.Errorf("expected 0.5 for no citations, got %f", score)
+	}
+	if dropped != nil {
+		t.Errorf("expected nil dropped, got %v", dropped)
+	}
+}
+
+func TestCritiqueSupportEmbedding_WellSupported(t *testing.T) {
+	chunks := []RankedChunk{
+		{Chunk: model.DocumentChunk{ID: "c1"}, Similarity: 0.82},
+		{Chunk: model.DocumentChunk{ID: "c2"}, Similarity: 0.65},
+	}
+	citations := []CitationRef{
+		{ChunkID: "c1", Index: 1},
+		{ChunkID: "c2", Index: 2},
+	}
+
+	score := critiqueSupportEmbedding(citations, chunks)
+
+	// Both chunks have similarity >= 0.5, so support = 1.0
+	if score < 0.9 {
+		t.Errorf("expected high support score for well-supported chunks, got %f", score)
+	}
+}
+
+func TestCritiqueSupportEmbedding_WeaklySupported(t *testing.T) {
+	chunks := []RankedChunk{
+		{Chunk: model.DocumentChunk{ID: "c1"}, Similarity: 0.82},
+		{Chunk: model.DocumentChunk{ID: "c2"}, Similarity: 0.40},
+	}
+	citations := []CitationRef{
+		{ChunkID: "c1", Index: 1},
+		{ChunkID: "c2", Index: 2},
+	}
+
+	score := critiqueSupportEmbedding(citations, chunks)
+
+	// Only c1 is well-supported (0.82 >= 0.5), c2 is weak (0.40 < 0.5)
+	if score != 0.5 {
+		t.Errorf("expected support score 0.5 (1/2 supported), got %f", score)
+	}
+}
+
+func TestCritiqueSupportEmbedding_NoCitations(t *testing.T) {
+	score := critiqueSupportEmbedding(nil, nil)
+	if score != 0.5 {
+		t.Errorf("expected 0.5 for no citations, got %f", score)
+	}
+}
+
+func TestReflect_EmbeddingToggle(t *testing.T) {
+	gen := &mockGenerator{}
+	svc := NewSelfRAGService(gen, 1, 0.01) // low threshold, 1 iteration
+
+	// Test with embeddings disabled (default keyword behavior)
+	initial := &GenerationResult{
+		Answer: "The contract expires March 2025.",
+		Citations: []CitationRef{
+			{ChunkID: "c1", Index: 1, Excerpt: "expires on March 2025", Relevance: 0.95},
+		},
+		Confidence: 0.9,
+	}
+	chunks := selfRAGChunks()
+
+	resultKeyword, err := svc.Reflect(context.Background(), "contract expiry", chunks, initial)
+	if err != nil {
+		t.Fatalf("Reflect(keyword) error: %v", err)
+	}
+
+	// Now enable embeddings
+	svc.SetUseEmbeddings(true)
+	resultEmbed, err := svc.Reflect(context.Background(), "contract expiry", chunks, initial)
+	if err != nil {
+		t.Fatalf("Reflect(embedding) error: %v", err)
+	}
+
+	// Both should produce results without errors
+	if resultKeyword.FinalAnswer == "" {
+		t.Error("keyword mode: expected non-empty answer")
+	}
+	if resultEmbed.FinalAnswer == "" {
+		t.Error("embedding mode: expected non-empty answer")
+	}
+}
+
+func TestReflect_EmbeddingFallbackWhenDisabled(t *testing.T) {
+	gen := &mockGenerator{}
+	svc := NewSelfRAGService(gen, 1, 0.01)
+
+	// Explicitly disable embeddings
+	svc.SetUseEmbeddings(false)
+
+	initial := &GenerationResult{
+		Answer: "Some answer about contract terms.",
+		Citations: []CitationRef{
+			{ChunkID: "c1", Index: 1, Excerpt: "contract terms", Relevance: 0.9},
+		},
+		Confidence: 0.8,
+	}
+
+	result, err := svc.Reflect(context.Background(), "contract", selfRAGChunks(), initial)
+	if err != nil {
+		t.Fatalf("Reflect() error: %v", err)
+	}
+
+	// Should use keyword heuristics (backward compatible behavior)
+	if len(result.Critiques) == 0 {
+		t.Fatal("expected critique history")
+	}
+	c := result.Critiques[0]
+	if c.RelevanceScore < 0 || c.RelevanceScore > 1 {
+		t.Errorf("relevance score = %f, want [0,1]", c.RelevanceScore)
+	}
+}
