@@ -6,6 +6,7 @@
  *
  * — Sarah, Engineering
  */
+export {} // Module isolation — avoid TS2393 with other test files
 
 // ── Mocks ────────────────────────────────────────────────────────
 

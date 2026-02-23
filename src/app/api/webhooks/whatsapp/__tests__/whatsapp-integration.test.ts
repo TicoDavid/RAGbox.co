@@ -20,6 +20,7 @@ process.env.INTERNAL_AUTH_SECRET = 'test-internal-secret'
 
 // ── Mock Prisma ──────────────────────────────────────────────────
 
+const mockUserFindUnique = jest.fn()
 const mockWhatsAppMessageFindFirst = jest.fn()
 const mockWhatsAppMessageCreate = jest.fn()
 const mockWhatsAppContactUpsert = jest.fn()
@@ -34,6 +35,9 @@ const mockMercuryThreadMessageCreate = jest.fn()
 jest.mock('@/lib/prisma', () => ({
   __esModule: true,
   default: {
+    user: {
+      findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
+    },
     whatsAppMessage: {
       findFirst: (...args: unknown[]) => mockWhatsAppMessageFindFirst(...args),
       create: (...args: unknown[]) => mockWhatsAppMessageCreate(...args),
@@ -111,6 +115,9 @@ let fetchCalls: Array<{ url: string; options?: RequestInit }> = []
 beforeEach(() => {
   jest.clearAllMocks()
   fetchCalls = []
+
+  // User exists (BUG-034 fix: validates user before Prisma operations)
+  mockUserFindUnique.mockResolvedValue({ id: 'test-user-id' })
 
   // Default: no duplicate
   mockWhatsAppMessageFindFirst.mockResolvedValue(null)
@@ -259,5 +266,128 @@ describe('WhatsApp Integration', () => {
     const outbound = createCalls[1][0]
     expect(outbound.data.direction).toBe('outbound')
     expect(outbound.data.content).toBeTruthy()
+  })
+
+  it('BUG-034: validates user exists before Prisma operations', async () => {
+    mockUserFindUnique.mockResolvedValue(null) // user does not exist
+
+    const payload = makeVonagePayload()
+    const req = makeRequest(payload)
+
+    const res = await POST(req)
+    expect(res.status).toBe(200) // still returns 200 (fire-and-forget)
+
+    await flushPromises()
+
+    // Contact upsert should NOT be called — bailed at user verification
+    expect(mockWhatsAppContactUpsert).not.toHaveBeenCalled()
+    expect(mockWhatsAppConversationUpsert).not.toHaveBeenCalled()
+    expect(mockWhatsAppMessageCreate).not.toHaveBeenCalled()
+  })
+
+  it('BUG-034: verifies user on each request', async () => {
+    mockUserFindUnique.mockResolvedValue({ id: 'test-user-id' })
+
+    const req1 = makeRequest(makeVonagePayload())
+    await POST(req1)
+    await flushPromises()
+
+    const req2 = makeRequest(makeVonagePayload({ message_uuid: 'vonage-uuid-456' }))
+    await POST(req2)
+    await flushPromises()
+
+    // user.findUnique called for each request
+    expect(mockUserFindUnique).toHaveBeenCalledTimes(2)
+    expect(mockWhatsAppContactUpsert).toHaveBeenCalledTimes(2)
+  })
+
+  it('skips duplicate messages by message_uuid', async () => {
+    mockWhatsAppMessageFindFirst.mockResolvedValue({ id: 'existing-msg' })
+
+    const payload = makeVonagePayload()
+    const req = makeRequest(payload)
+
+    const res = await POST(req)
+    expect(res.status).toBe(200)
+
+    await flushPromises()
+
+    // Should not create any new records
+    expect(mockWhatsAppContactUpsert).not.toHaveBeenCalled()
+    expect(mockWhatsAppMessageCreate).not.toHaveBeenCalled()
+  })
+
+  it('handles blocked contacts gracefully', async () => {
+    mockWhatsAppContactUpsert.mockResolvedValue({
+      id: 'contact-blocked',
+      userId: 'test-user-id',
+      phoneNumber: '+12125551234',
+      displayName: 'Blocked User',
+      isBlocked: true,
+    })
+
+    const payload = makeVonagePayload()
+    const req = makeRequest(payload)
+
+    const res = await POST(req)
+    expect(res.status).toBe(200)
+
+    await flushPromises()
+
+    // Contact upserted but conversation/message should NOT be created
+    expect(mockWhatsAppContactUpsert).toHaveBeenCalled()
+    expect(mockWhatsAppConversationUpsert).not.toHaveBeenCalled()
+    expect(mockWhatsAppMessageCreate).not.toHaveBeenCalled()
+  })
+
+  it('GET verification returns hub.challenge on valid token', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { GET } = require('../route')
+    const url = 'http://localhost:3000/api/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=mercury-ragbox-verify&hub.challenge=test-challenge-123'
+    const req = new Request(url, { method: 'GET' })
+
+    const res = await GET(req)
+    expect(res.status).toBe(200)
+    const body = await res.text()
+    expect(body).toBe('test-challenge-123')
+  })
+
+  it('GET verification rejects invalid token with 403', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { GET } = require('../route')
+    const url = 'http://localhost:3000/api/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=wrong-token&hub.challenge=test'
+    const req = new Request(url, { method: 'GET' })
+
+    const res = await GET(req)
+    expect(res.status).toBe(403)
+  })
+
+  it('handles status update webhook (message delivered)', async () => {
+    // Return an existing message for the status update
+    mockWhatsAppMessageFindFirst.mockResolvedValue({
+      id: 'msg-existing',
+      externalMessageId: 'vonage-uuid-status',
+      status: 'sent',
+    })
+
+    const statusPayload = {
+      message_uuid: 'vonage-uuid-status',
+      status: 'delivered',
+      timestamp: '2026-02-22T15:01:00Z',
+    }
+
+    const req = makeRequest(statusPayload)
+    const res = await POST(req)
+    expect(res.status).toBe(200)
+
+    await flushPromises()
+
+    // Message status should be updated
+    expect(mockWhatsAppMessageUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'msg-existing' },
+        data: { status: 'delivered' },
+      }),
+    )
   })
 })

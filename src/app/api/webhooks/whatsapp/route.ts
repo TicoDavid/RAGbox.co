@@ -10,7 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import type { Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import prisma from '@/lib/prisma'
 import { parseSSEText } from '@/lib/mercury/sseParser'
 
@@ -21,6 +21,7 @@ const VONAGE_WHATSAPP_NUMBER = process.env.VONAGE_WHATSAPP_NUMBER || '1415738610
 const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
 const DEFAULT_USER_ID = process.env.WHATSAPP_DEFAULT_USER_ID || ''
+
 
 // =============================================================================
 // GET — Webhook verification (Meta-style hub.challenge)
@@ -119,6 +120,13 @@ async function processWebhookPayload(body: Record<string, unknown>): Promise<voi
     return
   }
 
+  // Verify user exists before Prisma FK operations (BUG-034 fix)
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } })
+  if (!user) {
+    console.error(`[Webhook] WHATSAPP_DEFAULT_USER_ID="${userId}" does not exist in users table — fix env var`)
+    return
+  }
+
   try {
     // 1. Upsert contact
     const contact = await prisma.whatsAppContact.upsert({
@@ -183,7 +191,20 @@ async function processWebhookPayload(body: Record<string, unknown>): Promise<voi
       await handleAutoReply(conversation.id, userId, fromPhone, content)
     }
   } catch (error) {
-    console.error('[Webhook] Error processing inbound message:', error)
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      console.error(`[Webhook] Prisma error ${error.code}: ${error.message}`, {
+        code: error.code,
+        meta: error.meta,
+        model: (error.meta as Record<string, unknown>)?.modelName,
+      })
+      if (error.code === 'P2021') {
+        console.error('[Webhook] Table does not exist — run WhatsApp migration: 20260215000000_add_content_intelligence_and_whatsapp')
+      } else if (error.code === 'P2003') {
+        console.error('[Webhook] Foreign key violation — verify WHATSAPP_DEFAULT_USER_ID exists in users table')
+      }
+    } else {
+      console.error('[Webhook] Error processing inbound message:', error)
+    }
   }
 }
 
