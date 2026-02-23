@@ -161,14 +161,17 @@ export function ConversationThread() {
           </div>
         )}
 
-        {/* Loading dots (no content yet) */}
+        {/* Thinking indicator (no content yet) */}
         {isStreaming && !streamingContent && (
           <div className="flex justify-start mb-4">
             <div className="rounded-xl px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-default)]">
-              <div className="flex gap-1">
-                <span className="w-2 h-2 rounded-full bg-[var(--text-tertiary)] animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-2 h-2 rounded-full bg-[var(--text-tertiary)] animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-2 h-2 rounded-full bg-[var(--text-tertiary)] animate-bounce" style={{ animationDelay: '300ms' }} />
+              <div className="flex items-center gap-2">
+                <span className="flex gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-blue)] animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-blue)] animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-blue)] animate-bounce" style={{ animationDelay: '300ms' }} />
+                </span>
+                <span className="text-sm text-[var(--text-tertiary)] animate-pulse">Analyzing...</span>
               </div>
             </div>
           </div>

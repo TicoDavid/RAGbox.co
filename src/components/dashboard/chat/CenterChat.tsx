@@ -96,11 +96,14 @@ function StreamingIndicator({ content }: { content: string }) {
       </div>
       <div className="pl-8 text-base leading-relaxed text-[var(--text-primary)]">
         {content || (
-          <span className="inline-flex gap-1">
-            <span className="w-2 h-2 rounded-full bg-[var(--brand-blue)] animate-pulse" />
-            <span className="w-2 h-2 rounded-full bg-[var(--brand-blue)] animate-pulse [animation-delay:0.2s]" />
-            <span className="w-2 h-2 rounded-full bg-[var(--brand-blue)] animate-pulse [animation-delay:0.4s]" />
-          </span>
+          <div className="flex items-center gap-2 text-sm text-[var(--text-tertiary)]">
+            <span className="inline-flex gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-blue)] animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-blue)] animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-blue)] animate-bounce" style={{ animationDelay: '300ms' }} />
+            </span>
+            <span className="animate-pulse">Analyzing your documents...</span>
+          </div>
         )}
         {slow && (
           <div className="mt-3 flex items-center gap-2">
