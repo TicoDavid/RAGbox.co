@@ -647,7 +647,7 @@ function SettingsModal({ onClose, initialSection }: { onClose: () => void; initi
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
 
       {/* Modal - Wide layout */}
-      <div className="relative w-full max-w-4xl mx-4 h-[80vh] max-h-[700px] bg-[var(--bg-primary)]/95 backdrop-blur-xl border border-[var(--border-default)] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+      <div className="relative w-full max-w-4xl mx-4 h-[80vh] max-h-[700px] bg-[var(--bg-secondary)] backdrop-blur-xl border border-[var(--border-default)] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
         <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-[var(--border-default)]">
           <div className="flex items-center gap-3">
@@ -671,7 +671,7 @@ function SettingsModal({ onClose, initialSection }: { onClose: () => void; initi
         {/* Body - Sidebar + Content */}
         <div className="flex flex-1 overflow-hidden">
           {/* Left Sidebar */}
-          <nav className="w-56 shrink-0 bg-[var(--bg-secondary)]/50 border-r border-[var(--border-default)] overflow-y-auto py-4" aria-label="Settings navigation">
+          <nav className="w-56 shrink-0 bg-[var(--bg-tertiary)]/50 border-r border-[var(--border-default)] overflow-y-auto py-4" aria-label="Settings navigation">
             {SIDEBAR_CATEGORIES.map((category) => (
               <div key={category.id} className="mb-4">
                 <div className="px-4 py-1.5 text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">
@@ -698,7 +698,7 @@ function SettingsModal({ onClose, initialSection }: { onClose: () => void; initi
           </nav>
 
           {/* Right Content Panel */}
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-6 bg-[var(--bg-primary)]">
             {activeSection === 'profile' && <ProfileSettings />}
             {activeSection === 'language' && <LanguageSettings />}
             {activeSection === 'billing' && <BillingSettings />}
