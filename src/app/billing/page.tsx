@@ -11,8 +11,15 @@ export default function BillingPage() {
           <CreditCard className="w-8 h-8 text-[var(--brand-blue)]" />
         </div>
         <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Billing</h1>
-        <p className="text-[var(--text-secondary)] mb-6">
-          Subscription management coming soon. Contact support to update your plan or payment method.
+        <p className="text-[var(--text-secondary)] mb-4">
+          Billing portal is available after your first subscription payment.
+        </p>
+        <p className="text-[var(--text-tertiary)] text-sm mb-6">
+          Contact{' '}
+          <a href="mailto:support@ragbox.co" className="text-[var(--brand-blue)] hover:text-[var(--brand-blue-hover)] transition-colors underline">
+            support@ragbox.co
+          </a>
+          {' '}for billing questions.
         </p>
         <Link
           href="/dashboard"
