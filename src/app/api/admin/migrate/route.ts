@@ -625,6 +625,26 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       results.push(`GIN full-text index: SKIPPED (${ginErr instanceof Error ? ginErr.message.slice(0, 80) : 'error'})`)
     }
 
+    // ========================================
+    // EPIC-014 STORY-178: Feedback Reports
+    // ========================================
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "feedback_reports" (
+        "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
+        "userId" TEXT NOT NULL,
+        "userEmail" TEXT,
+        "type" TEXT NOT NULL,
+        "description" TEXT NOT NULL,
+        "currentUrl" TEXT,
+        "browserInfo" TEXT,
+        "status" TEXT NOT NULL DEFAULT 'open',
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "feedback_reports_pkey" PRIMARY KEY ("id"),
+        CONSTRAINT "feedback_reports_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE
+      )
+    `)
+    results.push('feedback_reports: OK')
+
     return NextResponse.json({ success: true, results })
   } catch (error) {
     return NextResponse.json({
