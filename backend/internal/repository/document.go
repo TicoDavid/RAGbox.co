@@ -316,6 +316,50 @@ func (r *DocumentRepo) ListByVault(ctx context.Context, vaultID string) ([]model
 	return docs, nil
 }
 
+// HasProcessingDocuments returns true if the user has any documents with
+// index_status 'Pending' or 'Processing'. (STORY-172)
+func (r *DocumentRepo) HasProcessingDocuments(ctx context.Context, userID string) (bool, error) {
+	var count int
+	err := r.pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM documents
+		WHERE user_id = $1
+			AND deletion_status = 'Active'
+			AND index_status IN ('Pending', 'Processing')
+	`, userID).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("repository.HasProcessingDocuments: %w", err)
+	}
+	return count > 0, nil
+}
+
+// ListUserDocumentSummaries returns lightweight summaries of all active documents
+// for a user. Used by "summarize my documents" queries. (STORY-172)
+func (r *DocumentRepo) ListUserDocumentSummaries(ctx context.Context, userID string) ([]service.DocSummary, error) {
+	rows, err := r.pool.Query(ctx, `
+		SELECT id, original_name, index_status, created_at
+		FROM documents
+		WHERE user_id = $1 AND deletion_status = 'Active'
+		ORDER BY created_at DESC
+		LIMIT 50
+	`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("repository.ListUserDocumentSummaries: %w", err)
+	}
+	defer rows.Close()
+
+	var summaries []service.DocSummary
+	for rows.Next() {
+		var s service.DocSummary
+		var createdAt time.Time
+		if err := rows.Scan(&s.ID, &s.OriginalName, &s.IndexStatus, &createdAt); err != nil {
+			return nil, fmt.Errorf("repository.ListUserDocumentSummaries: scan: %w", err)
+		}
+		s.CreatedAt = createdAt.Format("Jan 2, 2006")
+		summaries = append(summaries, s)
+	}
+	return summaries, nil
+}
+
 func marshalMeta(meta json.RawMessage) ([]byte, error) {
 	if meta == nil {
 		return nil, nil

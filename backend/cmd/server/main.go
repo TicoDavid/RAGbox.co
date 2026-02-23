@@ -299,6 +299,7 @@ func run() error {
 			CortexSvc:      cortexSvc,
 			QueryCache:     queryCache,
 			EmbedCache:     embedCache,
+			DocStatus:      docRepo, // STORY-172: processing status + document summaries
 		},
 
 		ContentGapDeps: handler.ContentGapDeps{

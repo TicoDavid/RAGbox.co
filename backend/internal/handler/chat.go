@@ -191,6 +191,13 @@ type CortexSearcher interface {
 }
 
 // ChatDeps bundles the services needed by the chat handler.
+// DocumentStatusChecker provides lightweight document status queries for the chat handler.
+// Implemented by repository.DocumentRepo. (STORY-172)
+type DocumentStatusChecker interface {
+	HasProcessingDocuments(ctx context.Context, userID string) (bool, error)
+	ListUserDocumentSummaries(ctx context.Context, userID string) ([]service.DocSummary, error)
+}
+
 type ChatDeps struct {
 	Retriever      *service.RetrieverService
 	Generator      service.Generator
@@ -204,6 +211,7 @@ type ChatDeps struct {
 	EmbedCache     *cache.EmbeddingCache // optional — nil disables embedding caching
 	UsageSvc       *service.UsageService // optional — nil disables usage metering
 	UserTierFunc   func(ctx context.Context, userID string) string // optional — returns user's subscription tier
+	DocStatus      DocumentStatusChecker // optional — STORY-172: check if docs are still processing
 }
 
 // selfRAGSkipThreshold: skip SelfRAG reflection when initial confidence is above this.
@@ -231,6 +239,30 @@ func confidenceFloor() float64 {
 }
 
 const lowConfidenceMessage = "I don't have enough relevant context to answer this question. Please upload related documents or try a more specific query."
+
+const processingMessage = "Your document is still being processed. Please wait a moment and try again."
+
+// isSummarizeQuery detects general document summarization queries that don't match
+// specific chunk content. These need document-level metadata, not RAG search. (STORY-172)
+func isSummarizeQuery(query string) bool {
+	q := strings.ToLower(query)
+	summarizePatterns := []string{
+		"summarize my documents",
+		"summarize my uploaded",
+		"summary of my documents",
+		"list my documents",
+		"what documents do i have",
+		"what have i uploaded",
+		"show my documents",
+		"what files do i have",
+	}
+	for _, p := range summarizePatterns {
+		if strings.Contains(q, p) {
+			return true
+		}
+	}
+	return false
+}
 
 // Chat returns an SSE streaming handler for Mercury chat.
 // POST /api/chat
@@ -453,6 +485,73 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 				"chunk_index", c.Chunk.ChunkIndex,
 				"content_preview", truncate(c.Chunk.Content, 80),
 			)
+		}
+
+		// STORY-172: Check for processing documents and summarize queries before silence protocol
+		if len(retrieval.Chunks) == 0 && deps.DocStatus != nil {
+			// Check if user has documents still being processed
+			hasProcessing, err := deps.DocStatus.HasProcessingDocuments(ctx, userID)
+			if err != nil {
+				slog.Error("chat doc status check failed", "user_id", userID, "error", err)
+			}
+			if hasProcessing {
+				slog.Info("[DOC_PROCESSING] user has documents still being processed",
+					"user_id", userID, "query", truncate(req.Query, 100))
+
+				tokens := splitIntoTokens(processingMessage)
+				for _, token := range tokens {
+					tokenJSON, _ := json.Marshal(map[string]string{"text": token})
+					sendEvent(w, flusher, "token", string(tokenJSON))
+				}
+				donePayload := DonePayload{
+					Answer:    processingMessage,
+					Sources:   []DoneSource{},
+					Citations: []DoneCitation{},
+					Evidence:  DoneEvidence{LatencyMs: time.Since(startTime).Milliseconds()},
+				}
+				doneJSON, _ := json.Marshal(donePayload)
+				sendEvent(w, flusher, "done", string(doneJSON))
+				return
+			}
+		}
+
+		// STORY-172: Handle "summarize my documents" queries with document metadata
+		if isSummarizeQuery(req.Query) && deps.DocStatus != nil {
+			summaries, err := deps.DocStatus.ListUserDocumentSummaries(ctx, userID)
+			if err != nil {
+				slog.Error("chat list documents failed", "user_id", userID, "error", err)
+			}
+			if len(summaries) > 0 {
+				var sb strings.Builder
+				sb.WriteString(fmt.Sprintf("You have %d document(s) in your vault:\n\n", len(summaries)))
+				for i, doc := range summaries {
+					status := "Ready"
+					if doc.IndexStatus != "Indexed" {
+						status = doc.IndexStatus
+					}
+					sb.WriteString(fmt.Sprintf("%d. **%s** — %s (uploaded %s)\n", i+1, doc.OriginalName, status, doc.CreatedAt))
+				}
+				sb.WriteString("\nTo get specific information, try asking a question about a particular document's content.")
+				summaryAnswer := sb.String()
+
+				tokens := splitIntoTokens(summaryAnswer)
+				for _, token := range tokens {
+					if ctx.Err() != nil {
+						return
+					}
+					tokenJSON, _ := json.Marshal(map[string]string{"text": token})
+					sendEvent(w, flusher, "token", string(tokenJSON))
+				}
+				donePayload := DonePayload{
+					Answer:    summaryAnswer,
+					Sources:   []DoneSource{},
+					Citations: []DoneCitation{},
+					Evidence:  DoneEvidence{LatencyMs: time.Since(startTime).Milliseconds()},
+				}
+				doneJSON, _ := json.Marshal(donePayload)
+				sendEvent(w, flusher, "done", string(doneJSON))
+				return
+			}
 		}
 
 		if len(retrieval.Chunks) == 0 {

@@ -659,3 +659,110 @@ func TestChat_SuccessStream_StructuredDone(t *testing.T) {
 		t.Error("done payload latencyMs should be positive")
 	}
 }
+
+// --- STORY-172: Context Passing Tests ---
+
+// mockDocStatusChecker implements DocumentStatusChecker for testing.
+type mockDocStatusChecker struct {
+	hasProcessing bool
+	summaries     []service.DocSummary
+}
+
+func (m *mockDocStatusChecker) HasProcessingDocuments(ctx context.Context, userID string) (bool, error) {
+	return m.hasProcessing, nil
+}
+
+func (m *mockDocStatusChecker) ListUserDocumentSummaries(ctx context.Context, userID string) ([]service.DocSummary, error) {
+	return m.summaries, nil
+}
+
+func TestChat_ProcessingDocuments_ReturnsProcessingMessage(t *testing.T) {
+	// Empty retrieval (no chunks found) + documents still processing
+	retriever := &mockRetriever{
+		result: &service.RetrievalResult{
+			Chunks:          []service.RankedChunk{},
+			TotalCandidates: 0,
+		},
+	}
+	generator := &mockChatGenerator{result: testGenerationResult()}
+	deps := makeChatDeps(retriever, generator)
+	deps.DocStatus = &mockDocStatusChecker{hasProcessing: true}
+
+	handler := Chat(deps)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, chatRequest("Summarize my uploaded documents"))
+
+	events := parseSSEEvents(w.Body.String())
+	lastEvent := events[len(events)-1]
+
+	var payload DonePayload
+	if err := json.Unmarshal([]byte(lastEvent.Data), &payload); err != nil {
+		t.Fatalf("failed to parse done payload: %v", err)
+	}
+
+	expectedMsg := "Your document is still being processed. Please wait a moment and try again."
+	if payload.Answer != expectedMsg {
+		t.Errorf("Answer = %q, want processing message", payload.Answer)
+	}
+}
+
+func TestChat_SummarizeQuery_ListsDocuments(t *testing.T) {
+	// Non-empty retrieval but with summarize query — should list documents
+	retriever := &mockRetriever{result: testRetrievalResult()}
+	generator := &mockChatGenerator{result: testGenerationResult()}
+	deps := makeChatDeps(retriever, generator)
+	deps.DocStatus = &mockDocStatusChecker{
+		summaries: []service.DocSummary{
+			{ID: "d1", OriginalName: "contract.pdf", IndexStatus: "Indexed", CreatedAt: "Feb 20, 2026"},
+			{ID: "d2", OriginalName: "memo.docx", IndexStatus: "Processing", CreatedAt: "Feb 22, 2026"},
+		},
+	}
+
+	handler := Chat(deps)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, chatRequest("summarize my documents"))
+
+	events := parseSSEEvents(w.Body.String())
+	lastEvent := events[len(events)-1]
+
+	var payload DonePayload
+	if err := json.Unmarshal([]byte(lastEvent.Data), &payload); err != nil {
+		t.Fatalf("failed to parse done payload: %v", err)
+	}
+
+	if !strings.Contains(payload.Answer, "2 document(s)") {
+		t.Errorf("expected document count in answer, got: %s", payload.Answer)
+	}
+	if !strings.Contains(payload.Answer, "contract.pdf") {
+		t.Errorf("expected contract.pdf in answer")
+	}
+	if !strings.Contains(payload.Answer, "memo.docx") {
+		t.Errorf("expected memo.docx in answer")
+	}
+}
+
+func TestIsSummarizeQuery(t *testing.T) {
+	positives := []string{
+		"Summarize my documents",
+		"Can you summarize my uploaded files?",
+		"What documents do I have?",
+		"List my documents please",
+		"Show my documents",
+	}
+	for _, q := range positives {
+		if !isSummarizeQuery(q) {
+			t.Errorf("isSummarizeQuery(%q) = false, want true", q)
+		}
+	}
+
+	negatives := []string{
+		"What is the contract expiry date?",
+		"Explain section 4.2",
+		"Find references to GDPR",
+	}
+	for _, q := range negatives {
+		if isSummarizeQuery(q) {
+			t.Errorf("isSummarizeQuery(%q) = true, want false", q)
+		}
+	}
+}

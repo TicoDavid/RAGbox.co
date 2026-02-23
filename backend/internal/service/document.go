@@ -50,6 +50,15 @@ type FolderRepository interface {
 	Delete(ctx context.Context, id string) error
 }
 
+// DocSummary is a lightweight document summary for chat-handler queries like
+// "summarize my documents". (STORY-172)
+type DocSummary struct {
+	ID           string
+	OriginalName string
+	IndexStatus  string
+	CreatedAt    string
+}
+
 // ListOpts holds pagination and filtering options for document listing.
 type ListOpts struct {
 	Limit         int
