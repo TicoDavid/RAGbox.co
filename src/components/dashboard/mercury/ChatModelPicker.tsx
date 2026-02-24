@@ -332,12 +332,12 @@ export function LlmPicker({ activeIntel, onIntelChange }: LlmPickerProps = {}) {
 
   return (
     <>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {/* AEGIS Card */}
         {llmPolicy !== 'byollm_only' && (
           <button
             onClick={switchToAegis}
-            className={`flex-1 flex items-center gap-2.5 px-3 py-2 rounded-lg border transition-all duration-200 text-left
+            className={`flex-1 min-w-[200px] flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border transition-all duration-200 text-left
               ${isAegis
                 ? 'border-[var(--warning)]/50 bg-[var(--warning)]/8'
                 : 'border-[var(--border-default)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)]/20'
@@ -362,7 +362,7 @@ export function LlmPicker({ activeIntel, onIntelChange }: LlmPickerProps = {}) {
         {byollmConnection?.selectedModel ? (
           <button
             onClick={handlePrivateCardClick}
-            className={`flex-1 flex items-center gap-2.5 px-3 py-2 rounded-lg border transition-all duration-200 text-left
+            className={`flex-1 min-w-[200px] flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border transition-all duration-200 text-left
               ${!isAegis
                 ? 'border-[var(--warning)]/50 bg-[var(--warning)]/8'
                 : 'border-[var(--border-default)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)]/20'
@@ -383,7 +383,7 @@ export function LlmPicker({ activeIntel, onIntelChange }: LlmPickerProps = {}) {
             <ChevronRight className={`shrink-0 w-3.5 h-3.5 transition-colors ${!isAegis ? 'text-[var(--text-secondary)]' : 'text-[var(--text-tertiary)]'}`} />
           </button>
         ) : (
-          <div className="flex-1 flex items-center gap-2.5 px-3 py-2 rounded-lg border border-dashed border-[var(--border-default)]">
+          <div className="flex-1 min-w-[200px] flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-dashed border-[var(--border-default)]">
             <div className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]">
               <Lock className="w-3.5 h-3.5" />
             </div>
