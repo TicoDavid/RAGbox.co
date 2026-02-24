@@ -364,18 +364,38 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 		defer cancel()
 
 		// Usage metering: check tier limit before processing
+		var usageTier string
 		if deps.UsageSvc != nil {
-			tier := "free"
+			usageTier = "free"
 			if deps.UserTierFunc != nil {
-				tier = deps.UserTierFunc(ctx, userID)
+				usageTier = deps.UserTierFunc(ctx, userID)
 			}
-			allowed, currentCount, limit, err := deps.UsageSvc.CheckLimit(ctx, userID, "aegis_queries", tier)
+
+			// Check query count limit
+			allowed, currentCount, limit, err := deps.UsageSvc.CheckLimit(ctx, userID, "aegis_queries", usageTier)
 			if err != nil {
 				slog.Error("usage check failed", "user_id", userID, "error", err)
 				// Allow query on metering error — don't block on infra failure
 			} else if !allowed {
-				slog.Warn("usage limit reached", "user_id", userID, "tier", tier, "count", currentCount, "limit", limit)
+				slog.Warn("usage limit reached", "user_id", userID, "tier", usageTier, "count", currentCount, "limit", limit)
 				limitMsg := fmt.Sprintf(`{"error":"monthly_limit_reached","message":"You've used %d of %d AEGIS queries this month. Upgrade your plan to continue.","used":%d,"limit":%d}`, currentCount, limit, currentCount, limit)
+				sendEvent(w, flusher, "error", limitMsg)
+				sendEvent(w, flusher, "done", `{}`)
+				return
+			}
+
+			// STORY-199: Check token budget limit before processing.
+			// Current request is allowed to complete — enforcement blocks the NEXT request.
+			tokenAllowed, tokensUsed, tokenBudget, tokenErr := deps.UsageSvc.CheckTokenLimit(ctx, userID, usageTier)
+			if tokenErr != nil {
+				slog.Error("token limit check failed", "user_id", userID, "error", tokenErr)
+				// Allow query on metering error — don't block on infra failure
+			} else if !tokenAllowed {
+				slog.Warn("token budget exhausted",
+					"user_id", userID, "tier", usageTier,
+					"tokens_used", tokensUsed, "token_budget", tokenBudget)
+				limitMsg := fmt.Sprintf(`{"error":"token_budget_exhausted","message":"You've used %d of %d tokens this month. Upgrade your plan to continue.","used":%d,"limit":%d}`,
+					tokensUsed, tokenBudget, tokensUsed, tokenBudget)
 				sendEvent(w, flusher, "error", limitMsg)
 				sendEvent(w, flusher, "done", `{}`)
 				return
@@ -885,9 +905,29 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 
 		// Usage metering: increment after successful query
 		if deps.UsageSvc != nil {
+			// Collect chunk texts for token estimation
+			chunkTexts := make([]string, 0, len(retrieval.Chunks))
+			for _, c := range retrieval.Chunks {
+				chunkTexts = append(chunkTexts, c.Chunk.Content)
+			}
+			// Estimate total tokens: input (query + context) + output (answer)
+			answer := ""
+			if result != nil {
+				answer = result.FinalAnswer
+			} else if initial != nil {
+				answer = initial.Answer
+			}
+			estimatedTokens := service.EstimateRequestTokens(req.Query, chunkTexts, answer)
+
 			go func() {
-				if err := deps.UsageSvc.IncrementUsage(context.Background(), userID, "aegis_queries"); err != nil {
+				bgCtx := context.Background()
+				// Increment query count
+				if err := deps.UsageSvc.IncrementUsage(bgCtx, userID, "aegis_queries"); err != nil {
 					slog.Error("usage increment failed", "user_id", userID, "error", err)
+				}
+				// STORY-199: Increment token usage
+				if err := deps.UsageSvc.IncrementTokenUsage(bgCtx, userID, estimatedTokens); err != nil {
+					slog.Error("token usage increment failed", "user_id", userID, "tokens", estimatedTokens, "error", err)
 				}
 			}()
 		}

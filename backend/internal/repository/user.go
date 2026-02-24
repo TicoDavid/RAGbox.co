@@ -27,3 +27,19 @@ func (r *UserRepo) EnsureUser(ctx context.Context, userID string) error {
 	`, userID)
 	return err
 }
+
+// GetSubscriptionTier returns the subscription tier for a user.
+// Returns "free" if the user is not found or has no tier set (STORY-199).
+func (r *UserRepo) GetSubscriptionTier(ctx context.Context, userID string) (string, error) {
+	var tier string
+	err := r.pool.QueryRow(ctx, `
+		SELECT COALESCE(subscription_tier, 'free') FROM users WHERE id = $1
+	`, userID).Scan(&tier)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return "free", nil
+		}
+		return "free", err
+	}
+	return tier, nil
+}

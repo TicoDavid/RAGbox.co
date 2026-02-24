@@ -34,6 +34,22 @@ func (r *UsageRepo) Increment(ctx context.Context, userID, metric string) error 
 	return err
 }
 
+// IncrementBy atomically increments a usage metric by a specified amount.
+// Used for token tracking where each request consumes a variable number of tokens (STORY-199).
+func (r *UsageRepo) IncrementBy(ctx context.Context, userID, metric string, amount int64) error {
+	now := time.Now().UTC()
+	periodStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	periodEnd := periodStart.AddDate(0, 1, 0)
+
+	_, err := r.pool.Exec(ctx, `
+		INSERT INTO usage_tracking (user_id, metric, count, period_start, period_end)
+		VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT (user_id, metric, period_start)
+		DO UPDATE SET count = usage_tracking.count + $3, updated_at = NOW()
+	`, userID, metric, amount, periodStart, periodEnd)
+	return err
+}
+
 // GetUsage returns the current usage count for a specific metric in the current period.
 func (r *UsageRepo) GetUsage(ctx context.Context, userID, metric string) (int64, error) {
 	now := time.Now().UTC()

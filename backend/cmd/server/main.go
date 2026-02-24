@@ -225,6 +225,21 @@ func run() error {
 	cortexSvc := service.NewCortexService(cortexRepo, embeddingAdapter)
 	slog.Info("cortex service initialized")
 
+	// Usage tracking (STORY-199: token allocation enforcement)
+	usageRepo := repository.NewUsageRepo(pool)
+	usageSvc := service.NewUsageService(usageRepo)
+	slog.Info("usage service initialized (token allocation enforcement active)")
+
+	// User tier lookup function — queries subscription_tier from users table
+	userTierFunc := func(ctx context.Context, userID string) string {
+		tier, err := userRepo.GetSubscriptionTier(ctx, userID)
+		if err != nil {
+			slog.Error("failed to get user tier, defaulting to free", "user_id", userID, "error", err)
+			return "free"
+		}
+		return tier
+	}
+
 	// Privilege state (in-memory per-user toggle)
 	privilegeState := handler.NewPrivilegeState()
 
@@ -299,7 +314,9 @@ func run() error {
 			CortexSvc:      cortexSvc,
 			QueryCache:     queryCache,
 			EmbedCache:     embedCache,
-			DocStatus:      docRepo, // STORY-172: processing status + document summaries
+			UsageSvc:       usageSvc,      // STORY-199: token allocation enforcement
+			UserTierFunc:   userTierFunc,   // STORY-199: tier lookup from users table
+			DocStatus:      docRepo,        // STORY-172: processing status + document summaries
 		},
 
 		ContentGapDeps: handler.ContentGapDeps{
@@ -379,6 +396,12 @@ func run() error {
 		MercuryConfigDeps: handler.MercuryConfigDeps{
 			Reader: mercuryConfigRepo,
 			Writer: mercuryConfigRepo,
+		},
+
+		// STORY-199: Usage metering endpoint (GET /api/v1/usage)
+		UsageDeps: &handler.UsageDeps{
+			UsageSvc:     usageSvc,
+			UserTierFunc: userTierFunc,
 		},
 	})
 

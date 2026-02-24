@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 )
 
@@ -11,6 +12,7 @@ import (
 // Implemented by repository.UsageRepo.
 type UsageRepository interface {
 	Increment(ctx context.Context, userID, metric string) error
+	IncrementBy(ctx context.Context, userID, metric string, amount int64) error
 	GetUsage(ctx context.Context, userID, metric string) (int64, error)
 	GetAllUsage(ctx context.Context, userID string) ([]UsageRecord, error)
 }
@@ -30,33 +32,75 @@ type TierLimits struct {
 	DocumentsStored int64 `json:"documents_stored"` // -1 = unlimited
 	VoiceMinutes    int64 `json:"voice_minutes"`
 	APICalls        int64 `json:"api_calls"`
+	TokenBudget     int64 `json:"token_budget"` // monthly token allocation; -1 = unlimited (STORY-199)
 }
 
+// Token budget constants — CPO-approved allocations (STORY-199).
+const (
+	TokenBudgetStarter      int64 = 2_000_000  // Starter tier: $149/mo
+	TokenBudgetProfessional int64 = 5_000_000  // Professional tier: $399/mo
+	TokenBudgetEnterprise   int64 = 15_000_000 // Enterprise tier: $999/mo
+	TokenBudgetSovereign    int64 = -1          // Sovereign tier: contract-based, no hard limit
+	TokenBudgetFree         int64 = 500_000     // Free/trial tier: limited
+)
+
+// MetricTokensUsed is the usage_tracking metric key for token consumption.
+const MetricTokensUsed = "tokens_used"
+
 // TierLimitMap maps subscription tier names to their limits.
+// Includes both legacy DB tier names (free/sovereign/mercury/syndicate)
+// and CPO-approved tier names (starter/professional/enterprise/sovereign).
 var TierLimitMap = map[string]TierLimits{
+	// Legacy DB tier names (backward compatibility)
 	"free": {
 		AegisQueries:    25,
 		DocumentsStored: 5,
 		VoiceMinutes:    0,
 		APICalls:        0,
+		TokenBudget:     TokenBudgetFree,
 	},
 	"sovereign": {
 		AegisQueries:    500,
 		DocumentsStored: 50,
 		VoiceMinutes:    0,
 		APICalls:        0,
+		TokenBudget:     TokenBudgetSovereign, // unlimited — contract-based
 	},
 	"mercury": {
 		AegisQueries:    500,
 		DocumentsStored: 50,
 		VoiceMinutes:    120,
 		APICalls:        0,
+		TokenBudget:     TokenBudgetProfessional,
 	},
 	"syndicate": {
 		AegisQueries:    10000,
 		DocumentsStored: -1, // unlimited
 		VoiceMinutes:    -1, // unlimited
 		APICalls:        10000,
+		TokenBudget:     TokenBudgetEnterprise,
+	},
+	// CPO-approved tier names (STORY-199)
+	"starter": {
+		AegisQueries:    100,
+		DocumentsStored: 10,
+		VoiceMinutes:    0,
+		APICalls:        100,
+		TokenBudget:     TokenBudgetStarter,
+	},
+	"professional": {
+		AegisQueries:    500,
+		DocumentsStored: 50,
+		VoiceMinutes:    120,
+		APICalls:        500,
+		TokenBudget:     TokenBudgetProfessional,
+	},
+	"enterprise": {
+		AegisQueries:    10000,
+		DocumentsStored: -1,
+		VoiceMinutes:    -1,
+		APICalls:        10000,
+		TokenBudget:     TokenBudgetEnterprise,
 	},
 }
 
@@ -124,6 +168,8 @@ func (s *UsageService) CheckLimit(ctx context.Context, userID, metric, tier stri
 		limit = limits.VoiceMinutes
 	case "api_calls":
 		limit = limits.APICalls
+	case MetricTokensUsed:
+		limit = limits.TokenBudget
 	default:
 		return true, 0, 0, nil // unknown metric, allow
 	}
@@ -169,6 +215,7 @@ func (s *UsageService) GetUsageReport(ctx context.Context, userID, tier string) 
 		"documents_stored": limits.DocumentsStored,
 		"voice_minutes":    limits.VoiceMinutes,
 		"api_calls":        limits.APICalls,
+		MetricTokensUsed:   limits.TokenBudget,
 	}
 
 	usage := map[string]MetricUsage{}
@@ -204,4 +251,57 @@ func (s *UsageService) GetUsageReport(ctx context.Context, userID, tier string) 
 			},
 		},
 	}, nil
+}
+
+// ── Token allocation enforcement (STORY-199) ─────────────────────────
+
+// CheckTokenLimit returns whether the user is within their tier's monthly token budget.
+// Returns (allowed, tokensUsed, tokenBudget, error).
+// Sovereign tier is always allowed (unlimited).
+func (s *UsageService) CheckTokenLimit(ctx context.Context, userID, tier string) (bool, int64, int64, error) {
+	return s.CheckLimit(ctx, userID, MetricTokensUsed, tier)
+}
+
+// IncrementTokenUsage records token consumption for a completed LLM call.
+// The amount is the total tokens (input + output) estimated for the request.
+// Does NOT fail the current request — this is a post-response fire-and-forget operation.
+func (s *UsageService) IncrementTokenUsage(ctx context.Context, userID string, tokens int64) error {
+	if tokens <= 0 {
+		return nil
+	}
+	if err := s.repo.IncrementBy(ctx, userID, MetricTokensUsed, tokens); err != nil {
+		slog.Error("[Usage] Failed to increment tokens", "user_id", userID, "tokens", tokens, "error", err)
+		return err
+	}
+	slog.Info("[Usage] Token usage recorded", "user_id", userID, "tokens", tokens)
+	return nil
+}
+
+// EstimateTokens approximates the token count for a given text.
+// Uses the established words × 1.3 heuristic, consistent with the chunker.
+func EstimateTokens(text string) int64 {
+	if text == "" {
+		return 0
+	}
+	words := len(strings.Fields(text))
+	return int64(float64(words) * 1.3)
+}
+
+// EstimateRequestTokens calculates the total token cost for a chat request:
+// input tokens (query + context chunks) + output tokens (generated answer).
+func EstimateRequestTokens(query string, chunkTexts []string, answer string) int64 {
+	var total int64
+
+	// Input: query
+	total += EstimateTokens(query)
+
+	// Input: context chunks sent to LLM
+	for _, chunk := range chunkTexts {
+		total += EstimateTokens(chunk)
+	}
+
+	// Output: generated answer
+	total += EstimateTokens(answer)
+
+	return total
 }
