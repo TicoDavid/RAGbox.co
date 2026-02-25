@@ -1,0 +1,5 @@
+-- Down migration for 20260216_add_roam_channel
+-- NOTE: PostgreSQL does not support removing values from an existing enum.
+-- ALTER TYPE mercury_channel ADD VALUE 'roam' cannot be reversed.
+-- Manual rollback required: recreate enum without 'roam' and update all references.
+-- See: https://www.postgresql.org/docs/current/sql-altertype.html

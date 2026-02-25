@@ -1,0 +1,2 @@
+-- Down migration for 20260127220455_add_ivfflat_index
+-- Original migration was empty (no-op). Nothing to reverse.
