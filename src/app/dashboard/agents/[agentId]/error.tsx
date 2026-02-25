@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { AlertTriangle, ArrowLeft, RotateCcw } from 'lucide-react'
 import Link from 'next/link'
+import { logger } from '@/lib/logger'
 
 export default function AgentError({
   error,
@@ -12,7 +13,7 @@ export default function AgentError({
   reset: () => void
 }) {
   useEffect(() => {
-    // Log to monitoring — no console.log in production
+    logger.error('Agent page error boundary', { message: error.message, digest: error.digest })
   }, [error])
 
   return (
