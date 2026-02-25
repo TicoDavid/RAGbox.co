@@ -4,27 +4,59 @@ import React, { useState, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { Components } from 'react-markdown'
-import type { ChatMessage, MercuryChannel } from '@/types/ragbox'
+import type { ChatMessage, MercuryChannel, Citation } from '@/types/ragbox'
 import { CitationTag } from './CitationTag'
 import { ConfidenceBadge } from './ConfidenceBadge'
 import { ModelBadge } from './ModelBadge'
 import { Copy, Check, ThumbsUp, ThumbsDown, Share2 } from 'lucide-react'
 
 // ============================================================================
-// JSON GUARD — same fix as CenterMessage (BUG-009 / BUG-019)
+// JSON GUARD — same fix as CenterMessage (BUG-009 / BUG-019 / HOTFIX)
+// Parse structured JSON: extract answer, citations, and confidence.
 // ============================================================================
 
-export function extractProse(raw: string): string {
+interface ParsedResponse {
+  content: string
+  citations?: Citation[]
+  confidence?: number
+}
+
+function parseStructuredResponse(
+  raw: string,
+  existingCitations?: Citation[],
+  existingConfidence?: number,
+): ParsedResponse {
   const trimmed = raw.trim()
-  if (!trimmed.startsWith('{')) return raw
+
+  if (!trimmed.startsWith('{')) {
+    return { content: raw, citations: existingCitations, confidence: existingConfidence }
+  }
+
   try {
     const json = JSON.parse(trimmed)
-    const answer = json.data?.answer ?? json.answer
-    if (typeof answer === 'string') return answer
+    const data = json.data ?? json
+
+    const answer = data.answer
+    if (typeof answer !== 'string') {
+      return { content: raw, citations: existingCitations, confidence: existingConfidence }
+    }
+
+    const jsonCitations = Array.isArray(data.citations) ? data.citations : undefined
+    const citations = existingCitations && existingCitations.length > 0
+      ? existingCitations
+      : jsonCitations
+
+    const confidence = existingConfidence ?? (typeof data.confidence === 'number' ? data.confidence : undefined)
+
+    return { content: answer, citations, confidence }
   } catch {
-    // Not valid JSON — render as-is
+    return { content: raw, citations: existingCitations, confidence: existingConfidence }
   }
-  return raw
+}
+
+/** Extract prose only — used by ConversationThread streaming indicator */
+export function extractProse(raw: string): string {
+  return parseStructuredResponse(raw).content
 }
 
 // Markdown components for styled rendering in the dark theme
@@ -143,6 +175,11 @@ function ActionButtons({ content }: { content: string }) {
 export function Message({ message }: MessageProps) {
   const isUser = message.role === 'user'
 
+  // HOTFIX: Parse structured JSON responses — extract answer, citations, confidence
+  const parsed = isUser
+    ? { content: message.content, citations: message.citations, confidence: message.confidence }
+    : parseStructuredResponse(message.content, message.citations, message.confidence)
+
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4 group`}>
       <div
@@ -154,7 +191,7 @@ export function Message({ message }: MessageProps) {
               : 'bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)]'
         }`}
       >
-        {/* Content — BUG-019: extractProse strips JSON metadata from assistant replies */}
+        {/* Content — HOTFIX: parsed.content is always prose, never raw JSON */}
         {isUser ? (
           <div className="text-sm whitespace-pre-wrap leading-relaxed">
             {message.content}
@@ -162,15 +199,15 @@ export function Message({ message }: MessageProps) {
         ) : (
           <div className="text-sm leading-relaxed prose-sm prose-invert max-w-none">
             <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
-              {extractProse(message.content)}
+              {parsed.content}
             </ReactMarkdown>
           </div>
         )}
 
-        {/* Citations */}
-        {message.citations && message.citations.length > 0 && (
+        {/* Citations — from SSE events OR extracted from JSON content */}
+        {parsed.citations && parsed.citations.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2.5 pt-2.5 border-t border-[var(--border-subtle)]">
-            {message.citations.map((citation) => (
+            {parsed.citations.map((citation) => (
               <CitationTag key={citation.citationIndex} citation={citation} />
             ))}
           </div>
@@ -182,8 +219,8 @@ export function Message({ message }: MessageProps) {
             {formatTime(message.timestamp)}
           </span>
           <ChannelBadge channel={message.channel} isUser={isUser} />
-          {message.confidence !== undefined && !isUser && (
-            <ConfidenceBadge confidence={message.confidence} />
+          {parsed.confidence !== undefined && !isUser && (
+            <ConfidenceBadge confidence={parsed.confidence} />
           )}
           {!isUser && (
             <ModelBadge modelUsed={message.modelUsed} provider={message.provider} latencyMs={message.latencyMs} />
@@ -193,7 +230,7 @@ export function Message({ message }: MessageProps) {
         {/* Action buttons (assistant messages only, visible on hover) */}
         {!isUser && (
           <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-            <ActionButtons content={extractProse(message.content)} />
+            <ActionButtons content={parsed.content} />
           </div>
         )}
       </div>

@@ -392,10 +392,11 @@ export const useChatStore = create<ChatState>()(
                         // Unwrap: backend may send { answer, ... } or { data: { answer, ... } }
                         const d = data.data ?? data
 
-                        // STORY-173: Only use done.answer as fallback when no tokens were
-                        // streamed. Previously this always replaced, causing a visual flash
-                        // where the incrementally-rendered text would reset then reappear.
-                        if (typeof d.answer === 'string' && !fullContent) {
+                        // STORY-173 + HOTFIX: Use done.answer when either:
+                        // (a) no tokens were streamed yet, OR
+                        // (b) streamed content is raw JSON (backend streamed JSON chars as tokens)
+                        const streamedIsJson = fullContent.trim().startsWith('{')
+                        if (typeof d.answer === 'string' && (!fullContent || streamedIsJson)) {
                           fullContent = d.answer
                           set({ streamingContent: fullContent })
                         }

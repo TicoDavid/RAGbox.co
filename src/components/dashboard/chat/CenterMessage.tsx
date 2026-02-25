@@ -17,20 +17,57 @@ import { ChannelBadge } from './ChannelBadge'
 type ResponseTab = 'answer' | 'sources' | 'evidence'
 
 // ============================================================================
-// JSON GUARD — If content is raw JSON (BUG-009 / BUG-019), extract prose only
+// JSON GUARD — If content is raw JSON (BUG-009 / BUG-019), extract structured
+// fields: answer → prose, citations → source cards, confidence → badge.
 // ============================================================================
 
-function extractProse(raw: string): string {
+interface ParsedResponse {
+  content: string
+  citations?: Citation[]
+  confidence?: number
+}
+
+function parseStructuredResponse(
+  raw: string,
+  existingCitations?: Citation[],
+  existingConfidence?: number,
+): ParsedResponse {
   const trimmed = raw.trim()
-  if (!trimmed.startsWith('{')) return raw
+
+  // Not JSON — return as-is with existing metadata
+  if (!trimmed.startsWith('{')) {
+    return { content: raw, citations: existingCitations, confidence: existingConfidence }
+  }
+
   try {
     const json = JSON.parse(trimmed)
-    const answer = json.data?.answer ?? json.answer
-    if (typeof answer === 'string') return answer
+    const data = json.data ?? json
+
+    const answer = data.answer
+    if (typeof answer !== 'string') {
+      // Valid JSON but no answer key — return raw
+      return { content: raw, citations: existingCitations, confidence: existingConfidence }
+    }
+
+    // Extract citations from JSON if not already available on the message
+    const jsonCitations = Array.isArray(data.citations) ? data.citations : undefined
+    const citations = existingCitations && existingCitations.length > 0
+      ? existingCitations
+      : jsonCitations
+
+    // Extract confidence from JSON if not already available on the message
+    const confidence = existingConfidence ?? (typeof data.confidence === 'number' ? data.confidence : undefined)
+
+    return { content: answer, citations, confidence }
   } catch {
-    // Not valid JSON — render as-is
+    // Malformed JSON — render as-is
+    return { content: raw, citations: existingCitations, confidence: existingConfidence }
   }
-  return raw
+}
+
+/** Backward-compat: extract prose only (used by streaming indicator) */
+function extractProse(raw: string): string {
+  return parseStructuredResponse(raw).content
 }
 
 // ============================================================================
@@ -159,12 +196,15 @@ export function CenterMessage({ message }: { message: ChatMessage }) {
     )
   }
 
-  // BUG-009 / BUG-019: Answer tab shows prose only — never raw JSON.
-  // Citations & confidence come from message fields (set by chatStore),
-  // metadata (sources, evidence, model_used) rendered only in Sources/Evidence tabs.
-  const displayContent = isUser ? message.content : extractProse(message.content)
-  const displayCitations = message.citations
-  const displayConfidence = message.confidence
+  // BUG-009 / BUG-019 / HOTFIX: Parse structured JSON responses.
+  // Answer → prose in Answer tab. Citations & confidence extracted from
+  // JSON content when not already set via SSE events on the message.
+  const parsed = isUser
+    ? { content: message.content, citations: message.citations, confidence: message.confidence }
+    : parseStructuredResponse(message.content, message.citations, message.confidence)
+  const displayContent = parsed.content
+  const displayCitations = parsed.citations
+  const displayConfidence = parsed.confidence
 
   // Hide Sources/Evidence tabs when message has no metadata to show
   const hasSources = displayCitations && displayCitations.length > 0
