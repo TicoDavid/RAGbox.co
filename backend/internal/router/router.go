@@ -41,6 +41,7 @@ type Dependencies struct {
 
 	// Privilege
 	PrivilegeState *handler.PrivilegeState
+	PrivilegeDeps  *handler.PrivilegeDeps // STORY-S01: RBAC + audit deps for toggle
 
 	// Chat
 	ChatDeps handler.ChatDeps
@@ -203,7 +204,13 @@ func New(deps *Dependencies) *chi.Mux {
 
 		// Privilege
 		r.With(timeout30s).Get("/api/privilege", handler.GetPrivilege(deps.PrivilegeState))
-		r.With(timeout30s).Post("/api/privilege", handler.TogglePrivilege(deps.PrivilegeState))
+		// STORY-S01: TogglePrivilege now requires PrivilegeDeps for RBAC + audit
+		if deps.PrivilegeDeps != nil {
+			r.With(timeout30s).Post("/api/privilege", handler.TogglePrivilege(*deps.PrivilegeDeps))
+		} else {
+			// Fallback: simple toggle without RBAC (development only)
+			r.With(timeout30s).Post("/api/privilege", handler.TogglePrivilege(handler.PrivilegeDeps{State: deps.PrivilegeState}))
+		}
 
 		// Chat — SSE streaming, NO write timeout. Stricter rate limit (10/min).
 		if deps.ChatRateLimiter != nil {

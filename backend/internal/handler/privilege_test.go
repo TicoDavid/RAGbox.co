@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -8,6 +9,30 @@ import (
 
 	"github.com/connexus-ai/ragbox-backend/internal/middleware"
 )
+
+// stubAuditLogger captures audit log calls for testing.
+type stubAuditLogger struct {
+	calls []map[string]interface{}
+}
+
+func (s *stubAuditLogger) LogWithDetails(_ context.Context, action, userID, resourceID, resourceType string, details map[string]interface{}) error {
+	s.calls = append(s.calls, map[string]interface{}{
+		"action":       action,
+		"userID":       userID,
+		"resourceID":   resourceID,
+		"resourceType": resourceType,
+		"details":      details,
+	})
+	return nil
+}
+
+func partnerRoleChecker(_ context.Context, _ string) (string, error) {
+	return "Partner", nil
+}
+
+func associateRoleChecker(_ context.Context, _ string) (string, error) {
+	return "Associate", nil
+}
 
 func TestGetPrivilege_Default(t *testing.T) {
 	state := NewPrivilegeState()
@@ -34,12 +59,18 @@ func TestGetPrivilege_Default(t *testing.T) {
 	}
 }
 
-func TestTogglePrivilege(t *testing.T) {
+func TestTogglePrivilege_PartnerAllowed(t *testing.T) {
 	state := NewPrivilegeState()
-	toggleHandler := TogglePrivilege(state)
+	audit := &stubAuditLogger{}
+	deps := PrivilegeDeps{
+		State:       state,
+		RoleChecker: partnerRoleChecker,
+		AuditLogger: audit,
+	}
+	toggleHandler := TogglePrivilege(deps)
 	getHandler := GetPrivilege(state)
 
-	// Toggle ON
+	// Toggle ON (Partner role — should succeed)
 	req := httptest.NewRequest(http.MethodPost, "/api/privilege", nil)
 	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
 	rec := httptest.NewRecorder()
@@ -62,21 +93,48 @@ func TestTogglePrivilege(t *testing.T) {
 		t.Error("privilege should be ON after toggle")
 	}
 
+	// Verify audit logged
+	if len(audit.calls) != 1 {
+		t.Fatalf("expected 1 audit call, got %d", len(audit.calls))
+	}
+	if audit.calls[0]["action"] != "privilege_activated" {
+		t.Errorf("expected action=privilege_activated, got %s", audit.calls[0]["action"])
+	}
+
 	// Toggle OFF
 	req = httptest.NewRequest(http.MethodPost, "/api/privilege", nil)
 	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
 	rec = httptest.NewRecorder()
 	toggleHandler.ServeHTTP(rec, req)
 
-	req = httptest.NewRequest(http.MethodGet, "/api/privilege", nil)
-	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
-	rec = httptest.NewRecorder()
-	getHandler.ServeHTTP(rec, req)
+	if len(audit.calls) != 2 {
+		t.Fatalf("expected 2 audit calls, got %d", len(audit.calls))
+	}
+	if audit.calls[1]["action"] != "privilege_deactivated" {
+		t.Errorf("expected action=privilege_deactivated, got %s", audit.calls[1]["action"])
+	}
+}
 
-	json.Unmarshal(rec.Body.Bytes(), &resp)
-	data = resp.Data.(map[string]interface{})
-	if data["privilegeMode"].(bool) {
-		t.Error("privilege should be OFF after second toggle")
+func TestTogglePrivilege_AssociateDenied(t *testing.T) {
+	state := NewPrivilegeState()
+	deps := PrivilegeDeps{
+		State:       state,
+		RoleChecker: associateRoleChecker,
+	}
+	toggleHandler := TogglePrivilege(deps)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/privilege", nil)
+	req = req.WithContext(middleware.WithUserID(req.Context(), "user-associate"))
+	rec := httptest.NewRecorder()
+	toggleHandler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want 403 for Associate role", rec.Code)
+	}
+
+	// Verify privilege was NOT toggled
+	if state.IsPrivileged("user-associate") {
+		t.Error("privilege should remain OFF for denied user")
 	}
 }
 
@@ -95,7 +153,8 @@ func TestGetPrivilege_Unauthorized(t *testing.T) {
 
 func TestTogglePrivilege_Unauthorized(t *testing.T) {
 	state := NewPrivilegeState()
-	handler := TogglePrivilege(state)
+	deps := PrivilegeDeps{State: state, RoleChecker: partnerRoleChecker}
+	handler := TogglePrivilege(deps)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/privilege", nil)
 	rec := httptest.NewRecorder()
@@ -108,7 +167,8 @@ func TestTogglePrivilege_Unauthorized(t *testing.T) {
 
 func TestPrivilege_UserIsolation(t *testing.T) {
 	state := NewPrivilegeState()
-	toggleHandler := TogglePrivilege(state)
+	deps := PrivilegeDeps{State: state, RoleChecker: partnerRoleChecker}
+	toggleHandler := TogglePrivilege(deps)
 	getHandler := GetPrivilege(state)
 
 	// Toggle user-1 ON
@@ -128,5 +188,27 @@ func TestPrivilege_UserIsolation(t *testing.T) {
 	data := resp.Data.(map[string]interface{})
 	if data["privilegeMode"].(bool) {
 		t.Error("user-2 privilege should be OFF (isolated from user-1)")
+	}
+}
+
+func TestIsPrivileged_ServerSideState(t *testing.T) {
+	state := NewPrivilegeState()
+
+	// Default is false
+	if state.IsPrivileged("user-1") {
+		t.Fatal("expected false by default")
+	}
+
+	// Toggle via deps (partner)
+	deps := PrivilegeDeps{State: state, RoleChecker: partnerRoleChecker}
+	toggleHandler := TogglePrivilege(deps)
+	req := httptest.NewRequest(http.MethodPost, "/api/privilege", nil)
+	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
+	rec := httptest.NewRecorder()
+	toggleHandler.ServeHTTP(rec, req)
+
+	// IsPrivileged should return true (server-side state for chat handler)
+	if !state.IsPrivileged("user-1") {
+		t.Fatal("expected true after toggle")
 	}
 }

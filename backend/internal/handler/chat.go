@@ -212,6 +212,7 @@ type ChatDeps struct {
 	UsageSvc       *service.UsageService // optional — nil disables usage metering
 	UserTierFunc   func(ctx context.Context, userID string) string // optional — returns user's subscription tier
 	DocStatus      DocumentStatusChecker // optional — STORY-172: check if docs are still processing
+	PrivilegeState *PrivilegeState // STORY-S01 Gap 3: server-side privilege state (ignores request body)
 }
 
 // selfRAGSkipThreshold: skip SelfRAG reflection when initial confidence is above this.
@@ -289,11 +290,18 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			return
 		}
 
+		// STORY-S01 Gap 3: IGNORE req.PrivilegeMode from request body.
+		// Derive privilege state from server-side authenticated session only.
+		privilegeMode := false
+		if deps.PrivilegeState != nil {
+			privilegeMode = deps.PrivilegeState.IsPrivileged(userID)
+		}
+
 		slog.Info("[DEBUG-CHAT] parsed request",
 			"user_id", userID,
 			"query", req.Query,
 			"query_len", len(req.Query),
-			"privilege_mode", req.PrivilegeMode,
+			"privilege_mode", privilegeMode,
 			"mode", req.Mode,
 			"persona", req.Persona,
 			"llm_provider", req.LLMProvider,
@@ -420,7 +428,7 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 		// Goroutine 1: check query result cache
 		g.Go(func() error {
 			if deps.QueryCache != nil {
-				if cached, ok := deps.QueryCache.Get(userID, req.Query, req.PrivilegeMode); ok {
+				if cached, ok := deps.QueryCache.Get(userID, req.Query, privilegeMode); ok {
 					retrieval = cached
 					cacheHit = true
 				}
@@ -461,7 +469,7 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 		if retrieval == nil {
 			tSearchStart := time.Now()
 			var err error
-			retrieval, err = deps.Retriever.RetrieveWithVec(ctx, userID, req.Query, queryVec, req.PrivilegeMode)
+			retrieval, err = deps.Retriever.RetrieveWithVec(ctx, userID, req.Query, queryVec, privilegeMode)
 			if err != nil {
 				slog.Error("chat retrieval failed", "user_id", userID, "stage", "retrieval", "error", err)
 				sendEvent(w, flusher, "error", fmt.Sprintf(`{"message":%q}`, rateLimitMessage(err)))
@@ -470,7 +478,7 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			}
 			_ = tSearchStart // used in latency log below
 			if deps.QueryCache != nil {
-				deps.QueryCache.Set(userID, req.Query, req.PrivilegeMode, retrieval)
+				deps.QueryCache.Set(userID, req.Query, privilegeMode, retrieval)
 			}
 		}
 
@@ -578,7 +586,7 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			slog.Warn("[DEBUG-CHAT] SILENCE: zero chunks retrieved — triggering silence protocol",
 				"user_id", userID,
 				"query", req.Query,
-				"privilege_mode", req.PrivilegeMode,
+				"privilege_mode", privilegeMode,
 			)
 			if deps.Metrics != nil {
 				deps.Metrics.IncrementSilenceTrigger()

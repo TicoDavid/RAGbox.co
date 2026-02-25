@@ -28,6 +28,22 @@ func (r *UserRepo) EnsureUser(ctx context.Context, userID string) error {
 	return err
 }
 
+// GetUserRole returns the role for a user (e.g. "Partner", "Associate", "Auditor").
+// Returns "Associate" if the user is not found (STORY-S01).
+func (r *UserRepo) GetUserRole(ctx context.Context, userID string) (string, error) {
+	var role string
+	err := r.pool.QueryRow(ctx, `
+		SELECT COALESCE(role, 'Associate') FROM users WHERE id = $1
+	`, userID).Scan(&role)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return "Associate", nil
+		}
+		return "Associate", err
+	}
+	return role, nil
+}
+
 // GetSubscriptionTier returns the subscription tier for a user.
 // Returns "free" if the user is not found or has no tier set (STORY-199).
 func (r *UserRepo) GetSubscriptionTier(ctx context.Context, userID string) (string, error) {

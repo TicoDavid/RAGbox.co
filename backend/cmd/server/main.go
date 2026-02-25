@@ -243,6 +243,11 @@ func run() error {
 	// Privilege state (in-memory per-user toggle)
 	privilegeState := handler.NewPrivilegeState()
 
+	// STORY-S01: Privilege role checker — queries user role from DB
+	privilegeRoleChecker := handler.RoleChecker(func(ctx context.Context, userID string) (string, error) {
+		return userRepo.GetUserRole(ctx, userID)
+	})
+
 	// ─── Prometheus metrics ────────────────────────────────────────────
 
 	reg := prometheus.NewRegistry()
@@ -302,6 +307,12 @@ func run() error {
 		BucketName:       cfg.GCSBucketName,
 
 		PrivilegeState: privilegeState,
+		// STORY-S01: Privilege RBAC + audit
+		PrivilegeDeps: &handler.PrivilegeDeps{
+			State:       privilegeState,
+			RoleChecker: privilegeRoleChecker,
+			AuditLogger: auditService,
+		},
 
 		ChatDeps: handler.ChatDeps{
 			Retriever:      retrieverService,
@@ -316,7 +327,8 @@ func run() error {
 			EmbedCache:     embedCache,
 			UsageSvc:       usageSvc,      // STORY-199: token allocation enforcement
 			UserTierFunc:   userTierFunc,   // STORY-199: tier lookup from users table
-			DocStatus:      docRepo,        // STORY-172: processing status + document summaries
+			DocStatus:      docRepo,         // STORY-172: processing status + document summaries
+			PrivilegeState: privilegeState,  // STORY-S01 Gap 3: server-side privilege state
 		},
 
 		ContentGapDeps: handler.ContentGapDeps{
