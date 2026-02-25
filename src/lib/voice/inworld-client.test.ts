@@ -4,7 +4,7 @@ import { InworldTTSClient, chunkText, prepareTextForTTS } from './inworld-client
 // Mock global fetch
 // ---------------------------------------------------------------------------
 const mockFetch = jest.fn();
-(global as any).fetch = mockFetch;
+globalThis.fetch = mockFetch as typeof fetch;
 
 // Helper: build a successful TTS response
 function okResponse(audioText: string) {

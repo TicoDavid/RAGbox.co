@@ -74,15 +74,10 @@ afterEach(() => {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function createWebhookRequest(body: string, signature = 'sig_valid') {
+function createWebhookRequest(body: string, signature = 'sig_valid'): Partial<Request> {
   return {
     text: async () => body,
-    headers: {
-      get: (name: string) => {
-        if (name === 'stripe-signature') return signature
-        return null
-      },
-    },
+    headers: new Headers({ 'stripe-signature': signature }),
   }
 }
 
@@ -106,7 +101,7 @@ describe('Stripe Webhook', () => {
 
       const { POST } = require('@/app/api/stripe/webhook/route')
       const req = createWebhookRequest('{}')
-      const res = await POST(req as any)
+      const res = await POST(req as Request)
 
       expect(res.status).toBe(200)
       expect(mockProvisionFromCheckout).toHaveBeenCalledWith(
@@ -128,7 +123,7 @@ describe('Stripe Webhook', () => {
 
       const { POST } = require('@/app/api/stripe/webhook/route')
       const req = createWebhookRequest('{}')
-      const res = await POST(req as any)
+      const res = await POST(req as Request)
 
       expect(res.status).toBe(200)
       expect(mockUpdateSubscription).toHaveBeenCalledWith(
@@ -148,7 +143,7 @@ describe('Stripe Webhook', () => {
 
       const { POST } = require('@/app/api/stripe/webhook/route')
       const req = createWebhookRequest('{}')
-      const res = await POST(req as any)
+      const res = await POST(req as Request)
 
       expect(res.status).toBe(200)
       expect(mockUpdateSubscription).toHaveBeenCalledWith(
@@ -168,7 +163,7 @@ describe('Stripe Webhook', () => {
 
       const { POST } = require('@/app/api/stripe/webhook/route')
       const req = createWebhookRequest('{}')
-      const res = await POST(req as any)
+      const res = await POST(req as Request)
 
       expect(res.status).toBe(200)
       expect(mockHandlePaymentFailed).toHaveBeenCalledWith({ stripeCustomerId: 'cus_123' })
@@ -180,7 +175,7 @@ describe('Stripe Webhook', () => {
 
       const { POST } = require('@/app/api/stripe/webhook/route')
       const req = createWebhookRequest('{}')
-      const res = await POST(req as any)
+      const res = await POST(req as Request)
 
       expect(res.status).toBe(200)
       const data = await res.json()
@@ -196,7 +191,7 @@ describe('Stripe Webhook', () => {
 
       const { POST } = require('@/app/api/stripe/webhook/route')
       const req = createWebhookRequest('{}', 'sig_invalid')
-      const res = await POST(req as any)
+      const res = await POST(req as Request)
 
       expect(res.status).toBe(400)
       const data = await res.json()
@@ -210,7 +205,7 @@ describe('Stripe Webhook', () => {
 
       const { POST } = require('@/app/api/stripe/webhook/route')
       const req = createWebhookRequest('')
-      const res = await POST(req as any)
+      const res = await POST(req as Request)
 
       expect(res.status).toBe(400)
     })
@@ -227,7 +222,7 @@ describe('Stripe Webhook', () => {
       jest.resetModules()
       const { POST } = require('@/app/api/stripe/webhook/route')
       const req = createWebhookRequest('{}')
-      const res = await POST(req as any)
+      const res = await POST(req as Request)
 
       expect(res.status).toBe(503)
       const data = await res.json()
@@ -250,8 +245,8 @@ describe('Stripe Webhook', () => {
 
       const { POST } = require('@/app/api/stripe/webhook/route')
 
-      const res1 = await POST(createWebhookRequest('{}') as any)
-      const res2 = await POST(createWebhookRequest('{}') as any)
+      const res1 = await POST(createWebhookRequest('{}') as Request)
+      const res2 = await POST(createWebhookRequest('{}') as Request)
 
       expect(res1.status).toBe(200)
       expect(res2.status).toBe(200)

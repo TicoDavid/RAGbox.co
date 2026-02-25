@@ -62,8 +62,7 @@ function buildRequest(
   if (body) {
     init.body = JSON.stringify(body)
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return new NextRequest(new URL('/api/settings/llm', 'http://localhost:3000'), init as any)
+  return new NextRequest(new URL('/api/settings/llm', 'http://localhost:3000'), init as ConstructorParameters<typeof NextRequest>[1])
 }
 
 async function parseResponse(res: Response): Promise<Record<string, unknown>> {

@@ -109,15 +109,12 @@ function buildRequest(
   url: string,
   body?: Record<string, unknown>,
 ): NextRequest {
-  const init: { method: string; headers: Record<string, string>; body?: string; signal?: AbortSignal } = {
+  const init: RequestInit = {
     method,
     headers: { 'Content-Type': 'application/json' },
+    ...(body && { body: JSON.stringify(body) }),
   }
-  if (body) {
-    init.body = JSON.stringify(body)
-  }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return new NextRequest(new URL(url, 'http://localhost:3000'), init as any)
+  return new NextRequest(new URL(url, 'http://localhost:3000'), init as ConstructorParameters<typeof NextRequest>[1])
 }
 
 /** Extract JSON body from a NextResponse or Response. */

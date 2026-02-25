@@ -44,10 +44,10 @@ beforeEach(() => {
 // ─── Import the PRICES map and POST handler ─────────────────────────────────
 // We dynamically require to get the module after env vars are set
 
-function createMockRequest(body: unknown): { json: () => Promise<unknown> } {
+function createMockRequest(body: unknown): Partial<Request> {
   return {
     json: async () => body,
-  }
+  } as Partial<Request>
 }
 
 describe('Stripe Checkout', () => {
@@ -58,7 +58,7 @@ describe('Stripe Checkout', () => {
       // Import fresh module
       const { POST } = require('@/app/api/stripe/checkout/route')
       const req = createMockRequest({ plan: 'sovereign' })
-      const res = await POST(req as any)
+      const res = await POST(req as Request)
       const data = await res.json()
 
       expect(data.url).toBe('https://checkout.stripe.com/test')
@@ -73,7 +73,7 @@ describe('Stripe Checkout', () => {
     it('POST with plan: "sovereign_mercury" → creates session with 2 line items', async () => {
       const { POST } = require('@/app/api/stripe/checkout/route')
       const req = createMockRequest({ plan: 'sovereign_mercury' })
-      const res = await POST(req as any)
+      const res = await POST(req as Request)
       const data = await res.json()
 
       expect(data.url).toBe('https://checkout.stripe.com/test')
@@ -86,7 +86,7 @@ describe('Stripe Checkout', () => {
     it('POST with plan: "invalid" → 400 {error: "Invalid plan"}', async () => {
       const { POST } = require('@/app/api/stripe/checkout/route')
       const req = createMockRequest({ plan: 'invalid' })
-      const res = await POST(req as any)
+      const res = await POST(req as Request)
 
       expect(res.status).toBe(400)
       const data = await res.json()
@@ -95,17 +95,17 @@ describe('Stripe Checkout', () => {
 
     it('POST with no body → error (not crash)', async () => {
       const { POST } = require('@/app/api/stripe/checkout/route')
-      const req = { json: async () => ({ }) }
+      const req = createMockRequest({})
 
       // Empty object = no plan field → should return 400
-      const res = await POST(req as any)
+      const res = await POST(req as Request)
       expect(res.status).toBe(400)
     })
 
     it('POST with plan: "syndicate" → 400 (Syndicate is sales-led)', async () => {
       const { POST } = require('@/app/api/stripe/checkout/route')
       const req = createMockRequest({ plan: 'syndicate' })
-      const res = await POST(req as any)
+      const res = await POST(req as Request)
 
       expect(res.status).toBe(400)
       const data = await res.json()
@@ -119,7 +119,7 @@ describe('Stripe Checkout', () => {
     it('sovereign plan maps to exactly 1 price ID', async () => {
       const { POST } = require('@/app/api/stripe/checkout/route')
       const req = createMockRequest({ plan: 'sovereign' })
-      await POST(req as any)
+      await POST(req as Request)
 
       const items = mockCreate.mock.calls[0][0].line_items
       expect(items).toHaveLength(1)
@@ -128,7 +128,7 @@ describe('Stripe Checkout', () => {
     it('sovereign_mercury plan maps to exactly 2 price IDs', async () => {
       const { POST } = require('@/app/api/stripe/checkout/route')
       const req = createMockRequest({ plan: 'sovereign_mercury' })
-      await POST(req as any)
+      await POST(req as Request)
 
       const items = mockCreate.mock.calls[0][0].line_items
       expect(items).toHaveLength(2)
@@ -137,7 +137,7 @@ describe('Stripe Checkout', () => {
     it('syndicate key does not exist in PRICES (enterprise is manual)', async () => {
       const { POST } = require('@/app/api/stripe/checkout/route')
       const req = createMockRequest({ plan: 'syndicate' })
-      const res = await POST(req as any)
+      const res = await POST(req as Request)
 
       // If syndicate existed, it would create a session (200). Since it doesn't → 400
       expect(res.status).toBe(400)
