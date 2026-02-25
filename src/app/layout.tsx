@@ -40,9 +40,30 @@ export const metadata: Metadata = {
     default: 'RAGböx — Sovereign Knowledge for Professionals',
     template: '%s | RAGböx',
   },
-  description: 'AI-powered document intelligence with sovereign control.',
+  description: 'AI-powered document intelligence with sovereign control. Transform unstructured documents into a queryable knowledge base with verified citations and attorney-client privilege protection.',
   icons: {
     icon: '/favicon.svg',
+  },
+  openGraph: {
+    title: 'RAGböx — Sovereign Knowledge for Professionals',
+    description: 'AI-powered document intelligence with sovereign control. Verified citations, privilege protection, and immutable audit trails.',
+    url: 'https://app.ragbox.co',
+    siteName: 'RAGböx',
+    type: 'website',
+    images: [
+      {
+        url: 'https://storage.googleapis.com/connexusai-assets/BabyBlue_RAGb%C3%B6x.png',
+        width: 1200,
+        height: 630,
+        alt: 'RAGböx — Sovereign Knowledge',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'RAGböx — Sovereign Knowledge for Professionals',
+    description: 'AI-powered document intelligence with sovereign control.',
+    images: ['https://storage.googleapis.com/connexusai-assets/BabyBlue_RAGb%C3%B6x.png'],
   },
 }
 

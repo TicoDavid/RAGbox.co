@@ -272,10 +272,10 @@ function MercuryCard() {
 }
 
 // ============================================================================
-// SYNDICATE CARD — The Enterprise
+// ENTERPRISE CARD — Full Data Sovereignty
 // ============================================================================
 
-const SYNDICATE_FEATURES = [
+const ENTERPRISE_FEATURES = [
   'Dedicated Cloud Run instance',
   'CMEK encryption (your keys)',
   'Custom SSO / SAML (Okta)',
@@ -286,7 +286,7 @@ const SYNDICATE_FEATURES = [
   'White-glove onboarding',
 ]
 
-function SyndicateCard() {
+function EnterpriseCard() {
   return (
     <div className="relative rounded-2xl overflow-hidden bg-[#0a0e1a]/60 backdrop-blur-sm border border-white/[0.06]">
       <div className="p-8 md:p-10">
@@ -298,8 +298,8 @@ function SyndicateCard() {
                 <Crown className="w-5.5 h-5.5 text-white/40" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-white tracking-tight">Syndicate</h2>
-                <p className="text-sm text-white/30">Enterprise Governance</p>
+                <h2 className="text-2xl font-bold text-white tracking-tight">Enterprise</h2>
+                <p className="text-sm text-white/30">Full Data Sovereignty</p>
               </div>
             </div>
 
@@ -309,7 +309,7 @@ function SyndicateCard() {
             </p>
 
             <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2.5">
-              {SYNDICATE_FEATURES.map((f) => (
+              {ENTERPRISE_FEATURES.map((f) => (
                 <li key={f} className="flex items-start gap-2.5 text-sm text-white/50">
                   <Check className="w-4 h-4 text-white/25 shrink-0 mt-0.5" />
                   {f}
@@ -401,7 +401,7 @@ function RoiStat({ label, value, sub, highlight }: { label: string; value: strin
 const FAQS = [
   {
     q: 'What happens to my data?',
-    a: 'RAGböx operates on a zero-retention model. Your documents are encrypted at rest (AES-256) and in transit (TLS 1.3). We never train on your data. Syndicate adds CMEK so only your keys can decrypt.',
+    a: 'RAGböx operates on a zero-retention model. Your documents are encrypted at rest (AES-256) and in transit (TLS 1.3). We never train on your data. Enterprise adds CMEK so only your keys can decrypt.',
   },
   {
     q: 'Can I add Mercury later?',
@@ -500,7 +500,7 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Syndicate */}
+      {/* Enterprise */}
       <section className="pb-20 px-6">
         <div className="max-w-4xl mx-auto">
           <FadeUp>
@@ -508,7 +508,7 @@ export default function PricingPage() {
               <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/20 mb-2">Enterprise</p>
               <div className="w-12 h-px bg-white/[0.06] mx-auto" />
             </div>
-            <SyndicateCard />
+            <EnterpriseCard />
           </FadeUp>
         </div>
       </section>
