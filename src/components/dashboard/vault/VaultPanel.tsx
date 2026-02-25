@@ -25,6 +25,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import IngestionModal from '@/app/dashboard/components/IngestionModal'
+import { DuplicateFileDialog } from './DuplicateFileDialog'
 
 // ============================================================================
 // VAULT DETAIL VIEW — Drill-down when a file is selected
@@ -219,6 +220,7 @@ export function VaultPanel() {
           onClose={() => setIsIngestionOpen(false)}
           onFileUpload={handleIngestionUpload}
         />
+        <DuplicateFileDialog />
       </>
     )
   }
@@ -262,6 +264,9 @@ export function VaultPanel() {
         onClose={() => setIsIngestionOpen(false)}
         onFileUpload={handleIngestionUpload}
       />
+
+      {/* Duplicate file dialog — shown when uploading a file that already exists */}
+      <DuplicateFileDialog />
 
       {/* Body: Drill-down between File List ↔ File Details */}
       <AnimatePresence mode="wait">

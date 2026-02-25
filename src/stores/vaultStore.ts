@@ -24,6 +24,16 @@ function recordUpload(): void {
   uploadTimestamps.push(Date.now())
 }
 
+// Duplicate conflict types — used by DuplicateFileDialog
+export type DuplicateAction = 'replace' | 'keep-both' | 'skip'
+
+export interface DuplicateConflict {
+  fileName: string
+  fileSize: number
+  existingName: string
+  resolve: (action: DuplicateAction) => void
+}
+
 interface VaultState {
   // Data
   documents: Record<string, VaultItem>
@@ -37,6 +47,9 @@ interface VaultState {
   isLoading: boolean
   error: string | null
   searchQuery: string
+
+  // Duplicate conflict (rendered by VaultPanel → DuplicateFileDialog)
+  duplicateConflict: DuplicateConflict | null
 
   // Storage
   storage: { used: number; total: number }
@@ -88,6 +101,7 @@ export const useVaultStore = create<VaultState>()(
         isLoading: false,
         error: null,
         searchQuery: '',
+        duplicateConflict: null,
         storage: { used: 0, total: 1073741824 },
         selectedDocumentIds: [],
 
@@ -260,12 +274,49 @@ export const useVaultStore = create<VaultState>()(
               continue
             }
 
-            // Duplicate name check
+            // Duplicate name check — show styled dialog instead of window.confirm
             if (existingNames.has(file.name.toLowerCase())) {
-              const replace = window.confirm(
-                `A file named "${file.name}" already exists. Replace it?`
+              const action = await new Promise<DuplicateAction>((resolve) => {
+                set({
+                  duplicateConflict: {
+                    fileName: file.name,
+                    fileSize: file.size,
+                    existingName: file.name,
+                    resolve: (a) => {
+                      set({ duplicateConflict: null })
+                      resolve(a)
+                    },
+                  },
+                })
+              })
+
+              if (action === 'skip') continue
+
+              if (action === 'keep-both') {
+                // Rename file with (1), (2), etc. suffix
+                const dotIdx = file.name.lastIndexOf('.')
+                const base = dotIdx > 0 ? file.name.slice(0, dotIdx) : file.name
+                const ext = dotIdx > 0 ? file.name.slice(dotIdx) : ''
+                let suffix = 1
+                while (existingNames.has(`${base} (${suffix})${ext}`.toLowerCase())) {
+                  suffix++
+                }
+                const newName = `${base} (${suffix})${ext}`
+                const renamedFile = new File([file], newName, { type: file.type })
+                await get().uploadDocument(renamedFile, folderId)
+                recordUpload()
+                existingNames.add(newName.toLowerCase())
+                uploaded.push({ filename: newName, size: file.size })
+                continue
+              }
+
+              // action === 'replace' — delete the existing, then upload below
+              const existingDoc = Object.values(get().documents).find(
+                (d) => d.name.toLowerCase() === file.name.toLowerCase()
               )
-              if (!replace) continue
+              if (existingDoc) {
+                await get().deleteDocument(existingDoc.id)
+              }
             }
 
             await get().uploadDocument(file, folderId)
