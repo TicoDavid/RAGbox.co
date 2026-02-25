@@ -68,12 +68,13 @@ export default function Footer() {
               </span>
               <span className="text-emerald-600 dark:text-emerald-400 font-medium">All Systems Operational</span>
             </div>
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Decorative indicator</p>
           </div>
         </div>
 
         {/* BOTTOM BAR */}
         <div className="pt-8 border-t border-slate-200 dark:border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-400">
-          <p>&copy; 2026 ConnexUS AI Inc. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} ConnexUS AI Inc. All rights reserved.</p>
           <div className="flex gap-8">
             <Link href="/privacy" className="hover:text-slate-900 dark:hover:text-white transition-colors">Privacy Policy</Link>
             <Link href="/terms" className="hover:text-slate-900 dark:hover:text-white transition-colors">Terms of Service</Link>
