@@ -76,14 +76,8 @@ function FeatureCard({ icon, title, desc, tag }: { icon: React.ReactNode, title:
   return (
     <div className="
       group relative p-8 md:p-10 rounded-3xl overflow-hidden
-
-      /* LIGHT MODE: Pure White, Soft Border, Expensive Shadow */
       bg-white border border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)]
-
-      /* DARK MODE: Obsidian Glass */
       dark:bg-gray-900/80 dark:backdrop-blur-xl dark:border dark:border-white/5 dark:border-t-white/10 dark:shadow-none
-
-      /* HOVER: Lift up + Golden Glow */
       hover:-translate-y-1 transition-all duration-300 ease-out
       dark:hover:border-amber-500/40 dark:hover:shadow-[inset_0_0_40px_-10px_rgba(245,158,11,0.15),0_0_40px_-10px_rgba(245,158,11,0.2)]
     ">

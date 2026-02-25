@@ -13,7 +13,7 @@ const TRUST_ITEMS = [
 
 export function TrustBar() {
   return (
-    <section className="py-16 border-t border-slate-800/50">
+    <section className="py-16 border-t border-slate-200 dark:border-slate-800/50">
       <div className="max-w-5xl mx-auto px-6">
         <p className="text-center text-xs uppercase tracking-widest text-slate-500 mb-3">
           Enterprise-Grade Security

@@ -127,7 +127,7 @@ export default function Hero({ onOpenAuth }: HeroProps) {
         </p>
 
         {/* Trust Badges */}
-        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-[8px] sm:text-[10px] md:text-xs font-mono text-[#cccccc] uppercase tracking-widest">
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-[8px] sm:text-[10px] md:text-xs font-mono text-gray-500 dark:text-gray-400 uppercase tracking-widest">
           <Badge text="Instant Utility" />
           <span className="text-amber-500 hidden sm:inline">•</span>
           <Badge text="Enterprise-Grade Shielding" />
@@ -243,7 +243,7 @@ export default function Hero({ onOpenAuth }: HeroProps) {
 
 function Badge({ text }: { text: string }) {
   return (
-    <span className="px-2 py-1 rounded bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/20 text-[#cccccc]">
+    <span className="px-2 py-1 rounded bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/20 text-gray-500 dark:text-gray-400">
       {text}
     </span>
   );
