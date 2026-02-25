@@ -105,17 +105,6 @@ const nextConfig = {
     },
   },
 
-  // Redirects for removed routes
-  async redirects() {
-    return [
-      {
-        source: '/landing-v2',
-        destination: '/',
-        permanent: true,
-      },
-    ]
-  },
-
   // Headers for security
   async headers() {
     return [
