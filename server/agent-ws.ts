@@ -2,7 +2,7 @@
  * Agent WebSocket Server - RAGbox.co
  *
  * Full-duplex WebSocket spine for voice AI:
- * Browser ⇄ This Server ⇄ Deepgram STT + Go LLM + Inworld TTS
+ * Browser ⇄ This Server ⇄ Inworld STT + Go LLM + Inworld TTS (v3)
  *
  * Protocol:
  * Client → Server:
@@ -25,7 +25,7 @@ import { getToken } from 'next-auth/jwt'
 import { executeTool, type ToolCall, type ToolResult, type ToolContext } from './tools'
 import { checkToolPermission, createConfirmationRequest, storePendingConfirmation } from './tools/permissions'
 import * as obs from './observability'
-import { createVoiceSession, type VoiceSession } from './voice-pipeline-v2'
+import { createVoiceSession, type VoiceSession } from './voice-pipeline-v3'
 import { whatsAppEventEmitter, type WhatsAppEvent } from './whatsapp/events'
 import { persistThreadMessage } from './thread-persistence'
 import { validateSession } from '../src/app/api/agent/session/session-store'
@@ -248,7 +248,7 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
   setState('connecting')
 
   try {
-    // Create voice session (v2 hybrid: Deepgram STT + Go LLM + Inworld TTS)
+    // Create voice session (v3 hybrid: Inworld STT + Go LLM + Inworld TTS)
     const voiceSession = await createVoiceSession({
       toolContext,
 
