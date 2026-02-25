@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { SOCIAL_PROOF } from '@/config/stats';
 import { AnimatePresence } from 'framer-motion';
 import { Navbar } from '@/components/Navbar';
 import Hero from '@/components/Hero';
@@ -79,14 +80,14 @@ function HomeContent() {
       <section className="py-16 bg-white dark:bg-transparent border-t border-[var(--border-subtle)]">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <p className="text-4xl md:text-5xl font-bold text-[var(--text-primary)] mb-3">
-            38+{' '}
+            {SOCIAL_PROOF.vRepsDeployed}{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#2463EB] to-[#00d4ff]">
               AI agents
             </span>{' '}
             deployed
           </p>
           <p className="text-lg text-[var(--text-tertiary)]">
-            across 14 organizations — powered by ConnexUS AI
+            across {SOCIAL_PROOF.organizations} organizations — powered by ConnexUS AI
           </p>
         </div>
       </section>
