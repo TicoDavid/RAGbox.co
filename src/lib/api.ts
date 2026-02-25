@@ -4,6 +4,8 @@
  * Attaches session auth token to all requests.
  */
 
+import { toast } from 'sonner'
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
 export function apiUrl(path: string): string {
@@ -39,9 +41,16 @@ export async function apiFetch(
     }
   }
 
-  return fetch(url, {
+  const response = await fetch(url, {
     ...init,
     headers,
     credentials: API_URL ? 'include' : 'same-origin',
   })
+
+  // STORY-202: Global 429 rate limit toast
+  if (response.status === 429) {
+    toast.error("You've reached your query limit. Upgrade your plan for more.", { duration: 5000 })
+  }
+
+  return response
 }
