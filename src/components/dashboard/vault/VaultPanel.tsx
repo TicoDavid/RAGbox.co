@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useVaultStore } from '@/stores/vaultStore'
 import { useChatStore } from '@/stores/chatStore'
 import { VaultRail } from './VaultRail'
@@ -23,6 +23,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   RefreshCw,
+  Search,
 } from 'lucide-react'
 import IngestionModal from '@/app/dashboard/components/IngestionModal'
 import { DuplicateFileDialog } from './DuplicateFileDialog'
@@ -191,12 +192,49 @@ export function VaultPanel() {
   const toggleExplorerMode = useVaultStore((s) => s.toggleExplorerMode)
   const fetchDocuments = useVaultStore((s) => s.fetchDocuments)
   const fetchFolders = useVaultStore((s) => s.fetchFolders)
+  const setSearchQuery = useVaultStore((s) => s.setSearchQuery)
   const isLoading = useVaultStore((s) => s.isLoading)
   const documents = useVaultStore((s) => s.documents)
   const uploadDocuments = useVaultStore((s) => s.uploadDocuments)
   const currentPath = useVaultStore((s) => s.currentPath)
   const selectedItemId = useVaultStore((s) => s.selectedItemId)
   const hasFetched = useRef(false)
+
+  // STORY-208: Document search (moved from GlobalHeader)
+  const [searchInput, setSearchInput] = useState('')
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearchInput(value)
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      debounceRef.current = setTimeout(() => {
+        setSearchQuery(value)
+        fetchDocuments()
+      }, 300)
+    },
+    [setSearchQuery, fetchDocuments],
+  )
+
+  // Clean up debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [])
+
+  // Cmd/Ctrl+K keyboard shortcut focuses vault search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        searchInputRef.current?.focus()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   useEffect(() => {
     if (!hasFetched.current) {
@@ -255,6 +293,32 @@ export function VaultPanel() {
           >
             <X className="w-5 h-5" />
           </button>
+        </div>
+      </div>
+
+      {/* STORY-208: Document search */}
+      <div className="shrink-0 px-3 py-2 border-b border-[var(--border-default)]">
+        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-[var(--bg-primary)] border border-[var(--border-default)] focus-within:border-[var(--brand-blue)] focus-within:ring-1 focus-within:ring-[var(--brand-blue)]/30 transition-colors">
+          <Search className="w-3.5 h-3.5 text-[var(--text-tertiary)] shrink-0" />
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={searchInput}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            placeholder="Search documents..."
+            aria-label="Search documents"
+            className="flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)]"
+          />
+          {searchInput && (
+            <button
+              onClick={() => handleSearchChange('')}
+              className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+              aria-label="Clear search"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <kbd className="text-[9px] font-mono bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] px-1 py-0.5 rounded shrink-0">&#8984;K</kbd>
         </div>
       </div>
 

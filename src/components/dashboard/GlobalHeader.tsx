@@ -6,9 +6,7 @@ import { useTheme } from 'next-themes'
 import { useSession, signOut } from 'next-auth/react'
 import { usePrivilegeStore } from '@/stores/privilegeStore'
 import { useUserRole } from '@/hooks/useUserRole'
-import { useVaultStore } from '@/stores/vaultStore'
 import {
-  Search,
   Settings,
   Moon,
   Sun,
@@ -75,7 +73,6 @@ export function GlobalHeader() {
   const setPersona = useMercuryStore((s) => s.setPersona)
   const { setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
-  const [searchOpen, setSearchOpen] = useState(false)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [activeProfile, setActiveProfile] = useState<string>('work')
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -95,57 +92,11 @@ export function GlobalHeader() {
   const executivePersonas = PERSONAS.filter((p) => p.category === 'EXECUTIVE')
   const compliancePersonas = PERSONAS.filter((p) => p.category === 'COMPLIANCE')
 
-  // Search: wire to vault store with 300ms debounce
-  const setSearchQuery = useVaultStore((s) => s.setSearchQuery)
-  const fetchDocuments = useVaultStore((s) => s.fetchDocuments)
-  const [searchInput, setSearchInput] = useState('')
-  const searchInputRef = useRef<HTMLInputElement>(null)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const handleSearchChange = useCallback(
-    (value: string) => {
-      setSearchInput(value)
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-      debounceRef.current = setTimeout(() => {
-        setSearchQuery(value)
-        fetchDocuments()
-      }, 300)
-    },
-    [setSearchQuery, fetchDocuments]
-  )
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  // Clean up debounce timer on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-    }
-  }, [])
-
-  // Focus search input when search bar opens
-  useEffect(() => {
-    if (searchOpen && searchInputRef.current) {
-      searchInputRef.current.focus()
-    }
-  }, [searchOpen])
-
-  // Keyboard shortcut: Cmd/Ctrl+K toggles search
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault()
-        setSearchOpen((prev) => !prev)
-      }
-      if (e.key === 'Escape' && searchOpen) {
-        setSearchOpen(false)
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [searchOpen])
 
   const handleThemeToggle = () => {
     setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')
@@ -232,46 +183,7 @@ export function GlobalHeader() {
           <IntegrationStatusDots />
         </div>
 
-        {/* Center Section - Search (Absolutely Centered) */}
-        <div className="absolute left-1/2 -translate-x-1/2">
-          {searchOpen ? (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-[var(--brand-blue)] ring-1 ring-[var(--brand-blue)]/30 bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors" style={{ minWidth: 320 }}>
-              <Search className="w-4 h-4 text-[var(--text-tertiary)] shrink-0" />
-              <input
-                ref={searchInputRef}
-                id="global-search"
-                name="global-search"
-                type="text"
-                value={searchInput}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="Search documents..."
-                aria-label="Search documents"
-                className="flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--text-tertiary)]"
-              />
-              {searchInput && (
-                <button
-                  onClick={() => { handleSearchChange(''); setSearchOpen(false) }}
-                  className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
-                  aria-label="Clear search"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-              <kbd className="text-[10px] font-mono bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] px-1.5 py-0.5 rounded shrink-0">Esc</kbd>
-            </div>
-          ) : (
-            <button
-              onClick={() => setSearchOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-tertiary)] hover:border-[var(--border-strong)] transition-colors"
-              style={{ minWidth: 200 }}
-              aria-label="Search documents"
-            >
-              <Search className="w-4 h-4" />
-              <span className="text-sm">Search documents...</span>
-              <kbd className="ml-auto text-[10px] font-mono bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded">&#8984;K</kbd>
-            </button>
-          )}
-        </div>
+        {/* STORY-208: Search moved to VaultPanel */}
 
         {/* Right Section - Actions */}
         <div className="flex items-center gap-2 shrink-0">
