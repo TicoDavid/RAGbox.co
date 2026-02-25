@@ -4,6 +4,7 @@ import GoogleProvider from "next-auth/providers/google";
 import AzureADProvider from "next-auth/providers/azure-ad";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { getRedis } from "@/lib/cache/redisClient";
+import { logger } from "@/lib/logger";
 
 const useSecureCookies = (process.env.NEXTAUTH_URL ?? "").startsWith("https://");
 
@@ -231,5 +232,5 @@ export function hasValidOTP(email: string): boolean {
 // Debug helper - list all OTPs (dev only, never logs secrets in production)
 export function debugOTPStore(): void {
   if (process.env.NODE_ENV !== "development") return;
-  console.log("[OTP Store] entry count:", otpStore.size);
+  logger.info('[OTP Store] entry count', { count: otpStore.size });
 }

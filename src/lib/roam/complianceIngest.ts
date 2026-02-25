@@ -8,6 +8,7 @@
 import { fetchComplianceExport, parseComplianceNdjson, extractTextContent, groupByChat } from './complianceExport'
 import type { TextMessage } from './complianceExport'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
@@ -44,7 +45,7 @@ export async function ingestDailyCompliance(date: string, apiKey?: string): Prom
     errors: [],
   }
 
-  console.log(`[Compliance Ingest] Starting for date: ${resolvedDate}`)
+  logger.info(`[Compliance Ingest] Starting for date: ${resolvedDate}`)
 
   // 1. Fetch compliance export
   let ndjson: string
@@ -63,7 +64,7 @@ export async function ingestDailyCompliance(date: string, apiKey?: string): Prom
   result.messagesProcessed = messages.length
 
   if (messages.length === 0) {
-    console.log('[Compliance Ingest] No text messages found')
+    logger.info('[Compliance Ingest] No text messages found')
     return result
   }
 
@@ -124,7 +125,7 @@ export async function ingestDailyCompliance(date: string, apiKey?: string): Prom
     }
   }
 
-  console.log(
+  logger.info(
     `[Compliance Ingest] Done: ${result.conversationsIngested} conversations, ` +
     `${result.messagesProcessed} messages, ${result.errors.length} errors`
   )

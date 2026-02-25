@@ -19,6 +19,7 @@ import prisma from '@/lib/prisma'
 import { listGroupsWithKey, RoamApiError } from '@/lib/roam/roamClient'
 import { checkWebhookSubscription, ensureWebhookSubscription } from '@/lib/roam/roamWebhook'
 import { decryptKey } from '@/lib/utils/kms'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   // Read secrets per-request to avoid stale module-scope values
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       where: { status: 'connected' },
     })
 
-    console.log(`[ROAM Health] Checking ${integrations.length} connected integrations`)
+    logger.info(`[ROAM Health] Checking ${integrations.length} connected integrations`)
 
     for (const integration of integrations) {
       try {
@@ -99,7 +100,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           const sub = await checkWebhookSubscription(apiKey, integration.webhookSubscriptionId)
           if (!sub) {
             // Webhook dropped — auto-reconnect
-            console.log(`[ROAM Health] Webhook dropped for tenant ${integration.tenantId} — reconnecting`)
+            logger.info(`[ROAM Health] Webhook dropped for tenant ${integration.tenantId} — reconnecting`)
             try {
               const newSub = await ensureWebhookSubscription(apiKey)
               await prisma.roamIntegration.update({
@@ -107,7 +108,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
                 data: { webhookSubscriptionId: newSub.id },
               })
               reconnected++
-              console.log(`[ROAM Health] Webhook reconnected: ${newSub.id}`)
+              logger.info(`[ROAM Health] Webhook reconnected: ${newSub.id}`)
             } catch (webhookError) {
               const msg = webhookError instanceof Error ? webhookError.message : 'unknown'
               errors.push(`${integration.tenantId}: webhook reconnect failed — ${msg}`)

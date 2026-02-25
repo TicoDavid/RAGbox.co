@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import prisma from '@/lib/prisma'
 import { parseSSEText } from '@/lib/mercury/sseParser'
+import { logger } from '@/lib/logger'
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'mercury-ragbox-verify'
 const VONAGE_API_KEY = process.env.VONAGE_API_KEY || ''
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const challenge = searchParams.get('hub.challenge')
 
   if (mode === 'subscribe' && token === VERIFY_TOKEN && challenge) {
-    console.log('[Webhook] Verification challenge accepted')
+    logger.info('[Webhook] Verification challenge accepted')
     return new NextResponse(challenge, {
       status: 200,
       headers: { 'Content-Type': 'text/plain' },
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     console.error('[Webhook] Async processing failed:', error)
   })
 
-  console.log(`[Webhook] Received message_uuid=${messageUuid} — accepted`)
+  logger.info(`[Webhook] Received message_uuid=${messageUuid} — accepted`)
   return NextResponse.json({ status: 'received' }, { status: 200 })
 }
 
@@ -84,7 +85,7 @@ async function processWebhookPayload(body: Record<string, unknown>): Promise<voi
 
   // Inbound message — needs message_type
   if (!messageType) {
-    console.log('[Webhook] Unrecognized payload — ignored')
+    logger.info('[Webhook] Unrecognized payload — ignored')
     return
   }
 
@@ -94,7 +95,7 @@ async function processWebhookPayload(body: Record<string, unknown>): Promise<voi
       where: { externalMessageId: messageUuid },
     })
     if (existing) {
-      console.log(`[Webhook] Duplicate message_uuid=${messageUuid} — skipping`)
+      logger.info(`[Webhook] Duplicate message_uuid=${messageUuid} — skipping`)
       return
     }
   }
@@ -138,7 +139,7 @@ async function processWebhookPayload(body: Record<string, unknown>): Promise<voi
     })
 
     if (contact.isBlocked) {
-      console.log(`[Webhook] Blocked contact ${fromPhone} — ignoring`)
+      logger.info(`[Webhook] Blocked contact ${fromPhone} — ignoring`)
       return
     }
 
@@ -152,7 +153,7 @@ async function processWebhookPayload(body: Record<string, unknown>): Promise<voi
     })
 
     if (conversation.status === 'blocked') {
-      console.log('[Webhook] Blocked conversation — ignoring')
+      logger.info('[Webhook] Blocked conversation — ignoring')
       return
     }
 
@@ -179,7 +180,7 @@ async function processWebhookPayload(body: Record<string, unknown>): Promise<voi
       },
     })
 
-    console.log(`[Webhook] Processed inbound from ${fromPhone}: ${preview}`)
+    logger.info(`[Webhook] Processed inbound from ${fromPhone}: ${preview}`)
 
     // 5. Write to Mercury Unified Thread (additive — WhatsApp data stays intact)
     if (content) {
@@ -228,7 +229,7 @@ async function processStatusUpdate(body: Record<string, unknown>): Promise<void>
       where: { id: message.id },
       data: { status: normalized },
     })
-    console.log(`[Webhook] Status update: ${externalId} → ${normalized}`)
+    logger.info(`[Webhook] Status update: ${externalId} → ${normalized}`)
   } catch (error) {
     console.error('[Webhook] Status update error:', error)
   }
@@ -327,7 +328,7 @@ async function handleAutoReply(
     // Write auto-reply to Mercury Unified Thread
     await writeMercuryThreadMessage(userId, 'assistant', 'whatsapp', replyText, confidence, { phone: toPhone })
 
-    console.log(`[Webhook] Auto-reply sent to ${toPhone} (confidence: ${confidence ?? 'N/A'})`)
+    logger.info(`[Webhook] Auto-reply sent to ${toPhone} (confidence: ${confidence ?? 'N/A'})`)
   } catch (error) {
     console.error('[Webhook] Auto-reply failed:', error)
   }

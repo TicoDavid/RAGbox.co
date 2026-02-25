@@ -22,6 +22,7 @@ import { parseSSEText } from '@/lib/mercury/sseParser'
 import { sendMessage, sendTypingIndicator, getTranscriptInfo, RoamApiError } from '@/lib/roam/roamClient'
 import { formatForRoam, formatSilenceForRoam, formatErrorForRoam, formatMeetingSummary } from '@/lib/roam/roamFormat'
 import { writeDeadLetter } from '@/lib/roam/deadLetterWriter'
+import { logger } from '@/lib/logger'
 import { decryptKey } from '@/lib/utils/kms'
 import type { Citation } from '@/types/ragbox'
 
@@ -159,7 +160,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ ok: true }, { status: 200 })
   }
 
-  console.log(`[ROAM Processor] Event: type=${event.type} msgId=${envelope.message.messageId}`)
+  logger.info(`[ROAM Processor] Event: type=${event.type} msgId=${envelope.message.messageId}`)
 
   try {
     if (CHAT_EVENT_TYPES.has(event.type)) {
@@ -167,9 +168,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     } else if (event.type === 'transcript.saved') {
       await processTranscript(event as RoamTranscriptEvent)
     } else if (event.type === 'reaction.added') {
-      console.log(`[ROAM Processor] Reaction: ${(event as RoamReactionEvent).data.emoji}`)
+      logger.info(`[ROAM Processor] Reaction: ${(event as RoamReactionEvent).data.emoji}`)
     } else {
-      console.log(`[ROAM Processor] Unhandled event type: ${event.type}`)
+      logger.info(`[ROAM Processor] Unhandled event type: ${event.type}`)
     }
   } catch (error) {
     console.error('[ROAM Processor] Processing error:', error)
@@ -259,14 +260,14 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
   const threadId = d.thread_id
 
   if (!text.trim()) {
-    console.log('[ROAM Processor] Empty message — skipping')
+    logger.info('[ROAM Processor] Empty message — skipping')
     return
   }
 
   // Self-loop prevention: skip messages sent by Mercury itself
   const SELF_IDS = new Set(['mercury', 'm.e.r.c.u.r.y', 'mercury-bot'])
   if (SELF_IDS.has(senderId.toLowerCase()) || senderName?.toLowerCase() === 'm.e.r.c.u.r.y') {
-    console.log(`[ROAM Processor] Self-loop prevented — sender: ${senderId} (${senderName})`)
+    logger.info(`[ROAM Processor] Self-loop prevented — sender: ${senderId} (${senderName})`)
     return
   }
 
@@ -277,7 +278,7 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
     },
   })
   if (existing) {
-    console.log(`[ROAM Processor] Duplicate message ${messageId} — skipping`)
+    logger.info(`[ROAM Processor] Duplicate message ${messageId} — skipping`)
     return
   }
 
@@ -305,7 +306,7 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
       const textLower = text.toLowerCase()
       const isMention = mentionPatterns.some(p => textLower.includes(p))
       if (!isMention) {
-        console.log(`[ROAM Processor] Skipping non-mention message for tenant ${tenant.tenantId} (mentionOnly=true)`)
+        logger.info(`[ROAM Processor] Skipping non-mention message for tenant ${tenant.tenantId} (mentionOnly=true)`)
         return
       }
     }
@@ -394,7 +395,7 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
       { groupId, text: replyText, threadId: threadId || undefined },
       tenant.apiKey || undefined
     )
-    console.log(`[ROAM Processor] Reply sent to group=${groupId} tenant=${tenant.tenantId} (confidence: ${confidence ?? 'N/A'})`)
+    logger.info(`[ROAM Processor] Reply sent to group=${groupId} tenant=${tenant.tenantId} (confidence: ${confidence ?? 'N/A'})`)
   } catch (error) {
     console.error('[ROAM Processor] ROAM send failed:', error)
     // Still write to thread — reply failed but we have the content
@@ -420,7 +421,7 @@ async function processTranscript(event: RoamTranscriptEvent): Promise<void> {
   const groupId = d.chat?.id || d.group_id || ''
 
   if (!transcriptId) {
-    console.log('[ROAM Processor] transcript.saved missing transcript_id — skipping')
+    logger.info('[ROAM Processor] transcript.saved missing transcript_id — skipping')
     return
   }
 
@@ -440,7 +441,7 @@ async function processTranscript(event: RoamTranscriptEvent): Promise<void> {
       select: { meetingSummaries: true },
     })
     if (integration && !integration.meetingSummaries) {
-      console.log(`[ROAM Processor] Meeting summaries disabled for tenant ${tenant.tenantId} — skipping`)
+      logger.info(`[ROAM Processor] Meeting summaries disabled for tenant ${tenant.tenantId} — skipping`)
       return
     }
   }
@@ -456,7 +457,7 @@ async function processTranscript(event: RoamTranscriptEvent): Promise<void> {
 
   const transcriptContent = transcript.content || ''
   if (!transcriptContent.trim()) {
-    console.log('[ROAM Processor] Empty transcript content — skipping')
+    logger.info('[ROAM Processor] Empty transcript content — skipping')
     return
   }
 
@@ -493,7 +494,7 @@ async function processTranscript(event: RoamTranscriptEvent): Promise<void> {
   }
 
   if (!summaryText.trim()) {
-    console.log('[ROAM Processor] Empty summary generated — skipping')
+    logger.info('[ROAM Processor] Empty summary generated — skipping')
     return
   }
 
@@ -511,7 +512,7 @@ async function processTranscript(event: RoamTranscriptEvent): Promise<void> {
       { groupId, text: formattedSummary },
       tenant.apiKey || undefined
     )
-    console.log(`[ROAM Processor] Meeting summary sent to group=${groupId} transcript=${transcriptId}`)
+    logger.info(`[ROAM Processor] Meeting summary sent to group=${groupId} transcript=${transcriptId}`)
   } catch (error) {
     console.error('[ROAM Processor] Summary send failed:', error)
   }

@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 import { getValidAccessToken } from '@/lib/gmail/token'
 
 const GCP_PROJECT = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCP_PROJECT || 'ragbox-sovereign-prod'
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       },
     })
 
-    console.log(`[Gmail Watch Renew] Found ${expiringCredentials.length} expiring watches`)
+    logger.info(`[Gmail Watch Renew] Found ${expiringCredentials.length} expiring watches`)
 
     for (const credential of expiringCredentials) {
       try {
@@ -85,7 +86,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         })
 
         renewed++
-        console.log(`[Gmail Watch Renew] Renewed: ${credential.emailAddress}`)
+        logger.info(`[Gmail Watch Renew] Renewed: ${credential.emailAddress}`)
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'unknown error'
         errors.push(`${credential.emailAddress}: ${msg}`)

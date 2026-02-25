@@ -6,11 +6,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const body = await request.json()
-    console.log('[Auth Log]', body.event || 'unknown', body.userId || '')
+    logger.info('[Auth Log]', { event: body.event || 'unknown', userId: body.userId || '' })
   } catch {
     // Silent — logging must never crash the app
   }

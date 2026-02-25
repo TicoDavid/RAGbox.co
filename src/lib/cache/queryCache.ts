@@ -1,5 +1,6 @@
 import { createHash } from 'crypto'
 import { getRedis } from './redisClient'
+import { logger } from '@/lib/logger'
 
 const CACHE_TTL = parseInt(process.env.QUERY_CACHE_TTL || '900', 10) // 15 minutes (was 5min)
 
@@ -67,7 +68,7 @@ export async function invalidateUserCache(userId: string): Promise<void> {
 
     if (keysToDelete.length > 0) {
       await redis.del(...keysToDelete)
-      console.log(`[Cache] Invalidated ${keysToDelete.length} cached queries`)
+      logger.info(`[Cache] Invalidated ${keysToDelete.length} cached queries`)
     }
   } catch (err) {
     console.error('[Cache] Invalidation error:', err)
