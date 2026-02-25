@@ -275,12 +275,12 @@ export function AuthModal({ isOpen, onClose, context = 'signin', errorMessage }:
               <p className="text-[10px] text-[#8892B0] mt-1.5 text-center">
                 Don&apos;t have a code?{' '}
                 <a
-                  href="https://ragbox.co"
+                  href="https://app.ragbox.co"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-amber-500 hover:text-amber-400 underline underline-offset-2 transition-colors"
                 >
-                  Apply at ragbox.co
+                  Apply at app.ragbox.co
                 </a>
               </p>
             </div>
