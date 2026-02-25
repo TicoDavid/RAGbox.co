@@ -700,23 +700,36 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 				select {
 				case genErr := <-streamResult.ErrCh:
 					if genErr != nil {
-						slog.Error("chat streaming generation error", "user_id", userID, "error", genErr)
-						sendEvent(w, flusher, "error", fmt.Sprintf(`{"message":%q}`, rateLimitMessage(genErr)))
-						sendEvent(w, flusher, "done", `{}`)
-						return
+						// BUG-036: BYOLLM error with no tokens sent → fall back to AEGIS
+						if byollmActive && first {
+							slog.Warn("BYOLLM streaming error, falling back to AEGIS",
+								"user_id", userID, "provider", req.LLMProvider, "error", genErr)
+							generator = deps.Generator
+							selfRAG = deps.SelfRAG
+							byollmActive = false
+							streamedTokens = false
+						} else {
+							slog.Error("chat streaming generation error", "user_id", userID, "error", genErr)
+							sendEvent(w, flusher, "error", fmt.Sprintf(`{"message":%q}`, rateLimitMessage(genErr)))
+							sendEvent(w, flusher, "done", `{}`)
+							return
+						}
 					}
 				default:
 				}
 
 				// Parse full accumulated response for citations + confidence
-				fullText := streamResult.Full()
-				var parseErr error
-				initial, parseErr = service.ParseGenerationResponse(fullText, retrieval.Chunks)
-				if parseErr != nil {
-					slog.Error("chat parse failed", "user_id", userID, "error", parseErr)
+				// (skip if BYOLLM error triggered AEGIS fallback — streamedTokens was reset)
+				if streamedTokens {
+					fullText := streamResult.Full()
+					var parseErr error
+					initial, parseErr = service.ParseGenerationResponse(fullText, retrieval.Chunks)
+					if parseErr != nil {
+						slog.Error("chat parse failed", "user_id", userID, "error", parseErr)
+					}
+					initial.ModelUsed = streamResult.Model
+					initial.LatencyMs = time.Since(tGenerateStart).Milliseconds()
 				}
-				initial.ModelUsed = streamResult.Model
-				initial.LatencyMs = time.Since(tGenerateStart).Milliseconds()
 			}
 		}
 

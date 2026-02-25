@@ -393,6 +393,12 @@ export const useChatStore = create<ChatState>()(
                           'Unable to provide a grounded answer.'
                         confidence = data.confidence ?? 0
                         break
+                      case 'error':
+                        // BUG-036: Surface backend errors instead of showing "No response generated"
+                        if (!fullContent && typeof data.message === 'string') {
+                          fullContent = `⚠️ ${data.message}`
+                        }
+                        break
                       case 'done': {
                         // Unwrap: backend may send { answer, ... } or { data: { answer, ... } }
                         const d = data.data ?? data
