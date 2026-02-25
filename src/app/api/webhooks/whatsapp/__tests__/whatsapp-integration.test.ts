@@ -12,6 +12,7 @@ export {} // Ensure this file is treated as a module (avoids TS2451 conflict wit
 
 // ── Environment setup (before imports) ───────────────────────────
 process.env.WHATSAPP_DEFAULT_USER_ID = 'test-user-id'
+process.env.WHATSAPP_VERIFY_TOKEN = 'mercury-ragbox-verify'
 process.env.VONAGE_API_KEY = 'test-vonage-key'
 process.env.VONAGE_API_SECRET = 'test-vonage-secret'
 process.env.VONAGE_WHATSAPP_NUMBER = '14157386102'
