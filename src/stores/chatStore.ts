@@ -369,7 +369,12 @@ export const useChatStore = create<ChatState>()(
                     switch (eventType) {
                       case 'token':
                         fullContent += data.text ?? ''
-                        set({ streamingContent: fullContent })
+                        // BUG-037: Don't display JSON-shaped streaming to user
+                        // (backend sometimes sends structured JSON as tokens).
+                        // User sees "Analyzing..." dots instead of raw JSON.
+                        if (!fullContent.trim().startsWith('{')) {
+                          set({ streamingContent: fullContent })
+                        }
                         break
                       case 'citations':
                         citations = Array.isArray(data)
@@ -439,6 +444,26 @@ export const useChatStore = create<ChatState>()(
               }
             } finally {
               reader.releaseLock()
+            }
+          }
+
+          // BUG-037 safety net: if fullContent is still raw JSON after streaming,
+          // extract the answer field so the message never stores raw JSON.
+          if (fullContent && fullContent.trim().startsWith('{')) {
+            try {
+              const parsed = JSON.parse(fullContent.trim())
+              const d = parsed.data ?? parsed
+              if (typeof d.answer === 'string') {
+                fullContent = d.answer
+                if (Array.isArray(d.citations) && (!citations || citations.length === 0)) {
+                  citations = d.citations
+                }
+                if (typeof d.confidence === 'number' && confidence === undefined) {
+                  confidence = d.confidence
+                }
+              }
+            } catch {
+              // Not valid JSON — use as-is
             }
           }
 
