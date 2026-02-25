@@ -15,7 +15,8 @@ import prisma from '@/lib/prisma'
 import { parseSSEText } from '@/lib/mercury/sseParser'
 import { logger } from '@/lib/logger'
 
-const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'mercury-ragbox-verify'
+// EPIC-017 S06: Token now from Secret Manager — no hardcoded fallback
+const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || ''
 const VONAGE_API_KEY = process.env.VONAGE_API_KEY || ''
 const VONAGE_API_SECRET = process.env.VONAGE_API_SECRET || ''
 const VONAGE_WHATSAPP_NUMBER = process.env.VONAGE_WHATSAPP_NUMBER || '14157386102'
