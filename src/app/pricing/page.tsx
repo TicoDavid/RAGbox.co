@@ -81,7 +81,7 @@ const SOVEREIGN_FEATURES = [
 
 function SovereignCard() {
   return (
-    <div className="relative rounded-2xl overflow-hidden bg-[#0a0e1a]/80 backdrop-blur-sm border border-amber-500/30 shadow-[0_0_60px_-15px_rgba(245,158,11,0.15)]">
+    <div className="relative rounded-2xl overflow-hidden bg-[var(--bg-secondary)]/80 backdrop-blur-sm border border-amber-500/30 shadow-[0_0_60px_-15px_rgba(245,158,11,0.15)]">
       {/* Top accent line */}
       <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-500 to-transparent" />
 
@@ -184,10 +184,10 @@ const MERCURY_FEATURES = [
 
 function MercuryCard() {
   return (
-    <div className="relative rounded-2xl overflow-hidden bg-[#0a0e1a]/80 backdrop-blur-sm border border-white/[0.08] hover:border-amber-500/20 transition-colors">
+    <div className="relative rounded-2xl overflow-hidden bg-[var(--bg-secondary)]/80 backdrop-blur-sm border border-white/[0.08] hover:border-amber-500/20 transition-colors">
       <div className="p-8 md:p-10">
         {/* Badge */}
-        <span className="inline-block text-[10px] font-bold uppercase tracking-[0.2em] text-[#D4A853] bg-[#D4A853]/10 border border-[#D4A853]/20 px-2.5 py-1 rounded-full mb-5">
+        <span className="inline-block text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--accent-gold)] bg-[var(--accent-gold)]/10 border border-[var(--accent-gold)]/20 px-2.5 py-1 rounded-full mb-5">
           The Digital Hire
         </span>
 
@@ -195,8 +195,8 @@ function MercuryCard() {
           {/* Left: Identity */}
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-11 h-11 rounded-xl bg-[#D4A853]/15 flex items-center justify-center">
-                <Bot className="w-5.5 h-5.5 text-[#D4A853]" />
+              <div className="w-11 h-11 rounded-xl bg-[var(--accent-gold)]/15 flex items-center justify-center">
+                <Bot className="w-5.5 h-5.5 text-[var(--accent-gold)]" />
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-white tracking-tight">Protocol Mercury</h2>
@@ -229,7 +229,7 @@ function MercuryCard() {
             <ul className="space-y-2.5">
               {MERCURY_FEATURES.map((f) => (
                 <li key={f} className="flex items-start gap-2.5 text-sm text-white/55">
-                  <Check className="w-4 h-4 text-[#D4A853] shrink-0 mt-0.5" />
+                  <Check className="w-4 h-4 text-[var(--accent-gold)] shrink-0 mt-0.5" />
                   {f}
                 </li>
               ))}
@@ -288,7 +288,7 @@ const ENTERPRISE_FEATURES = [
 
 function EnterpriseCard() {
   return (
-    <div className="relative rounded-2xl overflow-hidden bg-[#0a0e1a]/60 backdrop-blur-sm border border-white/[0.06]">
+    <div className="relative rounded-2xl overflow-hidden bg-[var(--bg-secondary)]/60 backdrop-blur-sm border border-white/[0.06]">
       <div className="p-8 md:p-10">
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-8">
           {/* Left */}
@@ -444,7 +444,7 @@ function FaqSection() {
 
 export default function PricingPage() {
   return (
-    <main className="min-h-screen bg-[#020408]">
+    <main className="min-h-screen bg-[var(--bg-primary)]">
       <Navbar />
 
       {/* Hero */}

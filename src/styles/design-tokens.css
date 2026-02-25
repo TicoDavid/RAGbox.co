@@ -36,6 +36,10 @@
   --border-subtle: #162C4E;
   --border-strong: #2D4A6F;
 
+  /* ===== Mercury Gold Accent ===== */
+  --accent-gold: #D4A853;
+  --accent-gold-rgb: 212, 168, 83;
+
   /* ===== Privilege Mode (Amber Accent) ===== */
   --privilege-color: #f59e0b;
   --privilege-confidential: #f59e0b;
