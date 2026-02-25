@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from 'react';
+import Image from 'next/image';
 
 interface IngestionVortexProps {
   onFileDrop: (files: File[]) => void;
@@ -141,10 +142,12 @@ const IngestionVortex: React.FC<IngestionVortexProps> = ({ onFileDrop, theme = '
       onClick={handleClick}
     >
       {/* Vault icon image */}
-      <img
+      <Image
         src={VAULT_IMAGE_URL}
         alt="RAGbox Vault"
         className={`vortex-video-element ${isImploding ? 'imploding' : ''} ${isLightMode ? 'light-mode-video' : ''}`}
+        width={200}
+        height={200}
         draggable={false}
       />
 

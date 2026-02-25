@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { FolderIcon } from './Icons';
 
 interface CreateVaultModalProps {
@@ -50,10 +51,12 @@ const CreateVaultModal: React.FC<CreateVaultModalProps> = ({
         style={{ maxWidth: '360px' }}
       >
         <div className="security-header">
-          <img
+          <Image
             src="https://storage.googleapis.com/connexusai-assets/Primary_RagBoxCo_Colored_Black.png"
             alt="RAGbox.co Logo"
-            style={{ width: '120px', height: 'auto', marginBottom: '16px' }}
+            width={120}
+            height={40}
+            style={{ marginBottom: '16px' }}
           />
           <h2>Create New Vault</h2>
           <p>Initialize a secure document container</p>

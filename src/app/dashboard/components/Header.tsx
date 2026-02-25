@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import Image from 'next/image';
 import { SearchIcon, SettingsIcon, MoonIcon, SunIcon } from './Icons';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { useTooltips } from '../context/TooltipContext';
@@ -117,10 +118,13 @@ const Header: React.FC<HeaderProps> = ({
     <header className="app-header">
       <div className="header-left">
         <div className="logo-container">
-          <img
+          <Image
             src="https://storage.googleapis.com/connexusai-assets/BabyBlue_RAGb%C3%B6x.png"
             alt="RAGbox Logo"
             className="ragbox-logo h-24 w-auto"
+            width={360}
+            height={96}
+            priority
           />
         </div>
         {/* System Designation - Military-grade branding */}
@@ -192,10 +196,12 @@ const Header: React.FC<HeaderProps> = ({
         <Tooltip content={TOOLTIPS.userAvatar} enabled={tooltipsEnabled} position="bottom">
           <div className={`user-avatar-container ${userImage ? 'authenticated' : 'placeholder'}`}>
             {userImage ? (
-              <img
+              <Image
                 src={userImage}
                 alt={userName || 'User'}
                 className="user-avatar-image"
+                width={40}
+                height={40}
                 referrerPolicy="no-referrer"
               />
             ) : (

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import { useChatStore } from '@/stores/chatStore'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -159,10 +160,12 @@ export function CenterChat() {
         {isEmpty ? (
           /* Empty state: logo, caption, and input centered as one group */
           <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-8 min-h-0">
-            <img
+            <Image
               src="https://storage.googleapis.com/connexusai-assets/RAGb%C3%B6x_ICON.png"
               alt=""
               className="w-48 sm:w-56 h-auto opacity-20 select-none mb-6"
+              width={224}
+              height={224}
               draggable={false}
             />
             <p className="text-sm text-[var(--text-tertiary)] mb-8">

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { User, Lock, Fingerprint, Brain, Shield, Check, Loader2 } from 'lucide-react'
 import type { VaultItem } from '@/types/ragbox'
@@ -66,9 +67,11 @@ export function SovereignCertificate({ document, userName = 'Sovereign User' }: 
     <div className="relative overflow-hidden rounded-xl border border-[var(--privilege-border)]/20 bg-[var(--bg-primary)] p-4 shadow-[0_0_30px_-15px_rgba(245,158,11,0.15)]">
       {/* RAGbox Logo Watermark - Large, Faint Background */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.06]">
-        <img
+        <Image
           src="https://storage.googleapis.com/connexusai-assets/BabyBlue_RAGb%C3%B6x.png"
           alt="RAGbox watermark"
+          width={160}
+          height={43}
           className="w-40 h-auto select-none"
           draggable={false}
         />
