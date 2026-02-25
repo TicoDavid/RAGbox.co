@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { headers } from 'next/headers'
 import { Space_Grotesk, Inter, JetBrains_Mono, Plus_Jakarta_Sans } from 'next/font/google'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { AuthProvider } from '@/components/providers/AuthProvider'
@@ -45,14 +46,18 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  // STORY-207: Read CSP nonce from middleware for inline script/style tags
+  const headersList = await headers()
+  const nonce = headersList.get('x-nonce') || ''
+
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrains.variable} ${jakarta.variable} font-sans bg-[var(--bg-primary)] text-[var(--text-primary)] antialiased overflow-x-hidden overflow-y-auto transition-colors duration-300`}>
+      <body className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrains.variable} ${jakarta.variable} font-sans bg-[var(--bg-primary)] text-[var(--text-primary)] antialiased overflow-x-hidden overflow-y-auto transition-colors duration-300`} nonce={nonce}>
         <AuthProvider>
           <SettingsProvider>
             <ThemeProvider

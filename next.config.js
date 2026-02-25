@@ -138,25 +138,8 @@ const nextConfig = {
             key: 'Strict-Transport-Security',
             value: 'max-age=63072000; includeSubDomains; preload',
           },
-          {
-            // STORY-S07: Removed 'unsafe-eval' from script-src (not needed in production).
-            // 'unsafe-inline' remains in script-src and style-src because Next.js injects
-            // inline scripts (hydration, __NEXT_DATA__) and inline styles (React, framework).
-            // TODO: CSP nonce for Next.js inline scripts/styles — requires nonce middleware
-            // pipeline (generate per-request nonce → set CSP header → propagate to layout.tsx
-            // → apply to <Script nonce> and <style nonce>). Tracked for follow-up sprint.
-            key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-inline'",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "font-src 'self' https://fonts.gstatic.com",
-              "img-src 'self' data: blob: https://storage.googleapis.com https://*.googleusercontent.com",
-              "media-src 'self' https://storage.googleapis.com",
-              "connect-src 'self' https://*.googleapis.com https://*.deepgram.com https://openrouter.ai https://*.run.app wss://*.deepgram.com wss: https://*.sentry.io https://*.ingest.sentry.io",
-              "frame-ancestors 'none'",
-            ].join('; '),
-          },
+          // STORY-207: CSP moved to middleware.ts (nonce-based, no unsafe-inline for scripts).
+          // See src/middleware.ts buildCspHeader() for the active CSP policy.
         ],
       },
     ]
