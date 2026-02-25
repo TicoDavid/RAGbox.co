@@ -5,9 +5,17 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { validateExternalUrl } from '@/lib/utils/url-validation'
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  // STORY-S03: Require authenticated session
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const { url } = await request.json()
 

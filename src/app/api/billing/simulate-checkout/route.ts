@@ -2,17 +2,26 @@
  * Simulate Checkout — Dev/Test Only
  *
  * Runs the full provisioning pipeline with fake Stripe data.
- * Blocked in production.
+ * Blocked in production unless explicitly enabled via env var.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { Prisma } from '@prisma/client'
 import { provisionFromCheckout } from '@/lib/billing/provision'
 import { type BillingTier, TIER_ENTITLEMENTS, getEntitlements } from '@/lib/billing/entitlements'
 
 export async function POST(req: NextRequest) {
-  if (process.env.NODE_ENV === 'production' && !process.env.ALLOW_BILLING_SIMULATE) {
-    return NextResponse.json({ error: 'Not available in production' }, { status: 404 })
+  // STORY-S03: Gate 1 — require env var (return 404 to hide endpoint in production)
+  if (process.env.ENABLE_BILLING_SIMULATION !== 'true') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
+  // STORY-S03: Gate 2 — require authenticated session
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const body = await req.json() as { tier?: string; email?: string }

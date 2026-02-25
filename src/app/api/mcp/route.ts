@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { proxyToBackend } from '@/lib/backend-proxy'
 
 /**
@@ -11,6 +13,12 @@ import { proxyToBackend } from '@/lib/backend-proxy'
  * GET  /api/mcp — server info
  */
 export async function POST(request: NextRequest) {
+  // STORY-S03: Require authenticated session
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const body = await request.json()
     const { method, params } = body
@@ -114,6 +122,12 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
+  // STORY-S03: Require authenticated session
+  const getSession = await getServerSession(authOptions)
+  if (!getSession?.user?.email) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   return NextResponse.json({
     name: 'ragbox-mcp',
     version: '1.0.0',
