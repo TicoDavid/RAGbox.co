@@ -2,7 +2,7 @@
  * Usage API — proxies to Go backend /api/v1/usage.
  *
  * GET /api/usage → returns current usage for authenticated tenant.
- * Falls back to stub data when backend is unavailable.
+ * STORY-S06: Returns 503 when backend is unreachable (no more zero-stub fallback).
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -34,24 +34,12 @@ export async function GET(req: NextRequest) {
     const data = await res.json()
     return NextResponse.json(data)
   } catch (error) {
-    // Fallback: return stub usage when backend is unavailable
-    console.warn('[Usage] Backend unavailable, returning stub:', error)
-    return NextResponse.json({
-      tier: 'free',
-      period: {
-        start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-        end: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toISOString().split('T')[0],
-      },
-      usage: {
-        aegis_queries: { used: 0, limit: 25, percent: 0 },
-        documents_stored: { used: 0, limit: 5, percent: 0 },
-        voice_minutes: { used: 0, limit: 0, percent: 0 },
-        api_calls: { used: 0, limit: 0, percent: 0 },
-      },
-      overage: {
-        enabled: false,
-        rates: { aegis_query: 0.02, document: 0.50, voice_minute: 0.15 },
-      },
-    })
+    // STORY-S06: Return 503 when backend unreachable — clients must distinguish
+    // real zeros from service unavailability.
+    console.error('[Usage] Backend unavailable:', error)
+    return NextResponse.json(
+      { error: 'Usage service unavailable' },
+      { status: 503 }
+    )
   }
 }
