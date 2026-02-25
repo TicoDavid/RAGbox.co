@@ -9,6 +9,7 @@
 
 import type { Prisma } from '@prisma/client'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export interface DeadLetterInput {
   tenantId: string
@@ -59,6 +60,6 @@ export async function writeDeadLetter(input: DeadLetterInput): Promise<void> {
     })
   } catch (error) {
     // DLQ write itself should never crash the caller
-    console.error('[ROAM DLQ] Write failed:', error)
+    logger.error('[ROAM DLQ] Write failed:', error)
   }
 }

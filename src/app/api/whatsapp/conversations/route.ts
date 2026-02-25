@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       data: conversations,
     })
   } catch (error) {
-    console.error('[API] WhatsApp conversations error:', error)
+    logger.error('[API] WhatsApp conversations error:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to fetch conversations' },
       { status: 500 }

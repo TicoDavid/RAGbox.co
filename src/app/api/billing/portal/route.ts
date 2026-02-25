@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import Stripe from 'stripe'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 let _stripe: Stripe | null = null
 
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ success: true, url: session.url })
   } catch (error) {
-    console.error('[Billing Portal] Error creating portal session:', error)
+    logger.error('[Billing Portal] Error creating portal session:', error)
     return NextResponse.json(
       { success: false, error: 'Unable to create billing portal session' },
       { status: 500 },

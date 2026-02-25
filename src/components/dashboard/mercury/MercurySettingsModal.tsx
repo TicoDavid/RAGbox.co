@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { logger } from '@/lib/logger'
 
 // ============================================================================
 // TYPES
@@ -140,7 +141,7 @@ export function MercurySettingsModal({ open, onClose, onSaved }: MercurySettings
         })
       }
     } catch (err) {
-      console.error('Mercury config load failed:', err)
+      logger.error('Mercury config load failed:', err)
       toast.error('Failed to load Mercury configuration')
     } finally {
       setLoading(false)

@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (!response.ok) {
       const errorBody = await response.text()
-      console.error('[API] Vonage test message failed:', response.status, errorBody)
+      logger.error('[API] Vonage test message failed:', response.status, errorBody)
       return NextResponse.json(
         { success: false, error: `Vonage API error: ${response.status}` },
         { status: 502 },
@@ -94,7 +95,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       data: { messageId: data.message_uuid },
     })
   } catch (error) {
-    console.error('[API] Integration test error:', error)
+    logger.error('[API] Integration test error:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to send test message' },
       { status: 500 },

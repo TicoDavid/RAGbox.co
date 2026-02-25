@@ -3,6 +3,7 @@ import { getToken } from 'next-auth/jwt'
 import { PubSub } from '@google-cloud/pubsub'
 import { invalidateUserCache } from '@/lib/cache/queryCache'
 import { writeAuditEntry } from '@/lib/audit/auditWriter'
+import { logger } from '@/lib/logger'
 
 const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
@@ -236,7 +237,7 @@ export async function POST(request: NextRequest) {
     })
   } catch (pubsubErr) {
     // Non-fatal — Go backend ingest is the primary path
-    console.error('[Upload] Pub/Sub publish failed:', pubsubErr)
+    logger.error('[Upload] Pub/Sub publish failed:', pubsubErr)
   }
 
   // Audit log (best-effort)

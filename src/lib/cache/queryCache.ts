@@ -31,7 +31,7 @@ export async function getCachedQuery(
     }
     return null
   } catch (err) {
-    console.error('[Cache] Read error:', err)
+    logger.error('[Cache] Read error:', err)
     return null
   }
 }
@@ -48,7 +48,7 @@ export async function setCachedQuery(
     const key = getCacheKey(query, userId)
     await redis.setex(key, CACHE_TTL, JSON.stringify(response))
   } catch (err) {
-    console.error('[Cache] Write error:', err)
+    logger.error('[Cache] Write error:', err)
   }
 }
 
@@ -71,6 +71,6 @@ export async function invalidateUserCache(userId: string): Promise<void> {
       logger.info(`[Cache] Invalidated ${keysToDelete.length} cached queries`)
     }
   } catch (err) {
-    console.error('[Cache] Invalidation error:', err)
+    logger.error('[Cache] Invalidation error:', err)
   }
 }

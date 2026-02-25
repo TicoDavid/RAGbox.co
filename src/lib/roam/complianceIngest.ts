@@ -53,7 +53,7 @@ export async function ingestDailyCompliance(date: string, apiKey?: string): Prom
     ndjson = await fetchComplianceExport(resolvedDate, apiKey)
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
-    console.error('[Compliance Ingest] Fetch failed:', msg)
+    logger.error('[Compliance Ingest] Fetch failed:', msg)
     result.errors.push(`Fetch failed: ${msg}`)
     return result
   }
@@ -113,7 +113,7 @@ export async function ingestDailyCompliance(date: string, apiKey?: string): Prom
           body: JSON.stringify({ text: docContent }),
         })
       } catch (indexErr) {
-        console.warn(`[Compliance Ingest] Index trigger failed for ${doc.id}:`, indexErr)
+        logger.warn(`[Compliance Ingest] Index trigger failed for ${doc.id}:`, indexErr)
         // Non-fatal — document is stored, can be indexed later
       }
 
@@ -147,7 +147,7 @@ export async function ingestDailyCompliance(date: string, apiKey?: string): Prom
       },
     })
   } catch {
-    console.warn('[Compliance Ingest] Audit write failed')
+    logger.warn('[Compliance Ingest] Audit write failed')
   }
 
   return result

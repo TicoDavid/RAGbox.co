@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import { encode } from 'next-auth/jwt'
 import { getRedis } from '@/lib/cache/redisClient'
+import { logger } from '@/lib/logger'
 
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET ?? ''
 const IS_SECURE = (process.env.NEXTAUTH_URL ?? '').startsWith('https://')
@@ -80,7 +81,7 @@ export async function DELETE(request: NextRequest) {
 
     return response
   } catch (err) {
-    console.error('[sessions/revoke] Failed:', err)
+    logger.error('[sessions/revoke] Failed:', err)
     return NextResponse.json(
       { error: 'Failed to revoke sessions' },
       { status: 500 },

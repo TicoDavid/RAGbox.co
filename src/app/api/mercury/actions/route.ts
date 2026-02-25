@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       data: { actions, count: actions.length },
     })
   } catch (error) {
-    console.error('[Mercury Actions] Error:', error)
+    logger.error('[Mercury Actions] Error:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to fetch action history' },
       { status: 500 }

@@ -62,7 +62,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // Fire-and-forget processing
   processWebhookPayload(body).catch((error) => {
-    console.error('[Webhook] Async processing failed:', error)
+    logger.error('[Webhook] Async processing failed:', error)
   })
 
   logger.info(`[Webhook] Received message_uuid=${messageUuid} — accepted`)
@@ -107,7 +107,7 @@ async function processWebhookPayload(body: Record<string, unknown>): Promise<voi
   const fromPhone = rawFrom.startsWith('+') ? rawFrom : `+${rawFrom}`
 
   if (!fromPhone || fromPhone === '+') {
-    console.warn('[Webhook] No sender phone number — ignoring')
+    logger.warn('[Webhook] No sender phone number — ignoring')
     return
   }
 
@@ -117,14 +117,14 @@ async function processWebhookPayload(body: Record<string, unknown>): Promise<voi
 
   const userId = DEFAULT_USER_ID
   if (!userId) {
-    console.error('[Webhook] No WHATSAPP_DEFAULT_USER_ID configured — cannot route message')
+    logger.error('[Webhook] No WHATSAPP_DEFAULT_USER_ID configured — cannot route message')
     return
   }
 
   // Verify user exists before Prisma FK operations (BUG-034 fix)
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } })
   if (!user) {
-    console.error(`[Webhook] WHATSAPP_DEFAULT_USER_ID="${userId}" does not exist in users table — fix env var`)
+    logger.error(`[Webhook] WHATSAPP_DEFAULT_USER_ID="${userId}" does not exist in users table — fix env var`)
     return
   }
 
@@ -193,18 +193,18 @@ async function processWebhookPayload(body: Record<string, unknown>): Promise<voi
     }
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      console.error(`[Webhook] Prisma error ${error.code}: ${error.message}`, {
+      logger.error(`[Webhook] Prisma error ${error.code}: ${error.message}`, {
         code: error.code,
         meta: error.meta,
         model: (error.meta as Record<string, unknown>)?.modelName,
       })
       if (error.code === 'P2021') {
-        console.error('[Webhook] Table does not exist — run WhatsApp migration: 20260215000000_add_content_intelligence_and_whatsapp')
+        logger.error('[Webhook] Table does not exist — run WhatsApp migration: 20260215000000_add_content_intelligence_and_whatsapp')
       } else if (error.code === 'P2003') {
-        console.error('[Webhook] Foreign key violation — verify WHATSAPP_DEFAULT_USER_ID exists in users table')
+        logger.error('[Webhook] Foreign key violation — verify WHATSAPP_DEFAULT_USER_ID exists in users table')
       }
     } else {
-      console.error('[Webhook] Error processing inbound message:', error)
+      logger.error('[Webhook] Error processing inbound message:', error)
     }
   }
 }
@@ -231,7 +231,7 @@ async function processStatusUpdate(body: Record<string, unknown>): Promise<void>
     })
     logger.info(`[Webhook] Status update: ${externalId} → ${normalized}`)
   } catch (error) {
-    console.error('[Webhook] Status update error:', error)
+    logger.error('[Webhook] Status update error:', error)
   }
 }
 
@@ -330,7 +330,7 @@ async function handleAutoReply(
 
     logger.info(`[Webhook] Auto-reply sent to ${toPhone} (confidence: ${confidence ?? 'N/A'})`)
   } catch (error) {
-    console.error('[Webhook] Auto-reply failed:', error)
+    logger.error('[Webhook] Auto-reply failed:', error)
   }
 }
 
@@ -343,7 +343,7 @@ async function sendVonageText(
   text: string,
 ): Promise<{ externalMessageId: string; success: boolean; error?: string }> {
   if (!VONAGE_API_KEY || !VONAGE_API_SECRET) {
-    console.warn('[Webhook] Vonage credentials not configured — skipping send')
+    logger.warn('[Webhook] Vonage credentials not configured — skipping send')
     return { externalMessageId: '', success: false, error: 'Vonage not configured' }
   }
 
@@ -366,14 +366,14 @@ async function sendVonageText(
 
     if (!response.ok) {
       const errorBody = await response.text()
-      console.error('[Webhook] Vonage send failed:', response.status, errorBody)
+      logger.error('[Webhook] Vonage send failed:', response.status, errorBody)
       return { externalMessageId: '', success: false, error: `Vonage ${response.status}` }
     }
 
     const data = await response.json()
     return { externalMessageId: data.message_uuid || '', success: true }
   } catch (error) {
-    console.error('[Webhook] Vonage send error:', error)
+    logger.error('[Webhook] Vonage send error:', error)
     return {
       externalMessageId: '',
       success: false,
@@ -425,7 +425,7 @@ async function writeMercuryThreadMessage(
     })
   } catch (error) {
     // Non-fatal: WhatsApp processing continues even if thread write fails
-    console.error('[Webhook] Mercury thread write failed:', error)
+    logger.error('[Webhook] Mercury thread write failed:', error)
   }
 }
 

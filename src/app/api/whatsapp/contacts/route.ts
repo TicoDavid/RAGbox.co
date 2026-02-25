@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 /** E.164 phone number format */
 const E164_REGEX = /^\+[1-9]\d{6,14}$/
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ success: true, data: contacts })
   } catch (error) {
-    console.error('[API] WhatsApp contacts error:', error)
+    logger.error('[API] WhatsApp contacts error:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to fetch contacts' },
       { status: 500 }
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ success: true, data: contact })
   } catch (error) {
-    console.error('[API] WhatsApp add contact error:', error)
+    logger.error('[API] WhatsApp add contact error:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to add contact' },
       { status: 500 }

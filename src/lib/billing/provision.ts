@@ -12,6 +12,7 @@ import { welcomeSovereignEmail } from '@/lib/email/templates/welcome-sovereign'
 import { welcomeMercuryEmail } from '@/lib/email/templates/welcome-mercury-addon'
 import { isGmailConfigured, sendViaGmail } from '@/lib/email/gmail'
 import { writeAuditEntry } from '@/lib/audit/auditWriter'
+import { logger } from '@/lib/logger'
 
 export interface ProvisionResult {
   userId: string
@@ -100,7 +101,7 @@ export async function provisionFromCheckout(params: {
   if (isGmailConfigured()) {
     sendViaGmail(email, emailTemplate.subject, emailTemplate.html)
       .then((res) => console.info('[Billing] Welcome email sent:', { to: email, messageId: res.id }))
-      .catch((err) => console.error('[Billing] Welcome email failed:', err))
+      .catch((err) => logger.error('[Billing] Welcome email failed:', err))
   } else {
     console.info('[Billing] Welcome email skipped (Gmail not configured):', {
       to: email,
@@ -134,7 +135,7 @@ export async function updateSubscription(params: {
   })
 
   if (!user) {
-    console.warn('[Billing] No user found for subscription:', stripeSubscriptionId)
+    logger.warn('[Billing] No user found for subscription:', stripeSubscriptionId)
     return null
   }
 
@@ -179,7 +180,7 @@ export async function handlePaymentFailed(params: {
   })
 
   if (!user) {
-    console.warn('[Billing] No user found for customer:', stripeCustomerId)
+    logger.warn('[Billing] No user found for customer:', stripeCustomerId)
     return
   }
 

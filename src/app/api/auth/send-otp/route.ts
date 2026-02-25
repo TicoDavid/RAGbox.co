@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateOTP } from '@/lib/auth'
 import { sendViaGmail } from '@/lib/email/gmail'
+import { logger } from '@/lib/logger'
 
 /** Build the branded OTP email HTML. */
 function otpEmailHtml(code: string): string {
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
       ...(process.env.NODE_ENV === 'development' && { otp: code }),
     })
   } catch (err) {
-    console.error('[send-otp] Gmail send failed:', err)
+    logger.error('[send-otp] Gmail send failed:', err)
     return NextResponse.json(
       { error: 'Failed to send OTP' },
       { status: 500 },

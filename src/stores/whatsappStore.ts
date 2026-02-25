@@ -7,6 +7,7 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { apiFetch } from '@/lib/api'
+import { logger } from '@/lib/logger'
 
 // ============================================================================
 // TYPES
@@ -94,7 +95,7 @@ export const useWhatsAppStore = create<WhatsAppState>()(
           set({ conversations, totalUnread })
         }
       } catch (error) {
-        console.error('[WhatsApp Store] Fetch conversations failed:', error)
+        logger.error('[WhatsApp Store] Fetch conversations failed:', error)
       } finally {
         set({ isLoading: false })
       }
@@ -115,7 +116,7 @@ export const useWhatsAppStore = create<WhatsAppState>()(
           }))
         }
       } catch (error) {
-        console.error('[WhatsApp Store] Fetch messages failed:', error)
+        logger.error('[WhatsApp Store] Fetch messages failed:', error)
       }
     },
 
@@ -170,7 +171,7 @@ export const useWhatsAppStore = create<WhatsAppState>()(
           })
         }
       } catch (error) {
-        console.error('[WhatsApp Store] Send message failed:', error)
+        logger.error('[WhatsApp Store] Send message failed:', error)
       } finally {
         set({ isSending: false })
       }
@@ -193,7 +194,7 @@ export const useWhatsAppStore = create<WhatsAppState>()(
           }
         })
       } catch (error) {
-        console.error('[WhatsApp Store] Mark as read failed:', error)
+        logger.error('[WhatsApp Store] Mark as read failed:', error)
       }
     },
 

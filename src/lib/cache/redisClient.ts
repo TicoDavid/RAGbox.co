@@ -1,4 +1,5 @@
 import Redis from 'ioredis'
+import { logger } from '@/lib/logger'
 
 let redis: Redis | null = null
 
@@ -15,7 +16,7 @@ export function getRedis(): Redis | null {
       connectTimeout: 5000,
     })
     redis.on('error', (err) => {
-      console.error('[Redis] Connection error:', err.message)
+      logger.error('[Redis] Connection error:', err.message)
     })
   }
   return redis

@@ -4,6 +4,7 @@
  * Fetches daily NDJSON compliance exports from ROAM's API.
  * POST /messageevent.export with { date: "YYYY-MM-DD" }
  */
+import { logger } from '@/lib/logger'
 
 const ROAM_API_URL = process.env.ROAM_API_URL || 'https://api.ro.am/v1'
 const ROAM_API_KEY = process.env.ROAM_API_KEY || ''
@@ -74,7 +75,7 @@ export function parseComplianceNdjson(ndjson: string): ComplianceEvent[] {
     try {
       events.push(JSON.parse(trimmed) as ComplianceEvent)
     } catch {
-      console.warn('[Compliance] Skipping unparseable line:', trimmed.slice(0, 80))
+      logger.warn('[Compliance] Skipping unparseable line:', trimmed.slice(0, 80))
     }
   }
 

@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { writeAuditEntry } from '@/lib/audit/auditWriter'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           processed_at: event.processedAt?.toISOString(),
         }),
       }).catch((err) => {
-        console.error('[Knowledge Process] Callback failed:', err)
+        logger.error('[Knowledge Process] Callback failed:', err)
       })
     }
 
@@ -117,7 +118,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ success: true, data: { status: 'indexed' } })
   } catch (error) {
-    console.error('[Knowledge Process] Error:', error)
+    logger.error('[Knowledge Process] Error:', error)
 
     // Update event status → failed
     const errorMessage = error instanceof Error ? error.message : 'Unknown processing error'

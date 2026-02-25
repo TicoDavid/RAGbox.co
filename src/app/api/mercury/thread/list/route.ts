@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ success: true, data: { threads } })
   } catch (error) {
-    console.error('[Mercury Thread List] Error:', error)
+    logger.error('[Mercury Thread List] Error:', error)
     return NextResponse.json({ success: false, error: 'Failed to list threads' }, { status: 500 })
   }
 }

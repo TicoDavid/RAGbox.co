@@ -55,7 +55,7 @@ globalThis.otpStore = otpStore;
 
 // Verify OAuth credentials are present (no values logged)
 if (process.env.NODE_ENV === "development" && (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET)) {
-  console.warn("[Auth Config] Google OAuth credentials not configured");
+  logger.warn("[Auth Config] Google OAuth credentials not configured");
 }
 
 export const authOptions: NextAuthOptions = {

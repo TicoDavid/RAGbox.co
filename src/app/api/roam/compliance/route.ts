@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import { ingestDailyCompliance } from '@/lib/roam/complianceIngest'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   // Auth: allow session auth OR OIDC tokens from Cloud Scheduler
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const result = await ingestDailyCompliance(date)
     return NextResponse.json({ success: true, data: result })
   } catch (error) {
-    console.error('[Compliance API] Ingest failed:', error)
+    logger.error('[Compliance API] Ingest failed:', error)
     return NextResponse.json(
       { success: false, error: 'Compliance export failed' },
       { status: 500 }

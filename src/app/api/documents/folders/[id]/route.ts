@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
@@ -67,7 +68,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext): Pro
 
     return NextResponse.json({ success: true, data: { folder: updated } })
   } catch (error) {
-    console.error('[Folders PATCH] Error:', error)
+    logger.error('[Folders PATCH] Error:', error)
     return NextResponse.json({ success: false, error: 'Failed to rename folder' }, { status: 500 })
   }
 }
@@ -116,7 +117,7 @@ export async function DELETE(request: NextRequest, { params }: RouteContext): Pr
       },
     })
   } catch (error) {
-    console.error('[Folders DELETE] Error:', error)
+    logger.error('[Folders DELETE] Error:', error)
     return NextResponse.json({ success: false, error: 'Failed to delete folder' }, { status: 500 })
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { encryptToken } from '@/lib/gmail/crypto'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const { searchParams } = new URL(request.url)
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     if (!tokenResponse.ok) {
       const errData = await tokenResponse.json().catch(() => ({}))
-      console.error('OAuth token exchange failed:', errData)
+      logger.error('OAuth token exchange failed:', errData)
       return NextResponse.redirect(
         `${baseUrl}/dashboard/settings/mercury?email_error=token_exchange_failed`
       )
@@ -110,7 +111,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       `${baseUrl}/dashboard/settings/mercury?email=connected`
     )
   } catch (err) {
-    console.error('OAuth callback error:', err)
+    logger.error('OAuth callback error:', err)
     return NextResponse.redirect(
       `${baseUrl}/dashboard/settings/mercury?email_error=internal_error`
     )

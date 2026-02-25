@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export async function POST(
   request: NextRequest,
@@ -43,7 +44,7 @@ export async function POST(
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('[API] WhatsApp mark read error:', error)
+    logger.error('[API] WhatsApp mark read error:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to mark as read' },
       { status: 500 }

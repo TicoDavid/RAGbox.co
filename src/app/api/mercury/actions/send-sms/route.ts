@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 const VONAGE_API_KEY = process.env.VONAGE_API_KEY || ''
 const VONAGE_API_SECRET = process.env.VONAGE_API_SECRET || ''
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (!vonageRes.ok) {
       const errBody = await vonageRes.text()
-      console.error('[Mercury SMS] Vonage error:', vonageRes.status, errBody)
+      logger.error('[Mercury SMS] Vonage error:', vonageRes.status, errBody)
 
       await logMercuryAction(userId, 'sms', normalizedTo, undefined, smsBody, 'failed', {
         error: `Vonage ${vonageRes.status}`,
@@ -101,7 +102,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       data: { messageUuid },
     })
   } catch (error) {
-    console.error('[Mercury SMS] Error:', error)
+    logger.error('[Mercury SMS] Error:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to send SMS' },
       { status: 500 }
@@ -143,7 +144,7 @@ async function logMercuryAction(
       },
     })
   } catch (error) {
-    console.error('[Mercury SMS] Action log failed:', error)
+    logger.error('[Mercury SMS] Action log failed:', error)
   }
 }
 
@@ -170,6 +171,6 @@ async function writeMercuryThread(userId: string, to: string, smsBody: string): 
       },
     })
   } catch (error) {
-    console.error('[Mercury SMS] Thread write failed:', error)
+    logger.error('[Mercury SMS] Thread write failed:', error)
   }
 }

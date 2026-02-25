@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 const VALID_PROVIDERS = ['openrouter', 'openai', 'anthropic', 'google'] as const
 
@@ -211,7 +212,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       model: model ?? 'default',
     })
   } catch (error) {
-    console.error('[Settings/LLM/Test] error:', error)
+    logger.error('[Settings/LLM/Test] error:', error)
     return NextResponse.json(
       { success: false, error: 'Test failed unexpectedly', latencyMs: 0 },
       { status: 500 },

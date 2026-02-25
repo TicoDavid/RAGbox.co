@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { encode } from 'next-auth/jwt'
 import { getRedis } from '@/lib/cache/redisClient'
+import { logger } from '@/lib/logger'
 
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET ?? ''
 const IS_SECURE = (process.env.NEXTAUTH_URL ?? '').startsWith('https://')
@@ -96,7 +97,7 @@ export async function POST(request: NextRequest) {
 
     return response
   } catch (err) {
-    console.error('[verify-otp] Failed:', err)
+    logger.error('[verify-otp] Failed:', err)
     return NextResponse.json(
       { error: 'Verification failed' },
       { status: 500 },

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 const ValidateSchema = z.object({
   code: z.string().min(1).max(30).transform(s => s.trim().toUpperCase()),
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ valid: true })
   } catch (error) {
-    console.error('[Beta Validate] Error:', error)
+    logger.error('[Beta Validate] Error:', error)
     return NextResponse.json({ valid: false, error: 'Internal server error' }, { status: 500 })
   }
 }

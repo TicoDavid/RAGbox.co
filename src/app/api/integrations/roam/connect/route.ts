@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
 import { encryptKey } from '@/lib/utils/kms'
+import { logger } from '@/lib/logger'
 
 const DEFAULT_TENANT = 'default'
 
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     apiKeyEncrypted = await encryptKey(body.apiKey.trim())
   } catch (error) {
-    console.error('[ROAM Connect] KMS encryption failed:', error)
+    logger.error('[ROAM Connect] KMS encryption failed:', error)
     return NextResponse.json({ success: false, error: 'Encryption failed' }, { status: 500 })
   }
 

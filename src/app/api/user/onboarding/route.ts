@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       onboardingCompleted: user?.onboardingCompleted ?? false,
     })
   } catch (error) {
-    console.error('Onboarding GET error:', error)
+    logger.error('Onboarding GET error:', error)
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 },
@@ -78,7 +79,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ success: true, onboardingCompleted: true })
   } catch (error) {
-    console.error('Onboarding PATCH error:', error)
+    logger.error('Onboarding PATCH error:', error)
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 },

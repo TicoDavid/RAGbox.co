@@ -129,7 +129,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       } catch (error) {
         const msg = error instanceof Error ? error.message : 'unknown error'
         errors.push(`${integration.tenantId}: ${msg}`)
-        console.error(`[ROAM Health] Check failed for tenant ${integration.tenantId}:`, error)
+        logger.error(`[ROAM Health] Check failed for tenant ${integration.tenantId}:`, error)
       }
     }
 
@@ -141,7 +141,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       errors: errors.length > 0 ? errors : undefined,
     })
   } catch (error) {
-    console.error('[ROAM Health] Fatal error:', error)
+    logger.error('[ROAM Health] Fatal error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Health check failed', checked, errored, errors },
       { status: 500 },

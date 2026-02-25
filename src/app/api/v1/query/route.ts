@@ -9,6 +9,7 @@ import { authenticateApiKey, hasScope } from '@/lib/api/apiKeyMiddleware'
 import { parseSSEText } from '@/lib/mercury/sseParser'
 import { writeAuditEntry } from '@/lib/audit/auditWriter'
 import { toCitationBlocks } from '@/lib/citations/transform'
+import { logger } from '@/lib/logger'
 
 const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
@@ -124,7 +125,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       },
     })
   } catch (error) {
-    console.error('[API v1/query] Error:', error)
+    logger.error('[API v1/query] Error:', error)
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

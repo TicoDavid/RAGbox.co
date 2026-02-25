@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
 import { writeAuditEntry } from '@/lib/audit/auditWriter'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -103,7 +104,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       },
     })
   } catch (error) {
-    console.error('[Mercury Messages GET] Error:', error)
+    logger.error('[Mercury Messages GET] Error:', error)
     // Return 200 with empty messages — prevents polling 500s every 5 seconds
     return NextResponse.json({ success: true, data: { messages: [], hasMore: false } })
   }
@@ -205,7 +206,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ success: true, data: message }, { status: 201 })
   } catch (error) {
-    console.error('[Mercury Messages POST] Error:', error)
+    logger.error('[Mercury Messages POST] Error:', error)
     // Return 200 — message persistence is best-effort, shouldn't crash the UI
     return NextResponse.json({ success: false, error: 'Failed to save message' })
   }
@@ -266,7 +267,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ success: true, data: { deleted: result.count } })
   } catch (error) {
-    console.error('[Mercury Messages DELETE] Error:', error)
+    logger.error('[Mercury Messages DELETE] Error:', error)
     return NextResponse.json({ success: false, error: 'Failed to clear messages' }, { status: 500 })
   }
 }

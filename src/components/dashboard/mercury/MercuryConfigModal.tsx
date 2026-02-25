@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Save, Loader2, Settings2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { logger } from '@/lib/logger'
 
 interface MercuryConfigModalProps {
   isOpen: boolean
@@ -81,7 +82,7 @@ export function MercuryConfigModal({ isOpen, onClose, onSaved }: MercuryConfigMo
         setPresets(json.data.presets)
       }
     } catch (err) {
-      console.error('Mercury config load failed:', err)
+      logger.error('Mercury config load failed:', err)
       toast.error('Failed to load Mercury configuration')
     } finally {
       setLoading(false)

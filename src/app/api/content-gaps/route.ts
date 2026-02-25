@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -58,7 +59,7 @@ export async function GET(request: NextRequest) {
       data: gaps,
     })
   } catch (error) {
-    console.error('[Content Gaps GET] Error:', error)
+    logger.error('[Content Gaps GET] Error:', error)
 
     // Return empty array instead of crashing — the frontend toolExecutor
     // expects a valid JSON response with a data array

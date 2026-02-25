@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { toast } from 'sonner'
+import { logger } from '@/lib/logger'
 
 // ============================================================================
 // TYPES
@@ -124,7 +125,7 @@ export default function IntegrationsSettings() {
           setVaults(data.data || [])
         }
       } catch (error) {
-        console.error('Failed to load settings:', error)
+        logger.error('Failed to load settings:', error)
         toast.error('Failed to load integration settings')
       } finally {
         setLoading(false)

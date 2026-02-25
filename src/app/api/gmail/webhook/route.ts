@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getValidAccessToken } from '@/lib/gmail/token'
+import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -287,7 +288,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ processed: true }, { status: 200 })
   } catch (error) {
     // CRITICAL: Always return 200 to prevent Pub/Sub infinite retries
-    console.error('[Gmail Webhook] Processing error:', error)
+    logger.error('[Gmail Webhook] Processing error:', error)
     return NextResponse.json({ processed: true }, { status: 200 })
   }
 }

@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export async function POST(
   request: NextRequest,
@@ -70,7 +71,7 @@ export async function POST(
 
     return NextResponse.json({ success: true, data: { document: updated } })
   } catch (error) {
-    console.error('[Document Move] Error:', error)
+    logger.error('[Document Move] Error:', error)
     return NextResponse.json({ success: false, error: 'Failed to move document' }, { status: 500 })
   }
 }

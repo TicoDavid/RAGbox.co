@@ -8,6 +8,7 @@
 import { createHash } from 'crypto'
 import type { Prisma } from '@prisma/client'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 /**
  * Write a hash-chained audit entry.
@@ -46,7 +47,7 @@ export async function writeAuditEntry(
       },
     })
   } catch (error) {
-    console.error('[Audit Writer] Failed to write entry:', error)
+    logger.error('[Audit Writer] Failed to write entry:', error)
     // Non-fatal — don't break the calling operation
     return null
   }

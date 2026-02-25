@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
 import { writeAuditEntry } from '@/lib/audit/auditWriter'
+import { logger } from '@/lib/logger'
 
 export async function PATCH(
   request: NextRequest,
@@ -100,12 +101,12 @@ export async function PATCH(
         accessListCount: updated.accessList.length,
       })
     } catch (auditErr) {
-      console.error('[Privilege] Audit write failed:', auditErr)
+      logger.error('[Privilege] Audit write failed:', auditErr)
     }
 
     return NextResponse.json({ success: true, data: updated })
   } catch (error) {
-    console.error('[Document Privilege] Error:', error)
+    logger.error('[Document Privilege] Error:', error)
     return NextResponse.json({ success: false, error: 'Failed to update privilege' })
   }
 }

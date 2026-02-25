@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
 import { writeAuditEntry } from '@/lib/audit/auditWriter'
+import { logger } from '@/lib/logger'
 
 const RedeemSchema = z.object({
   code: z.string().min(1).max(30).transform(s => s.trim().toUpperCase()),
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('[Beta Redeem] Error:', error)
+    logger.error('[Beta Redeem] Error:', error)
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 const threadSelect = {
   id: true,
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ success: true, data: thread })
   } catch (error) {
-    console.error('[Mercury Thread] Error:', error)
+    logger.error('[Mercury Thread] Error:', error)
     // Return 200 with null thread — prevents console 500s and retry storms
     return NextResponse.json({ success: false, data: null })
   }
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ success: true, data: thread })
   } catch (error) {
-    console.error('[Mercury Thread] POST error:', error)
+    logger.error('[Mercury Thread] POST error:', error)
     return NextResponse.json({ success: false, error: 'Failed to create thread' }, { status: 500 })
   }
 }
@@ -103,7 +104,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ success: true, data: updated })
   } catch (error) {
-    console.error('[Mercury Thread] PATCH error:', error)
+    logger.error('[Mercury Thread] PATCH error:', error)
     return NextResponse.json({ success: false, error: 'Failed to update thread' }, { status: 500 })
   }
 }

@@ -10,6 +10,7 @@
  *
  * STORY-102 — EPIC-010
  */
+import { logger } from '@/lib/logger'
 
 const ROAM_API_URL = process.env.ROAM_API_URL || 'https://api.ro.am/v1'
 const ROAM_API_KEY = process.env.ROAM_API_KEY || ''
@@ -104,7 +105,7 @@ async function roamFetch<T>(
   for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
     if (attempt > 0) {
       const delay = RETRY_DELAYS[attempt - 1]
-      console.warn(`[ROAM] Retry ${attempt}/${RETRY_DELAYS.length} for ${path} after ${delay}ms`)
+      logger.warn(`[ROAM] Retry ${attempt}/${RETRY_DELAYS.length} for ${path} after ${delay}ms`)
       await sleep(delay)
     }
 
@@ -182,7 +183,7 @@ export async function sendTypingIndicator(
       body: JSON.stringify({ addressId: groupId }),
     }, apiKey)
   } catch (error) {
-    console.warn('[ROAM] Typing indicator failed (non-fatal):', error)
+    logger.warn('[ROAM] Typing indicator failed (non-fatal):', error)
   }
 }
 

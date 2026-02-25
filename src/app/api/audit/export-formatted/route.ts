@@ -12,6 +12,7 @@ import prisma from '@/lib/prisma'
 import { mapPrismaToAuditEvent } from '@/lib/audit/mappers'
 import { generatePdfBuffer } from '@/lib/audit/pdfExport'
 import { generateCsvBuffer } from '@/lib/audit/csvExport'
+import { logger } from '@/lib/logger'
 
 const VALID_FORMATS = new Set(['pdf', 'csv', 'json'])
 const MAX_ENTRIES = 5000
@@ -111,7 +112,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       },
     })
   } catch (error) {
-    console.error('[Audit Export Formatted] Error:', error)
+    logger.error('[Audit Export Formatted] Error:', error)
     return NextResponse.json(
       { success: false, error: 'Export failed' },
       { status: 500 },

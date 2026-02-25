@@ -12,6 +12,7 @@ import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
 import { decryptKey } from '@/lib/utils/kms'
 import { listGroupsWithKey } from '@/lib/roam/roamClient'
+import { logger } from '@/lib/logger'
 
 const DEFAULT_TENANT = 'default'
 
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     try {
       apiKey = await decryptKey(integration.apiKeyEncrypted)
     } catch (error) {
-      console.error('[ROAM Groups] Decryption failed:', error)
+      logger.error('[ROAM Groups] Decryption failed:', error)
       return NextResponse.json({ success: false, error: 'Failed to decrypt stored key' }, { status: 500 })
     }
   }
@@ -55,7 +56,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ success: true, data: { groups } })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch groups'
-    console.error('[ROAM Groups] API error:', message)
+    logger.error('[ROAM Groups] API error:', message)
     return NextResponse.json({ success: false, error: message }, { status: 502 })
   }
 }

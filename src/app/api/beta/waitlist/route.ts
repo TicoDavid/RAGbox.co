@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import prisma from '@/lib/prisma'
 import { writeAuditEntry } from '@/lib/audit/auditWriter'
+import { logger } from '@/lib/logger'
 
 const WaitlistSchema = z.object({
   fullName: z.string().min(1).max(200),
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     )
   } catch (error) {
-    console.error('[Beta Waitlist] Error:', error)
+    logger.error('[Beta Waitlist] Error:', error)
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

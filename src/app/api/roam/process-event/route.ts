@@ -128,9 +128,9 @@ async function handleKeyRevoked(tenantId: string, userId: string): Promise<void>
       },
     })
 
-    console.warn(`[ROAM Processor] Key revoked for tenant ${tenantId} — integration set to error`)
+    logger.warn(`[ROAM Processor] Key revoked for tenant ${tenantId} — integration set to error`)
   } catch (error) {
-    console.error('[ROAM Processor] handleKeyRevoked failed:', error)
+    logger.error('[ROAM Processor] handleKeyRevoked failed:', error)
   }
 }
 
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const decoded = Buffer.from(envelope.message.data, 'base64').toString('utf-8')
     event = JSON.parse(decoded)
   } catch {
-    console.error('[ROAM Processor] Failed to decode event:', envelope.message.messageId)
+    logger.error('[ROAM Processor] Failed to decode event:', envelope.message.messageId)
     // ACK to prevent retry — bad data won't improve on retry
     return NextResponse.json({ ok: true }, { status: 200 })
   }
@@ -173,7 +173,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       logger.info(`[ROAM Processor] Unhandled event type: ${event.type}`)
     }
   } catch (error) {
-    console.error('[ROAM Processor] Processing error:', error)
+    logger.error('[ROAM Processor] Processing error:', error)
 
     // Detect 401 — key revoked
     if (error instanceof RoamApiError && error.status === 401) {
@@ -225,7 +225,7 @@ async function resolveTenant(groupId: string): Promise<TenantContext> {
     try {
       apiKey = await decryptKey(integration.apiKeyEncrypted)
     } catch (error) {
-      console.error('[ROAM Processor] Key decryption failed for tenant:', integration.tenantId, error)
+      logger.error('[ROAM Processor] Key decryption failed for tenant:', integration.tenantId, error)
     }
   }
 
@@ -287,7 +287,7 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
   const userId = tenant.userId
 
   if (!userId) {
-    console.error('[ROAM Processor] No userId resolved for group:', groupId)
+    logger.error('[ROAM Processor] No userId resolved for group:', groupId)
     return
   }
 
@@ -358,7 +358,7 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
     })
 
     if (!ragResponse.ok) {
-      console.error(`[ROAM Processor] RAG backend error: ${ragResponse.status}`)
+      logger.error(`[ROAM Processor] RAG backend error: ${ragResponse.status}`)
       replyText = formatErrorForRoam('UPSTREAM_FAILURE')
     } else {
       const responseText = await ragResponse.text()
@@ -381,7 +381,7 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
       }
     }
   } catch (error) {
-    console.error('[ROAM Processor] RAG query failed:', error)
+    logger.error('[ROAM Processor] RAG query failed:', error)
     replyText = formatErrorForRoam('INTERNAL_ERROR')
   }
 
@@ -397,7 +397,7 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
     )
     logger.info(`[ROAM Processor] Reply sent to group=${groupId} tenant=${tenant.tenantId} (confidence: ${confidence ?? 'N/A'})`)
   } catch (error) {
-    console.error('[ROAM Processor] ROAM send failed:', error)
+    logger.error('[ROAM Processor] ROAM send failed:', error)
     // Still write to thread — reply failed but we have the content
   }
 
@@ -430,7 +430,7 @@ async function processTranscript(event: RoamTranscriptEvent): Promise<void> {
   const userId = tenant.userId
 
   if (!userId) {
-    console.error('[ROAM Processor] No userId resolved for transcript group:', groupId)
+    logger.error('[ROAM Processor] No userId resolved for transcript group:', groupId)
     return
   }
 
@@ -451,7 +451,7 @@ async function processTranscript(event: RoamTranscriptEvent): Promise<void> {
   try {
     transcript = await getTranscriptInfo(transcriptId, tenant.apiKey || undefined)
   } catch (error) {
-    console.error('[ROAM Processor] Transcript fetch failed:', error)
+    logger.error('[ROAM Processor] Transcript fetch failed:', error)
     return
   }
 
@@ -481,7 +481,7 @@ async function processTranscript(event: RoamTranscriptEvent): Promise<void> {
     })
 
     if (!ragResponse.ok) {
-      console.error(`[ROAM Processor] RAG summarization error: ${ragResponse.status}`)
+      logger.error(`[ROAM Processor] RAG summarization error: ${ragResponse.status}`)
       return
     }
 
@@ -489,7 +489,7 @@ async function processTranscript(event: RoamTranscriptEvent): Promise<void> {
     const parsed = parseSSEText(responseText)
     summaryText = parsed.text
   } catch (error) {
-    console.error('[ROAM Processor] Transcript summarization failed:', error)
+    logger.error('[ROAM Processor] Transcript summarization failed:', error)
     return
   }
 
@@ -514,7 +514,7 @@ async function processTranscript(event: RoamTranscriptEvent): Promise<void> {
     )
     logger.info(`[ROAM Processor] Meeting summary sent to group=${groupId} transcript=${transcriptId}`)
   } catch (error) {
-    console.error('[ROAM Processor] Summary send failed:', error)
+    logger.error('[ROAM Processor] Summary send failed:', error)
   }
 
   // Store transcript as document in Vault for indexing
@@ -540,7 +540,7 @@ async function processTranscript(event: RoamTranscriptEvent): Promise<void> {
       },
     })
   } catch (error) {
-    console.error('[ROAM Processor] Transcript document creation failed:', error)
+    logger.error('[ROAM Processor] Transcript document creation failed:', error)
   }
 
   // Write to Mercury Thread
@@ -568,7 +568,7 @@ async function processTranscript(event: RoamTranscriptEvent): Promise<void> {
       },
     })
   } catch (error) {
-    console.error('[ROAM Processor] Meeting summary audit write failed:', error)
+    logger.error('[ROAM Processor] Meeting summary audit write failed:', error)
   }
 }
 
@@ -610,7 +610,7 @@ async function writeMercuryThreadMessage(
       data: { updatedAt: new Date() },
     })
   } catch (error) {
-    console.error('[ROAM Processor] Mercury thread write failed:', error)
+    logger.error('[ROAM Processor] Mercury thread write failed:', error)
   }
 }
 
@@ -639,6 +639,6 @@ async function writeAuditRecord(
       },
     })
   } catch (error) {
-    console.error('[ROAM Processor] Audit write failed:', error)
+    logger.error('[ROAM Processor] Audit write failed:', error)
   }
 }

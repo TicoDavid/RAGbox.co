@@ -90,13 +90,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'unknown error'
         errors.push(`${credential.emailAddress}: ${msg}`)
-        console.error(`[Gmail Watch Renew] Failed: ${credential.emailAddress}:`, err)
+        logger.error(`[Gmail Watch Renew] Failed: ${credential.emailAddress}:`, err)
       }
     }
 
     return NextResponse.json({ renewed, errors })
   } catch (error) {
-    console.error('[Gmail Watch Renew] Fatal error:', error)
+    logger.error('[Gmail Watch Renew] Fatal error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Cron failed', renewed, errors },
       { status: 500 }

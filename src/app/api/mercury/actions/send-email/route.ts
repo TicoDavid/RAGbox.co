@@ -15,6 +15,7 @@ import prisma from '@/lib/prisma'
 import { getValidAccessToken } from '@/lib/gmail/token'
 import { authorizeAgentAccessJWT } from '@/lib/agent/authorization'
 import { isGmailConfigured, sendViaGmail as sendSystemGmail } from '@/lib/email/gmail'
+import { logger } from '@/lib/logger'
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || ''
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || ''
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             await writeMercuryThread(userId, to, subject)
             return NextResponse.json({ success: true, data: { messageId: result.id, via: 'system-gmail' } })
           } catch (error) {
-            console.error('[Mercury Email] System Gmail fallback failed:', error)
+            logger.error('[Mercury Email] System Gmail fallback failed:', error)
             return NextResponse.json(
               { success: false, error: 'Email sending failed. System Gmail credentials may be misconfigured.' },
               { status: 502 }
@@ -187,7 +188,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       },
     })
   } catch (error) {
-    console.error('[Mercury Email] Error:', error)
+    logger.error('[Mercury Email] Error:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to send email' },
       { status: 500 }
@@ -213,7 +214,7 @@ async function sendViaGmail(
 
     if (!res.ok) {
       const errBody = await res.text()
-      console.error('[Mercury Email] Gmail API error:', res.status, errBody)
+      logger.error('[Mercury Email] Gmail API error:', res.status, errBody)
       return { ok: false, status: res.status, errorMessage: `Gmail API error: ${res.status}` }
     }
 
@@ -272,7 +273,7 @@ async function logMercuryAction(
       },
     })
   } catch (error) {
-    console.error('[Mercury Email] Action log failed:', error)
+    logger.error('[Mercury Email] Action log failed:', error)
   }
 }
 
@@ -299,6 +300,6 @@ async function writeMercuryThread(userId: string, to: string, subject: string): 
       },
     })
   } catch (error) {
-    console.error('[Mercury Email] Thread write failed:', error)
+    logger.error('[Mercury Email] Thread write failed:', error)
   }
 }

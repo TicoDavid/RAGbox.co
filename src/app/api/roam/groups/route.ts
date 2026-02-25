@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import { listGroups } from '@/lib/roam/roamClient'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const token = await getToken({ req: request })
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       data: { groups },
     })
   } catch (error) {
-    console.error('[ROAM Groups] Failed to list groups:', error)
+    logger.error('[ROAM Groups] Failed to list groups:', error)
     return NextResponse.json({
       success: false,
       error: 'Failed to fetch ROAM groups',

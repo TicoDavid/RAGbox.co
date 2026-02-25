@@ -11,6 +11,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { getValidAccessToken } from '@/lib/gmail/token'
+import { logger } from '@/lib/logger'
 
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
 const GCP_PROJECT = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCP_PROJECT || 'ragbox-sovereign-prod'
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (!watchResponse.ok) {
       const errData = await watchResponse.json().catch(() => ({}))
-      console.error('[Gmail Watch] Setup failed:', errData)
+      logger.error('[Gmail Watch] Setup failed:', errData)
       return NextResponse.json(
         { error: 'Gmail watch setup failed', details: errData },
         { status: 502 }
@@ -78,7 +79,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       historyId: watchData.historyId,
     })
   } catch (error) {
-    console.error('[Gmail Watch] Error:', error)
+    logger.error('[Gmail Watch] Error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Watch setup failed' },
       { status: 500 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { provisionFromCheckout, updateSubscription, handlePaymentFailed, sendInvoiceEmail } from '@/lib/billing/provision'
+import { logger } from '@/lib/logger'
 
 let _stripe: Stripe | null = null
 
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
       process.env.STRIPE_WEBHOOK_SECRET!,
     )
   } catch {
-    console.error('[Stripe] Webhook signature verification failed')
+    logger.error('[Stripe] Webhook signature verification failed')
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
           : (session.subscription as Stripe.Subscription | null)?.id || ''
 
         if (!email) {
-          console.error('[Stripe] No customer email in checkout session')
+          logger.error('[Stripe] No customer email in checkout session')
           break
         }
 
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest) {
             const sub = await getStripe().subscriptions.retrieve(stripeSubscriptionId)
             priceIds = extractSubscriptionPriceIds(sub)
           } catch (err) {
-            console.warn('[Stripe] Could not retrieve subscription for price IDs:', err)
+            logger.warn('[Stripe] Could not retrieve subscription for price IDs:', err)
           }
         }
 
@@ -129,7 +130,7 @@ export async function POST(req: NextRequest) {
             email: invoiceEmail,
             amountCents: amountPaid,
             invoiceUrl: invoiceUrl || undefined,
-          }).catch((err) => console.error('[Stripe] Invoice email failed:', err))
+          }).catch((err) => logger.error('[Stripe] Invoice email failed:', err))
         }
         break
       }
@@ -150,7 +151,7 @@ export async function POST(req: NextRequest) {
         console.info('[Stripe] Unhandled event:', event.type)
     }
   } catch (error) {
-    console.error('[Stripe] Error processing event:', event.type, error)
+    logger.error('[Stripe] Error processing event:', event.type, error)
     // Return 200 to prevent Stripe retries for non-transient errors
     // Transient DB errors will be caught and logged
   }

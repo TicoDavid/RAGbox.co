@@ -7,6 +7,7 @@
  * - Tier 1: Managed Fleet (OpenRouter via RAGbox key)
  * - Tier 2: Private Uplinks (User BYO keys)
  */
+import { logger } from '@/lib/logger'
 
 export interface OpenRouterModel {
   id: string
@@ -142,7 +143,7 @@ export async function fetchOpenRouterModels(): Promise<OpenRouterModel[]> {
 
     return cachedModels || []
   } catch (error) {
-    console.error('[OpenRouter] Failed to fetch models (returning empty):', error)
+    logger.error('[OpenRouter] Failed to fetch models (returning empty):', error)
     return []
   }
 }

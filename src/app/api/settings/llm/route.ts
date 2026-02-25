@@ -18,6 +18,7 @@ import prisma from '@/lib/prisma'
 import { maskApiKey } from '@/lib/utils/mask-key'
 import { encryptKey, decryptKey } from '@/lib/utils/kms'
 import { checkByollm } from '@/lib/auth/tierCheck'
+import { logger } from '@/lib/logger'
 
 const DEFAULT_TENANT = 'default'
 
@@ -94,7 +95,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const data = await serializeConfig(config)
     return NextResponse.json({ success: true, data })
   } catch (error) {
-    console.error('[Settings/LLM] GET error:', error)
+    logger.error('[Settings/LLM] GET error:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to load LLM settings' },
       { status: 500 },
@@ -167,7 +168,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     const data = await serializeConfig(config)
     return NextResponse.json({ success: true, data })
   } catch (error) {
-    console.error('[Settings/LLM] PUT error:', error)
+    logger.error('[Settings/LLM] PUT error:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to save LLM settings' },
       { status: 500 },
@@ -201,7 +202,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ success: true, deleted: true })
   } catch (error) {
-    console.error('[Settings/LLM] DELETE error:', error)
+    logger.error('[Settings/LLM] DELETE error:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to delete LLM settings' },
       { status: 500 },

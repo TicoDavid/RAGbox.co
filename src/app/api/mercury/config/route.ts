@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 const DEFAULT_TENANT = 'default'
 
@@ -65,7 +66,7 @@ interface MercuryConfigPayload {
 async function getAuth(request: NextRequest) {
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
   if (!token) {
-    console.warn('[mercury/config] getToken returned null — session cookie may be missing or NEXTAUTH_SECRET mismatch')
+    logger.warn('[mercury/config] getToken returned null — session cookie may be missing or NEXTAUTH_SECRET mismatch')
     return null
   }
   return { userId: (token.id as string) || token.email || '', tenantId: DEFAULT_TENANT }

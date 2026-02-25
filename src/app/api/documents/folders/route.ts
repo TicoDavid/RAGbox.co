@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const token = await getToken({ req: request })
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ success: true, data: { folders: tree } })
   } catch (error) {
-    console.error('[Folders GET] Error:', error)
+    logger.error('[Folders GET] Error:', error)
     return NextResponse.json({ success: false, error: 'Failed to list folders' }, { status: 500 })
   }
 }
@@ -114,7 +115,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ success: true, data: { folder } }, { status: 201 })
   } catch (error) {
-    console.error('[Folders POST] Error:', error)
+    logger.error('[Folders POST] Error:', error)
     return NextResponse.json({ success: false, error: 'Failed to create folder' }, { status: 500 })
   }
 }

@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 // Simple in-memory rate limit (per-process; resets on deploy)
 const rateLimitMap = new Map<string, number[]>()
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       },
     })
   } catch (dbErr) {
-    console.error('Failed to persist feedback report:', dbErr)
+    logger.error('Failed to persist feedback report:', dbErr)
     // Continue — don't block the user if DB write fails
   }
 
@@ -114,7 +115,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         })
       }
     } catch (err) {
-      console.error('Go backend report-issue forwarding failed:', err)
+      logger.error('Go backend report-issue forwarding failed:', err)
     }
   }
 

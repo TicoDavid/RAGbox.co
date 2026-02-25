@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 interface ReorderItem {
   id: string
@@ -109,7 +110,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       data: { updated: items.length },
     })
   } catch (error) {
-    console.error('[Document Reorder] Error:', error)
+    logger.error('[Document Reorder] Error:', error)
     return NextResponse.json({ success: false, error: 'Failed to reorder documents' }, { status: 500 })
   }
 }

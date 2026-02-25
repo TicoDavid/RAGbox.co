@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 // Fields that contain sensitive credentials
 const CREDENTIAL_FIELDS = [
@@ -78,7 +79,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ success: true, data: masked })
   } catch (error) {
-    console.error('[API] Integration settings GET error:', error)
+    logger.error('[API] Integration settings GET error:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to fetch integration settings' },
       { status: 500 },
@@ -164,7 +165,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ success: true, data: masked })
   } catch (error) {
-    console.error('[API] Integration settings PUT error:', error)
+    logger.error('[API] Integration settings PUT error:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to update integration settings' },
       { status: 500 },

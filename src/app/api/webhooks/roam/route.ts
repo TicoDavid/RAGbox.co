@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PubSub } from '@google-cloud/pubsub'
 import { verifyWebhookSignature } from '@/lib/roam/roamVerify'
+import { logger } from '@/lib/logger'
 
 // Force Node.js runtime (not Edge) — required for crypto.createHmac
 export const runtime = 'nodejs'
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const webhookSignature = request.headers.get('webhook-signature') || ''
 
   if (!ROAM_WEBHOOK_SECRET) {
-    console.warn('[ROAM Webhook] ROAM_WEBHOOK_SECRET not configured — skipping')
+    logger.warn('[ROAM Webhook] ROAM_WEBHOOK_SECRET not configured — skipping')
     return NextResponse.json({ ok: false, reason: 'not configured' }, { status: 200 })
   }
 
@@ -63,13 +64,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       ROAM_WEBHOOK_SECRET
     )
   } catch (sigErr) {
-    console.error('[ROAM Webhook] Signature verification threw:', sigErr)
+    logger.error('[ROAM Webhook] Signature verification threw:', sigErr)
     // ACK anyway — don't let signature code crash the webhook
     return NextResponse.json({ ok: true }, { status: 200 })
   }
 
   if (!verification.valid) {
-    console.error(
+    logger.error(
       `[ROAM Webhook] Signature failed: ${verification.error}`,
       `| bodyLen=${rawBody.length}`,
       `| webhookId=${webhookId}`,
@@ -99,7 +100,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       },
     })
     .catch((err: unknown) => {
-      console.error('[ROAM Webhook] Pub/Sub publish failed:', err)
+      logger.error('[ROAM Webhook] Pub/Sub publish failed:', err)
     })
 
   // Step 5: Fast ACK — return BEFORE Pub/Sub completes

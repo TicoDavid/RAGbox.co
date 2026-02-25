@@ -11,6 +11,7 @@ import { PubSub } from '@google-cloud/pubsub'
 import { authenticateApiKey, hasScope } from '@/lib/api/apiKeyMiddleware'
 import { writeAuditEntry } from '@/lib/audit/auditWriter'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -219,7 +220,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       },
     })
     .catch((err: unknown) => {
-      console.error('[Knowledge Ingest] Pub/Sub publish failed:', err)
+      logger.error('[Knowledge Ingest] Pub/Sub publish failed:', err)
     })
 
   // Audit (non-blocking)

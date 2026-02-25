@@ -49,6 +49,7 @@ import { useSettings, type CachedModel, LANGUAGES, type LanguageId, type Density
 import { getModelDisplayName, OPENROUTER_ENDPOINT } from '@/services/OpenRouterService'
 import { AIModelSettings } from './settings/AIModelSettings'
 import IntegrationsSettings from '@/app/dashboard/settings/integrations/page'
+import { logger } from '@/lib/logger'
 
 // Profile types for multi-profile switching
 interface Profile {
@@ -899,7 +900,7 @@ function WorkProfileSettings() {
         setLoaded(true)
       })
       .catch((err) => {
-        console.error('Failed to load work profile:', err)
+        logger.error('Failed to load work profile:', err)
         setLoaded(true)
       })
   }, [])

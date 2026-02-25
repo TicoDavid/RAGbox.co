@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
 import { verifyAuditChain } from '@/lib/audit/auditWriter'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const token = await getToken({ req: request })
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ success: true, data: { entries, total, limit, offset } })
   } catch (error) {
-    console.error('[Audit Entries GET] Error:', error)
+    logger.error('[Audit Entries GET] Error:', error)
     return NextResponse.json({ success: true, data: { entries: [], total: 0, limit, offset } })
   }
 }
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       const result = await verifyAuditChain()
       return NextResponse.json({ success: true, data: result })
     } catch (error) {
-      console.error('[Audit Verify] Error:', error)
+      logger.error('[Audit Verify] Error:', error)
       return NextResponse.json({ success: true, data: { valid: false, error: 'Verification failed' } })
     }
   }

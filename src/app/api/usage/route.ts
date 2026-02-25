@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { logger } from '@/lib/logger'
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080'
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
@@ -36,7 +37,7 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     // STORY-S06: Return 503 when backend unreachable — clients must distinguish
     // real zeros from service unavailability.
-    console.error('[Usage] Backend unavailable:', error)
+    logger.error('[Usage] Backend unavailable:', error)
     return NextResponse.json(
       { error: 'Usage service unavailable' },
       { status: 503 }

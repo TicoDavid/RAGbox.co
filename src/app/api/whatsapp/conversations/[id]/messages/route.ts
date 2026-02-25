@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 const VONAGE_API_KEY = process.env.VONAGE_API_KEY || ''
 const VONAGE_API_SECRET = process.env.VONAGE_API_SECRET || ''
@@ -62,7 +63,7 @@ export async function GET(
       nextCursor,
     })
   } catch (error) {
-    console.error('[API] WhatsApp messages error:', error)
+    logger.error('[API] WhatsApp messages error:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to fetch messages' },
       { status: 500 }
@@ -150,7 +151,7 @@ export async function POST(
 
     return NextResponse.json({ success: true, data: message })
   } catch (error) {
-    console.error('[API] WhatsApp send message error:', error)
+    logger.error('[API] WhatsApp send message error:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to send message' },
       { status: 500 }
@@ -167,7 +168,7 @@ async function sendVonageText(
   text: string,
 ): Promise<{ externalMessageId: string; success: boolean; error?: string }> {
   if (!VONAGE_API_KEY || !VONAGE_API_SECRET) {
-    console.warn('[WhatsApp] Vonage credentials not configured — skipping send')
+    logger.warn('[WhatsApp] Vonage credentials not configured — skipping send')
     return { externalMessageId: '', success: false, error: 'Vonage not configured' }
   }
 
@@ -190,14 +191,14 @@ async function sendVonageText(
 
     if (!response.ok) {
       const errorBody = await response.text()
-      console.error('[WhatsApp] Vonage send failed:', response.status, errorBody)
+      logger.error('[WhatsApp] Vonage send failed:', response.status, errorBody)
       return { externalMessageId: '', success: false, error: `Vonage ${response.status}` }
     }
 
     const data = await response.json()
     return { externalMessageId: data.message_uuid || '', success: true }
   } catch (error) {
-    console.error('[WhatsApp] Vonage send error:', error)
+    logger.error('[WhatsApp] Vonage send error:', error)
     return {
       externalMessageId: '',
       success: false,

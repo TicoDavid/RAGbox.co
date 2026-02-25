@@ -18,6 +18,7 @@ import { getCachedQuery, setCachedQuery } from '@/lib/cache/queryCache'
 import prisma from '@/lib/prisma'
 import { decryptKey } from '@/lib/utils/kms'
 import { validateExternalUrl } from '@/lib/utils/url-validation'
+import { logger } from '@/lib/logger'
 
 const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
         const targetUrl = urls[0]
         const validation = validateExternalUrl(targetUrl)
         if (!validation.ok) {
-          console.warn(`[Chat] SSRF blocked: ${validation.reason} — ${targetUrl}`)
+          logger.warn(`[Chat] SSRF blocked: ${validation.reason} — ${targetUrl}`)
         } else {
           try {
             const urlRes = await fetch(validation.url.href, {
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
               }
             }
           } catch (err) {
-            console.warn('[Chat] URL fetch failed (continuing without web context):', err)
+            logger.warn('[Chat] URL fetch failed (continuing without web context):', err)
           }
         }
       }
@@ -154,7 +155,7 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
           }
         }
       } catch (err) {
-        console.error('[Chat] BYOLLM config lookup failed (falling back to AEGIS):', err)
+        logger.error('[Chat] BYOLLM config lookup failed (falling back to AEGIS):', err)
       }
     } else {
       // Check if policy forces BYOLLM even when frontend didn't request it
@@ -173,7 +174,7 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
           }
         }
       } catch (err) {
-        console.error('[Chat] BYOLLM policy check failed (falling back to AEGIS):', err)
+        logger.error('[Chat] BYOLLM policy check failed (falling back to AEGIS):', err)
       }
     }
 
@@ -277,14 +278,14 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
           citations,
           cachedAt: new Date().toISOString(),
         }).catch((err) => {
-          console.warn('[Chat] Cache write failed:', err)
+          logger.warn('[Chat] Cache write failed:', err)
         })
       }
     }
 
     return NextResponse.json(data)
   } catch (err) {
-    console.error('[Chat] Unhandled error in POST /api/chat:', err)
+    logger.error('[Chat] Unhandled error in POST /api/chat:', err)
     return NextResponse.json({
       success: false,
       response: 'I encountered an unexpected issue. Please try again, and if this persists, contact support.',

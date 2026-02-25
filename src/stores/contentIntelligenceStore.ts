@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { apiFetch } from '@/lib/api'
 import type { ContentGap, ContentGapSummary, KBHealthCheck } from '@/types/ragbox'
+import { logger } from '@/lib/logger'
 
 interface ContentIntelligenceState {
   // Content Gaps
@@ -46,7 +47,7 @@ export const useContentIntelligenceStore = create<ContentIntelligenceState>()(
           }
         }
       } catch (err) {
-        console.error('Failed to fetch content gaps:', err)
+        logger.error('Failed to fetch content gaps:', err)
       } finally {
         set({ gapsLoading: false })
       }
@@ -62,7 +63,7 @@ export const useContentIntelligenceStore = create<ContentIntelligenceState>()(
           }
         }
       } catch (err) {
-        console.error('Failed to fetch gap summary:', err)
+        logger.error('Failed to fetch gap summary:', err)
       }
     },
 
@@ -82,7 +83,7 @@ export const useContentIntelligenceStore = create<ContentIntelligenceState>()(
           }))
         }
       } catch (err) {
-        console.error('Failed to dismiss gap:', err)
+        logger.error('Failed to dismiss gap:', err)
       }
     },
 
@@ -102,7 +103,7 @@ export const useContentIntelligenceStore = create<ContentIntelligenceState>()(
           }))
         }
       } catch (err) {
-        console.error('Failed to address gap:', err)
+        logger.error('Failed to address gap:', err)
       }
     },
 
@@ -122,7 +123,7 @@ export const useContentIntelligenceStore = create<ContentIntelligenceState>()(
           }
         }
       } catch (err) {
-        console.error('Failed to run health check:', err)
+        logger.error('Failed to run health check:', err)
       } finally {
         set({ healthLoading: false })
       }
@@ -138,7 +139,7 @@ export const useContentIntelligenceStore = create<ContentIntelligenceState>()(
           }
         }
       } catch (err) {
-        console.error('Failed to fetch health history:', err)
+        logger.error('Failed to fetch health history:', err)
       }
     },
   }), { name: 'content-intelligence' })

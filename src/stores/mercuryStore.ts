@@ -6,6 +6,7 @@ import { apiFetch } from '@/lib/api'
 import { detectToolIntent } from '@/lib/mercury/toolRouter'
 import { executeTool, type ToolResult } from '@/lib/mercury/toolExecutor'
 import { toCitationBlocks } from '@/lib/citations/transform'
+import { logger } from '@/lib/logger'
 
 const AEGIS_INTELLIGENCE: ActiveIntelligence = {
   id: 'aegis-core',
@@ -132,7 +133,7 @@ function persistToThread(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   }).catch((err) => {
-    console.warn('[MercuryStore] Thread persist failed:', err)
+    logger.warn('[MercuryStore] Thread persist failed:', err)
   })
 }
 
@@ -537,7 +538,7 @@ export const useMercuryStore = create<MercuryState>()(
         // Re-arm loadThread so next mount fetches fresh (empty) state
         set({ threadLoaded: true })
       }).catch((err) => {
-        console.warn('[MercuryStore] Thread clear failed:', err)
+        logger.warn('[MercuryStore] Thread clear failed:', err)
         set({ threadLoaded: true })
       })
     },
@@ -626,7 +627,7 @@ export const useMercuryStore = create<MercuryState>()(
               }
             }
           } catch (err) {
-            console.warn('[MercuryStore] Persona lookup failed (using legacy mode):', err)
+            logger.warn('[MercuryStore] Persona lookup failed (using legacy mode):', err)
           }
         } else if (actionType === 'send_sms') {
           endpoint = '/api/mercury/actions/send-sms'
@@ -735,7 +736,7 @@ export const useMercuryStore = create<MercuryState>()(
         merged.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
         set({ messages: merged, threadLoaded: true })
       } catch (error) {
-        console.warn('[MercuryStore] Failed to load thread:', error)
+        logger.warn('[MercuryStore] Failed to load thread:', error)
         set({ threadLoaded: true })
       }
     },
@@ -759,7 +760,7 @@ export const useMercuryStore = create<MercuryState>()(
           threadLoaded: true,
         })
       } catch (error) {
-        console.warn('[MercuryStore] Failed to create new thread:', error)
+        logger.warn('[MercuryStore] Failed to create new thread:', error)
       }
     },
 
@@ -796,7 +797,7 @@ export const useMercuryStore = create<MercuryState>()(
           threadLoaded: true,
         })
       } catch (error) {
-        console.warn('[MercuryStore] Failed to switch thread:', error)
+        logger.warn('[MercuryStore] Failed to switch thread:', error)
       }
     },
 
@@ -812,7 +813,7 @@ export const useMercuryStore = create<MercuryState>()(
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ threadId, title: title.slice(0, 50) }),
       }).catch((err) => {
-        console.warn('[MercuryStore] Thread title patch failed:', err)
+        logger.warn('[MercuryStore] Thread title patch failed:', err)
       })
     },
 

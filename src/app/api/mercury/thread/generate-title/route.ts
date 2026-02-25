@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import { VertexAI } from '@google-cloud/vertexai'
+import { logger } from '@/lib/logger'
 
 const PROJECT_ID = process.env.GCP_PROJECT_ID || 'ragbox-sovereign-prod'
 const LOCATION = process.env.GCP_LOCATION || 'us-east4'
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ title: finalTitle })
   } catch (error) {
-    console.error('[generate-title] Error:', error)
+    logger.error('[generate-title] Error:', error)
     // Non-critical — return the query as fallback
     const body = await request.clone().json().catch(() => ({ query: '' }))
     return NextResponse.json({ title: (body.query || '').slice(0, 50) })

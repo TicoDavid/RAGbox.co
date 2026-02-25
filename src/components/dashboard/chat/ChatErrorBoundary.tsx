@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
+import { logger } from '@/lib/logger'
 
 interface ChatErrorBoundaryState {
   hasError: boolean
@@ -22,7 +23,7 @@ export class ChatErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('[ChatErrorBoundary] Render error in chat pipeline:', {
+    logger.error('[ChatErrorBoundary] Render error in chat pipeline:', {
       message: error.message,
       stack: error.stack,
       componentStack: errorInfo.componentStack,
