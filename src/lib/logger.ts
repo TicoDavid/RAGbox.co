@@ -1,17 +1,25 @@
 /**
- * Minimal structured logger — Jordan EPIC-016 P02
+ * Structured logger utility — EPIC-016 P07
  *
- * Wraps console.warn / console.error with JSON-structured output
- * for Cloud Run / Cloud Logging. Replaces raw console.log calls
- * in production code with severity-tagged output.
+ * JSON-structured output for Cloud Run / Cloud Logging.
+ * Production suppresses debug, shows info+.
+ * Development shows all levels including debug.
  *
- * Sheldon may replace this with a full logger (P07). This is
- * intentionally minimal so it's easy to swap.
+ * No external dependencies. Drop-in replacement for console.log calls.
+ * Jordan can use `logger.debug()` for dev-only output that vanishes in prod.
+ *
+ * Replaces Jordan's P02 minimal logger with debug level + level filtering.
  */
 
-type LogLevel = 'info' | 'warn' | 'error'
+const LOG_LEVELS = { debug: 0, info: 1, warn: 2, error: 3 } as const
+type LogLevel = keyof typeof LOG_LEVELS
 
-function log(level: LogLevel, message: string, meta?: Record<string, unknown>): void {
+const CURRENT_LEVEL: number =
+  process.env.NODE_ENV === 'production' ? LOG_LEVELS.info : LOG_LEVELS.debug
+
+function emit(level: LogLevel, message: string, meta?: Record<string, unknown>): void {
+  if (LOG_LEVELS[level] < CURRENT_LEVEL) return
+
   const entry = {
     severity: level.toUpperCase(),
     message,
@@ -26,14 +34,22 @@ function log(level: LogLevel, message: string, meta?: Record<string, unknown>): 
     case 'warn':
       console.warn(JSON.stringify(entry))
       break
+    case 'debug':
+      console.debug(JSON.stringify(entry))
+      break
     default:
-      // Use console.info (not console.log) — console.log is banned in production
+      // info → console.info (not console.log — console.log is banned in production)
       console.info(JSON.stringify(entry))
   }
 }
 
 export const logger = {
-  info: (message: string, meta?: Record<string, unknown>) => log('info', message, meta),
-  warn: (message: string, meta?: Record<string, unknown>) => log('warn', message, meta),
-  error: (message: string, meta?: Record<string, unknown>) => log('error', message, meta),
+  /** Dev-only output. Suppressed in production. */
+  debug: (message: string, meta?: Record<string, unknown>) => emit('debug', message, meta),
+  /** General operational info. Visible in all environments. */
+  info: (message: string, meta?: Record<string, unknown>) => emit('info', message, meta),
+  /** Warning conditions. Always visible. */
+  warn: (message: string, meta?: Record<string, unknown>) => emit('warn', message, meta),
+  /** Error conditions. Always visible. */
+  error: (message: string, meta?: Record<string, unknown>) => emit('error', message, meta),
 }
