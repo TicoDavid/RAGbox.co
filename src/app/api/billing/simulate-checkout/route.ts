@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const validTiers: BillingTier[] = ['sovereign', 'mercury', 'syndicate']
+  const validTiers: BillingTier[] = ['starter', 'professional', 'enterprise', 'sovereign']
   if (!validTiers.includes(tier as BillingTier)) {
     return NextResponse.json(
       { error: `Invalid tier. Must be one of: ${validTiers.join(', ')}` },
@@ -44,15 +44,15 @@ export async function POST(req: NextRequest) {
 
   // Build fake price IDs that will resolve to the correct tier
   const fakePriceIds: string[] = []
+  const starterPrice = process.env.STRIPE_PRICE_STARTER || 'price_simulated_starter'
+  const professionalPrice = process.env.STRIPE_PRICE_PROFESSIONAL || 'price_simulated_professional'
+  const enterprisePrice = process.env.STRIPE_PRICE_ENTERPRISE || 'price_simulated_enterprise'
   const sovereignPrice = process.env.STRIPE_PRICE_SOVEREIGN || 'price_simulated_sovereign'
-  const mercuryPrice = process.env.STRIPE_PRICE_MERCURY || 'price_simulated_mercury'
 
-  if (tier === 'sovereign' || tier === 'mercury' || tier === 'syndicate') {
-    fakePriceIds.push(sovereignPrice)
-  }
-  if (tier === 'mercury') {
-    fakePriceIds.push(mercuryPrice)
-  }
+  if (tier === 'starter') fakePriceIds.push(starterPrice)
+  else if (tier === 'professional') fakePriceIds.push(professionalPrice)
+  else if (tier === 'enterprise') fakePriceIds.push(enterprisePrice)
+  else if (tier === 'sovereign') fakePriceIds.push(sovereignPrice)
 
   const result = await provisionFromCheckout({
     email,
@@ -61,18 +61,18 @@ export async function POST(req: NextRequest) {
     priceIds: fakePriceIds,
   })
 
-  // For syndicate, override the tier since it's sales-led and not price-mapped
-  if (tier === 'syndicate') {
+  // For enterprise/sovereign, override the tier since they're sales-led and not price-mapped
+  if (tier === 'enterprise' || tier === 'sovereign') {
     const { default: prisma } = await import('@/lib/prisma')
-    const entitlements = getEntitlements('syndicate')
+    const entitlements = getEntitlements(tier)
     await prisma.user.update({
       where: { id: result.userId },
       data: {
-        subscriptionTier: 'syndicate',
+        subscriptionTier: tier,
         entitlements: entitlements as unknown as Prisma.InputJsonValue,
       },
     })
-    result.tier = 'syndicate'
+    result.tier = tier
   }
 
   return NextResponse.json({

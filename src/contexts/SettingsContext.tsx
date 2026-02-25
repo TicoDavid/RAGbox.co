@@ -34,7 +34,7 @@ export interface VoiceSettings {
 
 // Subscription/Plan info
 export interface SubscriptionInfo {
-  plan: 'free' | 'sovereign' | 'sovereign_mercury' | 'syndicate'
+  plan: 'free' | 'starter' | 'professional' | 'enterprise' | 'sovereign'
   tokensUsed: number
   tokensLimit: number
   renewalDate: string

@@ -484,9 +484,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // STORY-067: Billing subscription fields on users
     // ========================================
 
-    // Add new enum values to subscription_tier (free, sovereign, mercury, syndicate)
+    // Add all enum values to subscription_tier (canonical + legacy)
     try {
       await prisma.$executeRawUnsafe(`ALTER TYPE "subscription_tier" ADD VALUE IF NOT EXISTS 'free'`)
+      await prisma.$executeRawUnsafe(`ALTER TYPE "subscription_tier" ADD VALUE IF NOT EXISTS 'starter'`)
+      await prisma.$executeRawUnsafe(`ALTER TYPE "subscription_tier" ADD VALUE IF NOT EXISTS 'professional'`)
+      await prisma.$executeRawUnsafe(`ALTER TYPE "subscription_tier" ADD VALUE IF NOT EXISTS 'enterprise'`)
       await prisma.$executeRawUnsafe(`ALTER TYPE "subscription_tier" ADD VALUE IF NOT EXISTS 'sovereign'`)
       await prisma.$executeRawUnsafe(`ALTER TYPE "subscription_tier" ADD VALUE IF NOT EXISTS 'mercury'`)
       await prisma.$executeRawUnsafe(`ALTER TYPE "subscription_tier" ADD VALUE IF NOT EXISTS 'syndicate'`)
@@ -494,6 +497,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     } catch (enumErr3) {
       results.push(`subscription_tier enum: SKIPPED (${enumErr3 instanceof Error ? enumErr3.message.slice(0, 80) : 'permission error'})`)
     }
+
+    // EPIC-016: Migrate legacy tier names → canonical names
+    await prisma.$executeRawUnsafe(`UPDATE "users" SET "subscription_tier" = 'starter' WHERE "subscription_tier" = 'mercury'`)
+    await prisma.$executeRawUnsafe(`UPDATE "users" SET "subscription_tier" = 'enterprise' WHERE "subscription_tier" = 'syndicate'`)
+    results.push('subscription_tier legacy migration (mercury→starter, syndicate→enterprise): OK')
 
     // subscription_status enum
     await prisma.$executeRawUnsafe(`
@@ -514,9 +522,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "users_stripe_customer_id_key" ON "users"("stripe_customer_id")`)
     results.push('users.stripe_customer_id unique index: OK')
 
-    // Migrate existing users from 'professional' to 'free' default (safe: old tier still valid in enum)
+    // Migrate inactive users to 'free' default (safe: old tier still valid in enum)
     await prisma.$executeRawUnsafe(`UPDATE "users" SET "subscription_tier" = 'free' WHERE "subscription_tier" IN ('starter', 'professional') AND "subscription_status" = 'inactive'`)
-    results.push('users tier migration (professional→free): OK')
+    results.push('users tier migration (inactive→free): OK')
 
     // ========================================
     // EPIC-010: ROAM Integration table

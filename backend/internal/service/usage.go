@@ -48,10 +48,10 @@ const (
 const MetricTokensUsed = "tokens_used"
 
 // TierLimitMap maps subscription tier names to their limits.
-// Includes both legacy DB tier names (free/sovereign/mercury/syndicate)
-// and CPO-approved tier names (starter/professional/enterprise/sovereign).
+// EPIC-016: Canonical tier names are free/starter/professional/enterprise/sovereign.
+// Legacy names (mercury/syndicate) kept for backward compat with unmigrated DB rows.
 var TierLimitMap = map[string]TierLimits{
-	// Legacy DB tier names (backward compatibility)
+	// ── Canonical tiers (CPO pricing model — EPIC-016) ────────────────
 	"free": {
 		AegisQueries:    25,
 		DocumentsStored: 5,
@@ -59,32 +59,10 @@ var TierLimitMap = map[string]TierLimits{
 		APICalls:        0,
 		TokenBudget:     TokenBudgetFree,
 	},
-	"sovereign": {
-		AegisQueries:    500,
-		DocumentsStored: 50,
-		VoiceMinutes:    0,
-		APICalls:        0,
-		TokenBudget:     TokenBudgetSovereign, // unlimited — contract-based
-	},
-	"mercury": {
-		AegisQueries:    500,
-		DocumentsStored: 50,
-		VoiceMinutes:    120,
-		APICalls:        0,
-		TokenBudget:     TokenBudgetProfessional,
-	},
-	"syndicate": {
-		AegisQueries:    10000,
-		DocumentsStored: -1, // unlimited
-		VoiceMinutes:    -1, // unlimited
-		APICalls:        10000,
-		TokenBudget:     TokenBudgetEnterprise,
-	},
-	// CPO-approved tier names (STORY-199)
 	"starter": {
 		AegisQueries:    100,
 		DocumentsStored: 10,
-		VoiceMinutes:    0,
+		VoiceMinutes:    60,
 		APICalls:        100,
 		TokenBudget:     TokenBudgetStarter,
 	},
@@ -96,6 +74,28 @@ var TierLimitMap = map[string]TierLimits{
 		TokenBudget:     TokenBudgetProfessional,
 	},
 	"enterprise": {
+		AegisQueries:    10000,
+		DocumentsStored: -1, // unlimited
+		VoiceMinutes:    -1, // unlimited
+		APICalls:        10000,
+		TokenBudget:     TokenBudgetEnterprise,
+	},
+	"sovereign": {
+		AegisQueries:    500,
+		DocumentsStored: 50,
+		VoiceMinutes:    0,
+		APICalls:        0,
+		TokenBudget:     TokenBudgetSovereign, // unlimited — contract-based
+	},
+	// ── Legacy aliases (backward compat for unmigrated DB rows) ───────
+	"mercury": { // @deprecated → maps to starter
+		AegisQueries:    100,
+		DocumentsStored: 10,
+		VoiceMinutes:    60,
+		APICalls:        100,
+		TokenBudget:     TokenBudgetStarter,
+	},
+	"syndicate": { // @deprecated → maps to enterprise
 		AegisQueries:    10000,
 		DocumentsStored: -1,
 		VoiceMinutes:    -1,

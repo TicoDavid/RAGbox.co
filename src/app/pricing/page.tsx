@@ -30,7 +30,7 @@ import Footer from '@/components/Footer'
 // STRIPE PLACEHOLDERS — wire to real price IDs when Stripe products configured
 // ============================================================================
 
-async function handleCheckout(plan: 'sovereign' | 'sovereign_mercury') {
+async function handleCheckout(plan: 'starter' | 'professional' | 'enterprise' | 'sovereign') {
   const res = await fetch('/api/stripe/checkout', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -41,8 +41,8 @@ async function handleCheckout(plan: 'sovereign' | 'sovereign_mercury') {
 }
 
 function handleEnterprise() {
-  // Syndicate is sales-led, not self-serve
-  window.location.href = 'mailto:david@theconnexus.ai?subject=RAGb%C3%B6x%20Syndicate%20%E2%80%94%20Enterprise%20Inquiry'
+  // Enterprise/Sovereign are sales-led, not self-serve
+  window.location.href = 'mailto:david@theconnexus.ai?subject=RAGb%C3%B6x%20Enterprise%20%E2%80%94%20Inquiry'
 }
 
 // ============================================================================
@@ -254,7 +254,7 @@ function MercuryCard() {
 
             <div>
               <button
-                onClick={() => handleCheckout('sovereign_mercury')}
+                onClick={() => handleCheckout('professional')}
                 className="w-full md:w-auto px-8 py-3.5 rounded-xl text-sm font-bold transition-all duration-200
                            bg-white/5 text-white border border-white/10
                            hover:bg-white/10 hover:border-white/20"

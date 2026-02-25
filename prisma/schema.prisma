@@ -78,9 +78,12 @@ enum user_status {
 
 enum subscription_tier {
   free
+  starter
+  professional
+  enterprise
   sovereign
-  mercury
-  syndicate
+  mercury    // @deprecated — legacy alias for starter (pre-EPIC-016)
+  syndicate  // @deprecated — legacy alias for enterprise (pre-EPIC-016)
 }
 
 enum subscription_status {

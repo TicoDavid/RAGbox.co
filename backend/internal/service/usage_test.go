@@ -265,7 +265,7 @@ func TestTokenBudget_ProfessionalLimit(t *testing.T) {
 	svc := NewUsageService(repo)
 	ctx := context.Background()
 
-	// Professional (mercury) has 5M budget
+	// Professional tier has 5M budget
 	allowed, _, budget, err := svc.CheckTokenLimit(ctx, "tenant2", "professional")
 	if err != nil {
 		t.Fatalf("error: %v", err)
@@ -277,10 +277,10 @@ func TestTokenBudget_ProfessionalLimit(t *testing.T) {
 		t.Fatalf("expected budget=%d, got %d", TokenBudgetProfessional, budget)
 	}
 
-	// mercury tier should have same budget
+	// mercury (legacy) now maps to starter budget after EPIC-016 tier alignment
 	_, _, mercuryBudget, _ := svc.CheckTokenLimit(ctx, "tenant2", "mercury")
-	if mercuryBudget != TokenBudgetProfessional {
-		t.Fatalf("mercury budget mismatch: expected %d, got %d", TokenBudgetProfessional, mercuryBudget)
+	if mercuryBudget != TokenBudgetStarter {
+		t.Fatalf("mercury budget mismatch: expected %d (starter), got %d", TokenBudgetStarter, mercuryBudget)
 	}
 }
 

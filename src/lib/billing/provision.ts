@@ -91,8 +91,9 @@ export async function provisionFromCheckout(params: {
     stripeCustomerId,
   }).catch(() => {}) // fire-and-forget
 
-  // Send welcome email
-  const emailTemplate = tier === 'mercury'
+  // Send welcome email (professional+ tiers and starter get Mercury voice addon)
+  const hasMercuryVoice = tier === 'starter' || tier === 'professional' || tier === 'enterprise'
+  const emailTemplate = hasMercuryVoice
     ? welcomeMercuryEmail({ userName: user.name || email, mercuryName: 'Mercury' })
     : welcomeSovereignEmail({ userName: user.name || email, mercuryName: 'Mercury' })
 

@@ -1075,9 +1075,13 @@ function BillingSettings() {
 
   const planLabels: Record<string, string> = {
     free: 'Free Tier',
+    starter: 'Starter',
+    professional: 'Professional',
+    enterprise: 'Enterprise',
     sovereign: 'Sovereign',
-    sovereign_mercury: 'Sovereign + Mercury',
-    syndicate: 'Syndicate',
+    // Legacy (backward compat for any cached UI state)
+    mercury: 'Starter',
+    syndicate: 'Enterprise',
   }
 
   return (

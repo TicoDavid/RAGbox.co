@@ -16,7 +16,12 @@ function isStripeConfigured(): boolean {
 
 function getPrices(): Record<string, string[]> {
   return {
+    // Canonical tier names (EPIC-016)
+    starter: [process.env.STRIPE_PRICE_STARTER!],
+    professional: [process.env.STRIPE_PRICE_PROFESSIONAL || process.env.STRIPE_PRICE_MERCURY!],
+    enterprise: [process.env.STRIPE_PRICE_ENTERPRISE!],
     sovereign: [process.env.STRIPE_PRICE_SOVEREIGN!],
+    // Legacy aliases (backward compat for existing checkout links)
     sovereign_mercury: [
       process.env.STRIPE_PRICE_SOVEREIGN!,
       process.env.STRIPE_PRICE_MERCURY!,

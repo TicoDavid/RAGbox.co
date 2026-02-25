@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
-import { type BillingTier, type Entitlements, getEntitlements } from '@/lib/billing/entitlements'
+import { type BillingTier, type Entitlements, getEntitlements, normalizeTier } from '@/lib/billing/entitlements'
 
 export interface TierCheckResult {
   allowed: boolean
@@ -53,7 +53,7 @@ async function loadUserTier(req: NextRequest): Promise<TierGateResult> {
     select: { subscriptionTier: true, subscriptionStatus: true },
   })
 
-  const tier = (user?.subscriptionTier as BillingTier) || 'free'
+  const tier = normalizeTier(user?.subscriptionTier || 'free')
   const entitlements = getEntitlements(tier)
 
   return { allowed: true, userId, tier, entitlements }
