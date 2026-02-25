@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { proxyToBackend } from '@/lib/backend-proxy'
+import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 /**
  * MCP Server Endpoint for ConnexUS Integration
@@ -106,11 +108,45 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `Unknown tool: ${name}` }, { status: 400 })
       }
 
-      case 'resources/list':
-        return NextResponse.json({
-          resources: [],
-          _note: 'Vault listing coming in next release',
-        })
+      case 'resources/list': {
+        // EPIC-017 S04: Wire to actual Vault document listing (authenticated, tenant-scoped)
+        const userId = session.user.id || session.user.email || ''
+
+        try {
+          const vaults = await prisma.vault.findMany({
+            where: { userId },
+            select: {
+              id: true,
+              name: true,
+              documents: {
+                where: { deletionStatus: 'Active' },
+                select: {
+                  id: true,
+                  originalName: true,
+                  mimeType: true,
+                  filename: true,
+                },
+                orderBy: { createdAt: 'desc' },
+              },
+            },
+            orderBy: { updatedAt: 'desc' },
+          })
+
+          const resources = vaults.flatMap((vault) =>
+            vault.documents.map((doc) => ({
+              uri: `ragbox://vault/${vault.id}/document/${doc.id}`,
+              name: doc.originalName || doc.filename,
+              mimeType: doc.mimeType,
+              description: `Document in vault "${vault.name}"`,
+            }))
+          )
+
+          return NextResponse.json({ resources })
+        } catch (err) {
+          logger.error('[MCP] resources/list failed:', err)
+          return NextResponse.json({ resources: [] })
+        }
+      }
 
       default:
         return NextResponse.json({ error: `Unknown method: ${method}` }, { status: 400 })
