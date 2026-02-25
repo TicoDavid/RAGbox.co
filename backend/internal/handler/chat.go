@@ -1015,7 +1015,7 @@ func resolvePersonaKey(persona string) string {
 	short := strings.TrimPrefix(persona, "persona_")
 	switch short {
 	case "ceo", "cfo", "coo", "cpo", "cmo", "cto",
-		"legal", "auditor", "whistleblower", "analyst":
+		"legal", "compliance", "auditor", "whistleblower", "analyst":
 		return "persona_" + short
 	default:
 		return "persona_ceo"
