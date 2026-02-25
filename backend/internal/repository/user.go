@@ -59,3 +59,28 @@ func (r *UserRepo) GetSubscriptionTier(ctx context.Context, userID string) (stri
 	}
 	return tier, nil
 }
+
+// GetPrivilegeMode returns the privilege mode for a user.
+// Returns false if the user is not found (STORY-S04).
+func (r *UserRepo) GetPrivilegeMode(ctx context.Context, userID string) (bool, error) {
+	var enabled bool
+	err := r.pool.QueryRow(ctx, `
+		SELECT COALESCE(privilege_mode_enabled, false) FROM users WHERE id = $1
+	`, userID).Scan(&enabled)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return false, nil
+		}
+		return false, err
+	}
+	return enabled, nil
+}
+
+// SetPrivilegeMode updates the privilege mode for a user (STORY-S04).
+func (r *UserRepo) SetPrivilegeMode(ctx context.Context, userID string, enabled bool) error {
+	_, err := r.pool.Exec(ctx, `
+		UPDATE users SET privilege_mode_enabled = $2, privilege_mode_changed_at = now()
+		WHERE id = $1
+	`, userID, enabled)
+	return err
+}

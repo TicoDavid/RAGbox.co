@@ -10,24 +10,55 @@ import (
 	"github.com/connexus-ai/ragbox-backend/internal/model"
 )
 
-// PrivilegeState tracks global privilege mode per user (in-memory for now).
-// In production this would be backed by a user preferences table.
-type PrivilegeState struct {
-	mu    sync.RWMutex
-	modes map[string]bool // userID → privilegeMode
+// PrivilegeStore abstracts DB read/write for privilege mode (STORY-S04).
+type PrivilegeStore interface {
+	GetPrivilegeMode(ctx context.Context, userID string) (bool, error)
+	SetPrivilegeMode(ctx context.Context, userID string, enabled bool) error
 }
 
-// NewPrivilegeState creates a new PrivilegeState.
+// PrivilegeState tracks privilege mode per user.
+// In-memory map is a read cache — DB is the source of truth (STORY-S04).
+type PrivilegeState struct {
+	mu    sync.RWMutex
+	modes map[string]bool // userID → privilegeMode (cache)
+	store PrivilegeStore  // nil = in-memory only (tests)
+}
+
+// NewPrivilegeState creates a PrivilegeState (in-memory only, for tests).
 func NewPrivilegeState() *PrivilegeState {
 	return &PrivilegeState{modes: make(map[string]bool)}
 }
 
+// NewPrivilegeStateWithStore creates a DB-backed PrivilegeState (STORY-S04).
+func NewPrivilegeStateWithStore(store PrivilegeStore) *PrivilegeState {
+	return &PrivilegeState{modes: make(map[string]bool), store: store}
+}
+
 // IsPrivileged returns the privilege state for a user (thread-safe).
-// Used by the chat handler to derive privilege from server state, not request body (STORY-S01 Gap 3).
+// Reads from cache first; on cache miss, reads from DB and populates cache.
+// Used by the chat handler to derive privilege from server state (STORY-S01 Gap 3).
 func (ps *PrivilegeState) IsPrivileged(userID string) bool {
 	ps.mu.RLock()
-	defer ps.mu.RUnlock()
-	return ps.modes[userID]
+	mode, cached := ps.modes[userID]
+	ps.mu.RUnlock()
+	if cached {
+		return mode
+	}
+
+	// Cache miss — read from DB (STORY-S04)
+	if ps.store != nil {
+		dbMode, err := ps.store.GetPrivilegeMode(context.Background(), userID)
+		if err != nil {
+			slog.Error("[Privilege] DB read failed, defaulting to false", "user_id", userID, "error", err)
+			return false
+		}
+		ps.mu.Lock()
+		ps.modes[userID] = dbMode
+		ps.mu.Unlock()
+		return dbMode
+	}
+
+	return false
 }
 
 // PrivilegeAuditLogger abstracts audit logging for the privilege handler.
@@ -60,9 +91,7 @@ func GetPrivilege(state *PrivilegeState) http.HandlerFunc {
 			return
 		}
 
-		state.mu.RLock()
-		mode := state.modes[userID]
-		state.mu.RUnlock()
+		mode := state.IsPrivileged(userID)
 
 		respondJSON(w, http.StatusOK, envelope{Success: true, Data: map[string]bool{
 			"privilegeMode": mode,
@@ -72,6 +101,7 @@ func GetPrivilege(state *PrivilegeState) http.HandlerFunc {
 
 // TogglePrivilege handles POST /api/privilege.
 // STORY-S01: RBAC enforced (Partner/admin only) + audit logging on every toggle.
+// STORY-S04: Persists state to DB, updates in-memory cache.
 func TogglePrivilege(deps PrivilegeDeps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := middleware.UserIDFromContext(r.Context())
@@ -96,21 +126,34 @@ func TogglePrivilege(deps PrivilegeDeps) http.HandlerFunc {
 			}
 		}
 
+		// Read current state, toggle, and persist
+		currentMode := deps.State.IsPrivileged(userID)
+		newMode := !currentMode
+
+		// STORY-S04: Write to DB first (source of truth)
+		if deps.State.store != nil {
+			if err := deps.State.store.SetPrivilegeMode(r.Context(), userID, newMode); err != nil {
+				slog.Error("[Privilege] DB write failed", "user_id", userID, "error", err)
+				respondJSON(w, http.StatusInternalServerError, envelope{Success: false, Error: "failed to persist privilege state"})
+				return
+			}
+		}
+
+		// Update cache
 		deps.State.mu.Lock()
-		deps.State.modes[userID] = !deps.State.modes[userID]
-		mode := deps.State.modes[userID]
+		deps.State.modes[userID] = newMode
 		deps.State.mu.Unlock()
 
 		// STORY-S01 Gap 2: Audit logging on every privilege toggle.
 		if deps.AuditLogger != nil {
 			action := "privilege_deactivated"
-			if mode {
+			if newMode {
 				action = "privilege_activated"
 			}
 			details := map[string]interface{}{
 				"userId":    userID,
 				"tenantId":  userID, // tenant = user in single-tenant mode
-				"newState":  mode,
+				"newState":  newMode,
 				"ipAddress": r.RemoteAddr,
 			}
 			if err := deps.AuditLogger.LogWithDetails(r.Context(), action, userID, "", "privilege", details); err != nil {
@@ -120,7 +163,7 @@ func TogglePrivilege(deps PrivilegeDeps) http.HandlerFunc {
 		}
 
 		respondJSON(w, http.StatusOK, envelope{Success: true, Data: map[string]bool{
-			"privilegeMode": mode,
+			"privilegeMode": newMode,
 		}})
 	}
 }

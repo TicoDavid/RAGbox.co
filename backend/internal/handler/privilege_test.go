@@ -26,6 +26,20 @@ func (s *stubAuditLogger) LogWithDetails(_ context.Context, action, userID, reso
 	return nil
 }
 
+// stubPrivilegeStore simulates DB persistence for testing (STORY-S04).
+type stubPrivilegeStore struct {
+	modes map[string]bool
+}
+
+func (s *stubPrivilegeStore) GetPrivilegeMode(_ context.Context, userID string) (bool, error) {
+	return s.modes[userID], nil
+}
+
+func (s *stubPrivilegeStore) SetPrivilegeMode(_ context.Context, userID string, enabled bool) error {
+	s.modes[userID] = enabled
+	return nil
+}
+
 func partnerRoleChecker(_ context.Context, _ string) (string, error) {
 	return "Partner", nil
 }
@@ -210,5 +224,63 @@ func TestIsPrivileged_ServerSideState(t *testing.T) {
 	// IsPrivileged should return true (server-side state for chat handler)
 	if !state.IsPrivileged("user-1") {
 		t.Fatal("expected true after toggle")
+	}
+}
+
+// ─── STORY-S04: DB Persistence Tests ────────────────────────────────────
+
+func TestTogglePrivilege_PersistsToStore(t *testing.T) {
+	store := &stubPrivilegeStore{modes: make(map[string]bool)}
+	state := NewPrivilegeStateWithStore(store)
+	deps := PrivilegeDeps{State: state, RoleChecker: partnerRoleChecker}
+	toggleHandler := TogglePrivilege(deps)
+
+	// Toggle ON
+	req := httptest.NewRequest(http.MethodPost, "/api/privilege", nil)
+	req = req.WithContext(middleware.WithUserID(req.Context(), "user-db"))
+	rec := httptest.NewRecorder()
+	toggleHandler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+
+	// Verify DB store was updated
+	if !store.modes["user-db"] {
+		t.Error("expected store to have privilege=true after toggle ON")
+	}
+
+	// Toggle OFF
+	req = httptest.NewRequest(http.MethodPost, "/api/privilege", nil)
+	req = req.WithContext(middleware.WithUserID(req.Context(), "user-db"))
+	rec = httptest.NewRecorder()
+	toggleHandler.ServeHTTP(rec, req)
+
+	if store.modes["user-db"] {
+		t.Error("expected store to have privilege=false after toggle OFF")
+	}
+}
+
+func TestIsPrivileged_ReadsFromStoreOnCacheMiss(t *testing.T) {
+	// Pre-populate DB with privilege=true (simulates restart)
+	store := &stubPrivilegeStore{modes: map[string]bool{"user-restored": true}}
+	state := NewPrivilegeStateWithStore(store)
+
+	// Cache miss → should read from DB and return true
+	if !state.IsPrivileged("user-restored") {
+		t.Error("expected true from DB on cache miss (simulates restart recovery)")
+	}
+
+	// Second call should hit cache
+	if !state.IsPrivileged("user-restored") {
+		t.Error("expected true from cache on second call")
+	}
+}
+
+func TestIsPrivileged_DefaultsFalseWhenNoStore(t *testing.T) {
+	state := NewPrivilegeState() // no store
+
+	if state.IsPrivileged("unknown-user") {
+		t.Error("expected false for unknown user with no store")
 	}
 }

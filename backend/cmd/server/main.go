@@ -240,8 +240,8 @@ func run() error {
 		return tier
 	}
 
-	// Privilege state (in-memory per-user toggle)
-	privilegeState := handler.NewPrivilegeState()
+	// Privilege state — DB-backed with in-memory cache (STORY-S04)
+	privilegeState := handler.NewPrivilegeStateWithStore(userRepo)
 
 	// STORY-S01: Privilege role checker — queries user role from DB
 	privilegeRoleChecker := handler.RoleChecker(func(ctx context.Context, userID string) (string, error) {
