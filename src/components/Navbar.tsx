@@ -1,6 +1,9 @@
 // THEME-EXEMPT: Public landing page, locked to Cobalt palette
+// P05-HOTFIX: FIX-4 (pricing link), FIX-7 (img→Image), FIX-11 (mobile sign-in visible)
 'use client'
 
+import Link from 'next/link'
+import Image from 'next/image'
 import { useTheme } from 'next-themes'
 import { motion } from 'framer-motion'
 import { Sun, Moon } from 'lucide-react'
@@ -18,6 +21,7 @@ interface NavbarProps {
  * - Sticky positioning with backdrop blur
  * - Pill-shaped theme toggle with satisfying spring animation
  * - RAGbox logo on left, controls on right
+ * - Pricing link between logo and right controls
  */
 export function Navbar({ onOpenAuth }: NavbarProps) {
   const { setTheme, resolvedTheme } = useTheme()
@@ -52,15 +56,25 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
           animate={{ opacity: 1, x: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         >
-          <img
+          <Image
             src="https://storage.googleapis.com/connexusai-assets/BabyBlue_RAGb%C3%B6x.png"
             alt="RAGbox"
             width={360}
             height={96}
             className="h-20 sm:h-24 w-auto -my-4 sm:-my-6"
-            style={{ color: 'transparent' }}
+            priority
           />
         </motion.div>
+
+        {/* Center Nav Links */}
+        <div className="hidden sm:flex items-center gap-6">
+          <Link
+            href="/pricing"
+            className="text-sm font-medium text-slate-400 hover:text-white transition-colors"
+          >
+            Pricing
+          </Link>
+        </div>
 
         {/* Right Controls */}
         <div className="flex items-center gap-2 sm:gap-4">
@@ -101,11 +115,11 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
             </motion.button>
           )}
 
-          {/* Sign In Button - Hidden on very small screens */}
+          {/* Sign In Button - Visible on all screen sizes */}
           <motion.button
             onClick={onOpenAuth}
             className={cn(
-              'hidden sm:block px-3 sm:px-4 py-2 rounded-2xl',
+              'px-3 sm:px-4 py-2 rounded-2xl',
               'text-xs sm:text-sm font-medium',
               'transition-colors duration-200',
               'text-slate-400 hover:text-white'

@@ -91,7 +91,7 @@ export default async function RootLayout({
           </SettingsProvider>
         </AuthProvider>
         <Toaster
-          theme="dark"
+          theme="system"
           position="bottom-right"
           toastOptions={{
             style: {

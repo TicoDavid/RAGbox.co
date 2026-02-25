@@ -1,6 +1,9 @@
 // THEME-EXEMPT: Public landing page, locked to Cobalt palette
+// P05-HOTFIX: FIX-1 (dead links), FIX-2 (dead socials removed), FIX-5 (logo comment), FIX-7 (img→Image)
 "use client";
 import React from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Footer() {
   return (
@@ -10,39 +13,33 @@ export default function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
           {/* COLUMN 1: BRAND */}
           <div className="col-span-2 md:col-span-1 space-y-4">
-            {/* Theme-aware Logo */}
             <div className="flex items-center gap-2 font-bold text-xl">
-              {/* Light mode: Black logo */}
-              <img
+              <Image
                 src="https://storage.googleapis.com/connexusai-assets/BabyBlue_RAGb%C3%B6x.png"
-                className="h-24 w-auto dark:hidden"
-                alt="RAGBox"
-              />
-              {/* Dark mode: Backlit logo */}
-              <img
-                src="https://storage.googleapis.com/connexusai-assets/BabyBlue_RAGb%C3%B6x.png"
-                className="h-24 w-auto hidden dark:block"
-                alt="RAGBox"
+                className="h-24 w-auto"
+                alt="RAGbox"
+                width={360}
+                height={96}
+                priority
               />
             </div>
             <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
               Sovereign Document Intelligence for the Enterprise. SOC2 Ready. Zero Retention.
             </p>
-            <div className="flex gap-4">
-              {/* Social Placeholders */}
-              <SocialIcon path="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z" />
-              <SocialIcon path="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z" circle />
-            </div>
           </div>
 
           {/* COLUMN 2: PRODUCT */}
           <div>
             <h4 className="font-bold text-slate-900 dark:text-white mb-4">Product</h4>
             <ul className="space-y-3 text-slate-600 dark:text-slate-400">
-              <FooterLink>Intelligence Engine</FooterLink>
-              <FooterLink>Security Architecture</FooterLink>
-              <FooterLink>Enterprise Connectors</FooterLink>
-              <FooterLink>Pricing</FooterLink>
+              <li>Intelligence Engine</li>
+              <li>Security Architecture</li>
+              <li>Enterprise Connectors</li>
+              <li>
+                <Link href="/pricing" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                  Pricing
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -50,10 +47,14 @@ export default function Footer() {
           <div>
             <h4 className="font-bold text-slate-900 dark:text-white mb-4">Company</h4>
             <ul className="space-y-3 text-slate-600 dark:text-slate-400">
-              <FooterLink>About Us</FooterLink>
-              <FooterLink>Careers</FooterLink>
-              <FooterLink>Legal</FooterLink>
-              <FooterLink>Contact</FooterLink>
+              <li>About Us</li>
+              <li>Careers</li>
+              <li>Legal</li>
+              <li>
+                <a href="mailto:david@theconnexus.ai" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                  Contact
+                </a>
+              </li>
             </ul>
           </div>
 
@@ -72,36 +73,14 @@ export default function Footer() {
 
         {/* BOTTOM BAR */}
         <div className="pt-8 border-t border-slate-200 dark:border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-400">
-          <p>© 2026 ConnexUS AI Inc. All rights reserved.</p>
+          <p>&copy; 2026 ConnexUS AI Inc. All rights reserved.</p>
           <div className="flex gap-8">
-            <span className="cursor-default hover:text-slate-900 dark:hover:text-white transition-colors">Privacy Policy</span>
-            <span className="cursor-default hover:text-slate-900 dark:hover:text-white transition-colors">Terms of Service</span>
-            <span className="cursor-default hover:text-slate-900 dark:hover:text-white transition-colors">Security</span>
+            <Link href="/privacy" className="hover:text-slate-900 dark:hover:text-white transition-colors">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-slate-900 dark:hover:text-white transition-colors">Terms of Service</Link>
+            <Link href="/privacy" className="hover:text-slate-900 dark:hover:text-white transition-colors">Security</Link>
           </div>
         </div>
       </div>
     </footer>
-  );
-}
-
-// Helpers
-function FooterLink({ children }: { children: React.ReactNode }) {
-  return (
-    <li>
-      <span className="cursor-default hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-        {children}
-      </span>
-    </li>
-  );
-}
-
-function SocialIcon({ path, circle }: { path: string, circle?: boolean }) {
-  return (
-    <span className="w-8 h-8 rounded-full bg-slate-200 dark:bg-white/5 flex items-center justify-center text-slate-500 hover:bg-blue-600 hover:text-white transition-all cursor-default">
-      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-        {circle && <circle cx="4" cy="4" r="2"></circle>}
-        <path d={path}></path>
-      </svg>
-    </span>
   );
 }

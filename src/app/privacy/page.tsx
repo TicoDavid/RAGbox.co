@@ -101,10 +101,10 @@ export default function PrivacyPage() {
             <li>
               Request complete data deletion:{' '}
               <a
-                href="mailto:theconnexusai@gmail.com"
+                href="mailto:privacy@ragbox.co"
                 className="text-[var(--brand-blue-hover)] hover:text-[var(--brand-blue)]"
               >
-                theconnexusai@gmail.com
+                privacy@ragbox.co
               </a>
             </li>
           </ul>
@@ -116,10 +116,10 @@ export default function PrivacyPage() {
           <p className="text-[var(--text-secondary)]">
             Email:{' '}
             <a
-              href="mailto:theconnexusai@gmail.com"
+              href="mailto:privacy@ragbox.co"
               className="text-[var(--brand-blue-hover)] hover:text-[var(--brand-blue)]"
             >
-              theconnexusai@gmail.com
+              privacy@ragbox.co
             </a>
           </p>
         </section>

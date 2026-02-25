@@ -2,6 +2,7 @@
 "use client";
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { AnimatePresence } from 'framer-motion';
 import { Navbar } from '@/components/Navbar';
 import Hero from '@/components/Hero';
@@ -105,12 +106,12 @@ function HomeContent() {
           <p className="text-base text-[var(--text-tertiary)] mb-8">
             Vault storage, unlimited queries, and full citation audit trails included.
           </p>
-          <button
-            onClick={() => openAuth('signup')}
-            className="px-8 py-3.5 rounded-full bg-gradient-to-b from-[#4040FF] to-[#0000FF] hover:from-[#5050FF] hover:to-[#0000DD] text-white font-bold tracking-wide shadow-[0_0_30px_rgba(0,0,255,0.5)] hover:shadow-[0_0_50px_rgba(0,0,255,0.7)] transition-all duration-300 hover:-translate-y-0.5"
+          <Link
+            href="/pricing"
+            className="inline-block px-8 py-3.5 rounded-full bg-gradient-to-b from-[#4040FF] to-[#0000FF] hover:from-[#5050FF] hover:to-[#0000DD] text-white font-bold tracking-wide shadow-[0_0_30px_rgba(0,0,255,0.5)] hover:shadow-[0_0_50px_rgba(0,0,255,0.7)] transition-all duration-300 hover:-translate-y-0.5"
           >
             See Plans
-          </button>
+          </Link>
         </div>
       </section>
 
