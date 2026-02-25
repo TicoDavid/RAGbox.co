@@ -1,19 +1,15 @@
 /**
  * POST /api/auth/send-otp
  *
- * Generates a 6-digit OTP, stores it in Redis (10-min TTL),
+ * Generates a 6-digit OTP via generateOTP() (Redis primary, in-memory fallback),
  * and sends it via the Gmail API. No fallback — if Gmail fails, return 500.
  *
- * Falls back to in-memory OTP store when Redis is unavailable.
+ * EPIC-016 P06: Simplified — generateOTP() now handles both Redis + in-memory storage.
  */
 
-import { randomInt } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
-import { getRedis } from '@/lib/cache/redisClient'
 import { generateOTP } from '@/lib/auth'
 import { sendViaGmail } from '@/lib/email/gmail'
-
-const OTP_TTL_SECONDS = 600 // 10 minutes
 
 /** Build the branded OTP email HTML. */
 function otpEmailHtml(code: string): string {
@@ -45,25 +41,9 @@ export async function POST(request: NextRequest) {
     }
 
     const normalizedEmail = email.toLowerCase().trim()
-    const code = randomInt(100000, 999999).toString()
 
-    // Store in Redis (primary) with 10-minute TTL
-    const redis = getRedis()
-    if (redis) {
-      await redis.set(`otp:${normalizedEmail}`, code, 'EX', OTP_TTL_SECONDS)
-    }
-
-    // Also store in-memory (fallback for CredentialsProvider authorize)
-    generateOTP(normalizedEmail)
-    const globalStore = (globalThis as Record<string, unknown>).otpStore as
-      | Map<string, { code: string; expires: number }>
-      | undefined
-    if (globalStore) {
-      globalStore.set(normalizedEmail, {
-        code,
-        expires: Date.now() + OTP_TTL_SECONDS * 1000,
-      })
-    }
+    // Generate OTP and store in Redis (primary) + in-memory (fallback)
+    const code = await generateOTP(normalizedEmail)
 
     // Send OTP via Gmail API — no fallback
     const subject = `${code} is your RAGböx verification code`

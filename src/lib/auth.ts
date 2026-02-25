@@ -40,13 +40,16 @@ const cookieOptions: Partial<Record<string, CookieOption>> = {
   },
 };
 
-// Global OTP store - use globalThis to persist across hot reloads
-// In production, use Redis or database
+// OTP store: Redis is primary (survives restart/scale-to-zero), in-memory is fallback.
+// EPIC-016 P06: Moved from pure in-memory to Redis with TTL.
+const OTP_TTL_SECONDS = 600; // 10 minutes
+const OTP_REDIS_PREFIX = "otp:";
+
 declare global {
   var otpStore: Map<string, { code: string; expires: number }> | undefined;
 }
 
-// Initialize or reuse the global OTP store
+// In-memory fallback — used when Redis is unavailable
 const otpStore = globalThis.otpStore ?? new Map<string, { code: string; expires: number }>();
 globalThis.otpStore = otpStore;
 
@@ -111,23 +114,28 @@ export const authOptions: NextAuthOptions = {
 
         const email = credentials.email.toLowerCase().trim();
         const enteredOtp = String(credentials.otp).trim();
-        const stored = otpStore.get(email);
+        const userPayload = { id: email, email, name: email.split("@")[0] };
 
-        if (!stored) {
-          return null;
+        // 1. Check Redis (primary — survives restart/scale-to-zero)
+        const redis = getRedis();
+        if (redis) {
+          try {
+            const storedCode = await redis.get(`${OTP_REDIS_PREFIX}${email}`);
+            if (storedCode && storedCode === enteredOtp) {
+              await redis.del(`${OTP_REDIS_PREFIX}${email}`);
+              otpStore.delete(email); // cleanup in-memory too
+              return userPayload;
+            }
+          } catch {
+            // Redis unavailable — fall through to in-memory
+          }
         }
 
-        // Check if OTP matches and hasn't expired
-        const isMatch = stored.code === enteredOtp;
-        const isValid = stored.expires > Date.now();
-
-        if (isMatch && isValid) {
+        // 2. Fallback: in-memory store
+        const stored = otpStore.get(email);
+        if (stored && stored.code === enteredOtp && stored.expires > Date.now()) {
           otpStore.delete(email);
-          return {
-            id: email,
-            email: email,
-            name: email.split("@")[0],
-          };
+          return userPayload;
         }
 
         return null;
@@ -210,22 +218,47 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 };
 
-// Helper to generate and store OTP
-export function generateOTP(email: string): string {
+// Helper to generate and store OTP (Redis primary, in-memory fallback)
+export async function generateOTP(email: string): Promise<string> {
   const normalizedEmail = email.toLowerCase().trim();
   const code = randomInt(100000, 999999).toString();
 
+  // Primary: Redis with TTL (survives restart/scale-to-zero)
+  const redis = getRedis();
+  if (redis) {
+    try {
+      await redis.set(`${OTP_REDIS_PREFIX}${normalizedEmail}`, code, "EX", OTP_TTL_SECONDS);
+    } catch {
+      // Redis unavailable — in-memory fallback below will catch it
+    }
+  }
+
+  // Fallback: in-memory store (same process only)
   otpStore.set(normalizedEmail, {
     code,
-    expires: Date.now() + 10 * 60 * 1000, // 10 minutes
+    expires: Date.now() + OTP_TTL_SECONDS * 1000,
   });
 
   return code;
 }
 
 // Helper to verify OTP exists (for UI feedback)
-export function hasValidOTP(email: string): boolean {
-  const stored = otpStore.get(email.toLowerCase().trim());
+export async function hasValidOTP(email: string): Promise<boolean> {
+  const normalizedEmail = email.toLowerCase().trim();
+
+  // Check Redis first
+  const redis = getRedis();
+  if (redis) {
+    try {
+      const ttl = await redis.ttl(`${OTP_REDIS_PREFIX}${normalizedEmail}`);
+      if (ttl > 0) return true;
+    } catch {
+      // Redis unavailable — fall through
+    }
+  }
+
+  // Fallback: in-memory
+  const stored = otpStore.get(normalizedEmail);
   return !!stored && stored.expires > Date.now();
 }
 

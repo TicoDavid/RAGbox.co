@@ -3,6 +3,8 @@
  *
  * These tests verify the OTP generation/validation logic, the NextAuth
  * configuration structure, and the callback behaviors.
+ *
+ * EPIC-016 P06: Updated for async generateOTP/hasValidOTP (Redis primary, in-memory fallback).
  */
 import { generateOTP, hasValidOTP, debugOTPStore, authOptions } from '../auth'
 
@@ -18,30 +20,30 @@ beforeEach(() => {
 // ── OTP Generation Tests ─────────────────────────────────────
 
 describe('generateOTP', () => {
-  test('returns a 6-digit numeric string', () => {
-    const code = generateOTP('user@example.com')
+  test('returns a 6-digit numeric string', async () => {
+    const code = await generateOTP('user@example.com')
     expect(code).toMatch(/^\d{6}$/)
   })
 
-  test('normalizes email to lowercase and trims whitespace', () => {
-    const code = generateOTP('  User@Example.COM  ')
-    expect(hasValidOTP('user@example.com')).toBe(true)
+  test('normalizes email to lowercase and trims whitespace', async () => {
+    const code = await generateOTP('  User@Example.COM  ')
+    expect(await hasValidOTP('user@example.com')).toBe(true)
     expect(code).toMatch(/^\d{6}$/)
   })
 
-  test('generates different codes for different emails', () => {
-    const code1 = generateOTP('alice@example.com')
-    const code2 = generateOTP('bob@example.com')
-    // They could theoretically be the same, but the store should have both
-    expect(hasValidOTP('alice@example.com')).toBe(true)
-    expect(hasValidOTP('bob@example.com')).toBe(true)
+  test('generates different codes for different emails', async () => {
+    await generateOTP('alice@example.com')
+    await generateOTP('bob@example.com')
+    // Both should be stored
+    expect(await hasValidOTP('alice@example.com')).toBe(true)
+    expect(await hasValidOTP('bob@example.com')).toBe(true)
   })
 
-  test('overwrites previous OTP for the same email', () => {
-    const code1 = generateOTP('user@example.com')
-    const code2 = generateOTP('user@example.com')
+  test('overwrites previous OTP for the same email', async () => {
+    await generateOTP('user@example.com')
+    const code2 = await generateOTP('user@example.com')
     // The latest code should be stored
-    expect(hasValidOTP('user@example.com')).toBe(true)
+    expect(await hasValidOTP('user@example.com')).toBe(true)
     // Store should only have one entry for this email
     const stored = globalThis.otpStore?.get('user@example.com')
     expect(stored?.code).toBe(code2)
@@ -51,28 +53,28 @@ describe('generateOTP', () => {
 // ── OTP Validation Tests ─────────────────────────────────────
 
 describe('hasValidOTP', () => {
-  test('returns true for a freshly generated OTP', () => {
-    generateOTP('user@example.com')
-    expect(hasValidOTP('user@example.com')).toBe(true)
+  test('returns true for a freshly generated OTP', async () => {
+    await generateOTP('user@example.com')
+    expect(await hasValidOTP('user@example.com')).toBe(true)
   })
 
-  test('returns false for an email with no OTP', () => {
-    expect(hasValidOTP('nobody@example.com')).toBe(false)
+  test('returns false for an email with no OTP', async () => {
+    expect(await hasValidOTP('nobody@example.com')).toBe(false)
   })
 
-  test('returns false for an expired OTP', () => {
-    generateOTP('user@example.com')
-    // Manually expire the OTP
+  test('returns false for an expired OTP', async () => {
+    await generateOTP('user@example.com')
+    // Manually expire the OTP in in-memory store
     const stored = globalThis.otpStore?.get('user@example.com')
     if (stored) {
       stored.expires = Date.now() - 1000 // expired 1 second ago
     }
-    expect(hasValidOTP('user@example.com')).toBe(false)
+    expect(await hasValidOTP('user@example.com')).toBe(false)
   })
 
-  test('normalizes email before lookup', () => {
-    generateOTP('user@example.com')
-    expect(hasValidOTP('  USER@EXAMPLE.COM  ')).toBe(true)
+  test('normalizes email before lookup', async () => {
+    await generateOTP('user@example.com')
+    expect(await hasValidOTP('  USER@EXAMPLE.COM  ')).toBe(true)
   })
 })
 
@@ -85,18 +87,19 @@ describe('debugOTPStore', () => {
     ;(process.env as Record<string, string | undefined>).NODE_ENV = origEnv
   })
 
-  test('logs store size in development', () => {
+  test('logs store size in development', async () => {
     ;(process.env as Record<string, string | undefined>).NODE_ENV = 'development'
-    const spy = jest.spyOn(console, 'log').mockImplementation()
-    generateOTP('test@test.com')
+    // logger.info calls console.info with JSON-structured output
+    const spy = jest.spyOn(console, 'info').mockImplementation()
+    await generateOTP('test@test.com')
     debugOTPStore()
-    expect(spy).toHaveBeenCalledWith('[OTP Store] entry count:', expect.any(Number))
+    expect(spy).toHaveBeenCalled()
     spy.mockRestore()
   })
 
   test('does nothing in production', () => {
     ;(process.env as Record<string, string | undefined>).NODE_ENV = 'production'
-    const spy = jest.spyOn(console, 'log').mockImplementation()
+    const spy = jest.spyOn(console, 'info').mockImplementation()
     debugOTPStore()
     expect(spy).not.toHaveBeenCalled()
     spy.mockRestore()
