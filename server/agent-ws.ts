@@ -21,12 +21,14 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import type { IncomingMessage, Server as HttpServer } from 'http'
 import { URL } from 'url'
+import { getToken } from 'next-auth/jwt'
 import { executeTool, type ToolCall, type ToolResult, type ToolContext } from './tools'
 import { checkToolPermission, createConfirmationRequest, storePendingConfirmation } from './tools/permissions'
 import * as obs from './observability'
 import { createVoiceSession, type VoiceSession } from './voice-pipeline-v2'
 import { whatsAppEventEmitter, type WhatsAppEvent } from './whatsapp/events'
 import { persistThreadMessage } from './thread-persistence'
+import { validateSession } from '../src/app/api/agent/session/session-store'
 
 // ============================================================================
 // TYPES
@@ -133,43 +135,64 @@ function isValidRole(role: string | null): role is ConnectionParams['role'] {
   return role === 'User' || role === 'Admin' || role === 'Viewer'
 }
 
-function extractConnectionParams(req: IncomingMessage): ConnectionParams {
+/**
+ * STORY-S02: Authenticate WebSocket connections server-side.
+ *
+ * Two auth paths (tried in order):
+ * 1. Session token — client calls POST /api/agent/session (NextAuth-protected),
+ *    receives a sessionId, passes it as ?sessionId=<id>. We validate via the
+ *    in-memory session store (works when WS + Next.js share one process).
+ * 2. NextAuth JWT cookie — browser sends cookies automatically on WS upgrade.
+ *    We decode the JWT using NEXTAUTH_SECRET to extract userId.
+ *
+ * Returns null if neither path succeeds → caller rejects with close code 4001.
+ */
+async function extractConnectionParams(req: IncomingMessage): Promise<ConnectionParams | null> {
   try {
     const url = new URL(req.url || '', `http://${req.headers.host}`)
 
-    // Extract the token from the Authorization header or query param
-    const authHeader = req.headers['authorization']
-    const token = authHeader?.startsWith('Bearer ')
-      ? authHeader.slice(7)
-      : url.searchParams.get('token')
-
-    if (!token) {
-      console.warn('[AgentWS] No auth token provided — using anonymous session')
-      return { sessionId: null, userId: 'anonymous', role: 'Viewer', privilegeMode: false }
+    // ── Path 1: Session token from POST /api/agent/session ──────────
+    const sessionId = url.searchParams.get('sessionId')
+    if (sessionId) {
+      const result = validateSession(sessionId)
+      if (result.valid && result.userId) {
+        console.info('[AgentWS] Authenticated via session token', { sessionId, userId: result.userId })
+        return {
+          sessionId,
+          userId: result.userId,
+          role: 'User',           // Default role; session bootstrap is already NextAuth-protected
+          privilegeMode: false,   // Server-side state (STORY-S01)
+        }
+      }
+      console.warn('[AgentWS] Invalid or expired session token', { sessionId })
     }
 
-    // TODO: Replace with real Firebase Admin SDK token verification:
-    //   const decoded = await admin.auth().verifyIdToken(token)
-    //   userId = decoded.uid, role = decoded.role || 'User'
-    // For now, extract from query params but enforce role validation.
-    const rawRole = url.searchParams.get('role')
-    const role = isValidRole(rawRole) ? rawRole : 'User'
-
-    // userId should come from verified token in production.
-    // Falling back to query param only for development/testing.
-    const userId = url.searchParams.get('userId') || 'anonymous'
-    if (userId === 'anonymous') {
-      console.warn('[AgentWS] No userId resolved from token — anonymous session')
+    // ── Path 2: NextAuth JWT cookie (auto-sent by browser on WS upgrade) ──
+    const secret = process.env.NEXTAUTH_SECRET
+    if (secret && req.headers.cookie) {
+      try {
+        const token = await getToken({ req: req as any, secret })
+        if (token && (token.id || token.email)) {
+          const userId = (token.id as string) || (token.email as string)
+          console.info('[AgentWS] Authenticated via NextAuth JWT cookie', { userId })
+          return {
+            sessionId: sessionId || null,
+            userId,
+            role: 'User',
+            privilegeMode: false,
+          }
+        }
+      } catch (err) {
+        console.warn('[AgentWS] NextAuth JWT cookie validation failed:', err)
+      }
     }
 
-    return {
-      sessionId: url.searchParams.get('sessionId'),
-      userId,
-      role,
-      privilegeMode: url.searchParams.get('privilegeMode') === 'true',
-    }
-  } catch {
-    return { sessionId: null, userId: 'anonymous', role: 'Viewer', privilegeMode: false }
+    // ── No valid auth ───────────────────────────────────────────────
+    console.warn('[AgentWS] Authentication failed — no valid session or JWT')
+    return null
+  } catch (err) {
+    console.error('[AgentWS] Error during authentication:', err)
+    return null
   }
 }
 
@@ -178,7 +201,14 @@ function extractConnectionParams(req: IncomingMessage): ConnectionParams {
 // ============================================================================
 
 async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<void> {
-  const params = extractConnectionParams(req)
+  // STORY-S02: Authenticate before allowing connection
+  const params = await extractConnectionParams(req)
+  if (!params) {
+    console.warn('[AgentWS] Rejecting unauthenticated WebSocket connection')
+    ws.close(4001, 'Unauthorized')
+    return
+  }
+
   const sessionId = params.sessionId || generateSessionId()
 
   console.info('[AgentWS] New connection', { sessionId, userId: params.userId, role: params.role })

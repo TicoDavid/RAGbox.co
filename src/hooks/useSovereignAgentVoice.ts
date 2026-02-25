@@ -530,18 +530,33 @@ export function useSovereignAgentVoice(
   }, [wsSend])
 
   // Connect to WebSocket — resolves when OPEN, rejects on error/close
+  // STORY-S02: Authenticate via session bootstrap API, remove userId from query params
   const connect = useCallback(async () => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return
 
     setState('connecting')
 
-    const params = new URLSearchParams({
-      userId,
-      role,
-      privilegeMode: privMode.toString(),
-    })
+    // Bootstrap an authenticated session via the NextAuth-protected API.
+    // This returns a sessionId that the WS server validates server-side,
+    // so userId never travels in query params.
+    let connectUrl: string
+    try {
+      const res = await fetch('/api/agent/session', { method: 'POST' })
+      const data = await res.json()
+      if (res.ok && data.success && data.wsUrl) {
+        connectUrl = data.wsUrl
+      } else {
+        // Session bootstrap unavailable (voice not configured, etc.) —
+        // fall back to cookie-only auth (browser sends NextAuth JWT cookie
+        // automatically with the WS upgrade request).
+        connectUrl = wsUrl
+      }
+    } catch {
+      // Network error — fall back to cookie-only auth
+      connectUrl = wsUrl
+    }
 
-    const ws = new WebSocket(`${wsUrl}?${params}`)
+    const ws = new WebSocket(connectUrl)
     wsRef.current = ws
 
     playerRef.current = createTTSPlayer(ttsSampleRateRef.current)
@@ -734,12 +749,18 @@ export function useSovereignAgentVoice(
       setState('disconnected')
       setIsVADActive(false)
 
+      // STORY-S02: Don't auto-reconnect on auth failure (4001)
+      if (event.code === 4001) {
+        onError?.(new Error('Voice connection unauthorized — please sign in'))
+        return
+      }
+
       // Only auto-reconnect if we previously had a successful connection
       if (autoReconnect && event.code !== 1000 && event.code !== 1006) {
         reconnectRef.current = setTimeout(connect, 3000)
       }
     }
-  }, [wsUrl, userId, role, privMode, sampleRate, autoReconnect, handleUIAction, handleVADStateChange, onToolCall, onToolResult, onError])
+  }, [wsUrl, sampleRate, autoReconnect, handleUIAction, handleVADStateChange, onToolCall, onToolResult, onError])
 
   // Disconnect
   const disconnect = useCallback(() => {
@@ -880,14 +901,11 @@ export function useSovereignAgentVoice(
     setTranscript([])
   }, [])
 
-  // Update privilege mode
+  // Update privilege mode — STORY-S01 moved this to server-side state,
+  // so we only update the local UI flag. No reconnect needed.
   const setPrivilegeMode = useCallback((enabled: boolean) => {
     setPrivMode(enabled)
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      disconnect()
-      setTimeout(connect, 100)
-    }
-  }, [disconnect, connect])
+  }, [])
 
   // Cleanup
   useEffect(() => {
