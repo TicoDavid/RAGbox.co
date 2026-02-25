@@ -133,9 +133,7 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
 
           {/* Request Demo Button */}
           <motion.a
-            href="https://theconnexus.ai/"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="mailto:david@theconnexus.ai?subject=RAGbox%20Demo%20Request"
             className={cn(
               'px-3 sm:px-5 py-2 sm:py-2.5 rounded-2xl',
               'text-xs sm:text-sm font-semibold',
