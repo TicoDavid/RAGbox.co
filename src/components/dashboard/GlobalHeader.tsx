@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { useTheme } from 'next-themes'
 import { useSession, signOut } from 'next-auth/react'
 import { usePrivilegeStore } from '@/stores/privilegeStore'
+import { useUserRole } from '@/hooks/useUserRole'
 import { useVaultStore } from '@/stores/vaultStore'
 import {
   Search,
@@ -67,6 +68,8 @@ const PROFILES: Profile[] = [
 export function GlobalHeader() {
   const { data: session } = useSession()
   const { isEnabled: privilegeMode, toggle: togglePrivilege } = usePrivilegeStore()
+  const userRole = useUserRole()
+  const canAccessPrivilege = userRole === 'Partner'
   const activePersona = useMercuryStore((s) => s.activePersona)
   const setPersona = useMercuryStore((s) => s.setPersona)
   const { setTheme, resolvedTheme } = useTheme()
@@ -207,8 +210,8 @@ export function GlobalHeader() {
             />
           </div>
 
-          {/* Privilege Badge */}
-          {privilegeMode && (
+          {/* Privilege Badge — only visible for Partner role */}
+          {canAccessPrivilege && privilegeMode && (
             <div className="privilege-badge flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--privilege-bg)] border border-[var(--privilege-border)] text-[var(--privilege-color)] animate-pulse">
               <PrivilegeKeyIcon size={14} color="var(--privilege-color)" />
               <span className="text-xs font-semibold uppercase tracking-wide">Privileged</span>
@@ -419,7 +422,8 @@ export function GlobalHeader() {
             )}
           </div>
 
-          {/* Privilege Toggle with Enhanced Tooltip */}
+          {/* Privilege Toggle with Enhanced Tooltip — only visible for Partner role */}
+          {canAccessPrivilege && (
           <div className="relative group">
             <button
               onClick={() => togglePrivilege()}
@@ -442,13 +446,14 @@ export function GlobalHeader() {
                 </span>
               </div>
               <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-                Administrator Override: Bypass Standard Access Filters to view privileged documents.
+                Enables access to attorney-client privileged documents. Available to Partner and Admin roles only.
               </p>
               <div className="mt-2 pt-2 border-t border-[var(--border-subtle)] text-[10px] text-[var(--text-tertiary)]">
                 {privilegeMode ? 'Click to disable' : 'Click to enable'}
               </div>
             </div>
           </div>
+          )}
 
           {/* Theme Toggle — guarded by mounted to prevent hydration mismatch */}
           {mounted && (
