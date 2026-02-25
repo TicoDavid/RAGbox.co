@@ -232,6 +232,12 @@ export const useVaultStore = create<VaultState>()(
         },
 
         uploadDocument: async (file, folderId) => {
+          // 0-byte guard (STORY-201)
+          if (!file.size || file.size === 0) {
+            toast.error('This file appears to be empty and cannot be uploaded.', { duration: 4000 })
+            return
+          }
+
           const formData = new FormData()
           formData.append('file', file)
           if (folderId) formData.append('folderId', folderId)
@@ -259,6 +265,12 @@ export const useVaultStore = create<VaultState>()(
             if (!checkRateLimit()) {
               toast.error('Please wait before uploading more files', { duration: 4000 })
               break
+            }
+
+            // 0-byte guard (STORY-201)
+            if (!file.size || file.size === 0) {
+              toast.error('This file appears to be empty and cannot be uploaded.', { duration: 4000 })
+              continue
             }
 
             // Size guard
