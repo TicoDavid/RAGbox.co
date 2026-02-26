@@ -145,7 +145,7 @@ describe('MercurySettingsModal', () => {
     fireEvent.click(screen.getByText('Silence Protocol'))
     expect(screen.getByText('Silence Threshold')).toBeInTheDocument()
     expect(screen.getByText('60%')).toBeInTheDocument()
-    expect(screen.getByText(/Below this confidence/)).toBeInTheDocument()
+    expect(screen.getByText(/Below this level/)).toBeInTheDocument()
   })
 
   it('save button is disabled when no changes have been made', async () => {
