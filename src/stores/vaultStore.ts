@@ -255,7 +255,9 @@ export const useVaultStore = create<VaultState>()(
         },
 
         uploadDocuments: async (files, folderId) => {
+          // STORY-225: Per-file tracking for batch error reporting
           const uploaded: Array<{ filename: string; size: number }> = []
+          const failed: Array<{ filename: string; reason: string }> = []
           const existingNames = new Set(
             Object.values(get().documents).map((d) => d.name.toLowerCase())
           )
@@ -269,19 +271,30 @@ export const useVaultStore = create<VaultState>()(
 
             // 0-byte guard (STORY-201)
             if (!file.size || file.size === 0) {
-              toast.error('This file appears to be empty and cannot be uploaded.', { duration: 4000 })
+              failed.push({ filename: file.name, reason: 'File is empty (0 bytes)' })
+              toast.error(`${file.name}: file is empty and cannot be uploaded.`, { duration: 4000 })
               continue
             }
 
             // Size guard
             if (file.size > MAX_FILE_SIZE) {
+              failed.push({ filename: file.name, reason: 'Exceeds 50 MB limit' })
               toast.error(`${file.name} exceeds 50 MB limit`, { duration: 4000 })
               continue
             }
 
-            // File type guard
+            // File type guard — STORY-225: ZIP gets a clear, actionable message
             const ext = file.name.toLowerCase().match(/\.[^.]+$/)?.[0] || ''
+            if (ext === '.zip' || ext === '.rar' || ext === '.7z' || ext === '.tar' || ext === '.gz') {
+              failed.push({ filename: file.name, reason: 'Archive files not supported' })
+              toast.error(
+                `${file.name}: Archive files (.zip, .rar, .7z) are not supported. Please extract the files first and upload them individually.`,
+                { duration: 6000 }
+              )
+              continue
+            }
             if (!ALLOWED_EXTENSIONS.has(ext)) {
+              failed.push({ filename: file.name, reason: `Unsupported format (${ext || 'unknown'})` })
               toast.error(`${file.name}: unsupported format. Supported: PDF, DOCX, TXT, MD, CSV, XLSX, PPTX`, { duration: 5000 })
               continue
             }
@@ -315,10 +328,17 @@ export const useVaultStore = create<VaultState>()(
                 }
                 const newName = `${base} (${suffix})${ext}`
                 const renamedFile = new File([file], newName, { type: file.type })
-                await get().uploadDocument(renamedFile, folderId)
-                recordUpload()
-                existingNames.add(newName.toLowerCase())
-                uploaded.push({ filename: newName, size: file.size })
+                // STORY-225: Wrap individual upload in try/catch for partial failure
+                try {
+                  await get().uploadDocument(renamedFile, folderId)
+                  recordUpload()
+                  existingNames.add(newName.toLowerCase())
+                  uploaded.push({ filename: newName, size: file.size })
+                } catch (err) {
+                  const reason = err instanceof Error ? err.message : 'Upload failed'
+                  failed.push({ filename: newName, reason })
+                  toast.error(`${newName}: upload failed — ${reason}`, { duration: 5000 })
+                }
                 continue
               }
 
@@ -327,14 +347,42 @@ export const useVaultStore = create<VaultState>()(
                 (d) => d.name.toLowerCase() === file.name.toLowerCase()
               )
               if (existingDoc) {
-                await get().deleteDocument(existingDoc.id)
+                try {
+                  await get().deleteDocument(existingDoc.id)
+                } catch {
+                  failed.push({ filename: file.name, reason: 'Failed to replace existing file' })
+                  toast.error(`${file.name}: failed to replace existing file`, { duration: 5000 })
+                  continue
+                }
               }
             }
 
-            await get().uploadDocument(file, folderId)
-            recordUpload()
-            existingNames.add(file.name.toLowerCase())
-            uploaded.push({ filename: file.name, size: file.size })
+            // STORY-225: Wrap individual upload in try/catch — partial failure
+            // handling ensures successful files still ingest even if one fails.
+            try {
+              await get().uploadDocument(file, folderId)
+              recordUpload()
+              existingNames.add(file.name.toLowerCase())
+              uploaded.push({ filename: file.name, size: file.size })
+            } catch (err) {
+              const reason = err instanceof Error ? err.message : 'Upload failed'
+              failed.push({ filename: file.name, reason })
+              toast.error(`${file.name}: upload failed — ${reason}`, { duration: 5000 })
+            }
+          }
+
+          // STORY-225: Batch summary toast — show success count and failures
+          if (files.length > 1) {
+            if (failed.length === 0 && uploaded.length > 0) {
+              toast.success(`All ${uploaded.length} file${uploaded.length > 1 ? 's' : ''} uploaded successfully`, { duration: 4000 })
+            } else if (failed.length > 0 && uploaded.length > 0) {
+              toast.warning(
+                `${uploaded.length} of ${uploaded.length + failed.length} files uploaded. ${failed.length} failed: ${failed.map(f => f.filename).join(', ')}`,
+                { duration: 6000 }
+              )
+            } else if (failed.length > 0 && uploaded.length === 0) {
+              toast.error(`All ${failed.length} files failed to upload`, { duration: 5000 })
+            }
           }
 
           // Notify Mercury once for the entire batch

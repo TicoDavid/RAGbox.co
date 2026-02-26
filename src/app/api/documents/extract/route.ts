@@ -101,6 +101,15 @@ export async function POST(request: NextRequest) {
   const contentType = resolveContentType(file)
   const folderId = formData.get('folderId') as string | null
 
+  // STORY-225: Clear error for archive files (zip, rar, 7z, tar, gz)
+  const archiveExts = new Set(['.zip', '.rar', '.7z', '.tar', '.gz', '.bz2', '.xz'])
+  if (archiveExts.has(ext)) {
+    return NextResponse.json(
+      { success: false, error: 'Archive files (.zip, .rar, .7z) are not supported. Please extract the files first and upload them individually.' },
+      { status: 400 }
+    )
+  }
+
   // Validate content type before sending to backend
   if (!isAllowedType(contentType, ext)) {
     return NextResponse.json(
