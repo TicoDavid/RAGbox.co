@@ -24,12 +24,18 @@ import { createHmac } from 'crypto'
 
 // ── Mock Prisma ──────────────────────────────────────────────────
 const mockMercuryActionCreate = jest.fn()
+const mockMercuryActionUpdateMany = jest.fn()
+const mockRoamInteractionCreate = jest.fn()
 
 jest.mock('@/lib/prisma', () => ({
   __esModule: true,
   default: {
     mercuryAction: {
       create: (...args: unknown[]) => mockMercuryActionCreate(...args),
+      updateMany: (...args: unknown[]) => mockMercuryActionUpdateMany(...args),
+    },
+    roamInteraction: {
+      create: (...args: unknown[]) => mockRoamInteractionCreate(...args),
     },
   },
 }))
@@ -121,6 +127,8 @@ const interactivityPOST = interactivityRoute.POST as (req: Request) => Promise<R
 beforeEach(() => {
   jest.clearAllMocks()
   mockMercuryActionCreate.mockResolvedValue({ id: 'action-1' })
+  mockMercuryActionUpdateMany.mockResolvedValue({ count: 0 })
+  mockRoamInteractionCreate.mockResolvedValue({ id: 'ri-1' })
 })
 
 // ── Tests ────────────────────────────────────────────────────────
@@ -128,7 +136,7 @@ beforeEach(() => {
 describe('ROAM Interactivity Handler (EPIC-018 S04)', () => {
 
   describe('Signature verification', () => {
-    it('valid signature → 200 + routes actionId correctly', async () => {
+    it('valid signature → 200 + writes to roam_interactions', async () => {
       const payload = makeInteractivityPayload()
       const req = makeSignedRequest(payload)
 
@@ -140,11 +148,8 @@ describe('ROAM Interactivity Handler (EPIC-018 S04)', () => {
 
       await flushPromises()
 
-      // Audit log written for the interaction
-      expect(mockMercuryActionCreate).toHaveBeenCalled()
-      const calls = mockMercuryActionCreate.mock.calls
-      // At least the audit + feedback action
-      expect(calls.length).toBeGreaterThanOrEqual(1)
+      // GAP 2: Every interaction writes to roamInteraction table
+      expect(mockRoamInteractionCreate).toHaveBeenCalled()
     })
 
     it('invalid signature → 401', async () => {
@@ -165,7 +170,7 @@ describe('ROAM Interactivity Handler (EPIC-018 S04)', () => {
   })
 
   describe('Action routing', () => {
-    it('feedback_positive → logs positive feedback for query', async () => {
+    it('feedback_positive → writes roam_interaction + logs (no mercuryAction)', async () => {
       const payload = makeInteractivityPayload({ actionId: 'feedback_positive', value: 'query-42' })
       const req = makeSignedRequest(payload)
 
@@ -174,33 +179,35 @@ describe('ROAM Interactivity Handler (EPIC-018 S04)', () => {
 
       await flushPromises()
 
-      // Find the feedback-specific action (not the audit one)
-      const feedbackCall = mockMercuryActionCreate.mock.calls.find(
-        (call: unknown[]) => {
-          const arg = call[0] as { data?: { actionType?: string } }
-          return arg?.data?.actionType === 'roam_feedback_positive'
-        }
-      )
-      expect(feedbackCall).toBeDefined()
-      const feedbackData = (feedbackCall![0] as { data: { metadata: { queryId: string; sentiment: string } } }).data
-      expect(feedbackData.metadata.queryId).toBe('query-42')
-      expect(feedbackData.metadata.sentiment).toBe('positive')
+      // GAP 2: feedback_positive only writes to roam_interactions — no mercuryAction
+      expect(mockRoamInteractionCreate).toHaveBeenCalled()
+      const riCall = mockRoamInteractionCreate.mock.calls[0][0]
+      expect(riCall.data.actionId).toBe('feedback_positive')
+      expect(riCall.data.queryId).toBe('query-42')
+
+      // No mercuryAction.create for positive feedback (only roamInteraction)
+      expect(mockMercuryActionCreate).not.toHaveBeenCalled()
     })
 
-    it('feedback_negative → logs negative feedback', async () => {
+    it('feedback_negative → flags for human review via mercuryAction', async () => {
       const payload = makeInteractivityPayload({ actionId: 'feedback_negative', value: 'query-99' })
       const req = makeSignedRequest(payload)
 
       await interactivityPOST(req)
       await flushPromises()
 
-      const feedbackCall = mockMercuryActionCreate.mock.calls.find(
+      // GAP 2: feedback_negative → roam_interactions + flagForHumanReview
+      expect(mockRoamInteractionCreate).toHaveBeenCalled()
+
+      const reviewCall = mockMercuryActionCreate.mock.calls.find(
         (call: unknown[]) => {
           const arg = call[0] as { data?: { actionType?: string } }
-          return arg?.data?.actionType === 'roam_feedback_negative'
+          return arg?.data?.actionType === 'roam_feedback_review'
         }
       )
-      expect(feedbackCall).toBeDefined()
+      expect(reviewCall).toBeDefined()
+      const reviewData = (reviewCall![0] as { data: { status: string } }).data
+      expect(reviewData.status).toBe('pending')
     })
 
     it('escalate → creates Mercury notification for human review', async () => {
@@ -221,13 +228,17 @@ describe('ROAM Interactivity Handler (EPIC-018 S04)', () => {
       expect(escalationData.status).toBe('pending')
     })
 
-    it('mark_resolved → updates thread status', async () => {
+    it('mark_resolved → updateMany pending + create resolution record', async () => {
       const payload = makeInteractivityPayload({ actionId: 'mark_resolved', value: 'query-done' })
       const req = makeSignedRequest(payload)
 
       await interactivityPOST(req)
       await flushPromises()
 
+      // GAP 2: mark_resolved first calls updateMany to close pending escalations
+      expect(mockMercuryActionUpdateMany).toHaveBeenCalled()
+
+      // Then creates a roam_thread_resolved record
       const resolvedCall = mockMercuryActionCreate.mock.calls.find(
         (call: unknown[]) => {
           const arg = call[0] as { data?: { actionType?: string } }
@@ -237,7 +248,7 @@ describe('ROAM Interactivity Handler (EPIC-018 S04)', () => {
       expect(resolvedCall).toBeDefined()
     })
 
-    it('unknown actionId → 200 (logged, no crash)', async () => {
+    it('unknown actionId → 200 + writes roam_interaction (no crash)', async () => {
       const payload = makeInteractivityPayload({ actionId: 'unknown_action_xyz' })
       const req = makeSignedRequest(payload)
 
@@ -246,8 +257,10 @@ describe('ROAM Interactivity Handler (EPIC-018 S04)', () => {
 
       await flushPromises()
 
-      // Should still write audit log even for unknown actions
-      expect(mockMercuryActionCreate).toHaveBeenCalled()
+      // GAP 2: Unknown actions still write to roam_interactions
+      expect(mockRoamInteractionCreate).toHaveBeenCalled()
+      const riCall = mockRoamInteractionCreate.mock.calls[0][0]
+      expect(riCall.data.actionId).toBe('unknown_action_xyz')
     })
 
     it('view_source → no-op (URL buttons)', async () => {
@@ -259,15 +272,9 @@ describe('ROAM Interactivity Handler (EPIC-018 S04)', () => {
 
       await flushPromises()
 
-      // Audit written but no action-specific record beyond it
-      const actionCalls = mockMercuryActionCreate.mock.calls.filter(
-        (call: unknown[]) => {
-          const arg = call[0] as { data?: { actionType?: string } }
-          return arg?.data?.actionType !== 'roam_interaction'
-        }
-      )
-      // view_source should not create feedback/escalation/resolved records
-      expect(actionCalls).toHaveLength(0)
+      // GAP 2: roam_interaction written, but no mercuryAction for view_source
+      expect(mockRoamInteractionCreate).toHaveBeenCalled()
+      expect(mockMercuryActionCreate).not.toHaveBeenCalled()
     })
   })
 
@@ -312,24 +319,20 @@ describe('ROAM Interactivity Handler (EPIC-018 S04)', () => {
     })
   })
 
-  describe('Audit logging', () => {
-    it('every interaction writes an audit record', async () => {
+  describe('GAP 2: roam_interactions audit', () => {
+    it('every interaction writes to roam_interactions table', async () => {
       const payload = makeInteractivityPayload()
       const req = makeSignedRequest(payload)
 
       await interactivityPOST(req)
       await flushPromises()
 
-      const auditCall = mockMercuryActionCreate.mock.calls.find(
-        (call: unknown[]) => {
-          const arg = call[0] as { data?: { actionType?: string } }
-          return arg?.data?.actionType === 'roam_interaction'
-        }
-      )
-      expect(auditCall).toBeDefined()
-      const auditData = (auditCall![0] as { data: { metadata: { actionId: string; chatId: string } } }).data
-      expect(auditData.metadata.actionId).toBe('feedback_positive')
-      expect(auditData.metadata.chatId).toBe('C-295155ae-1234')
+      expect(mockRoamInteractionCreate).toHaveBeenCalled()
+      const riCall = mockRoamInteractionCreate.mock.calls[0][0]
+      expect(riCall.data.actionId).toBe('feedback_positive')
+      expect(riCall.data.chatId).toBe('C-295155ae-1234')
+      expect(riCall.data.userId).toBe('user-abc-123')
+      expect(riCall.data.channel).toBe('roam')
     })
   })
 })

@@ -123,13 +123,14 @@ describe('MercuryVoicePanel', () => {
     expect(screen.getByText('Offline')).toBeInTheDocument()
   })
 
-  it('calls connect on power button click when disconnected', () => {
+  it('calls enableVAD on power button click when disconnected (BUG-039)', () => {
     render(<MercuryVoicePanel />)
     // There should be a power button (the main circular button)
     const buttons = screen.getAllByRole('button')
     // First button is the power toggle
     fireEvent.click(buttons[0])
-    expect(mockConnect).toHaveBeenCalled()
+    // BUG-039: Power toggle now calls enableVAD() which internally calls connect()
+    expect(mockEnableVAD).toHaveBeenCalled()
   })
 
   it('calls disconnect on power button click when connected', () => {
