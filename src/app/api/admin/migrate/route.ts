@@ -653,6 +653,34 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     `)
     results.push('feedback_reports: OK')
 
+    // ========================================
+    // EPIC-018: ROAM Integration new columns (BUG-1 + BUG-2)
+    // ========================================
+    await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "roam_integrations" ADD COLUMN "client_id" TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
+    await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "roam_integrations" ADD COLUMN "webhook_secret_encrypted" TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
+    await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "roam_integrations" ADD COLUMN "response_mode" TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
+    results.push('roam_integrations EPIC-018 columns: OK')
+
+    // ========================================
+    // EPIC-018 GAP 2: ROAM Interactions (Feedback + Escalation)
+    // ========================================
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "roam_interactions" (
+        "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "query_id" TEXT NOT NULL,
+        "action_id" VARCHAR(50) NOT NULL,
+        "value" TEXT,
+        "user_id" VARCHAR(255) NOT NULL,
+        "user_email" VARCHAR(255),
+        "chat_id" VARCHAR(255),
+        "channel" VARCHAR(20) NOT NULL DEFAULT 'roam',
+        "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "idx_roam_interactions_query" ON "roam_interactions"("query_id")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "idx_roam_interactions_action" ON "roam_interactions"("action_id")`)
+    results.push('roam_interactions: OK')
+
     return NextResponse.json({ success: true, results })
   } catch (error) {
     return NextResponse.json({
