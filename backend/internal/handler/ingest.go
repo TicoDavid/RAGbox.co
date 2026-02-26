@@ -67,11 +67,22 @@ func IngestDocument(deps IngestDeps) http.HandlerFunc {
 		}
 
 		go func(id, uid string) {
-			ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+			// STORY-224: Increased timeout from 120s → 300s for large PDFs
+			// that go through Document AI extraction.
+			ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
 			defer cancel()
 			slog.Info("ingest starting pipeline", "document_id", id)
 			if err := deps.Pipeline.ProcessDocument(ctx, id); err != nil {
 				slog.Error("ingest pipeline failed", "document_id", id, "error", err)
+				// STORY-224: Ensure the document is marked Failed so it doesn't
+				// stay stuck in "Processing" forever. Use a fresh context since
+				// the pipeline context may be cancelled (timeout).
+				failCtx, failCancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer failCancel()
+				if updateErr := deps.DocRepo.UpdateStatus(failCtx, id, model.IndexFailed); updateErr != nil {
+					slog.Error("ingest failed to mark document as Failed",
+						"document_id", id, "error", updateErr)
+				}
 			} else {
 				slog.Info("ingest pipeline completed", "document_id", id)
 				if deps.QueryCache != nil {

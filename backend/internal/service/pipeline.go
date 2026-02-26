@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
+	"time"
 
 	"github.com/connexus-ai/ragbox-backend/internal/model"
 )
@@ -201,15 +202,28 @@ func (s *PipelineService) ProcessDocument(ctx context.Context, docID string) err
 }
 
 // failDocument sets the document status to Failed with error details in metadata.
-func (s *PipelineService) failDocument(ctx context.Context, docID, stage string, origErr error) {
-	_ = s.docRepo.UpdateStatus(ctx, docID, model.IndexFailed)
+// STORY-224: Uses a fresh background context (with timeout) instead of the
+// caller's context, which may already be cancelled (pipeline timeout).
+// Without this, a cancelled context causes the status update to fail,
+// leaving the document permanently stuck in "Processing".
+func (s *PipelineService) failDocument(_ context.Context, docID, stage string, origErr error) {
+	bgCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := s.docRepo.UpdateStatus(bgCtx, docID, model.IndexFailed); err != nil {
+		slog.Error("failDocument: could not update status to Failed",
+			"document_id", docID, "stage", stage, "error", err)
+	}
 
 	details := map[string]string{
 		"failed_stage": stage,
 		"error":        origErr.Error(),
 	}
 	detailsJSON, _ := json.Marshal(details)
-	_ = s.docRepo.UpdateText(ctx, docID, string(detailsJSON), 0)
+	if err := s.docRepo.UpdateText(bgCtx, docID, string(detailsJSON), 0); err != nil {
+		slog.Error("failDocument: could not store error details",
+			"document_id", docID, "stage", stage, "error", err)
+	}
 }
 
 // ProcessText runs a simplified ingestion pipeline for pre-extracted text.
