@@ -60,10 +60,12 @@ interface RoamGroup {
 
 interface RoamStatus {
   status: 'connected' | 'disconnected' | 'error'
+  workspaceName?: string
   targetGroupName?: string
   targetGroupId?: string
-  mentionOnly?: boolean
-  meetingSummaries?: boolean
+  responseMode?: 'mentions' | 'all' | 'dms_mentions'
+  lastWebhook?: string
+  messageCount?: number
   connectedAt?: string
   error?: string
 }
@@ -92,15 +94,21 @@ export default function IntegrationsSettings() {
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ROAM state
+  const [roamClientId, setRoamClientId] = useState('')
   const [roamApiKey, setRoamApiKey] = useState('')
   const [roamKeyVisible, setRoamKeyVisible] = useState(false)
+  const [roamWebhookSecret, setRoamWebhookSecret] = useState('')
+  const [roamSecretVisible, setRoamSecretVisible] = useState(false)
+  const [roamResponseMode, setRoamResponseMode] = useState<'mentions' | 'all' | 'dms_mentions'>('mentions')
   const [roamGroups, setRoamGroups] = useState<RoamGroup[]>([])
   const [roamSelectedGroup, setRoamSelectedGroup] = useState('')
-  const [roamMentionOnly, setRoamMentionOnly] = useState(true)
-  const [roamMeetingSummaries, setRoamMeetingSummaries] = useState(true)
   const [roamStatus, setRoamStatus] = useState<RoamStatus>({ status: 'disconnected' })
   const [roamLoadingGroups, setRoamLoadingGroups] = useState(false)
-  const [roamConnecting, setRoamConnecting] = useState(false)
+  const [roamTesting, setRoamTesting] = useState(false)
+  const [roamTestResult, setRoamTestResult] = useState<{ success: boolean; workspaceName?: string; error?: string } | null>(null)
+  const [roamSaving, setRoamSaving] = useState(false)
+  const [roamSaveSuccess, setRoamSaveSuccess] = useState(false)
+  const [roamDisconnecting, setRoamDisconnecting] = useState(false)
   const [roamError, setRoamError] = useState('')
 
   // --------------------------------------------------------------------------
@@ -141,13 +149,12 @@ export default function IntegrationsSettings() {
   useEffect(() => {
     async function loadRoamStatus() {
       try {
-        const res = await apiFetch('/api/integrations/roam/status')
+        const res = await apiFetch('/api/connectors/roam/status')
         if (res.ok) {
           const data = await res.json()
           if (data.data) {
             setRoamStatus(data.data)
-            if (data.data.mentionOnly !== undefined) setRoamMentionOnly(data.data.mentionOnly)
-            if (data.data.meetingSummaries !== undefined) setRoamMeetingSummaries(data.data.meetingSummaries)
+            if (data.data.responseMode) setRoamResponseMode(data.data.responseMode)
           }
         }
       } catch {
@@ -164,9 +171,8 @@ export default function IntegrationsSettings() {
   const fetchRoamGroups = useCallback(async () => {
     if (!roamApiKey.trim()) return
     setRoamLoadingGroups(true)
-    setRoamError('')
     try {
-      const res = await apiFetch('/api/integrations/roam/groups', {
+      const res = await apiFetch('/api/connectors/roam/groups', {
         headers: { 'X-Roam-Api-Key': roamApiKey },
       })
       if (!res.ok) {
@@ -182,7 +188,6 @@ export default function IntegrationsSettings() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch groups'
       setRoamError(message)
-      setRoamStatus({ status: 'error', error: message })
       setRoamGroups([])
     } finally {
       setRoamLoadingGroups(false)
@@ -190,59 +195,105 @@ export default function IntegrationsSettings() {
   }, [roamApiKey, roamSelectedGroup])
 
   // --------------------------------------------------------------------------
+  // ROAM: TEST CONNECTION
+  // --------------------------------------------------------------------------
+
+  const handleRoamTest = async () => {
+    if (!roamApiKey.trim()) {
+      toast.error('Enter an API key first')
+      return
+    }
+    setRoamTesting(true)
+    setRoamTestResult(null)
+    setRoamError('')
+    try {
+      const res = await apiFetch('/api/connectors/roam/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: roamApiKey }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data.error || 'Connection test failed')
+      }
+      const result = { success: true, workspaceName: data.data?.workspaceName || data.data?.workspace || 'Connected' }
+      setRoamTestResult(result)
+      // Auto-fetch groups on successful test
+      fetchRoamGroups()
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Connection test failed'
+      setRoamTestResult({ success: false, error: msg })
+      setRoamError(msg)
+    } finally {
+      setRoamTesting(false)
+    }
+  }
+
+  // --------------------------------------------------------------------------
   // ROAM: CONNECT / DISCONNECT
   // --------------------------------------------------------------------------
 
-  const handleRoamConnect = async () => {
-    if (!roamApiKey.trim() || !roamSelectedGroup) {
-      toast.error('Enter an API key and select a group')
+  const handleRoamSave = async () => {
+    if (!roamApiKey.trim()) {
+      toast.error('Enter an API key')
       return
     }
-    setRoamConnecting(true)
+    setRoamSaving(true)
+    setRoamSaveSuccess(false)
     setRoamError('')
     try {
-      const res = await apiFetch('/api/integrations/roam/connect', {
+      const res = await apiFetch('/api/connectors/roam/install', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          clientId: roamClientId,
           apiKey: roamApiKey,
+          webhookSecret: roamWebhookSecret,
           targetGroupId: roamSelectedGroup,
           targetGroupName: roamGroups.find((g) => g.id === roamSelectedGroup)?.name || '',
-          mentionOnly: roamMentionOnly,
-          meetingSummaries: roamMeetingSummaries,
+          responseMode: roamResponseMode,
         }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Connection failed')
+        throw new Error(data.error || 'Save failed')
       }
       const data = await res.json()
-      setRoamStatus(data.data || { status: 'connected', targetGroupName: roamGroups.find((g) => g.id === roamSelectedGroup)?.name })
-      setRoamApiKey('')
+      setRoamStatus(data.data || {
+        status: 'connected',
+        workspaceName: roamTestResult?.workspaceName,
+        targetGroupName: roamGroups.find((g) => g.id === roamSelectedGroup)?.name,
+        responseMode: roamResponseMode,
+      })
+      setRoamSaveSuccess(true)
       toast.success('ROAM connected successfully')
+      setTimeout(() => setRoamSaveSuccess(false), 3000)
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Connection failed'
+      const msg = err instanceof Error ? err.message : 'Save failed'
       setRoamError(msg)
-      setRoamStatus({ status: 'error', error: msg })
       toast.error(msg)
     } finally {
-      setRoamConnecting(false)
+      setRoamSaving(false)
     }
   }
 
   const handleRoamDisconnect = async () => {
-    setRoamConnecting(true)
+    setRoamDisconnecting(true)
     try {
-      const res = await apiFetch('/api/integrations/roam/disconnect', { method: 'POST' })
+      const res = await apiFetch('/api/connectors/roam/uninstall', { method: 'POST' })
       if (!res.ok) throw new Error('Disconnect failed')
       setRoamStatus({ status: 'disconnected' })
       setRoamGroups([])
       setRoamSelectedGroup('')
+      setRoamClientId('')
+      setRoamApiKey('')
+      setRoamWebhookSecret('')
+      setRoamTestResult(null)
       toast.success('ROAM disconnected')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to disconnect')
     } finally {
-      setRoamConnecting(false)
+      setRoamDisconnecting(false)
     }
   }
 
@@ -399,20 +450,39 @@ export default function IntegrationsSettings() {
         {/* Connected state */}
         {roamStatus.status === 'connected' && (
           <div className="space-y-3 mt-3 pt-3 border-t border-[var(--bg-tertiary)]">
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <div className="text-[10px] text-[var(--text-tertiary)]">Workspace</div>
+                <div className="text-xs text-[var(--text-primary)] font-medium">
+                  {roamStatus.workspaceName || 'ConnexUS Ai Inc'}
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] text-[var(--text-tertiary)]">Messages</div>
+                <div className="text-xs text-[var(--text-primary)]">
+                  {roamStatus.messageCount ?? '\u2014'}
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] text-[var(--text-tertiary)]">Last Webhook</div>
+                <div className="text-xs text-[var(--text-primary)]">
+                  {roamStatus.lastWebhook || '\u2014'}
+                </div>
+              </div>
+            </div>
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs text-[var(--text-primary)] font-medium">{roamStatus.targetGroupName || 'Connected Group'}</div>
                 <div className="text-[10px] text-[var(--text-tertiary)]">
-                  {roamStatus.mentionOnly ? '@mentions only' : 'All messages'}
-                  {roamStatus.meetingSummaries ? ' · Meeting summaries ON' : ''}
+                  {roamStatus.responseMode === 'all' ? 'All messages' : roamStatus.responseMode === 'dms_mentions' ? 'DMs + Mentions' : '@mentions only'}
                 </div>
               </div>
               <button
                 onClick={handleRoamDisconnect}
-                disabled={roamConnecting}
+                disabled={roamDisconnecting}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-[var(--danger)] border border-[var(--danger)]/30 hover:bg-[var(--danger)]/10 transition-colors disabled:opacity-50"
               >
-                {roamConnecting ? <Loader2 size={12} className="animate-spin" /> : <Unlink size={12} />}
+                {roamDisconnecting ? <Loader2 size={12} className="animate-spin" /> : <Unlink size={12} />}
                 Disconnect
               </button>
             </div>
@@ -425,7 +495,7 @@ export default function IntegrationsSettings() {
             <div className="flex items-center justify-between">
               <div className="text-xs text-[var(--danger)]">{roamStatus.error || roamError || 'Connection failed'}</div>
               <button
-                onClick={() => { setRoamStatus({ status: 'disconnected' }); setRoamError('') }}
+                onClick={() => { setRoamStatus({ status: 'disconnected' }); setRoamError(''); setRoamTestResult(null) }}
                 className="px-3 py-1.5 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-default)] hover:bg-[var(--bg-elevated)]/30 transition-colors"
               >
                 Retry
@@ -437,15 +507,26 @@ export default function IntegrationsSettings() {
         {/* Disconnected state — setup form */}
         {roamStatus.status === 'disconnected' && (
           <div className="space-y-3 mt-3 pt-3 border-t border-[var(--bg-tertiary)]">
+            {/* Client ID */}
+            <div>
+              <label className="text-[10px] text-[var(--text-tertiary)] block mb-1">Client ID</label>
+              <input
+                type="text"
+                value={roamClientId}
+                onChange={(e) => setRoamClientId(e.target.value)}
+                placeholder="Enter your ROAM Client ID"
+                className="w-full bg-[var(--bg-secondary)] border border-[var(--bg-elevated)] rounded px-2 py-1.5 text-xs text-[var(--text-primary)] placeholder:text-[var(--border-default)] focus:outline-none focus:border-[var(--brand-blue)]"
+              />
+            </div>
+
             {/* API Key */}
             <div>
-              <label className="text-[10px] text-[var(--text-tertiary)] block mb-1">ROAM API Key</label>
+              <label className="text-[10px] text-[var(--text-tertiary)] block mb-1">API Key</label>
               <div className="relative">
                 <input
                   type={roamKeyVisible ? 'text' : 'password'}
                   value={roamApiKey}
                   onChange={(e) => setRoamApiKey(e.target.value)}
-                  onBlur={fetchRoamGroups}
                   placeholder="Paste your ROAM API key"
                   className="w-full bg-[var(--bg-secondary)] border border-[var(--bg-elevated)] rounded px-2 py-1.5 pr-8 text-xs text-[var(--text-primary)] placeholder:text-[var(--border-default)] focus:outline-none focus:border-[var(--brand-blue)]"
                 />
@@ -459,9 +540,64 @@ export default function IntegrationsSettings() {
               </div>
             </div>
 
-            {/* Groups dropdown */}
+            {/* Webhook Signing Secret */}
             <div>
-              <label className="text-[10px] text-[var(--text-tertiary)] block mb-1">Target Group</label>
+              <label className="text-[10px] text-[var(--text-tertiary)] block mb-1">Webhook Signing Secret</label>
+              <div className="relative">
+                <input
+                  type={roamSecretVisible ? 'text' : 'password'}
+                  value={roamWebhookSecret}
+                  onChange={(e) => setRoamWebhookSecret(e.target.value)}
+                  placeholder="Enter webhook signing secret"
+                  className="w-full bg-[var(--bg-secondary)] border border-[var(--bg-elevated)] rounded px-2 py-1.5 pr-8 text-xs text-[var(--text-primary)] placeholder:text-[var(--border-default)] focus:outline-none focus:border-[var(--brand-blue)]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setRoamSecretVisible(!roamSecretVisible)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                >
+                  {roamSecretVisible ? <EyeOff size={12} /> : <Eye size={12} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Webhook URL (read-only + copy) */}
+            <ReadOnlyCopyField
+              label="Webhook URL"
+              value="https://ragbox-app-100739220279.us-east4.run.app/api/webhooks/roam"
+            />
+
+            {/* Interactivity URL (read-only + copy) */}
+            <ReadOnlyCopyField
+              label="Interactivity URL"
+              value="https://ragbox-app-100739220279.us-east4.run.app/api/roam/interactivity"
+            />
+
+            {/* Test Connection */}
+            <div className="pt-2 border-t border-[var(--bg-tertiary)]">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleRoamTest}
+                  disabled={roamTesting || !roamApiKey.trim()}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-[var(--brand-blue)]/30 text-[var(--brand-blue)] hover:bg-[var(--brand-blue)]/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {roamTesting ? <Loader2 size={12} className="animate-spin" /> : <Link2 size={12} />}
+                  Test Connection
+                </button>
+                {roamTestResult && (
+                  <div className="flex items-center gap-1.5">
+                    <div className={`w-2 h-2 rounded-full ${roamTestResult.success ? 'bg-[var(--success)]' : 'bg-[var(--danger)]'}`} />
+                    <span className={`text-[10px] ${roamTestResult.success ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
+                      {roamTestResult.success ? roamTestResult.workspaceName : roamTestResult.error}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Default Group */}
+            <div>
+              <label className="text-[10px] text-[var(--text-tertiary)] block mb-1">Default Group</label>
               {roamLoadingGroups ? (
                 <div className="flex items-center gap-2 py-2 text-[10px] text-[var(--text-tertiary)]">
                   <Loader2 size={12} className="animate-spin" />
@@ -481,30 +617,48 @@ export default function IntegrationsSettings() {
                 </select>
               ) : (
                 <div className="text-[10px] text-[var(--text-tertiary)] py-1">
-                  {roamApiKey ? 'Enter API key and press Tab to load groups' : 'Enter API key above to load groups'}
+                  {roamTestResult?.success ? 'No groups found' : 'Test connection to load groups'}
                 </div>
               )}
             </div>
 
-            {/* Toggles */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-xs text-[var(--text-primary)]">@mentions only</div>
-                  <div className="text-[10px] text-[var(--text-tertiary)]">Only respond when mentioned</div>
-                </div>
-                <Toggle checked={roamMentionOnly} onChange={setRoamMentionOnly} />
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-xs text-[var(--text-primary)]">Meeting summaries</div>
-                  <div className="text-[10px] text-[var(--text-tertiary)]">Post summaries after meetings</div>
-                </div>
-                <Toggle checked={roamMeetingSummaries} onChange={setRoamMeetingSummaries} />
+            {/* Response Mode */}
+            <div>
+              <label className="text-[10px] text-[var(--text-tertiary)] block mb-1.5">Response Mode</label>
+              <div className="space-y-1.5">
+                {([
+                  { value: 'mentions' as const, label: 'Mentions only', desc: 'Respond when @mentioned' },
+                  { value: 'all' as const, label: 'All messages', desc: 'Respond to every message in group' },
+                  { value: 'dms_mentions' as const, label: 'DMs + Mentions', desc: 'DMs and @mentions' },
+                ]).map((opt) => (
+                  <label key={opt.value} className="flex items-center gap-2 cursor-pointer group">
+                    <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                      roamResponseMode === opt.value
+                        ? 'border-[var(--brand-blue)] bg-[var(--brand-blue)]'
+                        : 'border-[var(--bg-elevated)] group-hover:border-[var(--text-tertiary)]'
+                    }`}>
+                      {roamResponseMode === opt.value && (
+                        <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                      )}
+                    </div>
+                    <input
+                      type="radio"
+                      name="roamResponseMode"
+                      value={opt.value}
+                      checked={roamResponseMode === opt.value}
+                      onChange={() => setRoamResponseMode(opt.value)}
+                      className="sr-only"
+                    />
+                    <div>
+                      <div className="text-xs text-[var(--text-primary)]">{opt.label}</div>
+                      <div className="text-[10px] text-[var(--text-tertiary)]">{opt.desc}</div>
+                    </div>
+                  </label>
+                ))}
               </div>
             </div>
 
-            {/* Error message */}
+            {/* Error */}
             {roamError && (
               <div className="flex items-center gap-1.5 text-xs text-[var(--danger)]">
                 <AlertCircle size={12} />
@@ -512,14 +666,20 @@ export default function IntegrationsSettings() {
               </div>
             )}
 
-            {/* Activate button */}
+            {/* Save button */}
             <button
-              onClick={handleRoamConnect}
-              disabled={roamConnecting || !roamApiKey.trim() || !roamSelectedGroup}
+              onClick={handleRoamSave}
+              disabled={roamSaving || !roamApiKey.trim()}
               className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-medium bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {roamConnecting ? <Loader2 size={12} className="animate-spin" /> : <Link2 size={12} />}
-              Activate
+              {roamSaving ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : roamSaveSuccess ? (
+                <CheckCircle2 size={12} />
+              ) : (
+                <Link2 size={12} />
+              )}
+              {roamSaveSuccess ? 'Saved \u2713' : 'Save'}
             </button>
           </div>
         )}
