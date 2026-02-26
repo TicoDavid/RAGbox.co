@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 const ALLOWED_INDUSTRIES = [
   'Legal',
@@ -33,6 +34,15 @@ const ALLOWED_COMPANY_SIZES = [
   '5000+',
 ] as const
 
+// BUG-039c: Safe default when work-profile columns don't exist in DB yet (P2022)
+const EMPTY_PROFILE = {
+  companyName: null,
+  jobTitle: null,
+  industry: null,
+  companySize: null,
+  useCase: null,
+}
+
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const token = await getToken({ req: request })
   if (!token) {
@@ -41,22 +51,33 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const userId = (token.id as string) || token.email || ''
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      companyName: true,
-      jobTitle: true,
-      industry: true,
-      companySize: true,
-      useCase: true,
-    },
-  })
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        companyName: true,
+        jobTitle: true,
+        industry: true,
+        companySize: true,
+        useCase: true,
+      },
+    })
 
-  if (!user) {
-    return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 })
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 })
+    }
+
+    return NextResponse.json({ success: true, data: user })
+  } catch (error: unknown) {
+    const prismaCode = (error as { code?: string })?.code
+    if (prismaCode === 'P2022') {
+      // Work-profile columns don't exist yet — return empty profile so frontend renders
+      logger.warn('Work-profile GET: P2022 — columns missing, returning empty profile')
+      return NextResponse.json({ success: true, data: EMPTY_PROFILE })
+    }
+    logger.error('Work-profile GET error:', error)
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
   }
-
-  return NextResponse.json({ success: true, data: user })
 }
 
 export async function PUT(request: NextRequest): Promise<NextResponse> {
@@ -134,17 +155,31 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ success: false, error: 'No valid fields to update' }, { status: 400 })
   }
 
-  const updated = await prisma.user.update({
-    where: { id: userId },
-    data: updates,
-    select: {
-      companyName: true,
-      jobTitle: true,
-      industry: true,
-      companySize: true,
-      useCase: true,
-    },
-  })
+  try {
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: updates,
+      select: {
+        companyName: true,
+        jobTitle: true,
+        industry: true,
+        companySize: true,
+        useCase: true,
+      },
+    })
 
-  return NextResponse.json({ success: true, data: updated })
+    return NextResponse.json({ success: true, data: updated })
+  } catch (error: unknown) {
+    const prismaCode = (error as { code?: string })?.code
+    if (prismaCode === 'P2022') {
+      // Work-profile columns don't exist yet — acknowledge but can't persist
+      logger.warn('Work-profile PUT: P2022 — columns missing, cannot persist update')
+      return NextResponse.json({
+        success: false,
+        error: 'Profile fields are not yet available. Please try again after the next deployment.',
+      }, { status: 503 })
+    }
+    logger.error('Work-profile PUT error:', error)
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
+  }
 }

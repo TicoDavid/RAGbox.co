@@ -25,22 +25,52 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const tenantId = DEFAULT_TENANT
 
-  const integration = await prisma.roamIntegration.findUnique({
-    where: { tenantId },
-    select: {
-      id: true,
-      status: true,
-      clientId: true,
-      targetGroupId: true,
-      targetGroupName: true,
-      responseMode: true,
-      webhookSubscriptionId: true,
-      connectedAt: true,
-      lastHealthCheckAt: true,
-      errorReason: true,
-      updatedAt: true,
-    },
-  })
+  // BUG-039a: clientId/responseMode columns may not exist in DB yet (prisma db push
+  // hasn't run). Try full select first, fall back to safe columns on P2022 error.
+  let integration: Record<string, unknown> | null = null
+  try {
+    integration = await prisma.roamIntegration.findUnique({
+      where: { tenantId },
+      select: {
+        id: true,
+        status: true,
+        clientId: true,
+        targetGroupId: true,
+        targetGroupName: true,
+        responseMode: true,
+        webhookSubscriptionId: true,
+        connectedAt: true,
+        lastHealthCheckAt: true,
+        errorReason: true,
+        updatedAt: true,
+      },
+    })
+  } catch (error: unknown) {
+    const prismaCode = (error as { code?: string })?.code
+    if (prismaCode === 'P2022') {
+      logger.warn('[ROAM Status] P2022 — new columns missing, using safe fallback')
+      try {
+        integration = await prisma.roamIntegration.findUnique({
+          where: { tenantId },
+          select: {
+            id: true,
+            status: true,
+            targetGroupId: true,
+            targetGroupName: true,
+            webhookSubscriptionId: true,
+            connectedAt: true,
+            lastHealthCheckAt: true,
+            errorReason: true,
+            updatedAt: true,
+          },
+        })
+      } catch (fallbackError) {
+        logger.error('[ROAM Status] Fallback query also failed:', fallbackError)
+      }
+    } else {
+      logger.error('[ROAM Status] Query failed:', error)
+    }
+  }
 
   if (!integration) {
     return NextResponse.json({
@@ -63,18 +93,21 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   // Parse stored subscription IDs (JSON array string)
-  const subscriptionIds = parseSubscriptionIds(integration.webhookSubscriptionId)
+  const subscriptionIds = parseSubscriptionIds(
+    (integration as { webhookSubscriptionId?: string | null }).webhookSubscriptionId ?? null
+  )
 
   return NextResponse.json({
-    connected: integration.status === 'connected',
-    workspace: integration.status === 'connected' ? 'ConnexUS Ai Inc' : null,
-    lastWebhook: integration.lastHealthCheckAt || integration.updatedAt,
+    connected: (integration as { status?: string }).status === 'connected',
+    workspace: (integration as { status?: string }).status === 'connected' ? 'ConnexUS Ai Inc' : null,
+    lastWebhook: (integration as { lastHealthCheckAt?: string; updatedAt?: string }).lastHealthCheckAt
+      || (integration as { updatedAt?: string }).updatedAt,
     messageCount,
     subscriptionIds,
-    clientId: integration.clientId,
-    targetGroupId: integration.targetGroupId,
-    targetGroupName: integration.targetGroupName,
-    responseMode: integration.responseMode,
-    error: integration.errorReason,
+    clientId: (integration as { clientId?: string }).clientId ?? null,
+    targetGroupId: (integration as { targetGroupId?: string }).targetGroupId ?? null,
+    targetGroupName: (integration as { targetGroupName?: string }).targetGroupName ?? null,
+    responseMode: (integration as { responseMode?: string }).responseMode ?? null,
+    error: (integration as { errorReason?: string }).errorReason ?? null,
   })
 }
