@@ -904,6 +904,20 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			}
 		}
 
+		// STORY-026: Emit metadata event for model badge display.
+		// Fires on ALL code paths (silence, normal, low_confidence) so the
+		// frontend can always render the correct model badge.
+		modelUsedForBadge := "aegis"
+		if byollmActive {
+			modelUsedForBadge = initial.ModelUsed
+		}
+		metadataJSON, _ := json.Marshal(map[string]interface{}{
+			"model_used": modelUsedForBadge,
+			"provider":   providerName,
+			"latency_ms": time.Since(startTime).Milliseconds(),
+		})
+		sendEvent(w, flusher, "metadata", string(metadataJSON))
+
 		// Structured latency log (STORY-150 + STORY-151)
 		slog.Info("[Chat Latency]",
 			"embed_ms", tEmbedEnd.Sub(tEmbedStart).Milliseconds(),

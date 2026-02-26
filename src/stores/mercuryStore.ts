@@ -300,7 +300,7 @@ export const useMercuryStore = create<MercuryState>()(
         } else {
           // Handle SSE streaming from Go backend
           // Backend sends standard SSE: "event: <type>\ndata: <json>\n\n"
-          // Event types: status, token, citations, confidence, silence, done
+          // Event types: status, token, citations, confidence, metadata, silence, done
           const reader = res.body?.getReader()
           if (!reader) throw new Error('No response body')
 
@@ -352,6 +352,13 @@ export const useMercuryStore = create<MercuryState>()(
                       modelUsed = data.modelUsed ?? modelUsed
                       provider = data.provider ?? provider
                       latencyMs = data.latencyMs ?? latencyMs
+                      break
+                    case 'metadata':
+                      // STORY-026: Model badge metadata — fires on ALL paths
+                      // (silence, normal, low_confidence) so the badge always works.
+                      modelUsed = data.model_used ?? modelUsed
+                      provider = data.provider ?? provider
+                      latencyMs = data.latency_ms ?? latencyMs
                       break
                     case 'silence':
                       // Silence Protocol: use the message as content
