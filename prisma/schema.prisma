@@ -678,6 +678,30 @@ model RoamIntegration {
 }
 
 // ============================================
+// ROAM Interactions (Feedback + Escalation Data)
+// GAP 2 — EPIC-018 S04
+// Captures every Block Kit button click for VERITAS analytics
+// and Intervention Data moat. query_id links back to Mercury
+// conversation record from GAP 1 (S02).
+// ============================================
+
+model RoamInteraction {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  queryId   String   @map("query_id")
+  actionId  String   @map("action_id") @db.VarChar(50)
+  value     String?  @db.Text
+  userId    String   @map("user_id") @db.VarChar(255)
+  userEmail String?  @map("user_email") @db.VarChar(255)
+  chatId    String?  @map("chat_id") @db.VarChar(255)
+  channel   String   @default("roam") @db.VarChar(20)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@index([queryId], map: "idx_roam_interactions_query")
+  @@index([actionId], map: "idx_roam_interactions_action")
+  @@map("roam_interactions")
+}
+
+// ============================================
 // ROAM Dead Letter Queue (Failed Event Replay)
 // ============================================
 
