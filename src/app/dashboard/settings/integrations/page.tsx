@@ -436,7 +436,9 @@ export default function IntegrationsSettings() {
           {roamStatus.status === 'connected' && (
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 rounded-full bg-[var(--success)] animate-pulse" />
-              <span className="text-[10px] text-[var(--success)]">Connected</span>
+              <span className="text-[10px] text-[var(--success)]">
+                Connected{roamStatus.workspaceName ? ` \u00B7 ${roamStatus.workspaceName}` : ''}
+              </span>
             </div>
           )}
           {roamStatus.status === 'error' && (
