@@ -162,14 +162,25 @@ jest.mock('@/lib/prisma', () => ({
 
 const mockSendMessage = jest.fn()
 const mockGetTranscriptInfo = jest.fn()
+const mockChatPost = jest.fn()
+const mockChatTypingV0 = jest.fn()
 jest.mock('@/lib/roam/roamClient', () => ({
   sendMessage: (...args: unknown[]) => mockSendMessage(...args),
   sendTypingIndicator: jest.fn(),
+  chatPost: (...args: unknown[]) => mockChatPost(...args),
+  chatTypingV0: (...args: unknown[]) => mockChatTypingV0(...args),
   getTranscriptInfo: (...args: unknown[]) => mockGetTranscriptInfo(...args),
   RoamApiError: class RoamApiError extends Error {
     status: number
     constructor(message: string, status: number) { super(message); this.status = status }
   },
+}))
+
+jest.mock('@/lib/roam/roamBlockKit', () => ({
+  buildBlockKitResponse: jest.fn(() => ({
+    blocks: [{ type: 'section', text: { type: 'mrkdwn', text: 'answer' } }],
+    color: 'good',
+  })),
 }))
 
 jest.mock('@/lib/roam/roamFormat', () => ({
@@ -241,6 +252,8 @@ describe('Mention → Mercury → ROAM pipeline', () => {
     mockUpdate.mockResolvedValue({})
     mockActionCreate.mockResolvedValue({})
     mockSendMessage.mockResolvedValue({})
+    mockChatPost.mockResolvedValue(true)
+    mockChatTypingV0.mockReturnValue(undefined)
 
     // Tenant resolution mocks
     mockRoamIntegrationFindFirst.mockResolvedValue(null) // default tenant
@@ -270,11 +283,10 @@ describe('Mention → Mercury → ROAM pipeline', () => {
       expect.objectContaining({ method: 'POST' }),
     )
 
-    // Reply should have been sent to ROAM
-    expect(mockSendMessage).toHaveBeenCalled()
-    const sendCall = mockSendMessage.mock.calls[0][0]
-    expect(sendCall.groupId).toBe('group-123')
-    expect(typeof sendCall.text).toBe('string')
+    // S02: Reply sent via chatPost (v0 reply-in-context) — sendMessage is v1 fallback
+    expect(mockChatPost).toHaveBeenCalled()
+    const chatPostArgs = mockChatPost.mock.calls[0]
+    expect(chatPostArgs[0]).toBe('group-123') // chatId
 
     // Audit record should have been written
     expect(mockActionCreate).toHaveBeenCalledWith(
@@ -311,6 +323,8 @@ describe('DM → Mercury response pipeline', () => {
     mockUpdate.mockResolvedValue({})
     mockActionCreate.mockResolvedValue({})
     mockSendMessage.mockResolvedValue({})
+    mockChatPost.mockResolvedValue(true)
+    mockChatTypingV0.mockReturnValue(undefined)
 
     // Tenant resolution mocks
     mockRoamIntegrationFindFirst.mockResolvedValue(null)
@@ -336,10 +350,10 @@ describe('DM → Mercury response pipeline', () => {
     // RAG backend called
     expect(global.fetch).toHaveBeenCalled()
 
-    // Reply sent to DM group
-    expect(mockSendMessage).toHaveBeenCalled()
-    const dmCall = mockSendMessage.mock.calls[0][0]
-    expect(dmCall.groupId).toBe('dm-alice-mercury')
+    // S02: Reply sent via chatPost to DM chat
+    expect(mockChatPost).toHaveBeenCalled()
+    const dmPostArgs = mockChatPost.mock.calls[0]
+    expect(dmPostArgs[0]).toBe('dm-alice-mercury') // chatId
   })
 })
 
@@ -492,6 +506,8 @@ describe('ROAM mentionOnly enforcement', () => {
     mockUpdate.mockResolvedValue({})
     mockActionCreate.mockResolvedValue({})
     mockSendMessage.mockResolvedValue({})
+    mockChatPost.mockResolvedValue(true)
+    mockChatTypingV0.mockReturnValue(undefined)
     mockMercuryPersonaFindUnique.mockResolvedValue(null)
 
     global.fetch = jest.fn().mockResolvedValue({
@@ -546,7 +562,8 @@ describe('ROAM mentionOnly enforcement', () => {
       expect.stringContaining('/api/chat'),
       expect.objectContaining({ method: 'POST' }),
     )
-    expect(mockSendMessage).toHaveBeenCalled()
+    // S02: Reply via chatPost (v0)
+    expect(mockChatPost).toHaveBeenCalled()
   })
 
   it('processes any message when mentionOnly=false', async () => {
@@ -569,7 +586,8 @@ describe('ROAM mentionOnly enforcement', () => {
 
     // mentionOnly=false allows all messages — RAG + reply sent
     expect(global.fetch).toHaveBeenCalled()
-    expect(mockSendMessage).toHaveBeenCalled()
+    // S02: Reply via chatPost (v0)
+    expect(mockChatPost).toHaveBeenCalled()
   })
 })
 
@@ -587,6 +605,8 @@ describe('Key revocation (401)', () => {
     mockUpdate.mockResolvedValue({})
     mockActionCreate.mockResolvedValue({})
     mockSendMessage.mockResolvedValue({})
+    mockChatPost.mockResolvedValue(true)
+    mockChatTypingV0.mockReturnValue(undefined)
     mockRoamIntegrationUpdate.mockResolvedValue({})
     mockMercuryPersonaFindUnique.mockResolvedValue(null)
 
@@ -606,8 +626,9 @@ describe('Key revocation (401)', () => {
       .mockResolvedValueOnce({ mentionOnly: false })
       .mockResolvedValueOnce({ tenantId: 'tenant-401', userId: 'user-1' })
 
-    // sendTypingIndicator throws 401 — propagates to outer catch
-    roamClientMock.sendTypingIndicator.mockImplementationOnce(() => {
+    // S02: chatTypingV0 is called synchronously (no await) — a sync throw propagates
+    // to the outer handler which triggers 401 detection
+    mockChatTypingV0.mockImplementationOnce(() => {
       throw new roamClientMock.RoamApiError('Unauthorized', 401)
     })
 

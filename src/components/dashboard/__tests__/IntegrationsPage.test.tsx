@@ -42,11 +42,14 @@ const MOCK_SETTINGS = {
 }
 
 const MOCK_ROAM_STATUS = {
-  status: 'disconnected' as const,
-  targetGroupName: null,
+  connected: false,
+  workspace: null,
+  lastWebhook: null,
+  messageCount: 0,
+  subscriptionIds: [],
   targetGroupId: null,
-  mentionOnly: true,
-  meetingSummaries: true,
+  targetGroupName: null,
+  error: null,
 }
 
 const MOCK_ROAM_GROUPS = [
@@ -55,7 +58,7 @@ const MOCK_ROAM_GROUPS = [
 ]
 
 /** apiFetch wraps fetch() — returns Response-like objects with .ok and .json() */
-function mockResponse(body: Record<string, unknown>) {
+function mockResponse(body: unknown) {
   return { ok: true, json: () => Promise.resolve(body), text: () => Promise.resolve(JSON.stringify(body)) }
 }
 
@@ -66,17 +69,20 @@ jest.mock('@/lib/api', () => ({
     if (url.includes('/api/settings/integrations') && (!options || !options.method || options.method === 'GET')) {
       return mockResponse({ success: true, data: MOCK_SETTINGS })
     }
-    if (url.includes('/api/integrations/roam/status')) {
-      return mockResponse({ success: true, data: MOCK_ROAM_STATUS })
+    if (url.includes('/api/connectors/roam/status')) {
+      return mockResponse(MOCK_ROAM_STATUS)
     }
-    if (url.includes('/api/integrations/roam/groups')) {
-      return mockResponse({ success: true, data: MOCK_ROAM_GROUPS })
+    if (url.includes('/api/connectors/roam/groups')) {
+      return mockResponse(MOCK_ROAM_GROUPS)
     }
-    if (url.includes('/api/integrations/roam/connect')) {
-      return mockResponse({ success: true, data: { status: 'connected' } })
+    if (url.includes('/api/connectors/roam/test')) {
+      return mockResponse({ valid: true, workspace: 'ConnexUS Ai Inc', groupCount: 2 })
     }
-    if (url.includes('/api/integrations/roam/disconnect')) {
-      return mockResponse({ success: true })
+    if (url.includes('/api/connectors/roam/install')) {
+      return mockResponse({ status: 'connected', workspace: 'ConnexUS Ai Inc', groups: MOCK_ROAM_GROUPS })
+    }
+    if (url.includes('/api/connectors/roam/uninstall')) {
+      return mockResponse({ status: 'disconnected' })
     }
     if (url.includes('/api/vaults')) {
       return mockResponse({ success: true, data: [] })
@@ -112,19 +118,18 @@ beforeEach(() => {
 // ── Tests ────────────────────────────────────────────────────────
 
 describe('IntegrationsPage', () => {
-  it('ROAM card renders with API key input, groups dropdown, and toggles', async () => {
+  it('ROAM card renders with API key input and response mode options', async () => {
     render(<IntegrationsSettings />)
 
     await waitFor(() => {
       expect(screen.getByText('ROAM')).toBeInTheDocument()
     })
 
-    // API key input
+    // API key input (J01 updated placeholder)
     expect(screen.getByPlaceholderText(/ROAM API key/i)).toBeInTheDocument()
 
-    // Toggles
-    expect(screen.getByText(/Only respond when mentioned/i)).toBeInTheDocument()
-    expect(screen.getByText(/Post summaries after meetings/i)).toBeInTheDocument()
+    // Response mode options (J01: replaced toggles with radio group)
+    expect(screen.getByText(/Mentions only/i)).toBeInTheDocument()
   })
 
   it('WhatsApp Vonage card shows "Connected" state', async () => {
@@ -152,55 +157,57 @@ describe('IntegrationsPage', () => {
     expect(screen.getByText(/Meta Business Verification Required/i)).toBeInTheDocument()
   })
 
-  it('ROAM activate button calls POST /api/integrations/roam/connect', async () => {
+  it('ROAM save calls POST /api/connectors/roam/install', async () => {
     render(<IntegrationsSettings />)
 
     await waitFor(() => {
       expect(screen.getByText('ROAM')).toBeInTheDocument()
     })
 
-    // Type API key and blur to trigger group fetch
+    // Type API key
     const keyInput = screen.getByPlaceholderText(/ROAM API key/i)
     fireEvent.change(keyInput, { target: { value: 'roam_test_key_123' } })
     fireEvent.blur(keyInput)
 
-    // Wait for groups to render in the dropdown
+    // Wait for groups or test connection response
     await waitFor(() => {
-      expect(screen.getByText(/Engineering/)).toBeInTheDocument()
+      expect(apiFetchCalls.some((c) => c.url.includes('/roam/'))).toBe(true)
     })
 
-    // Click activate
-    const activateBtn = screen.getByText('Activate')
-    fireEvent.click(activateBtn)
+    // Click Save
+    const saveBtn = screen.getByText('Save')
+    fireEvent.click(saveBtn)
 
     await waitFor(() => {
-      expect(apiFetchCalls.some((c) => c.url.includes('/roam/connect'))).toBe(true)
+      expect(apiFetchCalls.some((c) => c.url.includes('/roam/install'))).toBe(true)
     })
 
-    const connectCall = apiFetchCalls.find((c) => c.url.includes('/roam/connect'))
-    expect(connectCall!.options?.method).toBe('POST')
+    const installCall = apiFetchCalls.find((c) => c.url.includes('/roam/install'))
+    expect(installCall!.options?.method).toBe('POST')
   })
 
-  it('ROAM disconnect button calls POST /api/integrations/roam/disconnect', async () => {
+  it('ROAM disconnect button calls POST /api/connectors/roam/uninstall', async () => {
     // Override to show connected state
     const { apiFetch } = jest.requireMock('@/lib/api')
     apiFetch.mockImplementation(async (url: string, options?: Record<string, unknown>) => {
       apiFetchCalls.push({ url, options })
       if (url.includes('/roam/status')) {
         return mockResponse({
-          success: true,
           data: {
             status: 'connected',
-            targetGroupName: 'Engineering Team',
+            workspaceName: 'ConnexUS Ai Inc',
+            lastWebhook: '2026-02-22T12:00:00Z',
+            messageCount: 42,
+            subscriptionIds: ['sub-1', 'sub-2'],
             targetGroupId: 'group-1',
-            mentionOnly: true,
-            meetingSummaries: true,
-            connectedAt: '2026-02-22T10:00:00Z',
+            targetGroupName: 'Engineering Team',
+            responseMode: 'mentions',
+            error: null,
           },
         })
       }
-      if (url.includes('/roam/disconnect')) {
-        return mockResponse({ success: true })
+      if (url.includes('/roam/uninstall')) {
+        return mockResponse({ status: 'disconnected' })
       }
       if (url.includes('/api/settings/integrations')) {
         return mockResponse({ success: true, data: MOCK_SETTINGS })
@@ -213,8 +220,9 @@ describe('IntegrationsPage', () => {
 
     render(<IntegrationsSettings />)
 
+    // Wait for connected state to render (workspace or disconnect button)
     await waitFor(() => {
-      expect(screen.getByText('Engineering Team')).toBeInTheDocument()
+      expect(screen.getByText('Disconnect')).toBeInTheDocument()
     })
 
     // Click disconnect
@@ -222,10 +230,10 @@ describe('IntegrationsPage', () => {
     fireEvent.click(disconnectBtn)
 
     await waitFor(() => {
-      expect(apiFetchCalls.some((c) => c.url.includes('/roam/disconnect'))).toBe(true)
+      expect(apiFetchCalls.some((c) => c.url.includes('/roam/uninstall'))).toBe(true)
     })
 
-    const disconnectCall = apiFetchCalls.find((c) => c.url.includes('/roam/disconnect'))
-    expect(disconnectCall!.options?.method).toBe('POST')
+    const uninstallCall = apiFetchCalls.find((c) => c.url.includes('/roam/uninstall'))
+    expect(uninstallCall!.options?.method).toBe('POST')
   })
 })
