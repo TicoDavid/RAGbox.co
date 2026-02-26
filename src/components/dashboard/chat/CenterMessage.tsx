@@ -32,15 +32,23 @@ function parseStructuredResponse(
   existingCitations?: Citation[],
   existingConfidence?: number,
 ): ParsedResponse {
-  const trimmed = raw.trim()
+  let cleaned = raw.trim()
+
+  // BUG-040: Strip markdown code fences (```json ... ```)
+  if (cleaned.startsWith('```')) {
+    const lines = cleaned.split('\n')
+    if (lines.length >= 3) {
+      cleaned = lines.slice(1, -1).join('\n').trim()
+    }
+  }
 
   // Not JSON — return as-is with existing metadata
-  if (!trimmed.startsWith('{')) {
+  if (!cleaned.startsWith('{')) {
     return { content: raw, citations: existingCitations, confidence: existingConfidence }
   }
 
   try {
-    const json = JSON.parse(trimmed)
+    const json = JSON.parse(cleaned)
     const data = json.data ?? json
 
     const answer = data.answer

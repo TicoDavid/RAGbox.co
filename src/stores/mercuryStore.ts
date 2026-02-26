@@ -310,9 +310,16 @@ export const useMercuryStore = create<MercuryState>()(
           try {
             while (true) {
               const { done, value } = await reader.read()
-              if (done) break
 
-              buffer += decoder.decode(value, { stream: true })
+              if (!done) {
+                buffer += decoder.decode(value, { stream: true })
+              } else {
+                // BUG-040: Stream closed — flush remaining buffer by appending
+                // a boundary so the last SSE event (often 'done') gets processed
+                // before the loop exits. Without this, the done event can be
+                // stranded in the buffer and fullContent stays as raw JSON.
+                buffer += '\n\n'
+              }
 
               // Split on double-newline (SSE message boundary)
               const messages = buffer.split('\n\n')
@@ -416,9 +423,37 @@ export const useMercuryStore = create<MercuryState>()(
                   throw parseError
                 }
               }
+
+              // BUG-040: Break AFTER processing remaining buffer (not before).
+              if (done) break
             }
           } finally {
             reader.releaseLock()
+          }
+        }
+
+        // BUG-040: Safety net — if fullContent is still structured JSON after
+        // SSE processing (e.g., done event missed, LLM returned raw JSON, or
+        // ParseGenerationResponse put JSON into the answer field), extract
+        // the prose answer so the UI never shows raw JSON to the user.
+        {
+          let cleaned = fullContent.trim()
+          // Strip markdown code fences (```json ... ```)
+          if (cleaned.startsWith('```')) {
+            const lines = cleaned.split('\n')
+            if (lines.length >= 3) cleaned = lines.slice(1, -1).join('\n').trim()
+          }
+          if (cleaned.startsWith('{')) {
+            try {
+              const parsed = JSON.parse(cleaned)
+              const d = parsed.data ?? parsed
+              if (typeof d.answer === 'string' && d.answer.length > 0) {
+                fullContent = d.answer
+                // Also rescue citations and confidence from the JSON if not already set
+                if (!citations && Array.isArray(d.citations)) citations = d.citations
+                if (confidence === undefined && typeof d.confidence === 'number') confidence = d.confidence
+              }
+            } catch { /* not valid JSON — keep fullContent as-is */ }
           }
         }
 
