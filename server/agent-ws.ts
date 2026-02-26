@@ -22,6 +22,7 @@ import { WebSocketServer, WebSocket } from 'ws'
 import type { IncomingMessage, Server as HttpServer } from 'http'
 import { URL } from 'url'
 import { getToken } from 'next-auth/jwt'
+import jwt from 'jsonwebtoken'
 import { executeTool, type ToolCall, type ToolResult, type ToolContext } from './tools'
 import { checkToolPermission, createConfirmationRequest, storePendingConfirmation } from './tools/permissions'
 import * as obs from './observability'
@@ -150,6 +151,33 @@ function isValidRole(role: string | null): role is ConnectionParams['role'] {
 async function extractConnectionParams(req: IncomingMessage): Promise<ConnectionParams | null> {
   try {
     const url = new URL(req.url || '', `http://${req.headers.host}`)
+
+    // ── Path 0 (BUG-041): Voice JWT token — cross-service auth ──────
+    // mercury-voice is a separate Cloud Run service that can't access
+    // ragbox-app's in-memory session store or NextAuth cookies (different domain).
+    // The JWT is signed by ragbox-app /api/agent/session with VOICE_JWT_SECRET.
+    const token = url.searchParams.get('token')
+    if (token) {
+      const voiceJwtSecret = process.env.VOICE_JWT_SECRET
+      if (voiceJwtSecret) {
+        try {
+          const decoded = jwt.verify(token, voiceJwtSecret) as {
+            userId: string
+            role: string
+          }
+          console.info('[AgentWS] JWT validated — userId:', decoded.userId, 'role:', decoded.role)
+          return {
+            sessionId: null,
+            userId: decoded.userId,
+            role: isValidRole(decoded.role) ? decoded.role : 'User',
+            privilegeMode: false,
+          }
+        } catch (err) {
+          console.warn('[AgentWS] Voice JWT validation failed:', err instanceof Error ? err.message : err)
+          // Fall through to other auth paths
+        }
+      }
+    }
 
     // ── Path 1: Session token from POST /api/agent/session ──────────
     const sessionId = url.searchParams.get('sessionId')

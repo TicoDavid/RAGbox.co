@@ -548,14 +548,21 @@ export function useSovereignAgentVoice(
     setState('connecting')
 
     // Bootstrap an authenticated session via the NextAuth-protected API.
-    // This returns a sessionId that the WS server validates server-side,
-    // so userId never travels in query params.
+    // BUG-041: The session API now returns a JWT (voiceToken) signed with
+    // VOICE_JWT_SECRET. This token is embedded in wsUrl and works across
+    // Cloud Run services (mercury-voice can validate it independently).
     let connectUrl: string
     try {
       const res = await fetch('/api/agent/session', { method: 'POST' })
       const data = await res.json()
       if (res.ok && data.success && data.wsUrl) {
         connectUrl = data.wsUrl
+      } else if (res.ok && data.success && data.voiceToken) {
+        // BUG-041 fallback: voiceToken present but wsUrl missing —
+        // construct the WebSocket URL with the JWT token explicitly.
+        const voiceHost = wsUrl.replace(/^wss?:\/\//, '').replace(/\/.*$/, '')
+        const protocol = wsUrl.startsWith('wss') ? 'wss' : 'ws'
+        connectUrl = `${protocol}://${voiceHost}/agent/ws?token=${encodeURIComponent(data.voiceToken)}`
       } else {
         // Session bootstrap unavailable (voice not configured, etc.) —
         // fall back to cookie-only auth (browser sends NextAuth JWT cookie

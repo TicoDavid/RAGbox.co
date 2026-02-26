@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { activeSessions, SESSION_TTL_MS } from './session-store'
+import jwt from 'jsonwebtoken'
 
 /**
  * Secure Agent Session Bootstrap
@@ -49,7 +50,9 @@ export async function POST() {
 
     // Determine WebSocket URL based on environment
     const wsProtocol = process.env.NODE_ENV === 'production' ? 'wss' : 'ws'
-    const host = process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '')
+    // BUG-041: Use MERCURY_VOICE_URL for the dedicated voice Cloud Run service.
+    // Falls back to NEXT_PUBLIC_APP_URL for single-process deployments (dev).
+    const host = (process.env.MERCURY_VOICE_URL || process.env.NEXT_PUBLIC_APP_URL)?.replace(/^https?:\/\//, '')
     if (!host) {
       return NextResponse.json(
         { error: 'NEXT_PUBLIC_APP_URL not configured' },
@@ -57,12 +60,33 @@ export async function POST() {
       )
     }
 
+    // BUG-041: Sign a JWT with VOICE_JWT_SECRET for cross-service auth.
+    // mercury-voice is a separate Cloud Run service that can't access
+    // ragbox-app's in-memory session store or NextAuth cookies (different domain).
+    // A shared JWT secret lets both services authenticate without shared state.
+    const voiceJwtSecret = process.env.VOICE_JWT_SECRET
+    let voiceToken: string | null = null
+    if (voiceJwtSecret) {
+      voiceToken = jwt.sign(
+        { userId: session.user.email, role: 'User' },
+        voiceJwtSecret,
+        { expiresIn: '1h' }
+      )
+    }
+
+    // Build WebSocket URL: prefer JWT token auth, fall back to sessionId
+    const authParam = voiceToken
+      ? `token=${encodeURIComponent(voiceToken)}`
+      : `sessionId=${encodeURIComponent(sessionId)}`
+
     // Return ONLY safe, non-secret data
     return NextResponse.json({
       success: true,
       sessionId,
+      // BUG-041: voiceToken for explicit cross-service auth
+      ...(voiceToken ? { voiceToken } : {}),
       // WebSocket endpoint - all audio flows through here
-      wsUrl: `${wsProtocol}://${host}/agent/ws?sessionId=${encodeURIComponent(sessionId)}`,
+      wsUrl: `${wsProtocol}://${host}/agent/ws?${authParam}`,
       // Audio configuration for client capture
       audio: {
         sampleRateHz: 16000,
