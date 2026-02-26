@@ -342,9 +342,16 @@ export const useChatStore = create<ChatState>()(
             try {
               while (true) {
                 const { done, value } = await reader.read()
-                if (done) break
 
-                buffer += decoder.decode(value, { stream: true })
+                if (!done) {
+                  buffer += decoder.decode(value, { stream: true })
+                } else {
+                  // BUG-040: Stream closed — flush remaining buffer by appending
+                  // a boundary so the last SSE event (often 'done') gets processed
+                  // before the loop exits.
+                  buffer += '\n\n'
+                }
+
                 const sseMessages = buffer.split('\n\n')
                 buffer = sseMessages.pop() ?? ''
 
@@ -386,6 +393,12 @@ export const useChatStore = create<ChatState>()(
                         modelUsed = data.modelUsed ?? modelUsed
                         provider = data.provider ?? provider
                         latencyMs = data.latencyMs ?? latencyMs
+                        break
+                      case 'metadata':
+                        // STORY-220: Model badge metadata — fires on ALL paths
+                        modelUsed = data.model_used ?? modelUsed
+                        provider = data.provider ?? provider
+                        latencyMs = data.latency_ms ?? latencyMs
                         break
                       case 'silence':
                         fullContent =
@@ -447,29 +460,34 @@ export const useChatStore = create<ChatState>()(
                     throw parseError
                   }
                 }
+
+                // BUG-040: Break AFTER processing remaining buffer (not before).
+                if (done) break
               }
             } finally {
               reader.releaseLock()
             }
           }
 
-          // BUG-037 safety net: if fullContent is still raw JSON after streaming,
-          // extract the answer field so the message never stores raw JSON.
-          if (fullContent && fullContent.trim().startsWith('{')) {
-            try {
-              const parsed = JSON.parse(fullContent.trim())
-              const d = parsed.data ?? parsed
-              if (typeof d.answer === 'string') {
-                fullContent = d.answer
-                if (Array.isArray(d.citations) && (!citations || citations.length === 0)) {
-                  citations = d.citations
+          // BUG-040: Safety net — if fullContent is still structured JSON after
+          // SSE processing, extract the prose answer so the UI never shows raw JSON.
+          {
+            let cleaned = fullContent.trim()
+            // Strip markdown code fences (```json ... ```)
+            if (cleaned.startsWith('```')) {
+              const lines = cleaned.split('\n')
+              if (lines.length >= 3) cleaned = lines.slice(1, -1).join('\n').trim()
+            }
+            if (cleaned.startsWith('{')) {
+              try {
+                const parsed = JSON.parse(cleaned)
+                const d = parsed.data ?? parsed
+                if (typeof d.answer === 'string' && d.answer.length > 0) {
+                  fullContent = d.answer
+                  if (!citations && Array.isArray(d.citations)) citations = d.citations
+                  if (confidence === undefined && typeof d.confidence === 'number') confidence = d.confidence
                 }
-                if (typeof d.confidence === 'number' && confidence === undefined) {
-                  confidence = d.confidence
-                }
-              }
-            } catch {
-              // Not valid JSON — use as-is
+              } catch { /* not valid JSON — keep fullContent as-is */ }
             }
           }
 
