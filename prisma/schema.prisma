@@ -654,21 +654,24 @@ model IntegrationSettings {
 // ============================================
 
 model RoamIntegration {
-  id                    String    @id @default(cuid())
-  tenantId              String    @unique @map("tenant_id")
-  userId                String    @map("user_id")
-  apiKeyEncrypted       String?   @map("api_key_encrypted") @db.Text
-  webhookSubscriptionId String?   @map("webhook_subscription_id")
-  targetGroupId         String?   @map("target_group_id")
-  targetGroupName       String?   @map("target_group_name")
-  mentionOnly           Boolean   @default(true) @map("mention_only")
-  meetingSummaries       Boolean   @default(true) @map("meeting_summaries")
-  status                String    @default("disconnected")
-  connectedAt           DateTime? @map("connected_at")
-  lastHealthCheckAt     DateTime? @map("last_health_check_at")
-  errorReason           String?   @map("error_reason")
-  createdAt             DateTime  @default(now()) @map("created_at")
-  updatedAt             DateTime  @updatedAt @map("updated_at")
+  id                       String    @id @default(cuid())
+  tenantId                 String    @unique @map("tenant_id")
+  userId                   String    @map("user_id")
+  apiKeyEncrypted          String?   @map("api_key_encrypted") @db.Text
+  clientId                 String?   @map("client_id")
+  webhookSecretEncrypted   String?   @map("webhook_secret_encrypted") @db.Text
+  webhookSubscriptionId    String?   @map("webhook_subscription_id")
+  targetGroupId            String?   @map("target_group_id")
+  targetGroupName          String?   @map("target_group_name")
+  responseMode             String?   @map("response_mode")
+  mentionOnly              Boolean   @default(true) @map("mention_only")
+  meetingSummaries          Boolean   @default(true) @map("meeting_summaries")
+  status                   String    @default("disconnected")
+  connectedAt              DateTime? @map("connected_at")
+  lastHealthCheckAt        DateTime? @map("last_health_check_at")
+  errorReason              String?   @map("error_reason")
+  createdAt                DateTime  @default(now()) @map("created_at")
+  updatedAt                DateTime  @updatedAt @map("updated_at")
 
   @@index([targetGroupId])
   @@map("roam_integrations")

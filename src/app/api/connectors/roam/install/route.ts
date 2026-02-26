@@ -2,12 +2,12 @@
  * ROAM Connector Install — POST /api/connectors/roam/install
  *
  * 1. Validate creds via GET groups.list
- * 2. Encrypt + store API key in tenant config
+ * 2. Encrypt + store API key and webhook secret in tenant config
  * 3. Auto-subscribe to all 7 ROAM webhook events (S03)
- * 4. Store subscription IDs for unsubscribe on disconnect
+ * 4. Store all connector fields: clientId, webhookSecret, targetGroup, responseMode
  * 5. Return connected status with workspace groups
  *
- * EPIC-018 S01
+ * EPIC-018 S01 — BUG-1 + BUG-2 hotfix
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -22,11 +22,16 @@ export const runtime = 'nodejs'
 
 const DEFAULT_TENANT = 'default'
 
+/**
+ * Request body — matches Jordan's frontend (integrations/page.tsx lines 249-254).
+ * BUG-1 fix: frontend sends `targetGroupId`, NOT `defaultGroupId`.
+ */
 interface InstallBody {
   clientId?: string
   apiKey?: string
   webhookSecret?: string
-  defaultGroupId?: string
+  targetGroupId?: string
+  targetGroupName?: string
   responseMode?: string
 }
 
@@ -77,20 +82,44 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ status: 'error', message: 'Encryption failed' }, { status: 500 })
   }
 
+  // BUG-2 fix: Encrypt webhook secret if provided
+  let webhookSecretEncrypted: string | null = null
+  if (body.webhookSecret?.trim()) {
+    try {
+      webhookSecretEncrypted = await encryptKey(body.webhookSecret.trim())
+    } catch (error) {
+      logger.error('[ROAM Install] Webhook secret encryption failed:', error)
+      return NextResponse.json({ status: 'error', message: 'Encryption failed' }, { status: 500 })
+    }
+  }
+
   // Step 3: Auto-subscribe to ROAM webhooks (S03)
   const subResult = await autoSubscribeWebhooks(apiKey)
   if (subResult.errors.length > 0) {
     logger.warn('[ROAM Install] Some webhook subscriptions failed:', subResult.errors)
   }
 
-  // Step 4: Store encrypted creds + subscription IDs in tenant config
+  // BUG-2 fix: Map responseMode → mentionOnly boolean
+  //   'all'           → mentionOnly: false (respond to all messages)
+  //   'mentions'      → mentionOnly: true  (only @mentions in groups, DMs always respond)
+  //   'dms_mentions'  → mentionOnly: true  (DMs + @mentions — same backend behavior)
+  const mentionOnly = body.responseMode !== 'all'
+
+  // Step 4: Store ALL connector fields in tenant config
+  // BUG-1 fix: Read targetGroupId (not defaultGroupId) — matches frontend field name
+  // BUG-2 fix: Persist clientId, webhookSecret, targetGroupName, responseMode, mentionOnly
   const integration = await prisma.roamIntegration.upsert({
     where: { tenantId },
     update: {
       userId,
       apiKeyEncrypted,
+      clientId: body.clientId?.trim() || null,
+      webhookSecretEncrypted,
       webhookSubscriptionId: JSON.stringify(subResult.subscriptionIds),
-      targetGroupId: body.defaultGroupId || null,
+      targetGroupId: body.targetGroupId || null,
+      targetGroupName: body.targetGroupName || null,
+      responseMode: body.responseMode || null,
+      mentionOnly,
       status: 'connected',
       connectedAt: new Date(),
       errorReason: null,
@@ -99,8 +128,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       tenantId,
       userId,
       apiKeyEncrypted,
+      clientId: body.clientId?.trim() || null,
+      webhookSecretEncrypted,
       webhookSubscriptionId: JSON.stringify(subResult.subscriptionIds),
-      targetGroupId: body.defaultGroupId || null,
+      targetGroupId: body.targetGroupId || null,
+      targetGroupName: body.targetGroupName || null,
+      responseMode: body.responseMode || null,
+      mentionOnly,
       status: 'connected',
       connectedAt: new Date(),
     },
@@ -108,7 +142,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   logger.info(
     `[ROAM Install] Connected tenant=${tenantId} userId=${userId} ` +
-    `groups=${groups.length} subscriptions=${subResult.subscriptionIds.length}`
+    `groups=${groups.length} subscriptions=${subResult.subscriptionIds.length} ` +
+    `targetGroup=${body.targetGroupId || 'none'} responseMode=${body.responseMode || 'default'}`
   )
 
   // Step 5: Return success with workspace groups

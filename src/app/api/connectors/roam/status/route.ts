@@ -30,8 +30,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     select: {
       id: true,
       status: true,
+      clientId: true,
       targetGroupId: true,
       targetGroupName: true,
+      responseMode: true,
       webhookSubscriptionId: true,
       connectedAt: true,
       lastHealthCheckAt: true,
@@ -69,8 +71,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     lastWebhook: integration.lastHealthCheckAt || integration.updatedAt,
     messageCount,
     subscriptionIds,
+    clientId: integration.clientId,
     targetGroupId: integration.targetGroupId,
     targetGroupName: integration.targetGroupName,
+    responseMode: integration.responseMode,
     error: integration.errorReason,
   })
 }
