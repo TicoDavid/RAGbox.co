@@ -317,7 +317,7 @@ export function MercuryConfigModal({ isOpen, onClose, onSaved }: MercuryConfigMo
                         className="w-full accent-[var(--brand-blue)]"
                       />
                       <p className="text-[10px] text-[var(--text-tertiary)] mt-1">
-                        Below this confidence, Mercury will decline to answer rather than speculate.
+                        Below this level, Mercury will tell you it doesn't have enough evidence rather than guess.
                       </p>
                     </Section>
 

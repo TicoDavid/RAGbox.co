@@ -580,7 +580,7 @@ function IntelligenceSection({
 }) {
   return (
     <div className="space-y-6">
-      <SectionHeader title="Silence Protocol" description="Controls when Mercury declines to answer rather than speculate." />
+      <SectionHeader title="Silence Protocol" description="Controls when Mercury tells you it doesn't have enough evidence instead of guessing." />
 
       <div className="p-5 rounded-xl bg-[var(--bg-tertiary)]/50 border border-[var(--border-default)]">
         <div className="flex items-center justify-between mb-3">
@@ -603,7 +603,7 @@ function IntelligenceSection({
           <span>85% (Strict)</span>
         </div>
         <p className="text-xs text-[var(--text-tertiary)] mt-3">
-          Below this confidence, Mercury will decline to answer rather than speculate.
+          Below this level, Mercury will tell you it doesn't have enough evidence rather than guess.
         </p>
       </div>
     </div>
