@@ -5,7 +5,7 @@
     "moduleResolution": "nodenext",
     "lib": ["ES2022"],
     "outDir": "./dist",
-    "rootDir": ".",
+    "rootDir": "..",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -13,6 +13,6 @@
     "declaration": false,
     "sourceMap": false
   },
-  "include": ["./**/*.ts"],
+  "include": ["./**/*.ts", "../src/app/api/agent/session/session-store.ts"],
   "exclude": ["node_modules", "dist", "__tests__", "scripts"]
 }
