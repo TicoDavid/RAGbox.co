@@ -681,33 +681,35 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 					return
 				}
 			} else {
-				// Stream tokens to client AS THEY ARRIVE
-				first := true
+				// STORY-220: Accumulate streaming tokens server-side — do NOT
+				// forward raw LLM output to the client. The system prompt tells
+				// the model to return structured JSON ({"answer":"...",
+				// "citations":[...],"confidence":0.85}), so raw tokens would
+				// expose the JSON envelope to the user. We buffer the entire
+				// generation, parse the JSON, then stream ONLY the extracted
+				// answer text as clean token events.
+				gotTokens := false
 				for token := range streamResult.TokenCh {
 					if ctx.Err() != nil {
 						return
 					}
-					if first {
-						ttfbMs = time.Since(tGenerateStart).Milliseconds()
-						first = false
+					_ = token // consumed but not forwarded
+					if !gotTokens {
+						gotTokens = true
 					}
-					tokenJSON, _ := json.Marshal(map[string]string{"text": token})
-					sendEvent(w, flusher, "token", string(tokenJSON))
 				}
-				streamedTokens = true
 
 				// Check for generation errors
 				select {
 				case genErr := <-streamResult.ErrCh:
 					if genErr != nil {
-						// BUG-036: BYOLLM error with no tokens sent → fall back to AEGIS
-						if byollmActive && first {
+						// BUG-036: BYOLLM error with no tokens → fall back to AEGIS
+						if byollmActive && !gotTokens {
 							slog.Warn("BYOLLM streaming error, falling back to AEGIS",
 								"user_id", userID, "provider", req.LLMProvider, "error", genErr)
 							generator = deps.Generator
 							selfRAG = deps.SelfRAG
 							byollmActive = false
-							streamedTokens = false
 						} else {
 							slog.Error("chat streaming generation error", "user_id", userID, "error", genErr)
 							sendEvent(w, flusher, "error", fmt.Sprintf(`{"message":%q}`, rateLimitMessage(genErr)))
@@ -718,10 +720,11 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 				default:
 				}
 
-				// Parse full accumulated response for citations + confidence
-				// (skip if BYOLLM error triggered AEGIS fallback — streamedTokens was reset)
-				if streamedTokens {
+				// Parse accumulated response, then stream ONLY the answer (STORY-220)
+				if gotTokens {
 					fullText := streamResult.Full()
+					ttfbMs = time.Since(tGenerateStart).Milliseconds()
+
 					var parseErr error
 					initial, parseErr = service.ParseGenerationResponse(fullText, retrieval.Chunks)
 					if parseErr != nil {
@@ -729,6 +732,20 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 					}
 					initial.ModelUsed = streamResult.Model
 					initial.LatencyMs = time.Since(tGenerateStart).Milliseconds()
+
+					// Stream the extracted answer text as clean token events.
+					// Every event: token contains ONLY prose — no JSON structure,
+					// no braces, no "answer:" keys. Citations and confidence go
+					// via their own dedicated SSE events.
+					answerTokens := splitIntoTokens(initial.Answer)
+					for _, token := range answerTokens {
+						if ctx.Err() != nil {
+							return
+						}
+						tokenJSON, _ := json.Marshal(map[string]string{"text": token})
+						sendEvent(w, flusher, "token", string(tokenJSON))
+					}
+					streamedTokens = true
 				}
 			}
 		}
