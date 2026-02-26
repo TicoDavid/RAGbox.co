@@ -72,6 +72,51 @@ const DEFAULT_TTS_MODEL_ID = 'inworld-tts-1-max'
 const DEFAULT_VOICE_ID = 'Ashley'
 const DEFAULT_GREETING = "Hello, I'm Mercury. How can I help you today?"
 
+// BUG-042 Bug B: Grounding refusal patterns — RAG returns these when it can't
+// find relevant documents. Mercury should respond conversationally instead.
+const GROUNDING_REFUSAL_PATTERNS = [
+  'cannot provide a sufficiently grounded',
+  'don\'t have enough information in the available documents',
+  'not found in the available documents',
+  'i don\'t have any documents',
+  'no relevant documents',
+  'unable to find relevant information',
+  'i could not find',
+]
+
+/**
+ * BUG-042 Bug B: Detect and replace RAG grounding refusals with
+ * a natural conversational Mercury response.
+ */
+function interceptGroundingRefusal(response: string, userQuery: string): string {
+  const lower = response.toLowerCase()
+  const isRefusal = GROUNDING_REFUSAL_PATTERNS.some(p => lower.includes(p))
+  if (!isRefusal) return response
+
+  console.info('[VoicePipeline-v3] RAG grounding refusal detected — using conversational fallback')
+
+  // Classify the user query for a natural response
+  const q = userQuery.toLowerCase().trim()
+
+  // Greeting patterns
+  if (/^(hi|hello|hey|good\s*(morning|afternoon|evening)|howdy|what'?s up)/i.test(q)) {
+    return "Hello! I'm Mercury, your AI assistant. I can help you search and analyze your documents, answer questions about your uploaded files, or just chat. What would you like to do?"
+  }
+
+  // Self-referential questions
+  if (/^(who are you|what are you|tell me about yourself|what can you)/i.test(q)) {
+    return "I'm Mercury, the AI assistant for RAGbox. I can search through your documents, answer questions based on your uploaded files, help you find specific information, and have a conversation. Try asking me about something in your vault!"
+  }
+
+  // How are you / small talk
+  if (/^(how are you|how'?s it going|what'?s new)/i.test(q)) {
+    return "I'm doing great, thank you for asking! I'm ready to help you with your documents and questions. What can I assist you with today?"
+  }
+
+  // Default conversational fallback
+  return "I don't have a specific document about that, but I'm happy to help! You can ask me about anything in your vault, or try rephrasing your question. What would you like to know?"
+}
+
 // Go backend for LLM + Mercury config
 const GO_BACKEND_URL = process.env.GO_BACKEND_URL
   || process.env.NEXT_PUBLIC_API_URL
@@ -375,7 +420,10 @@ Current user context:
         answer = "I'm sorry, I couldn't process that request. Please try again."
       }
 
-      console.info('[VoicePipeline-v3] LLM answer', { preview: answer.substring(0, 100) })
+      console.info('[VoicePipeline-v3] LLM answer', { chars: answer.length, preview: answer.substring(0, 100) })
+
+      // BUG-042 Bug B: Intercept grounding refusals before TTS
+      answer = interceptGroundingRefusal(answer, userText)
 
       // Check for tool calls in response
       const { toolCall, cleanText } = parseToolCalls(answer)
@@ -408,7 +456,7 @@ Current user context:
 
   async function textToSpeech(text: string): Promise<void> {
     try {
-      console.info('[VoicePipeline-v3] TTS request', { preview: text.substring(0, 50) })
+      console.info('[VoicePipeline-v3] TTS streaming started', { chars: text.length, preview: text.substring(0, 50) })
 
       const ttsNode = new RemoteTTSNode({
         ttsComponent,
@@ -430,12 +478,19 @@ Current user context:
 
       const { outputStream } = await ttsGraph.start(text)
 
+      // BUG-042: Track TTS chunk delivery for lifecycle debugging
+      let chunkCount = 0
+      let totalBytes = 0
+
       for await (const result of outputStream) {
         await result.processResponse({
           default: async (output: unknown) => {
             const ttsOutput = output as { audio?: { data?: string } }
             if (ttsOutput.audio?.data) {
               const int16Base64 = float32ToInt16Base64(ttsOutput.audio.data)
+              chunkCount++
+              totalBytes += int16Base64.length
+              console.info(`[VoicePipeline-v3] TTS chunk ${chunkCount} sent`, { bytes: int16Base64.length })
               onTTSChunk?.(int16Base64)
             }
           },
@@ -445,6 +500,8 @@ Current user context:
           },
         })
       }
+
+      console.info(`[VoicePipeline-v3] TTS complete, ${chunkCount} chunks delivered`, { totalBytes })
     } catch (error) {
       console.error('[VoicePipeline-v3] TTS error:', error)
       onError?.(error instanceof Error ? error : new Error(String(error)))

@@ -704,10 +704,12 @@ export function useSovereignAgentVoice(
                 detail: { text: msg.text, source: 'voice' },
               }))
             }
-            // After agent responds, go back to idle in VAD mode
-            if (isVADActiveRef.current) {
-              setTimeout(() => setState('idle'), 500)
-            }
+            // BUG-042: Do NOT transition to idle here. TTS audio chunks follow
+            // agent_text_final and need the WebSocket to stay alive. The server
+            // sends state:idle AFTER all TTS audio has been delivered.
+            // The old setTimeout(() => setState('idle'), 500) was killing the
+            // connection before audio arrived.
+            setState('speaking')
             break
 
           case 'tool_call': {

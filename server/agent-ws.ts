@@ -354,7 +354,9 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
       },
 
       onSpeakingComplete: () => {
-        // TTS playback finished — transition back to idle so client can start listening
+        // BUG-042: TTS audio delivery complete — NOW it's safe to go idle.
+        // This fires AFTER all TTS chunks have been sent to the client via onTTSChunk.
+        console.info('[AgentWS] TTS complete — sending state:idle', { sessionId })
         setState('idle')
       },
 
@@ -410,10 +412,19 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
               session.isAudioSessionActive = false
               setState('processing')
               obs.logAudioEvent(sessionId, 'mic_stop')
-              await session.voiceSession.endAudioSession()
-              // Pipeline complete — onSpeakingComplete already set idle,
-              // but ensure idle in case pipeline had no TTS output
-              if (session.state !== 'idle') {
+              // BUG-042: endAudioSession runs the full STT→LLM→TTS pipeline.
+              // onSpeakingComplete callback (below) sends state:idle AFTER all
+              // TTS audio chunks are delivered. We must NOT send idle here
+              // prematurely — the old code sent idle before TTS finished,
+              // causing the client to close the WebSocket before audio arrived.
+              try {
+                await session.voiceSession.endAudioSession()
+              } catch (err) {
+                console.error('[AgentWS] Pipeline error in endAudioSession:', err)
+              }
+              // Only set idle if the pipeline didn't already (e.g., no speech detected)
+              if (session.state === 'processing') {
+                console.info('[AgentWS] No speech/TTS output — setting idle')
                 setState('idle')
               }
             }
