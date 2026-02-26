@@ -2,7 +2,8 @@
  * ModelBadge — Shows which LLM generated the response.
  *
  * STORY-026: Reads model_used from SSE metadata event.
- * AEGIS → branded blue badge. BYOLLM → neutral badge with clean model name.
+ * AEGIS routing (default) → "ConnexUS AEGIS" — never expose underlying model.
+ * BYOLLM (user's own key via OpenRouter) → show the model they selected.
  */
 
 interface ModelBadgeProps {
@@ -11,7 +12,7 @@ interface ModelBadgeProps {
   latencyMs?: number
 }
 
-/** Strip provider prefix and format model name for display. */
+/** Strip provider prefix and format model name for display (BYOLLM only). */
 function formatModelLabel(raw: string): string {
   // Strip provider prefix: "deepseek/deepseek-chat-v3.1" → "deepseek-chat-v3.1"
   const modelName = raw.includes('/') ? raw.split('/').pop()! : raw
@@ -33,6 +34,7 @@ function formatModelLabel(raw: string): string {
     'o3': 'o3',
     'o3-mini': 'o3-mini',
     'gemini-2.0-flash': 'Gemini 2.0 Flash',
+    'gemini-2.5-flash': 'Gemini 2.5 Flash',
     'gemini-2.5-pro': 'Gemini 2.5 Pro',
     'gemini-1.5-pro': 'Gemini 1.5 Pro',
     'llama-3.1-70b': 'Llama 3.1 70B',
@@ -50,12 +52,29 @@ function formatModelLabel(raw: string): string {
     .replace(/\b[a-z]/g, (c) => c.toUpperCase())
 }
 
+/**
+ * Determine if this response came through AEGIS (default routing).
+ * AEGIS masks the underlying model — user sees "ConnexUS AEGIS", never
+ * gemini-2.5-flash, claude-3.5-sonnet, or whatever we route through.
+ * BYOLLM (provider === "openrouter" or other non-aegis) shows the real model.
+ */
+function isAegisRouting(modelUsed: string, provider?: string): boolean {
+  // Explicit aegis provider from backend metadata
+  if (provider === 'aegis') return true
+  // model_used literally "aegis"
+  if (modelUsed === 'aegis') return true
+  // No provider at all means no BYOLLM configured → AEGIS default
+  if (!provider) return true
+  return false
+}
+
 export function ModelBadge({ modelUsed, provider, latencyMs }: ModelBadgeProps) {
   if (!modelUsed) return null
 
-  const isAegis = modelUsed === 'aegis' || provider === 'aegis' || (!provider && modelUsed.startsWith('aegis'))
+  const isAegis = isAegisRouting(modelUsed, provider)
 
-  const label = isAegis ? 'AEGIS' : formatModelLabel(modelUsed)
+  // AEGIS → branded "ConnexUS AEGIS". BYOLLM → real model name.
+  const label = isAegis ? 'ConnexUS AEGIS' : formatModelLabel(modelUsed)
   const emoji = isAegis ? '\u26A1' : '\uD83E\uDD16'
 
   // AEGIS → brand blue. BYOLLM → neutral (text-secondary with subtle bg)
