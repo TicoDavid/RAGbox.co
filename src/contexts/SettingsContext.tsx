@@ -25,6 +25,15 @@ export const LANGUAGES: Record<LanguageId, LanguageConfig> = {
 // Density types
 export type DensityId = 'compact' | 'comfortable'
 
+// Font scale types (accessibility)
+export type FontScale = 'normal' | 'large' | 'xlarge'
+
+export const FONT_SCALE_VALUES: Record<FontScale, number> = {
+  normal: 1,
+  large: 1.15,
+  xlarge: 1.3,
+}
+
 // Voice configuration
 export interface VoiceSettings {
   enabled: boolean
@@ -117,6 +126,7 @@ interface SettingsState {
   theme: ThemeId
   language: LanguageId
   density: DensityId
+  fontScale: FontScale
   connections: SecureConnection[]
   notifications: NotificationSettings
   voice: VoiceSettings
@@ -130,6 +140,7 @@ interface SettingsContextValue extends SettingsState {
   setTheme: (theme: ThemeId) => void
   setLanguage: (language: LanguageId) => void
   setDensity: (density: DensityId) => void
+  setFontScale: (scale: FontScale) => void
   addConnection: (connection: Omit<SecureConnection, 'id' | 'verified' | 'createdAt'>) => Promise<SecureConnection>
   updateConnection: (id: string, updates: Partial<SecureConnection>) => void
   deleteConnection: (id: string) => void
@@ -160,6 +171,7 @@ const defaultSettings: SettingsState = {
   theme: 'cobalt',
   language: 'en',
   density: 'comfortable',
+  fontScale: 'normal',
   connections: [],
   notifications: { email: true, push: false, audit: true },
   voice: {
@@ -290,6 +302,16 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }
   }, [settings.theme, isHydrated])
 
+  // Apply font scale to document root
+  useEffect(() => {
+    if (isHydrated) {
+      document.documentElement.style.setProperty(
+        '--font-scale',
+        String(FONT_SCALE_VALUES[settings.fontScale] ?? 1),
+      )
+    }
+  }, [settings.fontScale, isHydrated])
+
   const setTheme = useCallback((theme: ThemeId) => {
     setSettings((prev) => ({ ...prev, theme }))
   }, [])
@@ -300,6 +322,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   const setDensity = useCallback((density: DensityId) => {
     setSettings((prev) => ({ ...prev, density }))
+  }, [])
+
+  const setFontScale = useCallback((fontScale: FontScale) => {
+    setSettings((prev) => ({ ...prev, fontScale }))
   }, [])
 
   const addConnection = useCallback(async (
@@ -422,6 +448,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     setTheme,
     setLanguage,
     setDensity,
+    setFontScale,
     addConnection,
     updateConnection,
     deleteConnection,

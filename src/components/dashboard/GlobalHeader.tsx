@@ -43,7 +43,7 @@ import { toast } from 'sonner'
 import { PrivilegeKeyIcon, IdentityIcon, LanternIcon } from './icons/SovereignIcons'
 import { useMercuryStore } from '@/stores/mercuryStore'
 import { PERSONAS } from './mercury/personaData'
-import { useSettings, type CachedModel, LANGUAGES, type LanguageId, type DensityId } from '@/contexts/SettingsContext'
+import { useSettings, type CachedModel, LANGUAGES, type LanguageId, type DensityId, type FontScale, FONT_SCALE_VALUES } from '@/contexts/SettingsContext'
 import { getModelDisplayName, OPENROUTER_ENDPOINT } from '@/services/OpenRouterService'
 import { AIModelSettings } from './settings/AIModelSettings'
 import IntegrationsSettings from '@/app/dashboard/settings/integrations/page'
@@ -2000,7 +2000,7 @@ function ThemeThumbnail({ bg, accent }: { bg: string; accent: string }) {
 }
 
 function AppearanceSettings() {
-  const { theme, setTheme, density, setDensity } = useSettings()
+  const { theme, setTheme, density, setDensity, fontScale, setFontScale } = useSettings()
 
   const themes: {
     id: 'cobalt' | 'noir' | 'forest' | 'obsidian'
@@ -2100,6 +2100,49 @@ function AppearanceSettings() {
                 {option.label}
               </p>
               <p className="text-xs text-[var(--text-tertiary)]">{option.description}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Divider ── */}
+      <div className="border-t border-[var(--border-subtle)]" />
+
+      {/* ── Font Size Section (Accessibility) ── */}
+      <div>
+        <div className="flex items-center gap-2 mb-1">
+          <Glasses className="w-4 h-4 text-[var(--text-secondary)]" />
+          <h3 className="text-sm font-semibold text-[var(--text-primary)]">Font Size</h3>
+        </div>
+        <p className="text-xs text-[var(--text-tertiary)] mb-4">
+          Scale all text for improved readability.
+        </p>
+
+        <div className="grid grid-cols-3 gap-3">
+          {([
+            { id: 'normal' as FontScale, label: 'Normal', size: '14px', sample: 'Aa' },
+            { id: 'large' as FontScale, label: 'Large', size: '16px', sample: 'Aa' },
+            { id: 'xlarge' as FontScale, label: 'Extra Large', size: '18px', sample: 'Aa' },
+          ]).map((option) => (
+            <button
+              key={option.id}
+              onClick={() => setFontScale(option.id)}
+              className={`p-3 rounded-xl border-2 transition-all text-center ${
+                fontScale === option.id
+                  ? 'border-[var(--brand-blue)] bg-[var(--brand-blue)]/10 shadow-[0_0_15px_-5px_var(--brand-blue)]'
+                  : 'border-[var(--border-default)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)]/30'
+              }`}
+            >
+              <div
+                className={`font-semibold mb-1 ${fontScale === option.id ? 'text-[var(--brand-blue)]' : 'text-[var(--text-secondary)]'}`}
+                style={{ fontSize: option.size }}
+              >
+                {option.sample}
+              </div>
+              <p className={`text-sm font-semibold mb-0.5 ${fontScale === option.id ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
+                {option.label}
+              </p>
+              <p className="text-[10px] text-[var(--text-tertiary)]">{option.size} base</p>
             </button>
           ))}
         </div>
