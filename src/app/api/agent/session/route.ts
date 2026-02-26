@@ -27,9 +27,13 @@ export async function POST() {
       )
     }
 
-    // Check if voice service is configured
-    const apiKey = process.env.INWORLD_API_KEY
-    if (!apiKey) {
+    // BUG-041C: Check for VOICE_JWT_SECRET, NOT INWORLD_API_KEY.
+    // This route runs on ragbox-app which only needs the JWT signing secret.
+    // INWORLD_API_KEY lives on mercury-voice (separate Cloud Run service).
+    // The old INWORLD_API_KEY guard was causing the route to return
+    // "Voice features coming soon" even though voice IS configured.
+    const voiceConfigured = process.env.VOICE_JWT_SECRET || process.env.INWORLD_API_KEY
+    if (!voiceConfigured) {
       return NextResponse.json({
         available: false,
         message: 'Voice features coming soon. Text chat is fully available.',

@@ -547,31 +547,52 @@ export function useSovereignAgentVoice(
 
     setState('connecting')
 
-    // Bootstrap an authenticated session via the NextAuth-protected API.
-    // BUG-041: The session API now returns a JWT (voiceToken) signed with
-    // VOICE_JWT_SECRET. This token is embedded in wsUrl and works across
-    // Cloud Run services (mercury-voice can validate it independently).
+    // BUG-041C: ALWAYS call /api/agent/session to get a JWT-embedded WebSocket URL.
+    // This is MANDATORY — mercury-voice is a separate Cloud Run service that
+    // requires a JWT token for auth. Without it, every connection is rejected.
+    // credentials: 'include' sends NextAuth cookies so the session endpoint
+    // can verify the user.
     let connectUrl: string
     try {
-      const res = await fetch('/api/agent/session', { method: 'POST' })
+      const res = await fetch('/api/agent/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      })
+
+      if (!res.ok) {
+        console.error('[Voice] Session bootstrap failed:', res.status)
+        setState('error')
+        onError?.(new Error(`Voice session failed (${res.status})`))
+        return
+      }
+
       const data = await res.json()
-      if (res.ok && data.success && data.wsUrl) {
+
+      if (data.wsUrl) {
+        // Primary path: session API returns wsUrl with ?token=<JWT>
         connectUrl = data.wsUrl
-      } else if (res.ok && data.success && data.voiceToken) {
-        // BUG-041 fallback: voiceToken present but wsUrl missing —
-        // construct the WebSocket URL with the JWT token explicitly.
+      } else if (data.voiceToken) {
+        // Fallback: voiceToken present but wsUrl missing — build URL explicitly
         const voiceHost = wsUrl.replace(/^wss?:\/\//, '').replace(/\/.*$/, '')
         const protocol = wsUrl.startsWith('wss') ? 'wss' : 'ws'
         connectUrl = `${protocol}://${voiceHost}/agent/ws?token=${encodeURIComponent(data.voiceToken)}`
+      } else if (data.code === 'VOICE_NOT_CONFIGURED') {
+        console.warn('[Voice] Voice not configured on server')
+        setState('error')
+        onError?.(new Error(data.message || 'Voice not available'))
+        return
       } else {
-        // Session bootstrap unavailable (voice not configured, etc.) —
-        // fall back to cookie-only auth (browser sends NextAuth JWT cookie
-        // automatically with the WS upgrade request).
-        connectUrl = wsUrl
+        console.error('[Voice] Session response missing wsUrl and voiceToken:', data)
+        setState('error')
+        onError?.(new Error('Voice session returned no connection URL'))
+        return
       }
-    } catch {
-      // Network error — fall back to cookie-only auth
-      connectUrl = wsUrl
+    } catch (err) {
+      console.error('[Voice] Session bootstrap network error:', err)
+      setState('error')
+      onError?.(new Error('Could not reach voice session endpoint'))
+      return
     }
 
     const ws = new WebSocket(connectUrl)
