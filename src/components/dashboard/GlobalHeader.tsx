@@ -455,7 +455,18 @@ export function GlobalHeader() {
                 {/* Sign Out */}
                 <div className="py-2">
                   <button
-                    onClick={() => signOut()}
+                    onClick={() => {
+                      // Multi-tenant fix: clear ALL client-side state before signing out
+                      // so the next login starts with a clean slate.
+                      try {
+                        // Clear persisted Zustand stores (localStorage)
+                        localStorage.removeItem('ragbox-vault')
+                        localStorage.removeItem('ragbox-privilege')
+                        localStorage.removeItem('ragbox-chat-storage')
+                        localStorage.removeItem('ragbox_user_verified')
+                      } catch { /* SSR or private browsing */ }
+                      signOut({ callbackUrl: '/' })
+                    }}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[var(--danger)] hover:bg-[var(--danger)]/10 transition-colors"
                   >
                     <LogOut className="w-4 h-4" />
