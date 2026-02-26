@@ -598,10 +598,10 @@ describe('show_help', () => {
     const result = await executeTool('show_help', {}, AUTH_HEADERS)
 
     expect(result.success).toBe(true)
-    expect(result.display).toContain('Mercury Commands')
-    expect(result.display).toContain('Documents')
-    expect(result.display).toContain('Actions')
-    expect(result.display).toContain('Analysis')
+    expect(result.display).toContain('what I can do for you')
+    expect(result.display).toContain('your documents')
+    expect(result.display).toContain('Take action')
+    expect(result.display).toContain('Go deeper')
   })
 })
 

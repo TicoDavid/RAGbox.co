@@ -5,10 +5,10 @@ import { MessageSquare, Sparkles } from 'lucide-react'
 import { useMercuryStore } from '@/stores/mercuryStore'
 
 const SUGGESTED_PROMPTS = [
-  'Summarize my uploaded documents',
-  'What are the key risks in these files?',
-  'Create an executive brief',
-  'Find all mentions of compliance',
+  'What should I know about these documents?',
+  'Are there any risks or red flags I should worry about?',
+  'Give me an executive brief I can forward to my team',
+  'Walk me through the key dates and deadlines',
 ]
 
 export function EmptyState() {
@@ -25,7 +25,7 @@ export function EmptyState() {
         Start a conversation
       </h3>
       <p className="text-sm text-[var(--text-tertiary)] mb-8 text-center max-w-sm">
-        Ask Mercury anything about your documents. Try one of these:
+        Drop a question about your documents — or try one of these:
       </p>
 
       {/* Suggested prompts */}
