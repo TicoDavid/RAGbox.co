@@ -25,6 +25,7 @@ import { buildBlockKitResponse } from '@/lib/roam/roamBlockKit'
 import { writeDeadLetter } from '@/lib/roam/deadLetterWriter'
 import { logger } from '@/lib/logger'
 import { decryptKey } from '@/lib/utils/kms'
+import { randomUUID } from 'crypto'
 import type { Citation } from '@/types/ragbox'
 
 const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
@@ -259,11 +260,15 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
   const groupId = d.chat?.id || d.group_id || ''
   const senderId = d.sender?.id || d.sender_id || ''
   const senderName = d.sender?.name || d.sender_name
+  const senderEmail = d.sender?.email || ''
   const threadId = d.thread_id
 
   // S02: Extract chat Tagged UUID (C-xxx or G-xxx) for v0 chat.post reply-in-context
   const chatId = d.chat?.id || ''
   const threadTimestamp = d.threadTimestamp || null
+
+  // GAP 1: Generate stable queryId upfront — links inbound→outbound→Block Kit feedback
+  const queryId = randomUUID()
 
   if (!text.trim()) {
     logger.info('[ROAM Processor] Empty message — skipping')
@@ -328,14 +333,20 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
   // Strip @mention prefix from query (e.g. "@M.E.R.C.U.R.Y what is TUMM?" → "what is TUMM?")
   const queryText = text.replace(/^@\S+\s*/i, '').trim() || text
 
-  // 1. Write inbound message to Mercury Unified Thread
+  // 1. GAP 1: Write inbound message with full conversation context
   await writeMercuryThreadMessage(userId, 'user', text, undefined, {
+    direction: 'inbound',
+    channel: 'roam',
+    sourceGroupId: groupId,
+    sourceGroupName: groupId, // Tagged UUID — resolved by frontend via group list
     roamMessageId: messageId,
-    roamGroupId: groupId,
-    roamSenderId: senderId,
-    roamSenderName: senderName,
-    roamThreadId: threadId,
+    roamThreadId: threadId || threadTimestamp,
+    senderId,
+    senderName,
+    senderEmail: senderEmail || undefined,
+    queryId, // Links this inbound message to the outbound response + feedback
     tenantId: tenant.tenantId,
+    timestamp: new Date().toISOString(),
   })
 
   // 2. Query Go backend RAG pipeline
@@ -400,7 +411,6 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
   }
 
   // 3. S02+S05: Reply via v0 chat.post with Block Kit, fallback to v1 sendMessage
-  const queryId = `q-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   const isSilence = !!(confidence !== undefined && confidence < SILENCE_THRESHOLD)
 
   try {
@@ -436,12 +446,19 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
     // Still write to thread — reply failed but we have the content
   }
 
-  // 4. Write assistant reply to Mercury Unified Thread
+  // 4. GAP 1: Write outbound response with queryId + citation doc IDs
   await writeMercuryThreadMessage(userId, 'assistant', replyText, confidence, {
-    roamGroupId: groupId,
-    roamThreadId: threadId,
+    direction: 'outbound',
+    channel: 'roam',
+    sourceGroupId: groupId,
+    roamMessageId: String(Date.now()), // response timestamp
+    roamThreadId: threadId || threadTimestamp,
+    senderId: 'mercury',
+    queryId, // Same UUID — links feedback clicks back to this specific response
+    citations: citations.map(c => c.documentId).filter(Boolean),
     citationCount: citations.length,
     tenantId: tenant.tenantId,
+    timestamp: new Date().toISOString(),
   })
 
   // 5. Write audit record
