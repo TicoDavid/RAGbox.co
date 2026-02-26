@@ -38,6 +38,7 @@ interface VaultState {
   // Data
   documents: Record<string, VaultItem>
   folders: Record<string, FolderNode>
+  totalDocuments: number
 
   // UI State
   isCollapsed: boolean
@@ -94,6 +95,7 @@ export const useVaultStore = create<VaultState>()(
       (set, get) => ({
         documents: {},
         folders: {},
+        totalDocuments: 0,
         isCollapsed: true,
         isExplorerMode: false,
         currentPath: [],
@@ -147,9 +149,9 @@ export const useVaultStore = create<VaultState>()(
           try {
             const search = get().searchQuery
             const params = new URLSearchParams()
+            params.set('limit', '1000') // STORY-223: fetch all docs, not default page size
             if (search) params.set('search', search)
-            const queryString = params.toString()
-            const url = queryString ? `/api/documents?${queryString}` : '/api/documents'
+            const url = `/api/documents?${params.toString()}`
             const res = await apiFetch(url)
             if (!res.ok) throw new Error('Failed to fetch documents')
             const json = await res.json()
@@ -175,7 +177,8 @@ export const useVaultStore = create<VaultState>()(
                 checksum: doc.checksum,
               }
             }
-            set({ documents, isLoading: false })
+            const totalDocuments = json.data?.total ?? json.total ?? docList.length
+            set({ documents, totalDocuments, isLoading: false })
           } catch (error) {
             set({ error: (error as Error).message, isLoading: false })
           }
@@ -252,6 +255,7 @@ export const useVaultStore = create<VaultState>()(
 
           // Document record was created by the extract endpoint — refresh list
           await get().fetchDocuments()
+          await get().fetchFolders()
         },
 
         uploadDocuments: async (files, folderId) => {
@@ -537,7 +541,7 @@ export const useVaultStore = create<VaultState>()(
             })
 
             if (!res.ok) throw new Error('Folder creation failed')
-            get().fetchFolders()
+            await get().fetchFolders()
             toast.success('Folder created')
           } catch (error) {
             toast.error('Failed to create folder')
@@ -602,7 +606,8 @@ export const useVaultStore = create<VaultState>()(
 
             const folderName = folderId ? folders[folderId]?.name : 'Root'
             toast.success(`Moved "${doc.name}" to ${folderName}`)
-            get().fetchFolders()
+            await get().fetchFolders()
+            await get().fetchDocuments()
           } catch (error) {
             // Revert optimistic update
             set((state) => ({
