@@ -13,6 +13,7 @@
 import { logger } from '@/lib/logger'
 
 const ROAM_API_URL = process.env.ROAM_API_URL || 'https://api.ro.am/v1'
+const ROAM_V0_API_URL = process.env.ROAM_V0_API_URL || 'https://api.ro.am/v0'
 const ROAM_API_KEY = process.env.ROAM_API_KEY || ''
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -166,6 +167,102 @@ export async function sendMessage(
     method: 'POST',
     body: JSON.stringify(body),
   }, apiKey)
+}
+
+/**
+ * Reply in-context via Chat API v0 (chat.post).
+ * Uses Tagged UUID `chat` field (C-xxx or G-xxx) — NOT `recipients` array.
+ * Falls back to sendMessage (v1) on failure.
+ *
+ * @param chat              Tagged UUID from incoming webhook (e.g. "C-295155ae-...")
+ * @param text              Mercury response text
+ * @param threadTimestamp   Thread timestamp for threaded reply (optional)
+ * @param blocks            Block Kit blocks (optional, mutually exclusive with text)
+ * @param color             Sidebar color hint (optional)
+ * @param apiKey            Per-tenant key override
+ * @returns true if chat.post succeeded, false if fell back to v1 sendMessage
+ *
+ * EPIC-018 S02
+ */
+export async function chatPost(
+  chat: string,
+  text: string,
+  threadTimestamp?: number | null,
+  blocks?: unknown[],
+  color?: string,
+  apiKey?: string
+): Promise<boolean> {
+  const key = apiKey || ROAM_API_KEY
+  if (!key) {
+    throw new RoamApiError('ROAM API key not configured', 500, 'CONFIG_ERROR')
+  }
+
+  // Build v0 chat.post payload
+  const payload: Record<string, unknown> = { chat }
+  if (blocks && blocks.length > 0) {
+    // blocks and text are mutually exclusive in ROAM
+    payload.blocks = blocks
+    if (color) payload.color = color
+  } else {
+    payload.text = text
+  }
+  if (threadTimestamp) {
+    payload.threadTimestamp = threadTimestamp
+  }
+
+  try {
+    const res = await fetch(`${ROAM_V0_API_URL}/chat.post`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${key}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+
+    if (res.ok) {
+      return true
+    }
+
+    // Log failure but don't throw — we'll fall back to v1
+    const body = await res.text().catch(() => '')
+    logger.warn(`[ROAM] chat.post failed (${res.status}): ${body.slice(0, 200)} — falling back to v1`)
+    return false
+  } catch (error) {
+    logger.warn('[ROAM] chat.post error — falling back to v1:', error)
+    return false
+  }
+}
+
+/**
+ * Send a typing indicator via Chat API v0.
+ * Fire-and-forget — errors are logged but not thrown.
+ *
+ * @param chat    Tagged UUID (C-xxx or G-xxx)
+ * @param apiKey  Per-tenant key override
+ *
+ * EPIC-018 S05
+ */
+export async function chatTypingV0(
+  chat: string,
+  apiKey?: string
+): Promise<void> {
+  const key = apiKey || ROAM_API_KEY
+  if (!key) return
+
+  try {
+    await fetch(`${ROAM_V0_API_URL}/chat.typing`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${key}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ chat }),
+    })
+  } catch (error) {
+    logger.warn('[ROAM] v0 typing indicator failed (non-fatal):', error)
+  }
 }
 
 /**

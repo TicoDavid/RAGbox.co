@@ -19,8 +19,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
 import prisma from '@/lib/prisma'
 import { parseSSEText } from '@/lib/mercury/sseParser'
-import { sendMessage, sendTypingIndicator, getTranscriptInfo, RoamApiError } from '@/lib/roam/roamClient'
+import { sendMessage, sendTypingIndicator, chatPost, chatTypingV0, getTranscriptInfo, RoamApiError } from '@/lib/roam/roamClient'
 import { formatForRoam, formatSilenceForRoam, formatErrorForRoam, formatMeetingSummary } from '@/lib/roam/roamFormat'
+import { buildBlockKitResponse } from '@/lib/roam/roamBlockKit'
 import { writeDeadLetter } from '@/lib/roam/deadLetterWriter'
 import { logger } from '@/lib/logger'
 import { decryptKey } from '@/lib/utils/kms'
@@ -53,7 +54,8 @@ interface RoamChatEvent {
     text?: string
     sender?: { id: string; name?: string; email?: string }
     chat?: { id: string }
-    timestamp?: string
+    timestamp?: string | number
+    threadTimestamp?: number
     // Legacy shape (message.created)
     id?: string
     group_id?: string
@@ -253,11 +255,15 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
   //   chat.message.dm/group: data.sender.id, data.chat.id, data.text
   //   message.created:       data.sender_id, data.group_id, data.text
   const text = d.text || ''
-  const messageId = d.id || d.timestamp || ''
+  const messageId = d.id || String(d.timestamp || '')
   const groupId = d.chat?.id || d.group_id || ''
   const senderId = d.sender?.id || d.sender_id || ''
   const senderName = d.sender?.name || d.sender_name
   const threadId = d.thread_id
+
+  // S02: Extract chat Tagged UUID (C-xxx or G-xxx) for v0 chat.post reply-in-context
+  const chatId = d.chat?.id || ''
+  const threadTimestamp = d.threadTimestamp || null
 
   if (!text.trim()) {
     logger.info('[ROAM Processor] Empty message — skipping')
@@ -312,8 +318,12 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
     }
   }
 
-  // Send typing indicator (fire-and-forget)
-  sendTypingIndicator(groupId, tenant.apiKey || undefined)
+  // S02/S05: Send typing indicator via v0 (chat Tagged UUID) with v1 fallback
+  if (chatId) {
+    chatTypingV0(chatId, tenant.apiKey || undefined)
+  } else {
+    sendTypingIndicator(groupId, tenant.apiKey || undefined)
+  }
 
   // Strip @mention prefix from query (e.g. "@M.E.R.C.U.R.Y what is TUMM?" → "what is TUMM?")
   const queryText = text.replace(/^@\S+\s*/i, '').trim() || text
@@ -389,13 +399,38 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
     replyText = formatErrorForRoam()
   }
 
-  // 3. Send reply via ROAM API (use tenant key if available)
+  // 3. S02+S05: Reply via v0 chat.post with Block Kit, fallback to v1 sendMessage
+  const queryId = `q-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  const isSilence = !!(confidence !== undefined && confidence < SILENCE_THRESHOLD)
+
   try {
-    await sendMessage(
-      { groupId, text: replyText, threadId: threadId || undefined },
-      tenant.apiKey || undefined
-    )
-    logger.info(`[ROAM Processor] Reply sent to group=${groupId} tenant=${tenant.tenantId} (confidence: ${confidence ?? 'N/A'})`)
+    let sent = false
+
+    // Try v0 chat.post first (reply-in-context + Block Kit)
+    if (chatId) {
+      // S05: Build Block Kit response for rich formatting
+      const blockKit = buildBlockKitResponse(replyText, citations, confidence, queryId, isSilence)
+      sent = await chatPost(
+        chatId,
+        replyText, // fallback text (if blocks fail)
+        threadTimestamp,
+        blockKit.blocks,
+        blockKit.color,
+        tenant.apiKey || undefined
+      )
+      if (sent) {
+        logger.info(`[ROAM Processor] Reply via chat.post (Block Kit) to chat=${chatId} tenant=${tenant.tenantId} (confidence: ${confidence ?? 'N/A'})`)
+      }
+    }
+
+    // Fall back to v1 sendMessage (plain text) if chat.post failed or no chatId
+    if (!sent) {
+      await sendMessage(
+        { groupId, text: replyText, threadId: threadId || undefined },
+        tenant.apiKey || undefined
+      )
+      logger.info(`[ROAM Processor] Reply via sendMessage to group=${groupId} tenant=${tenant.tenantId} (confidence: ${confidence ?? 'N/A'})`)
+    }
   } catch (error) {
     logger.error('[ROAM Processor] ROAM send failed:', error)
     // Still write to thread — reply failed but we have the content
