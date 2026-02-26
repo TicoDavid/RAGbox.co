@@ -456,6 +456,10 @@ export function useSovereignAgentVoice(
   const isVADActiveRef = useRef(false)
   const vadSpeakingRef = useRef(false)
   const ttsSampleRateRef = useRef(sampleRate) // Server may override via config message
+  // BUG-039 Part B: Track whether to re-enable VAD after auto-reconnect.
+  // enableVADRef breaks the circular dep between connect() and enableVAD().
+  const reconnectWithVADRef = useRef(false)
+  const enableVADRef = useRef<(() => Promise<void>) | null>(null)
 
   // Keep the ref in sync with state so closures always read the latest value
   isVADActiveRef.current = isVADActive
@@ -507,10 +511,17 @@ export function useSovereignAgentVoice(
     onUIAction?.(action)
   }, [router, onUIAction])
 
-  // Safe WebSocket send — only sends if connection is OPEN
+  // BUG-039 Part A: Safe WebSocket send — belt-and-suspenders null guard.
+  // The ScriptProcessorNode audio callback fires ~12×/sec. If the WebSocket
+  // closes between frames, we must never throw — that's 25k errors in the console.
   const wsSend = useCallback((data: string | ArrayBuffer) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(data)
+    try {
+      const ws = wsRef.current
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(data)
+      }
+    } catch {
+      // WebSocket may have transitioned to CLOSING between check and send — swallow
     }
   }, [])
 
@@ -742,28 +753,46 @@ export function useSovereignAgentVoice(
     }
 
     ws.onclose = (event) => {
-      wsRef.current = null
+      // BUG-039 Part B: Save VAD state BEFORE clearing — needed for reconnect.
+      const wasVADActive = isVADActiveRef.current
+
+      // Stop audio captures FIRST (before nulling ws ref) to minimize race
+      // window where onaudioprocess fires with a null WebSocket.
       captureRef.current?.stop()
       vadCaptureRef.current?.stop()
       playerRef.current?.stop()
+
+      // NOW null the WebSocket ref — audio callbacks are already stopped
+      wsRef.current = null
       setState('disconnected')
       setIsVADActive(false)
 
       // STORY-S02: Don't auto-reconnect on auth failure (4001)
       if (event.code === 4001) {
+        reconnectWithVADRef.current = false
         onError?.(new Error('Voice connection unauthorized — please sign in'))
         return
       }
 
-      // Only auto-reconnect if we previously had a successful connection
+      // Only auto-reconnect if we previously had a successful connection.
+      // BUG-039 Part B: If VAD was active, re-enable it (which also reconnects).
+      // Otherwise just reconnect the WebSocket.
       if (autoReconnect && event.code !== 1000 && event.code !== 1006) {
-        reconnectRef.current = setTimeout(connect, 3000)
+        if (wasVADActive && enableVADRef.current) {
+          reconnectRef.current = setTimeout(() => {
+            enableVADRef.current?.()
+          }, 3000)
+        } else {
+          reconnectRef.current = setTimeout(connect, 3000)
+        }
       }
     }
   }, [wsUrl, sampleRate, autoReconnect, handleUIAction, handleVADStateChange, onToolCall, onToolResult, onError])
 
   // Disconnect
   const disconnect = useCallback(() => {
+    // BUG-039 Part B: Clear reconnect flag — user explicitly disconnected
+    reconnectWithVADRef.current = false
     if (reconnectRef.current) {
       clearTimeout(reconnectRef.current)
       reconnectRef.current = null
@@ -772,6 +801,7 @@ export function useSovereignAgentVoice(
       clearInterval(audioLevelIntervalRef.current)
       audioLevelIntervalRef.current = null
     }
+    // Stop captures BEFORE closing WebSocket — prevents onaudioprocess race
     captureRef.current?.stop()
     vadCaptureRef.current?.stop()
     playerRef.current?.stop()
@@ -832,6 +862,9 @@ export function useSovereignAgentVoice(
       timestamp: Date.now(),
     }])
   }, [connect, sampleRate, vadThreshold, vadSilenceMs, handleVADStateChange, wsSend, onError])
+
+  // BUG-039 Part B: Keep enableVADRef in sync so auto-reconnect can call it
+  enableVADRef.current = enableVAD
 
   // Disable VAD mode
   const disableVAD = useCallback(() => {

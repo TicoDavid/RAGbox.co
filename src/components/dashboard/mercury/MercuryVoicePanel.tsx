@@ -129,18 +129,18 @@ export function MercuryVoicePanel({ agentName = 'Mercury' }: MercuryVoicePanelPr
     }
   }, [transcript])
 
-  // Toggle power
+  // Toggle power — BUG-039 Part B: Call enableVAD() directly instead of
+  // connect() + setTimeout(enableVAD, 500). enableVAD already calls connect()
+  // internally and waits for OPEN before starting audio capture.
   const handlePowerToggle = async () => {
     if (isPoweredOn) {
       disableVAD()
       disconnect()
     } else {
       try {
-        await connect()
-        // Auto-enable VAD after connection
-        setTimeout(() => enableVAD(), 500)
+        await enableVAD()
       } catch {
-        // connect() rejected — voice server unreachable.
+        // enableVAD → connect() rejected — voice server unreachable.
         // State is reset to 'error' inside the hook.
       }
     }
