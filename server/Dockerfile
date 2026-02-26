@@ -51,6 +51,9 @@ COPY server/index.ts server/agent-ws.ts server/inworld.ts \
 COPY server/tools/ ./server/tools/
 COPY server/whatsapp/ ./server/whatsapp/
 
+# Cross-import: agent-ws.ts imports session-store from Next.js app
+COPY src/app/api/agent/session/session-store.ts ./src/app/api/agent/session/
+
 # Compile TypeScript to JavaScript
 RUN npx tsc --project server/tsconfig.json
 

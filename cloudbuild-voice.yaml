@@ -1,0 +1,12 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-east4-docker.pkg.dev/ragbox-sovereign-prod/ragbox-repo/mercury-voice:latest'
+      - '-f'
+      - 'server/Dockerfile'
+      - '.'
+images:
+  - 'us-east4-docker.pkg.dev/ragbox-sovereign-prod/ragbox-repo/mercury-voice:latest'
+timeout: '1200s'
