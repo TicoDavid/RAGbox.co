@@ -2,7 +2,8 @@
 
 import { useState, useCallback } from 'react'
 import { apiFetch } from '@/lib/api'
-import { X, Hammer, Loader2, Download, CheckCircle2, AlertCircle } from 'lucide-react'
+import { X, Hammer, Download, CheckCircle2, AlertCircle } from 'lucide-react'
+import { MatrixRain } from './MatrixRain'
 import TemplateLibrary from './TemplateLibrary'
 import TemplatePreview from './TemplatePreview'
 import type { TemplateAnalysis } from '@/types/templateAnalysis'
@@ -148,10 +149,8 @@ export default function TemplateSelector({ sourceContext, onClose }: TemplateSel
           )}
 
           {step === 'generating' && (
-            <div className="flex flex-col items-center gap-3 py-12">
-              <Loader2 size={32} className="text-[var(--brand-blue)] animate-spin" />
-              <div className="text-sm text-[var(--text-primary)]">Generating document...</div>
-              <div className="text-[10px] text-[var(--text-tertiary)]">Generating from template with AI</div>
+            <div className="h-[240px]">
+              <MatrixRain />
             </div>
           )}
 
