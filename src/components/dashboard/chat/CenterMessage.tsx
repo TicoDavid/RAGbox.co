@@ -13,6 +13,7 @@ import { useChatStore } from '@/stores/chatStore'
 import { usePrivilegeStore } from '@/stores/privilegeStore'
 import type { ChatMessage, Citation } from '@/types/ragbox'
 import { ChannelBadge } from './ChannelBadge'
+import { formatModelLabel } from '@/components/dashboard/mercury/ModelBadge'
 
 type ResponseTab = 'answer' | 'sources' | 'evidence'
 
@@ -436,8 +437,8 @@ function SourcesPanel({
 
 function maskModel(modelUsed?: string): string {
   if (!modelUsed) return '--'
-  if (modelUsed.startsWith('aegis/') || modelUsed === 'aegis-core') return 'AEGIS'
-  return modelUsed
+  if (modelUsed.startsWith('aegis/') || modelUsed === 'aegis-core' || modelUsed === 'aegis') return 'ConnexUS AEGIS'
+  return formatModelLabel(modelUsed)
 }
 
 function maskProvider(provider?: string): string {

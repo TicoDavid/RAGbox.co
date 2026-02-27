@@ -13,7 +13,7 @@ interface ModelBadgeProps {
 }
 
 /** Strip provider prefix and format model name for display (BYOLLM only). */
-function formatModelLabel(raw: string): string {
+export function formatModelLabel(raw: string): string {
   // Strip provider prefix: "deepseek/deepseek-chat-v3.1" → "deepseek-chat-v3.1"
   const modelName = raw.includes('/') ? raw.split('/').pop()! : raw
 
