@@ -538,9 +538,11 @@ Current user context:
         .setEndNode(ttsNode)
         .build()
 
-      // BUG-042 FIX: Use TTSRequest wrapper per SDK docs
-      const ttsInput = GraphTypes.TTSRequest.withText(text)
-      const { outputStream } = await ttsGraph.start(ttsInput)
+      // Plain string input — RemoteTTSNode already has voice config
+      // (speakerId, modelId, languageCode) in its executionConfig.
+      // TTSRequest.withText() requires a voice param that toTaggedValue()
+      // accesses without null check — passing string avoids this SDK bug.
+      const { outputStream } = await ttsGraph.start(text)
 
       console.info('[VoicePipeline-v3] TTS graph started, awaiting audio stream')
 
