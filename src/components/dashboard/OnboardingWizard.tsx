@@ -11,18 +11,21 @@ import {
   X,
   CheckCircle2,
   Sparkles,
+  Shield,
 } from 'lucide-react'
 import { useVaultStore } from '@/stores/vaultStore'
 import { useChatStore } from '@/stores/chatStore'
 import { isMercuryEnabled } from '@/lib/features'
 import { apiFetch } from '@/lib/api'
+import { SecurityDropdown } from '@/components/dashboard/vault/security/SecurityDropdown'
+import type { SecurityTier } from '@/components/dashboard/vault/security/SecurityTiers'
 
 interface OnboardingWizardProps {
   onComplete: () => void
 }
 
-const TOTAL_STEPS_WITH_MERCURY = 4
-const TOTAL_STEPS_WITHOUT_MERCURY = 3
+const TOTAL_STEPS_WITH_MERCURY = 5
+const TOTAL_STEPS_WITHOUT_MERCURY = 4
 
 // ============================================================================
 // STEP 1: Welcome
@@ -71,7 +74,47 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
 }
 
 // ============================================================================
-// STEP 2: Upload Your First Document
+// STEP 2: Security Configuration (STORY-232 — moved earlier)
+// ============================================================================
+
+function SecurityConfigStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }) {
+  const [tier, setTier] = useState<SecurityTier>('internal')
+
+  return (
+    <div className="flex flex-col items-center justify-center h-full px-8">
+      <Shield className="w-10 h-10 text-[var(--brand-blue)] mb-4" />
+      <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">
+        Set Your Vault Security
+      </h2>
+      <p className="text-sm text-[var(--text-secondary)] mb-8 max-w-md text-center">
+        Choose a default security tier for your documents. You can change this per-file later.
+      </p>
+
+      <div className="w-full max-w-md">
+        <SecurityDropdown value={tier} onChange={setTier} />
+      </div>
+
+      <div className="flex items-center gap-4 mt-8">
+        <button
+          onClick={onSkip}
+          className="px-6 py-2.5 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+        >
+          Use default
+        </button>
+        <button
+          onClick={onNext}
+          className="flex items-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] text-white shadow-lg shadow-[var(--brand-blue)]/25 transition-colors"
+        >
+          Continue
+          <ArrowRight className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ============================================================================
+// STEP 3: Upload Your First Document
 // ============================================================================
 
 function UploadStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }) {
@@ -414,10 +457,11 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               className="h-full"
             >
               {step === 0 && <WelcomeStep onNext={next} />}
-              {step === 1 && <UploadStep onNext={next} onSkip={skip} />}
-              {step === 2 && <AskStep onNext={next} onSkip={skip} />}
-              {step === 3 && mercuryEnabled && <MercuryStep onFinish={handleComplete} />}
-              {step === 3 && !mercuryEnabled && (() => { handleComplete(); return null })()}
+              {step === 1 && <SecurityConfigStep onNext={next} onSkip={skip} />}
+              {step === 2 && <UploadStep onNext={next} onSkip={skip} />}
+              {step === 3 && <AskStep onNext={next} onSkip={skip} />}
+              {step === 4 && mercuryEnabled && <MercuryStep onFinish={handleComplete} />}
+              {step === 4 && !mercuryEnabled && (() => { handleComplete(); return null })()}
             </motion.div>
           </AnimatePresence>
         </div>
