@@ -147,6 +147,7 @@ export function CommandDeck({
           {onClose && (
             <button
               onClick={onClose}
+              title="Close vault"
               className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] rounded-lg transition-all"
             >
               <X className="w-4 h-4" />
@@ -207,12 +208,14 @@ export function CommandDeck({
         <div className="flex items-center bg-[var(--bg-elevated)]/50 rounded-lg p-0.5">
           <button
             onClick={() => onViewModeChange('list')}
+            title="List view"
             className={`p-1.5 rounded transition-all ${viewMode === 'list' ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'}`}
           >
             <LayoutList className="w-4 h-4" />
           </button>
           <button
             onClick={() => onViewModeChange('grid')}
+            title="Grid view"
             className={`p-1.5 rounded transition-all ${viewMode === 'grid' ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'}`}
           >
             <LayoutGrid className="w-4 h-4" />
@@ -228,6 +231,7 @@ function ToolbarButton({ icon, label, onClick, disabled }: { icon: React.ReactNo
     <button
       onClick={onClick}
       disabled={disabled}
+      title={label}
       className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-all ${
         disabled
           ? 'text-[var(--text-muted)] cursor-not-allowed'
