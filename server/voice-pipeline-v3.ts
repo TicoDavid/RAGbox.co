@@ -74,6 +74,7 @@ const DEFAULT_GREETING = "Hello, I'm Mercury. How can I help you today?"
 
 // BUG-042 Bug B: Grounding refusal patterns — RAG returns these when it can't
 // find relevant documents. Mercury should respond conversationally instead.
+// The user should NEVER hear a grounding refusal through the voice pipeline.
 const GROUNDING_REFUSAL_PATTERNS = [
   'cannot provide a sufficiently grounded',
   'don\'t have enough information in the available documents',
@@ -82,39 +83,104 @@ const GROUNDING_REFUSAL_PATTERNS = [
   'no relevant documents',
   'unable to find relevant information',
   'i could not find',
+  'no documents were found',
+  'i don\'t have access to any documents',
+  'based on the available documents, i cannot',
+  'insufficient context to provide',
+  'silence_protocol',
 ]
 
 /**
- * BUG-042 Bug B: Detect and replace RAG grounding refusals with
- * a natural conversational Mercury response.
+ * Deterministic pick from response options based on query content.
+ * Provides variety across different queries without randomness
+ * (which would make testing non-deterministic).
  */
-function interceptGroundingRefusal(response: string, userQuery: string): string {
-  const lower = response.toLowerCase()
-  const isRefusal = GROUNDING_REFUSAL_PATTERNS.some(p => lower.includes(p))
+function pickResponse(options: string[], seed: string): string {
+  let hash = 0
+  for (let i = 0; i < seed.length; i++) {
+    hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0
+  }
+  return options[Math.abs(hash) % options.length]
+}
+
+/**
+ * BUG-042 Bug B: Detect and replace RAG grounding refusals with
+ * a natural conversational response using the agent's persona.
+ *
+ * When AEGIS RAG triggers Silence Protocol (zero matching documents)
+ * or returns a low-confidence refusal, this interceptor catches it
+ * and returns a natural persona-driven response instead.
+ */
+export function interceptGroundingRefusal(
+  response: string,
+  userQuery: string,
+  agentName: string,
+): string {
+  const lower = response.toLowerCase().trim()
+
+  // Empty or very short responses are treated as refusals
+  const isRefusal = lower.length < 5
+    || GROUNDING_REFUSAL_PATTERNS.some(p => lower.includes(p))
+
   if (!isRefusal) return response
 
-  console.info('[VoicePipeline-v3] RAG grounding refusal detected — using conversational fallback')
+  console.info('[VoicePipeline-v3] RAG grounding refusal intercepted', {
+    refusalPreview: response.substring(0, 80),
+    queryPreview: userQuery.substring(0, 80),
+    agentName,
+  })
 
-  // Classify the user query for a natural response
   const q = userQuery.toLowerCase().trim()
 
-  // Greeting patterns
-  if (/^(hi|hello|hey|good\s*(morning|afternoon|evening)|howdy|what'?s up)/i.test(q)) {
-    return "Hello! I'm Mercury, your AI assistant. I can help you search and analyze your documents, answer questions about your uploaded files, or just chat. What would you like to do?"
+  // Greeting patterns (word-boundary, not start-anchored)
+  if (/\b(hi|hello|hey|howdy|greetings|good\s*(morning|afternoon|evening)|what'?s\s*up)\b/i.test(q)) {
+    return pickResponse([
+      `Hello! I'm ${agentName}, your AI assistant. I can help you search and analyze your documents, answer questions about your files, or just chat. What would you like to do?`,
+      `Hey there! ${agentName} here. I'm ready to help you with your documents or answer any questions. What's on your mind?`,
+      `Hi! I'm ${agentName}. I can search through your documents, answer questions, or just have a conversation. How can I help?`,
+    ], q)
   }
 
-  // Self-referential questions
-  if (/^(who are you|what are you|tell me about yourself|what can you)/i.test(q)) {
-    return "I'm Mercury, the AI assistant for RAGbox. I can search through your documents, answer questions based on your uploaded files, help you find specific information, and have a conversation. Try asking me about something in your vault!"
+  // Self-referential / identity questions
+  if (/\b(who are you|what are you|tell me about yourself|what can you do|what do you do|your name|introduce yourself)\b/i.test(q)) {
+    return `I'm ${agentName}, the AI assistant for RAGbox. I can search through your documents, answer questions based on your uploaded files, help you find specific information, and have a conversation. Try asking me about something in your vault!`
   }
 
-  // How are you / small talk
-  if (/^(how are you|how'?s it going|what'?s new)/i.test(q)) {
-    return "I'm doing great, thank you for asking! I'm ready to help you with your documents and questions. What can I assist you with today?"
+  // How are you / feelings / small talk
+  if (/\b(how are you|how'?s it going|what'?s new|how do you feel|are you okay|you doing)\b/i.test(q)) {
+    return pickResponse([
+      `I'm doing great, thanks for asking! I'm ready to help you with your documents and questions. What can I assist you with?`,
+      `All good here! I'm ${agentName}, ready and waiting. What would you like to know about your documents?`,
+    ], q)
+  }
+
+  // Thank you / gratitude
+  if (/\b(thank you|thanks|appreciate it|grateful)\b/i.test(q)) {
+    return pickResponse([
+      `You're welcome! Let me know if there's anything else I can help with.`,
+      `Happy to help! Is there anything else you'd like to know?`,
+    ], q)
+  }
+
+  // Goodbye / farewell
+  if (/\b(goodbye|bye|see you|talk later|that'?s all|i'?m done|signing off)\b/i.test(q)) {
+    return pickResponse([
+      `Goodbye! Feel free to come back anytime you need help with your documents.`,
+      `See you later! I'll be here whenever you need me.`,
+    ], q)
+  }
+
+  // Help / capabilities
+  if (/\b(help me|can you help|what can i ask|how does this work|what should i ask)\b/i.test(q)) {
+    return `I can help you in several ways! Ask me about the contents of your uploaded documents, search for specific information, get summaries, or compare documents. You can also just chat with me. What would you like to try?`
   }
 
   // Default conversational fallback
-  return "I don't have a specific document about that, but I'm happy to help! You can ask me about anything in your vault, or try rephrasing your question. What would you like to know?"
+  return pickResponse([
+    `That's an interesting question, but I don't have a specific document about it. I can help you search through your uploaded files, or you can ask me something else. What would you like to know?`,
+    `I don't have a document that covers that topic, but I'm happy to help! Try asking about something in your vault, or rephrase your question.`,
+    `I couldn't find that in your documents, but I'm here to help. Want to ask about something specific in your files?`,
+  ], q)
 }
 
 // Go backend for LLM + Mercury config
@@ -423,7 +489,7 @@ Current user context:
       console.info('[VoicePipeline-v3] LLM answer', { chars: answer.length, preview: answer.substring(0, 100) })
 
       // BUG-042 Bug B: Intercept grounding refusals before TTS
-      answer = interceptGroundingRefusal(answer, userText)
+      answer = interceptGroundingRefusal(answer, userText, agentName)
 
       // Check for tool calls in response
       const { toolCall, cleanText } = parseToolCalls(answer)
