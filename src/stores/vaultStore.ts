@@ -25,12 +25,13 @@ function recordUpload(): void {
 }
 
 // Duplicate conflict types — used by DuplicateFileDialog
-export type DuplicateAction = 'replace' | 'keep-both' | 'skip'
+export type DuplicateAction = 'replace' | 'keep-both' | 'skip' | 'skip-all' | 'replace-all'
 
 export interface DuplicateConflict {
   fileName: string
   fileSize: number
   existingName: string
+  remainingDuplicates: number
   resolve: (action: DuplicateAction) => void
 }
 
@@ -266,7 +267,11 @@ export const useVaultStore = create<VaultState>()(
             Object.values(get().documents).map((d) => d.name.toLowerCase())
           )
 
-          for (const file of files) {
+          // STORY-230: Track bulk actions across the loop
+          let bulkAction: 'skip-all' | 'replace-all' | null = null
+
+          for (let fileIdx = 0; fileIdx < files.length; fileIdx++) {
+            const file = files[fileIdx]
             // Rate limit check
             if (!checkRateLimit()) {
               toast.error('Please wait before uploading more files', { duration: 4000 })
@@ -305,19 +310,41 @@ export const useVaultStore = create<VaultState>()(
 
             // Duplicate name check — show styled dialog instead of window.confirm
             if (existingNames.has(file.name.toLowerCase())) {
-              const action = await new Promise<DuplicateAction>((resolve) => {
-                set({
-                  duplicateConflict: {
-                    fileName: file.name,
-                    fileSize: file.size,
-                    existingName: file.name,
-                    resolve: (a) => {
-                      set({ duplicateConflict: null })
-                      resolve(a)
+              // STORY-230: If a bulk action was set, apply it automatically
+              let action: DuplicateAction
+              if (bulkAction === 'skip-all') {
+                action = 'skip'
+              } else if (bulkAction === 'replace-all') {
+                action = 'replace'
+              } else {
+                // Count remaining duplicates after this one
+                const remainingDupes = files.slice(fileIdx + 1)
+                  .filter((f) => existingNames.has(f.name.toLowerCase())).length
+
+                action = await new Promise<DuplicateAction>((resolve) => {
+                  set({
+                    duplicateConflict: {
+                      fileName: file.name,
+                      fileSize: file.size,
+                      existingName: file.name,
+                      remainingDuplicates: remainingDupes,
+                      resolve: (a) => {
+                        set({ duplicateConflict: null })
+                        resolve(a)
+                      },
                     },
-                  },
+                  })
                 })
-              })
+
+                // STORY-230: Capture bulk actions for remaining files
+                if (action === 'skip-all') {
+                  bulkAction = 'skip-all'
+                  action = 'skip'
+                } else if (action === 'replace-all') {
+                  bulkAction = 'replace-all'
+                  action = 'replace'
+                }
+              }
 
               if (action === 'skip') continue
 

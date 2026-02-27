@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { AlertTriangle, Copy, RefreshCw, X } from 'lucide-react'
+import { AlertTriangle, Copy, RefreshCw, X, SkipForward, RefreshCcw } from 'lucide-react'
 import { useVaultStore } from '@/stores/vaultStore'
 import type { DuplicateAction } from '@/stores/vaultStore'
 
@@ -118,6 +118,35 @@ export function DuplicateFileDialog() {
                 >
                   Skip This File
                 </button>
+
+                {/* STORY-230: Bulk actions — only show when more duplicates remain */}
+                {conflict.remainingDuplicates > 0 && (
+                  <>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex-1 h-px bg-[var(--border-subtle)]" />
+                      <span className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] font-semibold">
+                        {conflict.remainingDuplicates} more duplicate{conflict.remainingDuplicates > 1 ? 's' : ''} remaining
+                      </span>
+                      <div className="flex-1 h-px bg-[var(--border-subtle)]" />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleAction('skip-all')}
+                        className="flex items-center justify-center gap-2 flex-1 px-4 py-2.5 rounded-xl text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] transition-colors"
+                      >
+                        <SkipForward className="w-3.5 h-3.5" />
+                        Skip All Duplicates
+                      </button>
+                      <button
+                        onClick={() => handleAction('replace-all')}
+                        className="flex items-center justify-center gap-2 flex-1 px-4 py-2.5 rounded-xl text-sm text-[var(--danger)] hover:text-white bg-[var(--danger)]/5 hover:bg-[var(--danger)]/20 border border-[var(--danger)]/20 transition-colors"
+                      >
+                        <RefreshCcw className="w-3.5 h-3.5" />
+                        Replace All
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </motion.div>
