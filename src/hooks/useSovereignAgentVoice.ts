@@ -634,6 +634,8 @@ export function useSovereignAgentVoice(
     ws.onmessage = async (event) => {
       // Binary = TTS audio
       if (event.data instanceof ArrayBuffer) {
+        // BUG-042 DIAG: Log binary frame arrival in browser console
+        console.info(`[VOICE-DIAG] Binary frame received: ${event.data.byteLength} bytes`)
         playerRef.current?.play(event.data)
         return
       }

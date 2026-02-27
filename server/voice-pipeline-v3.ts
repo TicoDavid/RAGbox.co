@@ -227,18 +227,14 @@ async function fetchMercuryConfig(userId: string): Promise<MercuryConfig> {
   return {}
 }
 
-// Convert Float32 PCM (from Inworld TTS) to Int16 PCM (for browser playback)
-function float32ToInt16Base64(float32Base64: string): string {
-  const buffer = Buffer.from(float32Base64, 'base64')
-  const float32 = new Float32Array(
-    buffer.buffer,
-    buffer.byteOffset,
-    buffer.length / 4
-  )
-  const int16 = new Int16Array(float32.length)
-  for (let i = 0; i < float32.length; i++) {
-    const sample = Math.max(-1, Math.min(1, float32[i]))
-    int16[i] = sample < 0 ? sample * 0x8000 : sample * 0x7FFF
+// Convert Float32 PCM samples (number[] from Inworld SDK) to Int16 PCM base64
+// for browser playback. Inworld TTSOutputStream yields chunks with audio.data
+// as Float32 samples in [-1.0, 1.0] range. Browser AudioContext expects Int16 PCM.
+function float32SamplesToInt16Base64(samples: ArrayLike<number>): string {
+  const int16 = new Int16Array(samples.length)
+  for (let i = 0; i < samples.length; i++) {
+    const s = Math.max(-1, Math.min(1, samples[i]))
+    int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF
   }
   return Buffer.from(int16.buffer).toString('base64')
 }
@@ -522,7 +518,7 @@ Current user context:
 
   async function textToSpeech(text: string): Promise<void> {
     try {
-      console.info('[VoicePipeline-v3] TTS streaming started', { chars: text.length, preview: text.substring(0, 50) })
+      console.info('[VoicePipeline-v3] TTS request', { chars: text.length, preview: text.substring(0, 50) })
 
       const ttsNode = new RemoteTTSNode({
         ttsComponent,
@@ -542,32 +538,51 @@ Current user context:
         .setEndNode(ttsNode)
         .build()
 
-      const { outputStream } = await ttsGraph.start(text)
+      // BUG-042 FIX: Use TTSRequest wrapper per SDK docs
+      const ttsInput = GraphTypes.TTSRequest.withText(text)
+      const { outputStream } = await ttsGraph.start(ttsInput)
 
-      // BUG-042: Track TTS chunk delivery for lifecycle debugging
+      console.info('[VoicePipeline-v3] TTS graph started, awaiting audio stream')
+
       let chunkCount = 0
       let totalBytes = 0
 
       for await (const result of outputStream) {
         await result.processResponse({
-          default: async (output: unknown) => {
-            const ttsOutput = output as { audio?: { data?: string } }
-            if (ttsOutput.audio?.data) {
-              const int16Base64 = float32ToInt16Base64(ttsOutput.audio.data)
-              chunkCount++
-              totalBytes += int16Base64.length
-              console.info(`[VoicePipeline-v3] TTS chunk ${chunkCount} sent`, { bytes: int16Base64.length })
-              onTTSChunk?.(int16Base64)
+          // BUG-042 FIX: Use TTSOutputStream handler — NOT 'default'.
+          // The Inworld SDK visitor pattern requires the exact type name.
+          // 'default' received the TTSOutputStream object but never iterated
+          // it, so .audio.data was always undefined → zero audio chunks.
+          // TTSOutputStream is itself an async iterator yielding individual
+          // audio chunks that must be consumed with a nested for-await loop.
+          TTSOutputStream: async (ttsStream) => {
+            console.info('[VoicePipeline-v3] TTSOutputStream handler entered')
+            for await (const chunk of ttsStream) {
+              if (chunk.audio?.data) {
+                const audioData = chunk.audio.data as ArrayLike<number>
+                const int16Base64 = float32SamplesToInt16Base64(audioData)
+                chunkCount++
+                totalBytes += int16Base64.length
+                console.info(`[VoicePipeline-v3] TTS chunk ${chunkCount} sent`, {
+                  samples: audioData.length,
+                  bytes: int16Base64.length,
+                })
+                onTTSChunk?.(int16Base64)
+              }
             }
           },
           error: (error: GraphTypes.GraphError) => {
-            console.error('[VoicePipeline-v3] TTS Error:', error.message)
+            console.error('[VoicePipeline-v3] TTS graph error:', error.message)
             onError?.(new Error(error.message))
           },
         })
       }
 
       console.info(`[VoicePipeline-v3] TTS complete, ${chunkCount} chunks delivered`, { totalBytes })
+
+      if (chunkCount === 0) {
+        console.warn('[VoicePipeline-v3] TTS produced zero audio chunks — Inworld API may have returned empty')
+      }
     } catch (error) {
       console.error('[VoicePipeline-v3] TTS error:', error)
       onError?.(error instanceof Error ? error : new Error(String(error)))
