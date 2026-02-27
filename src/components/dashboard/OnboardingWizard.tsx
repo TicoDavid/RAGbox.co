@@ -184,23 +184,33 @@ function UploadStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
 
       {/* Actions */}
       <div className="flex items-center gap-4 mt-8">
-        <button
-          onClick={onSkip}
-          className="px-6 py-2.5 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-        >
-          Skip
-        </button>
+        {!hasUploaded && (
+          <button
+            onClick={onSkip}
+            className="px-6 py-2.5 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+          >
+            Skip for now
+          </button>
+        )}
         <button
           onClick={onNext}
           disabled={isUploading}
           className={`flex items-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm transition-colors ${
-            hasUploaded
+            hasUploaded && !isUploading
               ? 'bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] text-white shadow-lg shadow-[var(--brand-blue)]/25'
-              : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
+              : isUploading
+                ? 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] cursor-not-allowed'
+                : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
           }`}
         >
-          Continue
-          <ArrowRight className="w-4 h-4" />
+          {isUploading ? 'Uploading…' : hasUploaded ? 'Done' : 'Continue'}
+          {isUploading ? (
+            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : hasUploaded ? (
+            <CheckCircle2 className="w-4 h-4" />
+          ) : (
+            <ArrowRight className="w-4 h-4" />
+          )}
         </button>
       </div>
     </div>
