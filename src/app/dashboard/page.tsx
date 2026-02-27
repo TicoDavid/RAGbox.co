@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { OnboardingChecklist } from '@/components/dashboard/OnboardingChecklist';
+import { FeedbackButton } from '@/components/feedback/FeedbackButton';
 import { useMercuryStore } from '@/stores/mercuryStore';
 
 export default function Dashboard() {
@@ -58,6 +59,7 @@ export default function Dashboard() {
     <>
       <DashboardLayout />
       <OnboardingChecklist />
+      <FeedbackButton />
     </>
   );
 }
