@@ -7,7 +7,7 @@
 
 export type ConfidenceLevel = 'high' | 'medium' | 'low'
 export type ConfidenceColor = 'green' | 'amber' | 'red'
-export type SourceType = 'upload' | 'roam_compliance' | 'webhook_ingest' | 'forge'
+export type SourceType = 'upload' | 'roam_compliance' | 'webhook_ingest' | 'studio'
 
 export interface CitationBlock {
   documentId: string

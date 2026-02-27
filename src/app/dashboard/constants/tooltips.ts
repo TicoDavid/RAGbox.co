@@ -52,13 +52,13 @@ export const TOOLTIPS = {
   insightRisk: 'Risk assessment identified - click for detailed report',
   insightClause: 'Key clause found - click to highlight in source',
   insightRecommendation: 'Actionable recommendation detected',
-  insightAction: 'Send this insight to the Forge for artifact generation',
+  insightAction: 'Send this insight to Sovereign Studio for artifact generation',
 
   // ============================================
-  // FORGE (Right Panel)
+  // SOVEREIGN STUDIO (Right Panel)
   // ============================================
-  forgePanel: 'Generate artifacts from your document insights',
-  forgeEmpty: 'Click a module below or send an insight from Mercury',
+  studioPanel: 'Generate artifacts from your document insights',
+  studioEmpty: 'Click a module below or send an insight from Mercury',
   secureVideoBriefing: 'Create executive video summary from vault data',
   strategicDataViz: 'Generate charts and visual analytics from your data',
   visionToCode: 'Convert diagrams and mockups to compliance-ready components',

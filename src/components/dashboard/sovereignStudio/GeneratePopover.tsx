@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { useForgeStore } from '@/stores/forgeStore'
+import { useStudioStore } from '@/stores/studioStore'
 import { useMercuryStore } from '@/stores/mercuryStore'
 import { FileText, BarChart3, Presentation, PieChart, Image, Table } from 'lucide-react'
 import type { AssetType } from '@/types/ragbox'
@@ -16,8 +16,8 @@ const ASSET_TYPES: Array<{ type: AssetType; label: string; icon: React.ElementTy
 ]
 
 export function GeneratePopover() {
-  const generate = useForgeStore((s) => s.generate)
-  const isGenerating = useForgeStore((s) => s.isGenerating)
+  const generate = useStudioStore((s) => s.generate)
+  const isGenerating = useStudioStore((s) => s.isGenerating)
   const messages = useMercuryStore((s) => s.messages)
 
   const hasContext = messages.length > 0

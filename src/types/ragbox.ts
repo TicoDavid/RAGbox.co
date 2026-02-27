@@ -171,7 +171,7 @@ export interface QueryResponse {
   confidence: number
 }
 
-// ===== Forge Types =====
+// ===== Studio Types =====
 
 export type AssetType = 'pdf' | 'report' | 'slides' | 'chart' | 'image' | 'table'
 

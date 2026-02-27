@@ -1,11 +1,11 @@
 /**
- * Store-level tests for forgeStore.
+ * Store-level tests for studioStore.
  *
  * These tests verify payload shape and state transitions via mocked fetch.
  * They do NOT exercise actual API route processing. For backend route coverage,
  * see src/app/api/documents/[id]/privilege/route.test.ts.
  */
-import { useForgeStore } from './forgeStore'
+import { useStudioStore } from './studioStore'
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -18,7 +18,7 @@ function okJson(data: object) {
 const originalFetch = global.fetch
 
 beforeEach(() => {
-  useForgeStore.setState({
+  useStudioStore.setState({
     assets: [],
     isGenerating: false,
     currentGenerationType: null,
@@ -32,17 +32,17 @@ afterAll(() => {
 
 // ── Tests ────────────────────────────────────────────────────
 
-describe('forgeStore', () => {
+describe('studioStore', () => {
   describe('generate – request payload', () => {
     test('sends template API contract fields', async () => {
       ;(global.fetch as jest.Mock).mockResolvedValueOnce(
         okJson({ data: { fileName: 'report.pdf', downloadUrl: '/dl/1', content: 'body' } }),
       )
 
-      await useForgeStore.getState().generate('report', 'conversation text here')
+      await useStudioStore.getState().generate('report', 'conversation text here')
 
       const call = (global.fetch as jest.Mock).mock.calls[0]
-      expect(call[0]).toBe('/api/forge')
+      expect(call[0]).toBe('/api/studio')
 
       const body = JSON.parse(call[1].body)
       expect(body).toEqual({
@@ -59,7 +59,7 @@ describe('forgeStore', () => {
         okJson({ data: { fileName: 'out.pdf' } }),
       )
 
-      await useForgeStore.getState().generate('pdf', 'ctx')
+      await useStudioStore.getState().generate('pdf', 'ctx')
 
       const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body)
       expect(body).not.toHaveProperty('type')
@@ -81,9 +81,9 @@ describe('forgeStore', () => {
         }),
       )
 
-      await useForgeStore.getState().generate('pdf', 'ctx')
+      await useStudioStore.getState().generate('pdf', 'ctx')
 
-      const asset = useForgeStore.getState().assets[0]
+      const asset = useStudioStore.getState().assets[0]
       expect(asset.id).toBe('asset-abc')
       expect(asset.filename).toBe('export.pdf')
       expect(asset.downloadUrl).toBe('/download/abc')
@@ -102,9 +102,9 @@ describe('forgeStore', () => {
         }),
       )
 
-      await useForgeStore.getState().generate('slides', 'ctx')
+      await useStudioStore.getState().generate('slides', 'ctx')
 
-      const asset = useForgeStore.getState().assets[0]
+      const asset = useStudioStore.getState().assets[0]
       expect(asset.id).toBe('flat-1')
       expect(asset.filename).toBe('flat.pdf')
       expect(asset.size).toBe(500)
@@ -121,9 +121,9 @@ describe('forgeStore', () => {
         }),
       )
 
-      await useForgeStore.getState().generate('report', 'ctx')
+      await useStudioStore.getState().generate('report', 'ctx')
 
-      expect(useForgeStore.getState().assets[0].size).toBe(12)
+      expect(useStudioStore.getState().assets[0].size).toBe(12)
     })
 
     test('defaults size to 0 when neither size nor content present', async () => {
@@ -131,9 +131,9 @@ describe('forgeStore', () => {
         okJson({ data: { fileName: 'empty.pdf', downloadUrl: '/dl/y' } }),
       )
 
-      await useForgeStore.getState().generate('table', 'ctx')
+      await useStudioStore.getState().generate('table', 'ctx')
 
-      expect(useForgeStore.getState().assets[0].size).toBe(0)
+      expect(useStudioStore.getState().assets[0].size).toBe(0)
     })
 
     test('generates fallback id when not provided by API', async () => {
@@ -143,9 +143,9 @@ describe('forgeStore', () => {
         okJson({ data: { fileName: 'x.pdf' } }),
       )
 
-      await useForgeStore.getState().generate('chart', 'ctx')
+      await useStudioStore.getState().generate('chart', 'ctx')
 
-      expect(useForgeStore.getState().assets[0].id).toBe('asset-1700000000000')
+      expect(useStudioStore.getState().assets[0].id).toBe('asset-1700000000000')
 
       jest.restoreAllMocks()
     })
@@ -155,11 +155,11 @@ describe('forgeStore', () => {
     test('resets generating state on failure', async () => {
       ;(global.fetch as jest.Mock).mockResolvedValueOnce({ ok: false })
 
-      await expect(useForgeStore.getState().generate('pdf', 'ctx')).rejects.toThrow(
+      await expect(useStudioStore.getState().generate('pdf', 'ctx')).rejects.toThrow(
         'Generation failed',
       )
 
-      const state = useForgeStore.getState()
+      const state = useStudioStore.getState()
       expect(state.isGenerating).toBe(false)
       expect(state.currentGenerationType).toBeNull()
       expect(state.assets).toHaveLength(0)
@@ -171,19 +171,19 @@ describe('forgeStore', () => {
       ;(global.fetch as jest.Mock).mockImplementationOnce(async () => {
         // Capture state while "in-flight"
         capturedState = {
-          isGenerating: useForgeStore.getState().isGenerating,
-          currentGenerationType: useForgeStore.getState().currentGenerationType,
+          isGenerating: useStudioStore.getState().isGenerating,
+          currentGenerationType: useStudioStore.getState().currentGenerationType,
         }
         return okJson({ data: { fileName: 'x.pdf' } })
       })
 
-      await useForgeStore.getState().generate('image', 'ctx')
+      await useStudioStore.getState().generate('image', 'ctx')
 
       expect(capturedState).toEqual({
         isGenerating: true,
         currentGenerationType: 'image',
       })
-      expect(useForgeStore.getState().isGenerating).toBe(false)
+      expect(useStudioStore.getState().isGenerating).toBe(false)
     })
   })
 
@@ -193,10 +193,10 @@ describe('forgeStore', () => {
         .mockResolvedValueOnce(okJson({ data: { id: 'a1', fileName: 'first.pdf' } }))
         .mockResolvedValueOnce(okJson({ data: { id: 'a2', fileName: 'second.pdf' } }))
 
-      await useForgeStore.getState().generate('pdf', 'ctx1')
-      await useForgeStore.getState().generate('report', 'ctx2')
+      await useStudioStore.getState().generate('pdf', 'ctx1')
+      await useStudioStore.getState().generate('report', 'ctx2')
 
-      const assets = useForgeStore.getState().assets
+      const assets = useStudioStore.getState().assets
       expect(assets).toHaveLength(2)
       expect(assets[0].id).toBe('a2') // Most recent first
       expect(assets[1].id).toBe('a1')

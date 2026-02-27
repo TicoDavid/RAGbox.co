@@ -52,9 +52,9 @@ export default function TemplateSelector({ sourceContext, onClose }: TemplateSel
         ? `${topic}\n\nContext:\n${sourceContext}`
         : sourceContext
 
-      // POST /api/forge matches the Go backend's ForgeRequest schema:
+      // POST /api/studio matches the Go backend's ForgeRequest schema:
       //   { template: string, query: string, chunks: [], persona: string }
-      const response = await apiFetch('/api/forge', {
+      const response = await apiFetch('/api/studio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -72,9 +72,9 @@ export default function TemplateSelector({ sourceContext, onClose }: TemplateSel
 
       const result = await response.json()
       // Go backend wraps in { success: true, data: ForgeResult }
-      const forgeResult = result.data || result
-      setGeneratedUrl(forgeResult.downloadUrl || null)
-      setGeneratedTitle(forgeResult.title || selectedTemplate.name)
+      const studioResult = result.data || result
+      setGeneratedUrl(studioResult.downloadUrl || null)
+      setGeneratedTitle(studioResult.title || selectedTemplate.name)
       setStep('done')
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : 'Generation failed')
@@ -104,7 +104,7 @@ export default function TemplateSelector({ sourceContext, onClose }: TemplateSel
         <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-[var(--bg-tertiary)] bg-[var(--bg-primary)]">
           <div className="flex items-center gap-2">
             <Hammer size={18} className="text-[var(--brand-blue)]" />
-            <span className="text-sm font-semibold text-[var(--text-primary)]">FORGE Document</span>
+            <span className="text-sm font-semibold text-[var(--text-primary)]">Sovereign Studio</span>
           </div>
           <button onClick={onClose} className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors">
             <X size={18} />
@@ -142,7 +142,7 @@ export default function TemplateSelector({ sourceContext, onClose }: TemplateSel
                 <Hammer size={14} />
                 {requiredMissing > 0
                   ? `${requiredMissing} required field${requiredMissing > 1 ? 's' : ''} missing`
-                  : 'Forge Document'}
+                  : 'Generate Document'}
               </button>
             </div>
           )}
@@ -150,7 +150,7 @@ export default function TemplateSelector({ sourceContext, onClose }: TemplateSel
           {step === 'generating' && (
             <div className="flex flex-col items-center gap-3 py-12">
               <Loader2 size={32} className="text-[var(--brand-blue)] animate-spin" />
-              <div className="text-sm text-[var(--text-primary)]">Forging document...</div>
+              <div className="text-sm text-[var(--text-primary)]">Generating document...</div>
               <div className="text-[10px] text-[var(--text-tertiary)]">Generating from template with AI</div>
             </div>
           )}
@@ -158,7 +158,7 @@ export default function TemplateSelector({ sourceContext, onClose }: TemplateSel
           {step === 'done' && (
             <div className="flex flex-col items-center gap-3 py-12">
               <CheckCircle2 size={32} className="text-green-500" />
-              <div className="text-sm text-[var(--text-primary)]">Document forged successfully</div>
+              <div className="text-sm text-[var(--text-primary)]">Document generated successfully</div>
               {generatedTitle && (
                 <div className="text-[10px] text-[var(--text-secondary)]">{generatedTitle}</div>
               )}

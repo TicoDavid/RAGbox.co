@@ -1,12 +1,12 @@
 'use client'
 
 import React from 'react'
-import { ForgeRail } from './ForgeRail'
+import { StudioRail } from './StudioRail'
 
-export function ForgePanel() {
+export function SovereignStudioPanel() {
   return (
     <div className="h-full bg-[var(--bg-secondary)]">
-      <ForgeRail />
+      <StudioRail />
     </div>
   )
 }

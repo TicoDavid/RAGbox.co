@@ -21,7 +21,7 @@ import ContextBar from './ContextBar';
 import { detectInsights, getActionsForInsight, getInsightColor, getInsightTypeName } from '../insight-detection';
 import { useVoiceChat } from '../hooks/useVoiceChat';
 import type { PageContext } from '../hooks/useVoiceChat';
-import ForgeButton from '@/components/forge/ForgeButton';
+import StudioButton from '@/components/sovereignStudio/StudioButton';
 import ReasoningPanel from '@/components/mercury/ReasoningPanel';
 import CitationChip from '@/components/mercury/CitationChip';
 import ConfidenceBadge from '@/components/mercury/ConfidenceBadge';
@@ -311,7 +311,7 @@ const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ message, onInsightAct
           <button className="response-action-btn" title="Copy to Studio"><CopyIcon /> Copy to Studio</button>
           <button className="response-action-btn" title="Expand Analysis"><MaximizeIcon /> Expand</button>
           <button className="response-action-btn" title="Export Findings"><DownloadIcon /> Export</button>
-          <ForgeButton responseText={cleanedText} />
+          <StudioButton responseText={cleanedText} />
         </div>
       </div>
     </div>

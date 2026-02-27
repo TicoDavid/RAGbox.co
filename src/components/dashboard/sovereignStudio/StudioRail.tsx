@@ -5,7 +5,7 @@ import { Hammer, FileText } from 'lucide-react'
 import { GeneratePopover } from './GeneratePopover'
 import { AssetsPopover } from './AssetsPopover'
 
-export function ForgeRail() {
+export function StudioRail() {
   return (
     <div className="h-full flex flex-col items-center py-3 gap-1">
       {/* Generate */}

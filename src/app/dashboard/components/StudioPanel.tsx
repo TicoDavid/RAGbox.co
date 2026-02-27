@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import type { Artifact, StudioMode, ForgeContext } from '../types';
+import type { Artifact, StudioMode, StudioContext } from '../types';
 import {
   SparklesIcon,
   CodeIcon,
@@ -25,7 +25,7 @@ interface StudioPanelProps {
   gridColumns: 1 | 2 | 4;
   focusedArtifactIndex: number | null;
   isLoading: boolean;
-  forgeContext?: ForgeContext;
+  studioContext?: StudioContext;
   onStudioModeChange: (mode: StudioMode) => void;
   onGridColumnsChange: (cols: 1 | 2 | 4) => void;
   onArtifactClick: (index: number) => void;
@@ -35,9 +35,9 @@ interface StudioPanelProps {
   onDeleteArtifact?: (artifactId: string) => void;
 }
 
-// Sovereign Forge Module Icons
+// Sovereign Studio Module Icons
 const VideoLensIcon = () => (
-  <svg className="forge-module-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg className="studio-module-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
     <circle cx="24" cy="24" r="18" stroke="currentColor" strokeWidth="2" opacity="0.3"/>
     <circle cx="24" cy="24" r="12" stroke="currentColor" strokeWidth="2"/>
     <circle cx="24" cy="24" r="6" fill="currentColor" opacity="0.6"/>
@@ -46,7 +46,7 @@ const VideoLensIcon = () => (
 );
 
 const DataVizIcon = () => (
-  <svg className="forge-module-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg className="studio-module-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M8 36 L16 28 L24 32 L32 18 L40 22" stroke="currentColor" strokeWidth="2" fill="none"/>
     <circle cx="16" cy="28" r="3" fill="currentColor"/>
     <circle cx="24" cy="32" r="3" fill="currentColor"/>
@@ -57,7 +57,7 @@ const DataVizIcon = () => (
 );
 
 const VisionCodeIcon = () => (
-  <svg className="forge-module-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg className="studio-module-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
     <ellipse cx="24" cy="24" rx="16" ry="10" stroke="currentColor" strokeWidth="2"/>
     <circle cx="24" cy="24" r="5" stroke="currentColor" strokeWidth="2"/>
     <circle cx="24" cy="24" r="2" fill="currentColor"/>
@@ -66,7 +66,7 @@ const VisionCodeIcon = () => (
 );
 
 const ImageStackIcon = () => (
-  <svg className="forge-module-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg className="studio-module-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect x="6" y="14" width="28" height="20" rx="2" stroke="currentColor" strokeWidth="2" opacity="0.3"/>
     <rect x="10" y="10" width="28" height="20" rx="2" stroke="currentColor" strokeWidth="2" opacity="0.5"/>
     <rect x="14" y="6" width="28" height="20" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
@@ -76,7 +76,7 @@ const ImageStackIcon = () => (
 );
 
 const DashboardIcon = () => (
-  <svg className="forge-module-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg className="studio-module-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect x="6" y="6" width="16" height="12" rx="2" stroke="currentColor" strokeWidth="2"/>
     <rect x="26" y="6" width="16" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
     <rect x="6" y="22" width="16" height="20" rx="2" stroke="currentColor" strokeWidth="2"/>
@@ -87,7 +87,7 @@ const DashboardIcon = () => (
 );
 
 const TerminalIcon = () => (
-  <svg className="forge-module-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg className="studio-module-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect x="6" y="8" width="36" height="32" rx="4" stroke="currentColor" strokeWidth="2"/>
     <line x1="6" y1="16" x2="42" y2="16" stroke="currentColor" strokeWidth="2" opacity="0.3"/>
     <text x="12" y="30" fontSize="14" fill="currentColor" fontFamily="monospace">&gt;_</text>
@@ -98,7 +98,7 @@ const TerminalIcon = () => (
 );
 
 const CrucibleIcon = () => (
-  <svg className="forge-crucible-icon" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg className="studio-crucible-icon" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
     {/* Outer ring */}
     <circle cx="40" cy="40" r="36" stroke="currentColor" strokeWidth="1" opacity="0.2"/>
     <circle cx="40" cy="40" r="32" stroke="currentColor" strokeWidth="1" opacity="0.3"/>
@@ -143,7 +143,7 @@ interface IntelReceivedAnimationProps {
 const getStatusText = (progress: number): string => {
   if (progress < 20) return 'Receiving intelligence data...';
   if (progress < 40) return 'Parsing insight context...';
-  if (progress < 60) return 'Initializing artifact forge...';
+  if (progress < 60) return 'Initializing Sovereign Studio...';
   if (progress < 80) return 'Generating artifact...';
   if (progress < 100) return 'Finalizing output...';
   return 'Complete';
@@ -151,7 +151,7 @@ const getStatusText = (progress: number): string => {
 
 const IntelReceivedAnimation: React.FC<IntelReceivedAnimationProps> = ({ title, progress, insightType }) => {
   return (
-    <div className="forge-intel-received">
+    <div className="studio-intel-received">
       {/* Pulse ring effect */}
       <div className="intel-pulse-container">
         <div className="intel-pulse-ring" />
@@ -238,7 +238,7 @@ const StudioPanel: React.FC<StudioPanelProps> = ({
   gridColumns,
   focusedArtifactIndex,
   isLoading,
-  forgeContext,
+  studioContext,
   onStudioModeChange,
   onGridColumnsChange,
   onArtifactClick,
@@ -247,17 +247,17 @@ const StudioPanel: React.FC<StudioPanelProps> = ({
   onSendDesignPrompt,
   onDeleteArtifact
 }) => {
-  // Determine what to show based on forge state
-  const showIntelAnimation = forgeContext && (forgeContext.state === 'receiving_intel' || forgeContext.state === 'forging');
+  // Determine what to show based on studio state
+  const showIntelAnimation = studioContext && (studioContext.state === 'receiving_intel' || studioContext.state === 'generating');
   const showEmptyState = artifacts.length === 0 && !showIntelAnimation;
   const showArtifacts = artifacts.length > 0 && !showIntelAnimation;
 
   return (
-    <div className="panel studio-panel sovereign-forge">
+    <div className="panel studio-panel sovereign-studio">
       {/* Circuit board background pattern */}
-      <div className="forge-circuit-bg" aria-hidden="true" />
+      <div className="studio-circuit-bg" aria-hidden="true" />
 
-      <div className="panel-header forge-header">
+      <div className="panel-header studio-header">
         <h3 className="panel-title">FORGE</h3>
         <div className="panel-actions">
           <div className="grid-selector">
@@ -286,43 +286,43 @@ const StudioPanel: React.FC<StudioPanelProps> = ({
         </div>
       </div>
 
-      <div className="studio-content forge-content">
+      <div className="studio-content studio-content">
         {/* Intel Received Animation */}
-        {showIntelAnimation && forgeContext && (
+        {showIntelAnimation && studioContext && (
           <IntelReceivedAnimation
-            title={forgeContext.animationTitle}
-            progress={forgeContext.progress}
-            insightType={forgeContext.incomingPayload?.context_data.insight_type}
+            title={studioContext.animationTitle}
+            progress={studioContext.progress}
+            insightType={studioContext.incomingPayload?.context_data.insight_type}
           />
         )}
 
         {/* Empty State */}
         {showEmptyState && (
-          <div className="forge-empty-state">
+          <div className="studio-empty-state">
             {/* Hero Section */}
-            <div className="forge-hero">
+            <div className="studio-hero">
               <CrucibleIcon />
-              <h2 className="forge-hero-title">SOVEREIGN ARTIFACT FORGE</h2>
-              <p className="forge-hero-subtitle">
+              <h2 className="studio-hero-title">SOVEREIGN STUDIO</h2>
+              <p className="studio-hero-subtitle">
                 Securely generate high-fidelity assets via Gemini API. Select a generation vector below.
               </p>
             </div>
 
             {/* Module Grid */}
-            <div className="forge-module-grid">
+            <div className="studio-module-grid">
               {FORGE_MODULES.map((module) => (
                 <button
                   key={module.id}
-                  className="forge-module-card"
+                  className="studio-module-card"
                   onClick={() => onSendDesignPrompt(module.prompt)}
                   disabled={isLoading}
                 >
-                  <div className="forge-module-icon-wrapper">
+                  <div className="studio-module-icon-wrapper">
                     <module.icon />
                   </div>
-                  <h4 className="forge-module-title">{module.title}</h4>
-                  <p className="forge-module-desc">{module.description}</p>
-                  <div className="forge-module-glow" aria-hidden="true" />
+                  <h4 className="studio-module-title">{module.title}</h4>
+                  <p className="studio-module-desc">{module.description}</p>
+                  <div className="studio-module-glow" aria-hidden="true" />
                 </button>
               ))}
             </div>
@@ -336,7 +336,7 @@ const StudioPanel: React.FC<StudioPanelProps> = ({
               <div key={art.id} className={`studio-item-wrapper ${art.sourceInsightId ? 'from-insight' : ''}`}>
                 {art.sourceInsightId && (
                   <div className="artifact-source-badge">
-                    <SparklesIcon /> Forged from Insight
+                    <SparklesIcon /> Generated from Insight
                   </div>
                 )}
                 <ArtifactCard

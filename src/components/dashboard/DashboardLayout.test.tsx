@@ -42,8 +42,8 @@ jest.mock('./mercury/MercuryPanel', () => ({
   MercuryPanel: () => <div data-testid="mercury-panel" />,
 }))
 
-jest.mock('./forge/ForgePanel', () => ({
-  ForgePanel: () => <div data-testid="forge-panel" />,
+jest.mock('./sovereignStudio/SovereignStudioPanel', () => ({
+  SovereignStudioPanel: () => <div data-testid="studio-panel" />,
 }))
 
 jest.mock('./chat', () => ({

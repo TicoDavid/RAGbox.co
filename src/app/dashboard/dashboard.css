@@ -106,7 +106,7 @@
 
     /* Panel backgrounds - unified platinum workspace */
     --bg-chat-panel: #F8FAFC;    /* Off-white, not pure white */
-    --bg-forge-panel: #F1F5F9;   /* Cool Silver for Forge */
+    --bg-studio-panel: #F1F5F9;   /* Cool Silver for Studio */
     --bg-vault-item: #FFFFFF;
     --border-vault-item: #E2E8F0;
     --bg-modal: #FFFFFF;
@@ -300,10 +300,10 @@
     /* Mercury: Flex (fills remaining) */
     --col-mercury-min: 350px;
 
-    /* Forge: Resizable - 3x larger than before */
-    --col-forge: 480px;
-    --col-forge-min: 300px;
-    --col-forge-max: 800px;
+    /* Studio: Resizable - 3x larger than before */
+    --col-studio: 480px;
+    --col-studio-min: 300px;
+    --col-studio-max: 800px;
 
     --resizer-width: 4px;
     --layout-gap: 0;
@@ -346,8 +346,8 @@
 }
 
 .ragbox-layout > .panel.studio-panel {
-    min-width: var(--col-forge-min);
-    max-width: var(--col-forge-max);
+    min-width: var(--col-studio-min);
+    max-width: var(--col-studio-max);
     flex-shrink: 0;
 }
 
@@ -583,7 +583,7 @@
 
 /* Directive 4: Enhanced Circuit board background for panels */
 .vault-circuit-bg,
-.forge-circuit-bg,
+.studio-circuit-bg,
 .mercury-circuit-bg {
     position: absolute;
     inset: 0;
@@ -1515,7 +1515,7 @@
 .audit-category-system .audit-category {
     color: var(--text-secondary);
 }
-.audit-category-forge .audit-category {
+.audit-category-studio .audit-category {
     color: #0000FF;
     text-shadow: 0 0 8px rgba(0, 0, 255, 0.5);
 }
@@ -2475,7 +2475,7 @@
    ============================================ */
 
 /* Sovereign Theme Variables */
-.sovereign-forge {
+.sovereign-studio {
     --sovereign-bg-deep: #09090b;
     --sovereign-bg-panel: #131316;
     --connexus-blue: #0000FF;
@@ -2486,14 +2486,14 @@
     background: var(--sovereign-bg-deep);
 }
 
-/* Forge Header */
-.forge-header {
+/* Studio Header */
+.studio-header {
     background: var(--sovereign-bg-panel);
     border-bottom: 1px solid rgba(0, 0, 255, 0.15);
     z-index: 1;
 }
 
-.forge-title {
+.studio-title {
     font-size: 0.85rem;
     font-weight: 700;
     letter-spacing: 0.15em;
@@ -2502,26 +2502,26 @@
     text-shadow: var(--connexus-blue-glow);
 }
 
-/* Forge Mode Selector - Blue Glow States */
-.forge-mode-selector .mode-btn:hover {
+/* Studio Mode Selector - Blue Glow States */
+.studio-mode-selector .mode-btn:hover {
     color: var(--connexus-blue);
     filter: drop-shadow(0 0 4px rgba(0, 0, 255, 0.5));
 }
 
-.forge-mode-selector .mode-btn.active {
+.studio-mode-selector .mode-btn.active {
     background: var(--connexus-blue);
     box-shadow: var(--connexus-blue-glow);
 }
 
-/* Forge Content Area */
-.forge-content {
+/* Studio Content Area */
+.studio-content {
     background: var(--sovereign-bg-deep);
     position: relative;
     z-index: 1;
 }
 
-/* Forge Empty State */
-.forge-empty-state {
+/* Studio Empty State */
+.studio-empty-state {
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -2530,8 +2530,8 @@
     gap: 32px;
 }
 
-/* Forge Hero Section */
-.forge-hero {
+/* Studio Hero Section */
+.studio-hero {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -2539,7 +2539,7 @@
     gap: 16px;
 }
 
-.forge-crucible-icon {
+.studio-crucible-icon {
     width: 100px;
     height: 100px;
     color: var(--connexus-blue);
@@ -2552,7 +2552,7 @@
     50% { filter: drop-shadow(0 0 30px rgba(0, 0, 255, 0.6)); }
 }
 
-.forge-hero-title {
+.studio-hero-title {
     margin: 0;
     font-size: 1.4rem;
     font-weight: 800;
@@ -2562,7 +2562,7 @@
     text-shadow: 0 0 20px rgba(0, 0, 255, 0.5), 0 0 40px rgba(0, 0, 255, 0.3);
 }
 
-.forge-hero-subtitle {
+.studio-hero-subtitle {
     margin: 0;
     font-size: 0.85rem;
     color: var(--text-secondary);
@@ -2570,8 +2570,8 @@
     line-height: 1.5;
 }
 
-/* Forge Module Grid */
-.forge-module-grid {
+/* Studio Module Grid */
+.studio-module-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 16px;
@@ -2650,13 +2650,13 @@
 .text-tertiary { color: var(--text-tertiary) !important; }  /* #52525B */
 
 @media (min-width: 900px) {
-    .forge-module-grid {
+    .studio-module-grid {
         grid-template-columns: repeat(3, 1fr);
     }
 }
 
-/* Forge Module Card */
-.forge-module-card {
+/* Studio Module Card */
+.studio-module-card {
     position: relative;
     display: flex;
     flex-direction: column;
@@ -2678,7 +2678,7 @@
         0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-.forge-module-card:hover {
+.studio-module-card:hover {
     border-color: var(--connexus-blue);
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.04),
@@ -2688,18 +2688,18 @@
     transform: translateY(-2px);
 }
 
-.forge-module-card:hover .forge-module-glow {
+.studio-module-card:hover .studio-module-glow {
     opacity: 1;
 }
 
-.forge-module-card:disabled {
+.studio-module-card:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;
 }
 
 /* Module Glow Effect */
-.forge-module-glow {
+.studio-module-glow {
     position: absolute;
     inset: 0;
     background: radial-gradient(ellipse at center, rgba(0, 0, 255, 0.08) 0%, transparent 70%);
@@ -2709,7 +2709,7 @@
 }
 
 /* Module Icon Wrapper */
-.forge-module-icon-wrapper {
+.studio-module-icon-wrapper {
     width: 56px;
     height: 56px;
     display: flex;
@@ -2721,25 +2721,25 @@
     transition: all 0.3s;
 }
 
-.forge-module-card:hover .forge-module-icon-wrapper {
+.studio-module-card:hover .studio-module-icon-wrapper {
     background: rgba(0, 0, 255, 0.15);
     border-color: var(--connexus-blue);
     box-shadow: 0 0 15px rgba(0, 0, 255, 0.3);
 }
 
-.forge-module-icon {
+.studio-module-icon {
     width: 32px;
     height: 32px;
     color: var(--connexus-blue);
     transition: all 0.3s;
 }
 
-.forge-module-card:hover .forge-module-icon {
+.studio-module-card:hover .studio-module-icon {
     filter: drop-shadow(0 0 6px rgba(0, 0, 255, 0.6));
 }
 
 /* Module Title */
-.forge-module-title {
+.studio-module-title {
     margin: 0;
     font-size: 0.7rem;
     font-weight: 700;
@@ -2749,13 +2749,13 @@
     line-height: 1.3;
 }
 
-.forge-module-card:hover .forge-module-title {
+.studio-module-card:hover .studio-module-title {
     color: var(--connexus-blue);
     text-shadow: 0 0 10px rgba(0, 0, 255, 0.4);
 }
 
 /* Module Description */
-.forge-module-desc {
+.studio-module-desc {
     margin: 0;
     font-size: 0.7rem;
     color: var(--text-tertiary);
@@ -3200,7 +3200,7 @@
    INTEL RECEIVED ANIMATION
    ============================================ */
 
-.forge-intel-received {
+.studio-intel-received {
     position: relative;
     width: 100%;
     height: 100%;
@@ -3424,14 +3424,14 @@
    RESPONSIVE BREAKPOINTS - Sovereign Dashboard
    ============================================ */
 
-/* Large screens (< 1400px): Forge shrinks */
+/* Large screens (< 1400px): Studio shrinks */
 @media (max-width: 1400px) {
     .ragbox-layout > .panel.studio-panel {
         min-width: 280px;
     }
 }
 
-/* Medium-large screens (< 1200px): Forge collapses */
+/* Medium-large screens (< 1200px): Studio collapses */
 @media (max-width: 1200px) {
     .ragbox-layout {
         grid-template-columns: var(--col-vaults) var(--col-security-drop) var(--resizer-width) 1fr !important;
@@ -3510,70 +3510,70 @@
     border-color: #E2E8F0 !important;
 }
 
-.dashboard-root.light .forge-content,
-.light .dashboard-root .forge-content,
-.light .dashboard-root .forge-content {
+.dashboard-root.light .studio-content,
+.light .dashboard-root .studio-content,
+.light .dashboard-root .studio-content {
     background: #F1F5F9 !important;
 }
 
-.dashboard-root.light .forge-header,
-.light .dashboard-root .forge-header,
-.light .dashboard-root .forge-header {
+.dashboard-root.light .studio-header,
+.light .dashboard-root .studio-header,
+.light .dashboard-root .studio-header {
     background: #F8FAFC !important;
     border-bottom: 1px solid #E2E8F0 !important;
 }
 
-.dashboard-root.light .forge-title,
-.light .dashboard-root .forge-title,
-.light .dashboard-root .forge-title {
+.dashboard-root.light .studio-title,
+.light .dashboard-root .studio-title,
+.light .dashboard-root .studio-title {
     color: #0000FF !important;
     text-shadow: none !important;
 }
 
-.dashboard-root.light .forge-hero-title,
-.light .dashboard-root .forge-hero-title,
-.light .dashboard-root .forge-hero-title {
+.dashboard-root.light .studio-hero-title,
+.light .dashboard-root .studio-hero-title,
+.light .dashboard-root .studio-hero-title {
     color: #0F172A !important;
     text-shadow: 0 0 20px rgba(0, 0, 255, 0.2) !important;
 }
 
-.dashboard-root.light .forge-hero-subtitle,
-.light .dashboard-root .forge-hero-subtitle,
-.light .dashboard-root .forge-hero-subtitle {
+.dashboard-root.light .studio-hero-subtitle,
+.light .dashboard-root .studio-hero-subtitle,
+.light .dashboard-root .studio-hero-subtitle {
     color: #475569 !important;
 }
 
-/* Forge Module Cards - White with silver border */
-.dashboard-root.light .forge-module-card,
-.light .dashboard-root .forge-module-card,
-.light .dashboard-root .forge-module-card {
+/* Studio Module Cards - White with silver border */
+.dashboard-root.light .studio-module-card,
+.light .dashboard-root .studio-module-card,
+.light .dashboard-root .studio-module-card {
     background: #FFFFFF !important;
     border: 1px solid #E2E8F0 !important;
     box-shadow: 0 2px 4px rgba(0,0,0,0.06) !important;
 }
 
-.dashboard-root.light .forge-module-card:hover,
-.light .dashboard-root .forge-module-card:hover,
-.light .dashboard-root .forge-module-card:hover {
+.dashboard-root.light .studio-module-card:hover,
+.light .dashboard-root .studio-module-card:hover,
+.light .dashboard-root .studio-module-card:hover {
     border-color: #0000FF !important;
     box-shadow: 0 4px 12px rgba(0, 0, 255, 0.15) !important;
 }
 
-.dashboard-root.light .forge-module-title,
-.light .dashboard-root .forge-module-title,
-.light .dashboard-root .forge-module-title {
+.dashboard-root.light .studio-module-title,
+.light .dashboard-root .studio-module-title,
+.light .dashboard-root .studio-module-title {
     color: #0F172A !important;
 }
 
-.dashboard-root.light .forge-module-desc,
-.light .dashboard-root .forge-module-desc,
-.light .dashboard-root .forge-module-desc {
+.dashboard-root.light .studio-module-desc,
+.light .dashboard-root .studio-module-desc,
+.light .dashboard-root .studio-module-desc {
     color: #475569 !important;
 }
 
-.dashboard-root.light .forge-crucible-icon,
-.light .dashboard-root .forge-crucible-icon,
-.light .dashboard-root .forge-crucible-icon {
+.dashboard-root.light .studio-crucible-icon,
+.light .dashboard-root .studio-crucible-icon,
+.light .dashboard-root .studio-crucible-icon {
     filter: drop-shadow(0 0 15px rgba(0, 0, 255, 0.3)) !important;
 }
 
@@ -3773,9 +3773,9 @@
 }
 
 /* --- 10. INTEL RECEIVED ANIMATION - Adapt for light --- */
-.dashboard-root.light .forge-intel-received,
-.light .dashboard-root .forge-intel-received,
-.light .dashboard-root .forge-intel-received {
+.dashboard-root.light .studio-intel-received,
+.light .dashboard-root .studio-intel-received,
+.light .dashboard-root .studio-intel-received {
     background: linear-gradient(180deg, #F1F5F9 0%, #F8FAFC 100%) !important;
 }
 

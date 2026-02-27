@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { useForgeStore } from '@/stores/forgeStore'
+import { useStudioStore } from '@/stores/studioStore'
 import { Download, FileText } from 'lucide-react'
 
 function formatSize(bytes: number): string {
@@ -21,8 +21,8 @@ function formatTimeAgo(date: Date): string {
 }
 
 export function AssetsPopover() {
-  const assets = useForgeStore((s) => s.assets)
-  const downloadAsset = useForgeStore((s) => s.downloadAsset)
+  const assets = useStudioStore((s) => s.assets)
+  const downloadAsset = useStudioStore((s) => s.downloadAsset)
 
   return (
     <div className="w-64 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-lg shadow-xl overflow-hidden">

@@ -62,7 +62,7 @@ function deriveSourceType(citation: Citation): SourceType {
   if (!meta) return 'upload'
 
   const source = meta.sourceType as string | undefined
-  if (source === 'webhook_ingest' || source === 'roam_compliance' || source === 'forge') {
+  if (source === 'webhook_ingest' || source === 'roam_compliance' || source === 'studio') {
     return source
   }
   return 'upload'

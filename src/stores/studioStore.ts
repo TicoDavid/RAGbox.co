@@ -4,7 +4,7 @@ import type { AssetType, GeneratedAsset } from '@/types/ragbox'
 import { apiFetch } from '@/lib/api'
 import { toast } from 'sonner'
 
-interface ForgeState {
+interface StudioState {
   assets: GeneratedAsset[]
   isGenerating: boolean
   currentGenerationType: AssetType | null
@@ -14,7 +14,7 @@ interface ForgeState {
   deleteAsset: (assetId: string) => void
 }
 
-export const useForgeStore = create<ForgeState>()(
+export const useStudioStore = create<StudioState>()(
   devtools((set, get) => ({
     assets: [],
     isGenerating: false,
@@ -24,7 +24,7 @@ export const useForgeStore = create<ForgeState>()(
       set({ isGenerating: true, currentGenerationType: type })
 
       try {
-        const res = await apiFetch('/api/forge', {
+        const res = await apiFetch('/api/studio', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

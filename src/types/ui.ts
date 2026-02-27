@@ -124,10 +124,10 @@ export interface DrawerState {
 
 export type StudioMode = 'UI' | 'ASSET' | 'CHART' | 'VISION' | 'VIDEO'
 
-export type ForgeState = 'idle' | 'receiving_intel' | 'forging' | 'complete'
+export type StudioGenerationState = 'idle' | 'receiving_intel' | 'generating' | 'complete'
 
-export interface ForgeContext {
-  state: ForgeState
+export interface StudioContext {
+  state: StudioGenerationState
   incomingPayload: InsightHandoffPayload | null
   animationTitle: string
   progress: number
