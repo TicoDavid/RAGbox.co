@@ -42,6 +42,7 @@ export interface VoiceSessionConfig {
 
 interface MercuryConfig {
   name?: string
+  voiceId?: string
   greeting?: string
   personalityPrompt?: string
 }
@@ -204,11 +205,13 @@ async function fetchMercuryConfig(userId: string): Promise<MercuryConfig> {
     if (res.ok) {
       const json = await res.json() as {
         name?: string
+        voiceId?: string
         greeting?: string
         personalityPrompt?: string
         data?: {
           config?: {
             name?: string
+            voiceId?: string
             greeting?: string
             personalityPrompt?: string
           }
@@ -217,6 +220,7 @@ async function fetchMercuryConfig(userId: string): Promise<MercuryConfig> {
       const cfg = json.data?.config ?? json
       return {
         name: cfg.name || undefined,
+        voiceId: cfg.voiceId || undefined,
         greeting: cfg.greeting || undefined,
         personalityPrompt: cfg.personalityPrompt || undefined,
       }
@@ -272,6 +276,8 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
   // Fetch Mercury persona config (best-effort, falls back to defaults)
   const mercuryConfig = await fetchMercuryConfig(toolContext?.userId || 'anonymous')
   const agentName = mercuryConfig.name || 'Mercury'
+  const voiceId = mercuryConfig.voiceId || DEFAULT_VOICE_ID
+  console.info('[VoicePipeline-v3] Session config', { agentName, voiceId })
 
   // Build tool descriptions for system context (sent to Go backend via history)
   const toolDescriptions = TOOL_DEFINITIONS.map(t => {
@@ -522,7 +528,7 @@ Current user context:
 
       const ttsNode = new RemoteTTSNode({
         ttsComponent,
-        speakerId: DEFAULT_VOICE_ID,
+        speakerId: voiceId,
         languageCode: 'en-US',
         modelId: DEFAULT_TTS_MODEL_ID,
       })
