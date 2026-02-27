@@ -1,9 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import type { Components } from 'react-markdown'
+import { MarkdownRenderer } from '@/components/dashboard/mercury/MarkdownRenderer'
 import {
   Copy, ThumbsUp, ThumbsDown, Check, X,
   MessageSquare, FileText, ShieldCheck, RefreshCw, AlertTriangle,
@@ -80,43 +78,8 @@ function extractProse(raw: string): string {
 }
 
 // ============================================================================
-// MARKDOWN COMPONENTS (Claude-style, spacious)
+// MARKDOWN RENDERING — delegated to shared MarkdownRenderer (STORY-239)
 // ============================================================================
-
-const mdComponents: Components = {
-  h1: ({ children }) => <h1 className="text-xl font-bold mt-4 mb-2 text-[var(--text-primary)]">{children}</h1>,
-  h2: ({ children }) => <h2 className="text-lg font-semibold mt-3 mb-2 text-[var(--text-primary)]">{children}</h2>,
-  h3: ({ children }) => <h3 className="text-base font-semibold mt-2 mb-1 text-[var(--text-primary)]">{children}</h3>,
-  p: ({ children }) => <p className="mb-3 text-[var(--text-primary)]">{children}</p>,
-  ul: ({ children }) => <ul className="list-disc pl-5 mb-3 space-y-1">{children}</ul>,
-  ol: ({ children }) => <ol className="list-decimal pl-5 mb-3 space-y-1">{children}</ol>,
-  li: ({ children }) => <li className="text-[var(--text-secondary)]">{children}</li>,
-  strong: ({ children }) => <strong className="font-semibold text-[var(--text-primary)]">{children}</strong>,
-  code: ({ children, className }) => {
-    const isBlock = className?.includes('language-')
-    return isBlock ? (
-      <pre className="bg-[var(--bg-tertiary)] rounded-lg p-4 overflow-x-auto my-3">
-        <code className="text-sm font-mono">{children}</code>
-      </pre>
-    ) : (
-      <code className="bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-sm font-mono">{children}</code>
-    )
-  },
-  table: ({ children }) => (
-    <div className="overflow-x-auto my-3">
-      <table className="w-full border-collapse">{children}</table>
-    </div>
-  ),
-  th: ({ children }) => (
-    <th className="border border-[var(--border-default)] px-3 py-2 text-left bg-[var(--bg-secondary)] font-semibold text-sm">{children}</th>
-  ),
-  td: ({ children }) => (
-    <td className="border border-[var(--border-default)] px-3 py-2 text-sm">{children}</td>
-  ),
-  blockquote: ({ children }) => (
-    <blockquote className="border-l-4 border-[var(--brand-blue)] pl-4 italic text-[var(--text-secondary)] my-3">{children}</blockquote>
-  ),
-}
 
 // ============================================================================
 // CONFIDENCE BADGE
@@ -278,9 +241,7 @@ export function CenterMessage({ message }: { message: ChatMessage }) {
           {isUser ? (
             <p className="text-[var(--text-primary)]">{message.content}</p>
           ) : activeTab === 'answer' ? (
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
-              {displayContent}
-            </ReactMarkdown>
+            <MarkdownRenderer content={displayContent} />
           ) : activeTab === 'sources' ? (
             <SourcesPanel
               citations={displayCitations}
