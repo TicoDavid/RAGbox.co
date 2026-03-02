@@ -321,11 +321,10 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
         })
       },
 
-      onTTSChunk: (audioBase64) => {
-        // Convert base64 to buffer and send as binary WebSocket frame
-        const audioBuffer = Buffer.from(audioBase64, 'base64')
-        console.info(`[BRIDGE-DIAG] TTS audio forwarding: ${audioBuffer.length} bytes to WebSocket`, { sessionId })
-        sendBinary(ws, audioBuffer)
+      onTTSChunk: (pcmBuffer) => {
+        // Raw Int16 PCM buffer — send directly as binary WebSocket frame
+        console.info(`[BRIDGE-DIAG] TTS audio forwarding: ${pcmBuffer.length} bytes to WebSocket`, { sessionId })
+        sendBinary(ws, pcmBuffer)
         obs.recordFirstAudio(sessionId)
       },
 

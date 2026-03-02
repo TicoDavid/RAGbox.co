@@ -30,7 +30,7 @@ export interface VoiceSessionConfig {
   onTranscriptFinal?: (text: string) => void
   onAgentTextPartial?: (text: string) => void
   onAgentTextFinal?: (text: string) => void
-  onTTSChunk?: (audioBase64: string) => void
+  onTTSChunk?: (pcmBuffer: Buffer) => void
   onToolCall?: (toolName: string, args: Record<string, unknown>) => void
   onToolResult?: (toolName: string, result: unknown) => void
   onUIAction?: (action: unknown) => void
@@ -231,16 +231,16 @@ async function fetchMercuryConfig(userId: string): Promise<MercuryConfig> {
   return {}
 }
 
-// Convert Float32 PCM samples (number[] from Inworld SDK) to Int16 PCM base64
-// for browser playback. Inworld TTSOutputStream yields chunks with audio.data
-// as Float32 samples in [-1.0, 1.0] range. Browser AudioContext expects Int16 PCM.
-function float32SamplesToInt16Base64(samples: ArrayLike<number>): string {
+// Convert Float32 PCM samples (number[] from Inworld SDK) to raw Int16 PCM Buffer.
+// Inworld TTSOutputStream yields chunks with audio.data as Float32 samples in
+// [-1.0, 1.0] range. Browser AudioContext expects raw Int16 PCM bytes over WebSocket.
+function float32SamplesToInt16Buffer(samples: ArrayLike<number>): Buffer {
   const int16 = new Int16Array(samples.length)
   for (let i = 0; i < samples.length; i++) {
     const s = Math.max(-1, Math.min(1, samples[i]))
     int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF
   }
-  return Buffer.from(int16.buffer).toString('base64')
+  return Buffer.from(int16.buffer)
 }
 
 // ============================================================================
@@ -568,14 +568,21 @@ Current user context:
             for await (const chunk of ttsStream) {
               if (chunk.audio?.data) {
                 const audioData = chunk.audio.data as ArrayLike<number>
-                const int16Base64 = float32SamplesToInt16Base64(audioData)
+                if (chunkCount === 0) {
+                  console.info('[TTS-DIAG] Audio metadata:', {
+                    sampleRate: chunk.audio?.sampleRate,
+                    channels: chunk.audio?.channels,
+                    dataLength: audioData.length,
+                  })
+                }
+                const pcmBuffer = float32SamplesToInt16Buffer(audioData)
                 chunkCount++
-                totalBytes += int16Base64.length
+                totalBytes += pcmBuffer.length
                 console.info(`[VoicePipeline-v3] TTS chunk ${chunkCount} sent`, {
                   samples: audioData.length,
-                  bytes: int16Base64.length,
+                  bytes: pcmBuffer.length,
                 })
-                onTTSChunk?.(int16Base64)
+                onTTSChunk?.(pcmBuffer)
               }
             }
           },
