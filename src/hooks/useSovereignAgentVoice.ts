@@ -371,6 +371,9 @@ function createTTSPlayer(sampleRate: number): {
   return {
     play(pcm: ArrayBuffer) {
       if (!ctx) ctx = new AudioContext({ sampleRate })
+      // BUG-044: Chrome suspends AudioContext created outside user gestures.
+      // play() is called from ws.onmessage, not a click handler, so resume().
+      if (ctx.state === 'suspended') ctx.resume()
 
       // Guard: Int16Array requires even byte length (2 bytes per sample)
       const safePcm = pcm.byteLength % 2 !== 0
