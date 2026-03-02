@@ -375,19 +375,41 @@ function createTTSPlayer(sampleRate: number): {
       // play() is called from ws.onmessage, not a click handler, so resume().
       if (ctx.state === 'suspended') ctx.resume()
 
+      // BUG-045 DIAG: AudioContext state and sample rate
+      console.info('[BUG-045] play() pcm.byteLength:', pcm.byteLength,
+        'ctx.state:', ctx.state, 'ctx.sampleRate:', ctx.sampleRate,
+        'requested sampleRate:', sampleRate)
+
       // Guard: Int16Array requires even byte length (2 bytes per sample)
       const safePcm = pcm.byteLength % 2 !== 0
         ? pcm.slice(0, pcm.byteLength - 1)
         : pcm
       const int16 = new Int16Array(safePcm)
+
+      // BUG-045 DIAG: Check Int16 sample values
+      const sampleCount = Math.min(1000, int16.length)
+      const sampleSlice = Array.from(int16.slice(0, sampleCount))
+      const min = Math.min(...sampleSlice)
+      const max = Math.max(...sampleSlice)
+      console.info('[BUG-045] Int16 first 10:', Array.from(int16.slice(0, 10)),
+        'range:', min, 'to', max, 'totalSamples:', int16.length)
+
       const float32 = new Float32Array(int16.length)
       for (let i = 0; i < int16.length; i++) {
         float32[i] = int16[i] / 32768
       }
 
+      // BUG-045 DIAG: Float32 values should be in [-1.0, 1.0]
+      const f32Slice = Array.from(float32.slice(0, sampleCount))
+      console.info('[BUG-045] Float32 first 5:', Array.from(float32.slice(0, 5)).map(v => v.toFixed(4)),
+        'range:', Math.min(...f32Slice).toFixed(4), 'to', Math.max(...f32Slice).toFixed(4))
+
       const buffer = ctx.createBuffer(1, float32.length, sampleRate)
       buffer.getChannelData(0).set(float32)
       queue.push(buffer)
+      console.info('[BUG-045] Queued AudioBuffer: channels:', buffer.numberOfChannels,
+        'length:', buffer.length, 'bufferSampleRate:', buffer.sampleRate,
+        'queueSize:', queue.length)
 
       if (!playing) playNext()
     },
@@ -604,6 +626,7 @@ export function useSovereignAgentVoice(
     playerRef.current = createTTSPlayer(ttsSampleRateRef.current)
 
     ws.binaryType = 'arraybuffer'
+    console.info('[BUG-045] WebSocket created, binaryType:', ws.binaryType)
 
     // Wait for WebSocket to actually open before resolving
     try {
@@ -635,11 +658,30 @@ export function useSovereignAgentVoice(
     }
 
     ws.onmessage = async (event) => {
-      // Binary = TTS audio
+      // BUG-045 DIAG: Log frame type arriving from WebSocket
       if (event.data instanceof ArrayBuffer) {
-        // BUG-042 DIAG: Log binary frame arrival in browser console
-        console.info(`[VOICE-DIAG] Binary frame received: ${event.data.byteLength} bytes`)
+        const byteLen = event.data.byteLength
+        console.info(`[BUG-045] ArrayBuffer received, byteLength: ${byteLen}, binaryType: ${ws.binaryType}`)
+        // Peek at raw Int16 samples before handing to player
+        if (byteLen >= 20) {
+          const peek = new Int16Array(event.data.slice(0, 2000))
+          console.info('[BUG-045] First 10 Int16 samples:', Array.from(peek.slice(0, 10)))
+          console.info('[BUG-045] Sample range (first 1000):',
+            'min:', Math.min(...Array.from(peek)),
+            'max:', Math.max(...Array.from(peek)))
+        }
         playerRef.current?.play(event.data)
+        return
+      }
+
+      // BUG-045 DIAG: Blob fallback — if binaryType wasn't set, data arrives as Blob
+      if (event.data instanceof Blob) {
+        console.warn('[BUG-045] GOT BLOB, NOT ARRAYBUFFER — binaryType may not be set')
+        console.warn('[BUG-045] Blob size:', event.data.size)
+        event.data.arrayBuffer().then(ab => {
+          console.info('[BUG-045] Converted Blob→ArrayBuffer, byteLength:', ab.byteLength)
+          playerRef.current?.play(ab)
+        })
         return
       }
 
