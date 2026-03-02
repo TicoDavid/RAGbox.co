@@ -370,9 +370,17 @@ function createTTSPlayer(sampleRate: number): {
 
   return {
     play(pcm: ArrayBuffer) {
+      // BUG-045: Skip silent padding frames from Inworld
+      // Silent frames are all-zero (unsigned) or all-32768 (unsigned silence center)
+      const quickCheck = new Uint16Array(pcm, 0, Math.min(100, Math.floor(pcm.byteLength / 2)))
+      const peakSample = Math.max(...Array.from(quickCheck))
+      if (peakSample === 0 || peakSample === 32768) {
+        console.info('[BUG-045] Skipping silent frame, byteLength:', pcm.byteLength)
+        return
+      }
+
       if (!ctx) ctx = new AudioContext({ sampleRate })
       // BUG-044: Chrome suspends AudioContext created outside user gestures.
-      // play() is called from ws.onmessage, not a click handler, so resume().
       if (ctx.state === 'suspended') ctx.resume()
 
       // BUG-045 DIAG: AudioContext state and sample rate
@@ -380,26 +388,31 @@ function createTTSPlayer(sampleRate: number): {
         'ctx.state:', ctx.state, 'ctx.sampleRate:', ctx.sampleRate,
         'requested sampleRate:', sampleRate)
 
-      // Guard: Int16Array requires even byte length (2 bytes per sample)
+      // Guard: Uint16Array requires even byte length (2 bytes per sample)
       const safePcm = pcm.byteLength % 2 !== 0
         ? pcm.slice(0, pcm.byteLength - 1)
         : pcm
-      const int16 = new Int16Array(safePcm)
 
-      // BUG-045 DIAG: Check Int16 sample values
-      const sampleCount = Math.min(1000, int16.length)
-      const sampleSlice = Array.from(int16.slice(0, sampleCount))
-      const min = Math.min(...sampleSlice)
-      const max = Math.max(...sampleSlice)
-      console.info('[BUG-045] Int16 first 10:', Array.from(int16.slice(0, 10)),
-        'range:', min, 'to', max, 'totalSamples:', int16.length)
+      // BUG-045 FIX: Read as Uint16 (unsigned) — Inworld sends unsigned Int16 PCM.
+      // Confirmed by CPO DevTools: sample range 0–32767 (positive-only through
+      // signed Int16Array view), meaning raw values are 0–65535 unsigned.
+      const uint16 = new Uint16Array(safePcm)
 
-      const float32 = new Float32Array(int16.length)
-      for (let i = 0; i < int16.length; i++) {
-        float32[i] = int16[i] / 32768
+      // BUG-045 DIAG: Check Uint16 sample values
+      const sampleCount = Math.min(1000, uint16.length)
+      const sampleSlice = Array.from(uint16.slice(0, sampleCount))
+      console.info('[BUG-045] Uint16 first 10:', Array.from(uint16.slice(0, 10)),
+        'range:', Math.min(...sampleSlice), 'to', Math.max(...sampleSlice),
+        'totalSamples:', uint16.length)
+
+      // Convert unsigned (0–65535) to signed float (-1.0 to 1.0).
+      // Unsigned 32768 = silence (zero crossing).
+      const float32 = new Float32Array(uint16.length)
+      for (let i = 0; i < uint16.length; i++) {
+        float32[i] = (uint16[i] - 32768) / 32768.0
       }
 
-      // BUG-045 DIAG: Float32 values should be in [-1.0, 1.0]
+      // BUG-045 DIAG: Float32 values should now span [-1.0, 1.0] symmetrically
       const f32Slice = Array.from(float32.slice(0, sampleCount))
       console.info('[BUG-045] Float32 first 5:', Array.from(float32.slice(0, 5)).map(v => v.toFixed(4)),
         'range:', Math.min(...f32Slice).toFixed(4), 'to', Math.max(...f32Slice).toFixed(4))
