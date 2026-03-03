@@ -1,207 +1,285 @@
 /**
- * EPIC-023: Two-Mode Voice Query Classification Tests
+ * BUG-046: Two-Mode Voice Query Classification Tests (Inverted Logic)
  *
- * Tests for Sheldon's conversational vs. document query classifier.
- * Conversational queries bypass RAG entirely and get natural responses.
- * Document queries go through the full RAG pipeline with citations.
+ * CRITICAL FIX: Document query is now the DEFAULT. Only pure greetings
+ * and small talk are conversational. This matches Sheldon's inverted
+ * classifyQuery from BUG-046.
  *
- * Classifier logic replicated from EPIC-023 spec. Once Sheldon exports
- * classifyQuery from voice-pipeline-v3, replace the replicated function
- * with: import { classifyQuery } from '../voice-pipeline-v3'
+ * CPO test evidence (Deploy 25): Evelyn couldn't access the vault because
+ * classifyQuery defaulted to conversational. Natural language requests like
+ * "I would like to take a look inside of the RAGbox" were routed away from
+ * RAG. Now: if it's not a pure greeting/small-talk, it goes to RAG.
  *
- * Data flow:
- *   STT transcript → classifyQuery(text) → 'conversational' | 'document'
- *   conversational → conversational system prompt (no RAG, no grounding)
- *   document → existing RAG pipeline with Silence Protocol
+ * CPO's words: "She is the same as the chat window but uses her voice."
+ *
+ * TODO: Replace with import { classifyQuery } from '../voice-pipeline-v3'
+ *       once Sheldon exports the function.
  *
  * — Sarah, QA
  */
 
-// ─── Replicated classifier from EPIC-023 spec ───────────────────────────────
-// This is the expected behavior defined in the sprint order.
-// TODO: Replace with import { classifyQuery } from '../voice-pipeline-v3'
-//       once Sheldon commits his implementation.
+// ─── Replicated classifier from BUG-046 spec (inverted logic) ───────────────
+// Document is the default. Only narrow conversational patterns bypass RAG.
 
 type QueryType = 'conversational' | 'document'
 
 function classifyQuery(text: string): QueryType {
-  const lower = text.toLowerCase().trim()
+  const q = text.toLowerCase().trim()
 
   // Empty / whitespace → safe conversational default
-  if (!lower) return 'conversational'
+  if (!q) return 'conversational'
 
-  // Platform / help questions are conversational even if they mention "document"
-  const PLATFORM_PATTERNS = [
-    /^how do i /,
-    /^help me /,
-    /^can you help/,
-    /^how can i /,
-    /^how do you /,
+  // CONVERSATIONAL: Only pure greetings and small talk
+  const conversationalPatterns = [
+    /^(hi|hello|hey|howdy|greetings|good\s+(morning|afternoon|evening))[\s!?.]*$/,
+    /^(how are you|how's it going|what's up)[\s!?.]*$/,
+    /^(thank(s| you)|bye|goodbye|see you|take care)[\s!?.]*$/,
+    /^(yes|no|ok|okay|sure|great|got it|perfect|awesome)[\s!?.]*$/,
+    /\b(can you hear|hear me|testing|is this working|are you there)\b/,
+    /\b(who are you|what's your name|what can you do|tell me about yourself)\b/,
   ]
-  for (const pattern of PLATFORM_PATTERNS) {
-    if (pattern.test(lower)) return 'conversational'
+
+  for (const pattern of conversationalPatterns) {
+    if (pattern.test(q)) return 'conversational'
   }
 
-  // Document signals — keywords that indicate the user wants RAG retrieval
-  const DOC_PATTERNS = [
-    // Explicit document types
-    /\b(document|file|contract|report|agreement|lease|nda|pitch|memo)\b/,
-    // Analysis verbs
-    /\b(summarize|summary|extract|compare|risks?|clause|section)\b/,
-    // Document reference phrases
-    /\bfind in\b/,
-    /\baccording to\b/,
-    /\bwhat does it say\b/,
-    /\bwhat does the\b/,
-    /\bin my vault\b/,
-    /\bin the vault\b/,
-  ]
-  for (const pattern of DOC_PATTERNS) {
-    if (pattern.test(lower)) return 'document'
-  }
-
-  // Everything else is conversational (greetings, small talk, about-me, etc.)
-  return 'conversational'
+  // EVERYTHING ELSE → document query (let RAG handle it)
+  return 'document'
 }
 
 // ============================================================================
-// CONVERSATIONAL QUERIES — bypass RAG entirely
+// CPO TEST QUERIES — these MUST all classify as document (BUG-046 evidence)
 // ============================================================================
 
-describe('Query Classification — Conversational (EPIC-023)', () => {
+describe('BUG-046 — CPO Test Queries (MUST be document)', () => {
 
-  it('"hello" classified as conversational', () => {
+  it('"I would like to take a look inside of the RAGbox" → document', () => {
+    expect(classifyQuery('I would like to take a look inside of the RAGbox')).toBe('document')
+  })
+
+  it('"I need to study the investor pitch script.docx" → document', () => {
+    expect(classifyQuery('I need to study the investor pitch script.docx')).toBe('document')
+  })
+
+  it('"full details on the investor pitch script" → document', () => {
+    expect(classifyQuery('full details on the investor pitch script')).toBe('document')
+  })
+
+  it('"What documents can you see?" → document', () => {
+    expect(classifyQuery('What documents can you see?')).toBe('document')
+  })
+})
+
+// ============================================================================
+// CONVERSATIONAL — only pure greetings and small talk bypass RAG
+// ============================================================================
+
+describe('Query Classification — Conversational (BUG-046 inverted)', () => {
+
+  // Pure greetings (anchored — entire string must be just the greeting)
+  it('"hello" → conversational', () => {
     expect(classifyQuery('hello')).toBe('conversational')
   })
 
-  it('"can you hear me" classified as conversational', () => {
-    expect(classifyQuery('can you hear me')).toBe('conversational')
-  })
-
-  it('"who are you" classified as conversational', () => {
-    expect(classifyQuery('who are you')).toBe('conversational')
-  })
-
-  it('"how are you doing today" classified as conversational', () => {
-    expect(classifyQuery('how are you doing today')).toBe('conversational')
-  })
-
-  it('"thanks Mercury" classified as conversational', () => {
-    expect(classifyQuery('thanks Mercury')).toBe('conversational')
-  })
-
-  it('"how do I upload a document" classified as conversational (platform question)', () => {
-    // Platform help questions are conversational even with "document" keyword
-    expect(classifyQuery('how do I upload a document')).toBe('conversational')
-  })
-
-  it('"hi" classified as conversational', () => {
+  it('"hi" → conversational', () => {
     expect(classifyQuery('hi')).toBe('conversational')
   })
 
-  it('"hey" classified as conversational', () => {
+  it('"hey" → conversational', () => {
     expect(classifyQuery('hey')).toBe('conversational')
   })
 
-  it('"good morning" classified as conversational', () => {
+  it('"good morning" → conversational', () => {
     expect(classifyQuery('good morning')).toBe('conversational')
   })
 
-  it('"goodbye" classified as conversational', () => {
+  it('"good afternoon" → conversational', () => {
+    expect(classifyQuery('good afternoon')).toBe('conversational')
+  })
+
+  it('"good evening" → conversational', () => {
+    expect(classifyQuery('good evening')).toBe('conversational')
+  })
+
+  // Pure small talk (anchored)
+  it('"how are you" → conversational (exact phrase)', () => {
+    expect(classifyQuery('how are you')).toBe('conversational')
+  })
+
+  it('"how are you?" → conversational (with punctuation)', () => {
+    expect(classifyQuery('how are you?')).toBe('conversational')
+  })
+
+  it('"what\'s up" → conversational', () => {
+    expect(classifyQuery("what's up")).toBe('conversational')
+  })
+
+  // Farewells (anchored)
+  it('"goodbye" → conversational', () => {
     expect(classifyQuery('goodbye')).toBe('conversational')
   })
 
-  it('"thank you" classified as conversational', () => {
+  it('"bye" → conversational', () => {
+    expect(classifyQuery('bye')).toBe('conversational')
+  })
+
+  it('"thank you" → conversational', () => {
     expect(classifyQuery('thank you')).toBe('conversational')
   })
 
-  it('"what can you do" classified as conversational', () => {
-    expect(classifyQuery('what can you do')).toBe('conversational')
+  it('"thanks" → conversational', () => {
+    expect(classifyQuery('thanks')).toBe('conversational')
   })
 
-  it('"what\'s your name" classified as conversational', () => {
+  it('"see you" → conversational', () => {
+    expect(classifyQuery('see you')).toBe('conversational')
+  })
+
+  // Pleasantries (anchored)
+  it('"ok" → conversational', () => {
+    expect(classifyQuery('ok')).toBe('conversational')
+  })
+
+  it('"great" → conversational', () => {
+    expect(classifyQuery('great')).toBe('conversational')
+  })
+
+  it('"got it" → conversational', () => {
+    expect(classifyQuery('got it')).toBe('conversational')
+  })
+
+  it('"sure" → conversational', () => {
+    expect(classifyQuery('sure')).toBe('conversational')
+  })
+
+  it('"awesome" → conversational', () => {
+    expect(classifyQuery('awesome')).toBe('conversational')
+  })
+
+  // Audio checks (word boundary — can appear in longer sentences)
+  it('"can you hear me" → conversational', () => {
+    expect(classifyQuery('can you hear me')).toBe('conversational')
+  })
+
+  it('"testing" → conversational', () => {
+    expect(classifyQuery('testing')).toBe('conversational')
+  })
+
+  it('"is this working" → conversational', () => {
+    expect(classifyQuery('is this working')).toBe('conversational')
+  })
+
+  it('"are you there" → conversational', () => {
+    expect(classifyQuery('are you there')).toBe('conversational')
+  })
+
+  // About Mercury (word boundary — can appear in longer sentences)
+  it('"who are you" → conversational', () => {
+    expect(classifyQuery('who are you')).toBe('conversational')
+  })
+
+  it('"what\'s your name" → conversational', () => {
     expect(classifyQuery("what's your name")).toBe('conversational')
   })
 
-  it('"I\'m frustrated" classified as conversational', () => {
-    expect(classifyQuery("I'm frustrated")).toBe('conversational')
+  it('"what can you do" → conversational', () => {
+    expect(classifyQuery('what can you do')).toBe('conversational')
   })
 
-  it('"what do you think about AI" classified as conversational', () => {
-    expect(classifyQuery('what do you think about AI')).toBe('conversational')
+  it('"tell me about yourself" → conversational', () => {
+    expect(classifyQuery('tell me about yourself')).toBe('conversational')
   })
 
-  it('"help me with my account" classified as conversational (platform question)', () => {
-    expect(classifyQuery('help me with my account')).toBe('conversational')
+  // Empty / whitespace → safe conversational default
+  it('empty string → conversational', () => {
+    expect(classifyQuery('')).toBe('conversational')
+  })
+
+  it('whitespace-only → conversational', () => {
+    expect(classifyQuery('   ')).toBe('conversational')
   })
 })
 
 // ============================================================================
-// DOCUMENT QUERIES — full RAG pipeline with citations
+// DOCUMENT — everything that isn't a pure greeting goes to RAG
 // ============================================================================
 
-describe('Query Classification — Document Query (EPIC-023)', () => {
+describe('Query Classification — Document (BUG-046 inverted)', () => {
 
-  it('"what does the contract say about liability" classified as document', () => {
+  // Explicit document requests
+  it('"what does the contract say about liability" → document', () => {
     expect(classifyQuery('what does the contract say about liability')).toBe('document')
   })
 
-  it('"summarize the executive summary" classified as document', () => {
+  it('"summarize the executive summary" → document', () => {
     expect(classifyQuery('summarize the executive summary')).toBe('document')
   })
 
-  it('"find risks in the investor pitch" classified as document', () => {
+  it('"find risks in the investor pitch" → document', () => {
     expect(classifyQuery('find risks in the investor pitch')).toBe('document')
   })
 
-  it('"compare these two documents" classified as document', () => {
+  it('"compare these two documents" → document', () => {
     expect(classifyQuery('compare these two documents')).toBe('document')
   })
 
-  it('"tell me about the document you have" classified as document', () => {
-    expect(classifyQuery('tell me about the document you have')).toBe('document')
-  })
-
-  it('"what\'s in my NDA" classified as document', () => {
+  it('"what\'s in my NDA" → document', () => {
     expect(classifyQuery("what's in my NDA")).toBe('document')
   })
 
-  it('"find the termination clause" classified as document', () => {
+  it('"find the termination clause" → document', () => {
     expect(classifyQuery('find the termination clause')).toBe('document')
   })
 
-  it('"what does section 4 say" classified as document', () => {
-    expect(classifyQuery('what does section 4 say')).toBe('document')
-  })
-
-  it('"show me the contract details" classified as document', () => {
-    expect(classifyQuery('show me the contract details')).toBe('document')
-  })
-
-  it('"extract key terms from the agreement" classified as document', () => {
+  it('"extract key terms from the agreement" → document', () => {
     expect(classifyQuery('extract key terms from the agreement')).toBe('document')
   })
 
-  it('"according to the report" classified as document', () => {
-    expect(classifyQuery('according to the report, what are the projections')).toBe('document')
+  // Natural language requests (the ones that broke in Deploy 25)
+  it('"I want to look inside the RAGbox" → document', () => {
+    expect(classifyQuery('I want to look inside the RAGbox')).toBe('document')
   })
 
-  it('"find in my vault" classified as document', () => {
-    expect(classifyQuery('find in my vault the indemnification clause')).toBe('document')
+  it('"what files do I have" → document', () => {
+    expect(classifyQuery('what files do I have')).toBe('document')
   })
-})
 
-// ============================================================================
-// EDGE CASES — mixed intent, boundaries, normalization
-// ============================================================================
+  it('"show me what you have" → document', () => {
+    expect(classifyQuery('show me what you have')).toBe('document')
+  })
 
-describe('Query Classification — Edge Cases (EPIC-023)', () => {
+  it('"tell me about the document you have" → document', () => {
+    expect(classifyQuery('tell me about the document you have')).toBe('document')
+  })
 
-  it('"Hello, can you find my document?" → document (intent wins over greeting)', () => {
+  // Queries that OLD logic misclassified as conversational (BUG-046 root cause)
+  it('"how do I upload a document" → document (no platform exception)', () => {
+    // Old logic had platform patterns — inverted logic sends everything to RAG
+    expect(classifyQuery('how do I upload a document')).toBe('document')
+  })
+
+  it('"help me with my account" → document', () => {
+    expect(classifyQuery('help me with my account')).toBe('document')
+  })
+
+  it('"I\'m frustrated" → document', () => {
+    expect(classifyQuery("I'm frustrated")).toBe('document')
+  })
+
+  it('"what do you think about AI" → document', () => {
+    expect(classifyQuery('what do you think about AI')).toBe('document')
+  })
+
+  it('"what can you tell me" → document', () => {
+    expect(classifyQuery('what can you tell me')).toBe('document')
+  })
+
+  // Greeting + document intent → document (greeting is NOT pure)
+  it('"Hello, can you find my document?" → document', () => {
     expect(classifyQuery('Hello, can you find my document?')).toBe('document')
   })
 
-  it('"Thanks, now summarize the lease" → document (intent wins over thanks)', () => {
+  it('"Thanks, now summarize the lease" → document', () => {
     expect(classifyQuery('Thanks, now summarize the lease')).toBe('document')
   })
 
@@ -209,46 +287,90 @@ describe('Query Classification — Edge Cases (EPIC-023)', () => {
     expect(classifyQuery('Hey, what does my NDA say about non-compete?')).toBe('document')
   })
 
-  it('"what can you tell me" → conversational (no doc keywords)', () => {
-    expect(classifyQuery('what can you tell me')).toBe('conversational')
+  // Extra words after greeting → NOT pure greeting → document
+  it('"how are you doing today" → document (not pure "how are you")', () => {
+    expect(classifyQuery('how are you doing today')).toBe('document')
   })
 
-  it('empty string → conversational (safe default)', () => {
-    expect(classifyQuery('')).toBe('conversational')
+  it('"thanks Mercury" → document (not pure "thanks")', () => {
+    expect(classifyQuery('thanks Mercury')).toBe('document')
   })
 
-  it('whitespace-only → conversational (safe default)', () => {
-    expect(classifyQuery('   ')).toBe('conversational')
+  // File extensions
+  it('"open the budget.xlsx" → document', () => {
+    expect(classifyQuery('open the budget.xlsx')).toBe('document')
+  })
+
+  it('"read contract_v2.pdf" → document', () => {
+    expect(classifyQuery('read contract_v2.pdf')).toBe('document')
+  })
+})
+
+// ============================================================================
+// EDGE CASES — normalization, case sensitivity, boundaries
+// ============================================================================
+
+describe('Query Classification — Edge Cases (BUG-046)', () => {
+
+  it('case insensitive — "HELLO" → conversational', () => {
+    expect(classifyQuery('HELLO')).toBe('conversational')
   })
 
   it('case insensitive — "SUMMARIZE THE REPORT" → document', () => {
     expect(classifyQuery('SUMMARIZE THE REPORT')).toBe('document')
   })
 
-  it('case insensitive — "HELLO" → conversational', () => {
-    expect(classifyQuery('HELLO')).toBe('conversational')
+  it('case insensitive — "GOOD MORNING" → conversational', () => {
+    expect(classifyQuery('GOOD MORNING')).toBe('conversational')
   })
 
-  it('"how do I find a file" → conversational (platform pattern overrides doc keyword)', () => {
-    expect(classifyQuery('how do I find a file')).toBe('conversational')
+  it('punctuation on greetings — "hello!" → conversational', () => {
+    expect(classifyQuery('hello!')).toBe('conversational')
   })
 
-  it('"how can I upload my contract" → conversational (platform question)', () => {
-    expect(classifyQuery('how can I upload my contract')).toBe('conversational')
+  it('punctuation on greetings — "hey?" → conversational', () => {
+    expect(classifyQuery('hey?')).toBe('conversational')
+  })
+
+  it('"hello there" → document (extra word, not pure greeting)', () => {
+    expect(classifyQuery('hello there')).toBe('document')
+  })
+
+  it('"thank you very much" → document (extra words, not pure "thank you")', () => {
+    expect(classifyQuery('thank you very much')).toBe('document')
+  })
+
+  it('"hey, who are you?" → conversational (about-Mercury uses word boundary)', () => {
+    // "who are you" is a \b word boundary pattern, not anchored
+    expect(classifyQuery('hey, who are you?')).toBe('conversational')
+  })
+
+  it('"hey, can you hear me?" → conversational (audio check uses word boundary)', () => {
+    expect(classifyQuery('hey, can you hear me?')).toBe('conversational')
+  })
+
+  it('"Didn\'t quite hear that. What did you say?" → document', () => {
+    // From CPO test evidence — marked OK, RAG can handle it
+    expect(classifyQuery("Didn't quite hear that. What did you say?")).toBe('document')
+  })
+
+  it('trailing spaces trimmed — "  hello  " → conversational', () => {
+    expect(classifyQuery('  hello  ')).toBe('conversational')
   })
 })
 
 // ============================================================================
-// CLASSIFIER CONTRACT — return type validation
+// CONTRACT — return type validation
 // ============================================================================
 
-describe('Query Classification — Contract (EPIC-023)', () => {
+describe('Query Classification — Contract (BUG-046)', () => {
 
   it('always returns "conversational" or "document"', () => {
     const queries = [
       'hello', 'summarize the report', '', '   ',
-      'what does the contract say', 'goodbye',
-      'How do I upload a document', 'compare these files',
+      'I would like to take a look inside of the RAGbox',
+      'goodbye', 'What documents can you see?',
+      'full details on the investor pitch script',
     ]
     for (const q of queries) {
       const result = classifyQuery(q)
@@ -258,7 +380,7 @@ describe('Query Classification — Contract (EPIC-023)', () => {
 
   it('return type is a string, not undefined or null', () => {
     expect(typeof classifyQuery('hello')).toBe('string')
-    expect(typeof classifyQuery('summarize the report')).toBe('string')
+    expect(typeof classifyQuery('look inside the RAGbox')).toBe('string')
     expect(typeof classifyQuery('')).toBe('string')
   })
 })
