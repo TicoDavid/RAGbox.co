@@ -7,6 +7,21 @@ import { detectToolIntent } from '@/lib/mercury/toolRouter'
 import { executeTool, type ToolResult } from '@/lib/mercury/toolExecutor'
 import { toCitationBlocks } from '@/lib/citations/transform'
 import { logger } from '@/lib/logger'
+import { useVaultStore } from '@/stores/vaultStore'
+
+// BUG-048: UUID pattern for detecting raw document IDs in citation names
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * BUG-048: Resolve document display name from vaultStore when the Go backend
+ * returns a UUID or empty string instead of the actual filename.
+ */
+function resolveDocumentName(documentId: string, backendName?: string): string {
+  if (backendName && !UUID_RE.test(backendName)) return backendName
+  const doc = useVaultStore.getState().documents[documentId]
+  if (doc?.name) return doc.name
+  return backendName || 'Document'
+}
 
 const AEGIS_INTELLIGENCE: ActiveIntelligence = {
   id: 'aegis-core',
@@ -463,7 +478,7 @@ export const useMercuryStore = create<MercuryState>()(
               citations.map((c, i) => ({
                 citationIndex: c.citationIndex ?? i,
                 documentId: c.documentId ?? '',
-                documentName: c.documentName ?? 'Document',
+                documentName: resolveDocumentName(c.documentId ?? '', c.documentName),
                 excerpt: c.excerpt ?? '',
                 relevanceScore: c.relevanceScore ?? 0,
               })),
