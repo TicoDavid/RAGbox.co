@@ -44,7 +44,7 @@ interface MercuryConfig {
   name?: string
   voiceId?: string
   greeting?: string
-  personalityPrompt?: string
+  personalityPrompt?: string  // free-text custom instructions for persona
 }
 
 export interface VoiceSession {
@@ -62,16 +62,142 @@ export interface VoiceSession {
 // ============================================================================
 
 /**
- * Audio format contract (must match browser AudioContext):
+ * Audio format contract:
  *
  * Browser -> Server:  PCM Int16 (s16le), 48 kHz, mono
  * Server internal:    Float32 (Inworld Runtime native format)
- * Server -> Browser:  PCM Int16 (s16le), 48 kHz, mono
+ * Server -> Browser:  Float32 PCM, 48 kHz, mono (raw Buffer from Inworld SDK)
  */
 const SAMPLE_RATE = 48000
 const DEFAULT_TTS_MODEL_ID = 'inworld-tts-1-max'
 const DEFAULT_VOICE_ID = 'Ashley'
-const DEFAULT_GREETING = "Hello, I'm Mercury. How can I help you today?"
+const DEFAULT_GREETING = "Hello! How can I help you today?"
+
+// ============================================================================
+// EPIC-023: Two-mode query classification
+// ============================================================================
+
+/**
+ * Classify a voice query as conversational or document-related.
+ * Document queries go through RAG. Everything else is conversational.
+ * Default: conversational — only route to RAG when user explicitly
+ * asks about documents. "Can you hear me?" should NEVER trigger RAG.
+ */
+export function classifyQuery(query: string): 'conversational' | 'document' {
+  const q = query.toLowerCase().trim()
+
+  // Platform help questions are conversational even if they mention documents
+  if (/\b(how do i|how can i|how to|where do i|help me with)\b/.test(q)
+    && !/\b(say|state|mention|contain)\b/.test(q)) {
+    return 'conversational'
+  }
+
+  // Document query: explicit document actions or references
+  if (
+    /\b(summarize|extract|cite|citation)\b/.test(q)
+    || /\b(find\s+in|search\s+(for|through)|look\s+(up|through)|according\s+to)\b/.test(q)
+    || /\bwhat\s+does\s+(the|my|this|that)\s+\w+\s+(say|state|mention|contain)\b/.test(q)
+    || /\b(vault|uploaded|my\s+files|my\s+documents)\b/.test(q)
+    || /\b(clause|section|paragraph)\b/.test(q)
+    || (/\b(document|file|report|contract|agreement|invoice|memo|pdf|spreadsheet)\b/.test(q)
+      && /\b(about|in|from|says?|states?|mentions?|contains?|compare|analyze|review|risks?)\b/.test(q))
+  ) {
+    return 'document'
+  }
+
+  return 'conversational'
+}
+
+// ============================================================================
+// Conversational response generation (EPIC-023)
+// ============================================================================
+
+/**
+ * Generate a persona-driven conversational response for non-document queries.
+ * Used directly for conversational mode and as fallback for grounding refusals.
+ */
+export function generateConversationalResponse(
+  userQuery: string,
+  agentName: string,
+  personality?: string,
+): string {
+  const q = userQuery.toLowerCase().trim()
+
+  // Greeting
+  if (/\b(hi|hello|hey|howdy|greetings|good\s*(morning|afternoon|evening)|what'?s\s*up)\b/.test(q)) {
+    return pickResponse([
+      `Hello! I'm ${agentName}. I can help you with your documents or just chat. What's on your mind?`,
+      `Hey there! ${agentName} here, ready to help. What can I do for you?`,
+      `Hi! I'm ${agentName}. Ask me anything about your documents, or let's just talk.`,
+    ], q)
+  }
+
+  // Audio check / "can you hear me"
+  if (/\b(can you hear|hear me|audio|testing|is this working|are you there)\b/.test(q)) {
+    return pickResponse([
+      `Yes, I can hear you! I'm ${agentName}. How can I help?`,
+      `Loud and clear! ${agentName} here. What would you like to talk about?`,
+    ], q)
+  }
+
+  // Identity
+  if (/\b(who are you|what are you|what'?s your name|what can you do|tell me about yourself|introduce yourself)\b/.test(q)) {
+    return `I'm ${agentName}, your AI assistant for RAGbox. I can search your documents, answer questions about your files, or just have a conversation. What would you like to know?`
+  }
+
+  // How are you / small talk
+  if (/\b(how are you|how'?s it going|what'?s new|how do you feel|are you okay|you doing)\b/.test(q)) {
+    return pickResponse([
+      `I'm doing great, thanks for asking! What can I help you with?`,
+      `All good here! I'm ready whenever you are. What's on your mind?`,
+    ], q)
+  }
+
+  // Thank you
+  if (/\b(thank you|thanks|appreciate it|grateful|thank)\b/.test(q)) {
+    return pickResponse([
+      `You're welcome! Let me know if there's anything else.`,
+      `Happy to help! Anything else on your mind?`,
+    ], q)
+  }
+
+  // Goodbye
+  if (/\b(goodbye|bye|see you|talk later|that'?s all|i'?m done|signing off)\b/.test(q)) {
+    return pickResponse([
+      `Goodbye! I'll be here whenever you need me.`,
+      `See you later! Come back anytime.`,
+    ], q)
+  }
+
+  // Help / capabilities
+  if (/\b(help|what can (i|you)|how do i|how does this)\b/.test(q)) {
+    return `I'd love to help! I can search your documents, answer questions about your files, get summaries, or compare documents. You can also just chat with me. What would you like to try?`
+  }
+
+  // Feelings / empathy
+  if (/\b(frustrated|confused|upset|worried|annoyed|stuck|lost)\b/.test(q)) {
+    return pickResponse([
+      `I understand that can be frustrating. Let me know what you're working on and I'll do my best to help.`,
+      `I'm sorry to hear that. Tell me more about what you need and I'll see how I can assist.`,
+    ], q)
+  }
+
+  // Opinions
+  if (/\b(what do you think|your opinion|do you think|what would you)\b/.test(q)) {
+    return `That's a great question! I'm best at helping with your documents, but I'm happy to chat about it. What would you like to explore?`
+  }
+
+  // Default conversational fallback
+  return pickResponse([
+    `I'm happy to chat! If you want to look into your documents, just ask me about any specific topic.`,
+    `That's interesting! Want me to search through your documents, or is there something else I can help with?`,
+    `I'm here to help! If it's related to your documents, I can search for information. Otherwise, let's keep talking.`,
+  ], q)
+}
+
+// ============================================================================
+// Grounding refusal interceptor (safety net for document queries)
+// ============================================================================
 
 // BUG-042 Bug B: Grounding refusal patterns — RAG returns these when it can't
 // find relevant documents. Mercury should respond conversationally instead.
@@ -107,10 +233,8 @@ function pickResponse(options: string[], seed: string): string {
 /**
  * BUG-042 Bug B: Detect and replace RAG grounding refusals with
  * a natural conversational response using the agent's persona.
- *
- * When AEGIS RAG triggers Silence Protocol (zero matching documents)
- * or returns a low-confidence refusal, this interceptor catches it
- * and returns a natural persona-driven response instead.
+ * Safety net for document queries that return Silence Protocol.
+ * EPIC-023: Now delegates response generation to generateConversationalResponse().
  */
 export function interceptGroundingRefusal(
   response: string,
@@ -119,7 +243,6 @@ export function interceptGroundingRefusal(
 ): string {
   const lower = response.toLowerCase().trim()
 
-  // Empty or very short responses are treated as refusals
   const isRefusal = lower.length < 5
     || GROUNDING_REFUSAL_PATTERNS.some(p => lower.includes(p))
 
@@ -131,57 +254,7 @@ export function interceptGroundingRefusal(
     agentName,
   })
 
-  const q = userQuery.toLowerCase().trim()
-
-  // Greeting patterns (word-boundary, not start-anchored)
-  if (/\b(hi|hello|hey|howdy|greetings|good\s*(morning|afternoon|evening)|what'?s\s*up)\b/i.test(q)) {
-    return pickResponse([
-      `Hello! I'm ${agentName}, your AI assistant. I can help you search and analyze your documents, answer questions about your files, or just chat. What would you like to do?`,
-      `Hey there! ${agentName} here. I'm ready to help you with your documents or answer any questions. What's on your mind?`,
-      `Hi! I'm ${agentName}. I can search through your documents, answer questions, or just have a conversation. How can I help?`,
-    ], q)
-  }
-
-  // Self-referential / identity questions
-  if (/\b(who are you|what are you|tell me about yourself|what can you do|what do you do|your name|introduce yourself)\b/i.test(q)) {
-    return `I'm ${agentName}, the AI assistant for RAGbox. I can search through your documents, answer questions based on your uploaded files, help you find specific information, and have a conversation. Try asking me about something in your vault!`
-  }
-
-  // How are you / feelings / small talk
-  if (/\b(how are you|how'?s it going|what'?s new|how do you feel|are you okay|you doing)\b/i.test(q)) {
-    return pickResponse([
-      `I'm doing great, thanks for asking! I'm ready to help you with your documents and questions. What can I assist you with?`,
-      `All good here! I'm ${agentName}, ready and waiting. What would you like to know about your documents?`,
-    ], q)
-  }
-
-  // Thank you / gratitude
-  if (/\b(thank you|thanks|appreciate it|grateful)\b/i.test(q)) {
-    return pickResponse([
-      `You're welcome! Let me know if there's anything else I can help with.`,
-      `Happy to help! Is there anything else you'd like to know?`,
-    ], q)
-  }
-
-  // Goodbye / farewell
-  if (/\b(goodbye|bye|see you|talk later|that'?s all|i'?m done|signing off)\b/i.test(q)) {
-    return pickResponse([
-      `Goodbye! Feel free to come back anytime you need help with your documents.`,
-      `See you later! I'll be here whenever you need me.`,
-    ], q)
-  }
-
-  // Help / capabilities
-  if (/\b(help me|can you help|what can i ask|how does this work|what should i ask)\b/i.test(q)) {
-    return `I can help you in several ways! Ask me about the contents of your uploaded documents, search for specific information, get summaries, or compare documents. You can also just chat with me. What would you like to try?`
-  }
-
-  // Default conversational fallback
-  return pickResponse([
-    `That's an interesting question, but I don't have a specific document about it. I can help you search through your uploaded files, or you can ask me something else. What would you like to know?`,
-    `I don't have a document that covers that topic, but I'm happy to help! Try asking about something in your vault, or rephrase your question.`,
-    `I couldn't find that in your documents, but I'm here to help. Want to ask about something specific in your files?`,
-  ], q)
+  return generateConversationalResponse(userQuery, agentName)
 }
 
 // Go backend for LLM + Mercury config
@@ -273,7 +346,8 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
   const mercuryConfig = await fetchMercuryConfig(toolContext?.userId || 'anonymous')
   const agentName = mercuryConfig.name || 'Mercury'
   const voiceId = mercuryConfig.voiceId || DEFAULT_VOICE_ID
-  console.info('[VoicePipeline-v3] Session config', { agentName, voiceId })
+  const personality = mercuryConfig.personalityPrompt || ''
+  console.info('[VoicePipeline-v3] Session config', { agentName, voiceId, hasPersonality: !!personality })
 
   // Build tool descriptions for system context (sent to Go backend via history)
   const toolDescriptions = TOOL_DEFINITIONS.map(t => {
@@ -306,7 +380,7 @@ Current user context:
     { role: 'system', content: systemPrompt },
   ]
 
-  // Create TTS component
+  // Create TTS component — EPIC-023: temperature 1.1 for expressiveness
   const ttsComponent = new RemoteTTSComponent({
     id: 'tts_component',
     synthesisConfig: {
@@ -314,7 +388,7 @@ Current user context:
       config: {
         modelId: DEFAULT_TTS_MODEL_ID,
         inference: {
-          temperature: 0.8,
+          temperature: 1.1,
           speakingRate: 1.0,
         },
         postprocessing: {
@@ -390,6 +464,22 @@ Current user context:
       if (!isToolResult) {
         onTranscriptFinal?.(userText)
         conversationHistory.push({ role: 'user', content: userText })
+
+        // EPIC-023: Two-mode query classification
+        const queryMode = classifyQuery(userText)
+        console.info('[VoicePipeline-v3] Query classified', { mode: queryMode, preview: userText.substring(0, 50) })
+
+        if (queryMode === 'conversational') {
+          // Bypass RAG — generate persona-driven conversational response
+          const response = generateConversationalResponse(userText, agentName, personality)
+          onAgentTextFinal?.(response)
+          conversationHistory.push({ role: 'assistant', content: response })
+          if (response) {
+            await textToSpeech(response)
+          }
+          return
+        }
+        // Document query — fall through to Go backend RAG pipeline
       } else {
         conversationHistory.push({ role: 'user', content: `[Tool Result]\n${userText}` })
       }
@@ -570,21 +660,10 @@ Current user context:
                 const sampleCount = rawBuffer.length / 4 // 4 bytes per Float32
 
                 if (chunkCount === 0) {
-                  // BUG-045B diagnostic: confirm data type, sample rate, and actual Float32 values
-                  const view = new Float32Array(rawBuffer.buffer, rawBuffer.byteOffset, Math.min(10, sampleCount))
-                  const sample1000 = new Float32Array(rawBuffer.buffer, rawBuffer.byteOffset, Math.min(1000, sampleCount))
-                  let min = Infinity, max = -Infinity
-                  for (let i = 0; i < sample1000.length; i++) {
-                    if (sample1000[i] < min) min = sample1000[i]
-                    if (sample1000[i] > max) max = sample1000[i]
-                  }
-                  console.info('[BUG-045B] Audio data type:', chunk.audio.data?.constructor?.name,
-                    'byteLength:', rawBuffer.length, 'samples:', sampleCount)
-                  console.info('[BUG-045B] Float32 first 10:', Array.from(view).map(v => v.toFixed(6)))
-                  console.info('[BUG-045B] Float32 range: min:', min.toFixed(6), 'max:', max.toFixed(6))
-                  console.info('[TTS-DIAG] Audio metadata:', {
+                  console.info('[VoicePipeline-v3] TTS audio format:', {
+                    type: chunk.audio.data?.constructor?.name,
                     sampleRate: chunk.audio?.sampleRate,
-                    channels: chunk.audio?.channels,
+                    samples: sampleCount,
                     format: 'float32',
                   })
                 }
