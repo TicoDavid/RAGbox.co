@@ -370,12 +370,26 @@ function createTTSPlayer(sampleRate: number): {
 
   return {
     play(pcm: ArrayBuffer) {
-      // BUG-045: Skip silent padding frames from Inworld
-      // Silent frames are all-zero (unsigned) or all-32768 (unsigned silence center)
-      const quickCheck = new Uint16Array(pcm, 0, Math.min(100, Math.floor(pcm.byteLength / 2)))
-      const peakSample = Math.max(...Array.from(quickCheck))
-      if (peakSample === 0 || peakSample === 32768) {
-        console.info('[BUG-045] Skipping silent frame, byteLength:', pcm.byteLength)
+      // Skip empty frames
+      if (pcm.byteLength === 0) return
+
+      // BUG-045B: Sheldon sends raw Float32 PCM directly (4 bytes/sample, -1.0 to 1.0).
+      // No Int16/Uint16 conversion needed — Web Audio API uses Float32 natively.
+      // Guard: Float32Array requires byteLength divisible by 4
+      const safeLen = pcm.byteLength - (pcm.byteLength % 4)
+      const float32 = safeLen === pcm.byteLength
+        ? new Float32Array(pcm)
+        : new Float32Array(pcm.slice(0, safeLen))
+
+      // Skip silent padding frames (all samples near zero)
+      const checkLen = Math.min(100, float32.length)
+      let maxAbs = 0
+      for (let i = 0; i < checkLen; i++) {
+        const a = Math.abs(float32[i])
+        if (a > maxAbs) maxAbs = a
+      }
+      if (maxAbs < 0.0001) {
+        console.info('[BUG-045B] Skipping silent frame, byteLength:', pcm.byteLength)
         return
       }
 
@@ -383,44 +397,25 @@ function createTTSPlayer(sampleRate: number): {
       // BUG-044: Chrome suspends AudioContext created outside user gestures.
       if (ctx.state === 'suspended') ctx.resume()
 
-      // BUG-045 DIAG: AudioContext state and sample rate
-      console.info('[BUG-045] play() pcm.byteLength:', pcm.byteLength,
-        'ctx.state:', ctx.state, 'ctx.sampleRate:', ctx.sampleRate,
-        'requested sampleRate:', sampleRate)
-
-      // Guard: Uint16Array requires even byte length (2 bytes per sample)
-      const safePcm = pcm.byteLength % 2 !== 0
-        ? pcm.slice(0, pcm.byteLength - 1)
-        : pcm
-
-      // BUG-045 FIX: Read as Uint16 (unsigned) — Inworld sends unsigned Int16 PCM.
-      // Confirmed by CPO DevTools: sample range 0–32767 (positive-only through
-      // signed Int16Array view), meaning raw values are 0–65535 unsigned.
-      const uint16 = new Uint16Array(safePcm)
-
-      // BUG-045 DIAG: Check Uint16 sample values
-      const sampleCount = Math.min(1000, uint16.length)
-      const sampleSlice = Array.from(uint16.slice(0, sampleCount))
-      console.info('[BUG-045] Uint16 first 10:', Array.from(uint16.slice(0, 10)),
-        'range:', Math.min(...sampleSlice), 'to', Math.max(...sampleSlice),
-        'totalSamples:', uint16.length)
-
-      // Convert unsigned (0–65535) to signed float (-1.0 to 1.0).
-      // Unsigned 32768 = silence (zero crossing).
-      const float32 = new Float32Array(uint16.length)
-      for (let i = 0; i < uint16.length; i++) {
-        float32[i] = (uint16[i] - 32768) / 32768.0
+      // BUG-045B DIAG: verify Float32 values and AudioContext state
+      const diagLen = Math.min(1000, float32.length)
+      const diagSlice = float32.slice(0, diagLen)
+      let min = Infinity, max = -Infinity
+      for (let i = 0; i < diagSlice.length; i++) {
+        if (diagSlice[i] < min) min = diagSlice[i]
+        if (diagSlice[i] > max) max = diagSlice[i]
       }
-
-      // BUG-045 DIAG: Float32 values should now span [-1.0, 1.0] symmetrically
-      const f32Slice = Array.from(float32.slice(0, sampleCount))
-      console.info('[BUG-045] Float32 first 5:', Array.from(float32.slice(0, 5)).map(v => v.toFixed(4)),
-        'range:', Math.min(...f32Slice).toFixed(4), 'to', Math.max(...f32Slice).toFixed(4))
+      console.info('[BUG-045B] play() byteLength:', pcm.byteLength,
+        'samples:', float32.length, 'ctx.state:', ctx.state,
+        'ctx.sampleRate:', ctx.sampleRate)
+      console.info('[BUG-045B] Float32 first 5:',
+        Array.from(float32.slice(0, 5)).map(v => v.toFixed(4)),
+        'range:', min.toFixed(4), 'to', max.toFixed(4))
 
       const buffer = ctx.createBuffer(1, float32.length, sampleRate)
       buffer.getChannelData(0).set(float32)
       queue.push(buffer)
-      console.info('[BUG-045] Queued AudioBuffer: channels:', buffer.numberOfChannels,
+      console.info('[BUG-045B] Queued AudioBuffer: channels:', buffer.numberOfChannels,
         'length:', buffer.length, 'bufferSampleRate:', buffer.sampleRate,
         'queueSize:', queue.length)
 
@@ -671,28 +666,24 @@ export function useSovereignAgentVoice(
     }
 
     ws.onmessage = async (event) => {
-      // BUG-045 DIAG: Log frame type arriving from WebSocket
+      // BUG-045B: Binary = raw Float32 TTS audio from server
       if (event.data instanceof ArrayBuffer) {
         const byteLen = event.data.byteLength
-        console.info(`[BUG-045] ArrayBuffer received, byteLength: ${byteLen}, binaryType: ${ws.binaryType}`)
-        // Peek at raw Int16 samples before handing to player
+        console.info(`[BUG-045B] ArrayBuffer received, byteLength: ${byteLen}, samples: ${byteLen / 4}`)
+        // Peek at raw Float32 samples before handing to player
         if (byteLen >= 20) {
-          const peek = new Int16Array(event.data.slice(0, 2000))
-          console.info('[BUG-045] First 10 Int16 samples:', Array.from(peek.slice(0, 10)))
-          console.info('[BUG-045] Sample range (first 1000):',
-            'min:', Math.min(...Array.from(peek)),
-            'max:', Math.max(...Array.from(peek)))
+          const peek = new Float32Array(event.data.slice(0, Math.min(byteLen, 4000)))
+          console.info('[BUG-045B] First 10 Float32 samples:',
+            Array.from(peek.slice(0, 10)).map(v => v.toFixed(4)))
         }
         playerRef.current?.play(event.data)
         return
       }
 
-      // BUG-045 DIAG: Blob fallback — if binaryType wasn't set, data arrives as Blob
+      // BUG-045B: Blob fallback — if binaryType wasn't set, data arrives as Blob
       if (event.data instanceof Blob) {
-        console.warn('[BUG-045] GOT BLOB, NOT ARRAYBUFFER — binaryType may not be set')
-        console.warn('[BUG-045] Blob size:', event.data.size)
+        console.warn('[BUG-045B] GOT BLOB, NOT ARRAYBUFFER — binaryType may not be set')
         event.data.arrayBuffer().then(ab => {
-          console.info('[BUG-045] Converted Blob→ArrayBuffer, byteLength:', ab.byteLength)
           playerRef.current?.play(ab)
         })
         return
