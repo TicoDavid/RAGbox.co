@@ -1,20 +1,109 @@
+# Mercury Voice — Cloud Build CI/CD Pipeline
+# Canonical build config for mercury-voice Cloud Run service
+# Trigger: push to main (server/** changes)
+# Registry: us-east4-docker.pkg.dev/$PROJECT_ID/ragbox/mercury-voice
+
 steps:
+  # ==============================================
+  # Step 1: Build Docker Image
+  # ==============================================
   - id: 'build-voice'
     name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
+      - '-t'
+      - 'us-east4-docker.pkg.dev/$PROJECT_ID/ragbox/mercury-voice:$SHORT_SHA'
       - '-t'
       - 'us-east4-docker.pkg.dev/$PROJECT_ID/ragbox/mercury-voice:latest'
       - '-f'
       - 'server/Dockerfile'
       - '.'
 
+  # ==============================================
+  # Step 2: Push Docker Image (all tags)
+  # ==============================================
   - id: 'push-voice'
     name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - 'us-east4-docker.pkg.dev/$PROJECT_ID/ragbox/mercury-voice:latest'
+      - '--all-tags'
+      - 'us-east4-docker.pkg.dev/$PROJECT_ID/ragbox/mercury-voice'
     waitFor: ['build-voice']
+
+  # ==============================================
+  # Step 3: Deploy to Cloud Run
+  # ==============================================
+  - id: 'deploy-voice'
+    name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'mercury-voice'
+      - '--image'
+      - 'us-east4-docker.pkg.dev/$PROJECT_ID/ragbox/mercury-voice:$SHORT_SHA'
+      - '--region'
+      - 'us-east4'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--min-instances'
+      - '0'
+      - '--max-instances'
+      - '10'
+      - '--memory'
+      - '1Gi'
+      - '--cpu'
+      - '1'
+      - '--port'
+      - '3003'
+      - '--timeout'
+      - '3600'
+      - '--concurrency'
+      - '80'
+      - '--session-affinity'
+      - '--vpc-connector'
+      - 'ragbox-connector'
+      - '--vpc-egress'
+      - 'private-ranges-only'
+      - '--set-env-vars'
+      - 'NODE_ENV=production,VOICE_SERVER_PORT=3003,VOICE_SERVER_HOST=0.0.0.0,ALLOWED_ORIGINS=https://app.ragbox.co,GO_BACKEND_URL=https://ragbox-backend-100739220279.us-east4.run.app'
+      - '--set-secrets'
+      - 'DEEPGRAM_API_KEY=deepgram-api-key:latest,INWORLD_API_KEY=ragbox-inworld-api-key:latest,INTERNAL_AUTH_SECRET=ragbox-internal-auth-secret:latest,DATABASE_URL=ragbox-prod-database-url:latest,VOICE_JWT_SECRET=ragbox-voice-jwt-secret:latest'
+      - '--service-account'
+      - 'ragbox-prod-cloudrun@$PROJECT_ID.iam.gserviceaccount.com'
+    waitFor: ['push-voice']
+
+  # ==============================================
+  # Step 4: Verify Deployment
+  # ==============================================
+  - id: 'verify-voice'
+    name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        SERVICE_URL=$$(gcloud run services describe mercury-voice \
+          --region=us-east4 \
+          --format='value(status.url)')
+
+        echo "mercury-voice deployed at: $$SERVICE_URL"
+
+        for i in 1 2 3 4 5 6 7 8 9 10; do
+          STATUS=$$(curl -sf "$$SERVICE_URL/health" 2>/dev/null) && {
+            echo "Health check PASS: $$STATUS"
+            echo "==================================="
+            echo "MERCURY-VOICE DEPLOY SUCCESSFUL"
+            echo "==================================="
+            echo "Image: us-east4-docker.pkg.dev/$PROJECT_ID/ragbox/mercury-voice:$SHORT_SHA"
+            echo "URL: $$SERVICE_URL"
+            echo "==================================="
+            exit 0
+          }
+          echo "Waiting for health... (attempt $$i/10)"
+          sleep 5
+        done
+        echo "WARNING: Health check did not pass within 50s"
+    waitFor: ['deploy-voice']
 
 options:
   logging: CLOUD_LOGGING_ONLY
@@ -23,4 +112,5 @@ options:
 timeout: '1800s'
 
 images:
+  - 'us-east4-docker.pkg.dev/$PROJECT_ID/ragbox/mercury-voice:$SHORT_SHA'
   - 'us-east4-docker.pkg.dev/$PROJECT_ID/ragbox/mercury-voice:latest'
