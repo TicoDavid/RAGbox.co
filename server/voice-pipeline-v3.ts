@@ -18,6 +18,7 @@ import {
   RemoteTTSNode,
   RemoteTTSComponent,
 } from '@inworld/runtime/graph'
+import { PrismaClient } from '@prisma/client'
 import { TOOL_DEFINITIONS, executeTool, type ToolContext, type ToolCall } from './tools'
 
 // ============================================================================
@@ -74,38 +75,40 @@ const DEFAULT_VOICE_ID = 'Ashley'
 const DEFAULT_GREETING = "Hello! How can I help you today?"
 
 // ============================================================================
-// EPIC-023: Two-mode query classification
+// EPIC-023 / BUG-046: Two-mode query classification
 // ============================================================================
+
+// BUG-046: Conversational patterns — ONLY pure greetings and small talk
+// bypass RAG. Everything else goes through the document pipeline.
+// CPO directive: "She is the same as the chat window but uses her voice."
+const CONVERSATIONAL_PATTERNS = [
+  // Pure greetings (must be the whole utterance, not embedded in a longer query)
+  /^(hi|hello|hey|howdy|greetings|good\s+(morning|afternoon|evening))[\s!?.]*$/,
+  /^(how are you|how's it going|what's up)[\s!?.]*$/,
+  // Acknowledgments and farewells (short utterances)
+  /^(thank(s| you)|bye|goodbye|see you|take care)[\s!?.]*$/,
+  /^(yes|no|ok|okay|sure|great|got it|perfect|awesome|cool|nice|right)[\s!?.]*$/,
+  // Audio checks (can appear mid-sentence)
+  /\b(can you hear|hear me|testing|is this working|are you there)\b/,
+  // Identity questions about Mercury herself
+  /\b(who are you|what's your name|what can you do|tell me about yourself|introduce yourself)\b/,
+]
 
 /**
  * Classify a voice query as conversational or document-related.
- * Document queries go through RAG. Everything else is conversational.
- * Default: conversational — only route to RAG when user explicitly
- * asks about documents. "Can you hear me?" should NEVER trigger RAG.
+ * BUG-046 FIX: Document is the DEFAULT. Only pure greetings and small talk
+ * are conversational. Any ambiguous query goes to RAG — Mercury voice must
+ * have the same document access as Mercury text chat.
  */
 export function classifyQuery(query: string): 'conversational' | 'document' {
   const q = query.toLowerCase().trim()
 
-  // Platform help questions are conversational even if they mention documents
-  if (/\b(how do i|how can i|how to|where do i|help me with)\b/.test(q)
-    && !/\b(say|state|mention|contain)\b/.test(q)) {
-    return 'conversational'
+  for (const pattern of CONVERSATIONAL_PATTERNS) {
+    if (pattern.test(q)) return 'conversational'
   }
 
-  // Document query: explicit document actions or references
-  if (
-    /\b(summarize|extract|cite|citation)\b/.test(q)
-    || /\b(find\s+in|search\s+(for|through)|look\s+(up|through)|according\s+to)\b/.test(q)
-    || /\bwhat\s+does\s+(the|my|this|that)\s+\w+\s+(say|state|mention|contain)\b/.test(q)
-    || /\b(vault|uploaded|my\s+files|my\s+documents)\b/.test(q)
-    || /\b(clause|section|paragraph)\b/.test(q)
-    || (/\b(document|file|report|contract|agreement|invoice|memo|pdf|spreadsheet)\b/.test(q)
-      && /\b(about|in|from|says?|states?|mentions?|contains?|compare|analyze|review|risks?)\b/.test(q))
-  ) {
-    return 'document'
-  }
-
-  return 'conversational'
+  // Everything else → document query (let RAG handle it)
+  return 'document'
 }
 
 // ============================================================================
@@ -257,49 +260,40 @@ export function interceptGroundingRefusal(
   return generateConversationalResponse(userQuery, agentName)
 }
 
-// Go backend for LLM + Mercury config
+// Go backend for LLM
 const GO_BACKEND_URL = process.env.GO_BACKEND_URL
   || process.env.NEXT_PUBLIC_API_URL
   || 'http://localhost:8080'
 const INTERNAL_AUTH = process.env.INTERNAL_AUTH_SECRET || ''
 
+// BUG-047: Use Prisma to read MercuryPersona directly from the DB.
+// The frontend saves settings to the Prisma MercuryPersona table, so the voice
+// pipeline must read from the SAME table. The Go backend has a separate
+// mercury_configs table that never receives frontend updates.
+const prisma = new PrismaClient()
+const DEFAULT_TENANT = 'default'
+
 /**
- * Fetch Mercury persona config from Go backend (best-effort).
- * Returns defaults if the endpoint is unavailable.
+ * Fetch Mercury persona config from Prisma MercuryPersona table (best-effort).
+ * BUG-047 FIX: Reads from the same DB table the frontend Settings modal saves to.
+ * Returns defaults if the query fails.
  */
 async function fetchMercuryConfig(userId: string): Promise<MercuryConfig> {
   try {
-    const res = await fetch(`${GO_BACKEND_URL}/api/mercury/config`, {
-      headers: {
-        'X-Internal-Auth': INTERNAL_AUTH,
-        'X-User-ID': userId,
-      },
+    const persona = await prisma.mercuryPersona.findUnique({
+      where: { tenantId: DEFAULT_TENANT },
     })
-    if (res.ok) {
-      const json = await res.json() as {
-        name?: string
-        voiceId?: string
-        greeting?: string
-        personalityPrompt?: string
-        data?: {
-          config?: {
-            name?: string
-            voiceId?: string
-            greeting?: string
-            personalityPrompt?: string
-          }
-        }
-      }
-      const cfg = json.data?.config ?? json
+    if (persona) {
+      const name = [persona.firstName, persona.lastName].filter(Boolean).join(' ')
       return {
-        name: cfg.name || undefined,
-        voiceId: cfg.voiceId || undefined,
-        greeting: cfg.greeting || undefined,
-        personalityPrompt: cfg.personalityPrompt || undefined,
+        name: name || undefined,
+        voiceId: persona.voiceId || undefined,
+        greeting: persona.greeting || undefined,
+        personalityPrompt: persona.personalityPrompt || undefined,
       }
     }
-  } catch {
-    console.warn('[VoicePipeline-v3] Mercury config fetch failed, using defaults')
+  } catch (err) {
+    console.warn('[VoicePipeline-v3] Mercury config fetch failed, using defaults', err)
   }
   return {}
 }
