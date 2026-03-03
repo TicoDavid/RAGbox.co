@@ -231,17 +231,13 @@ async function fetchMercuryConfig(userId: string): Promise<MercuryConfig> {
   return {}
 }
 
-// Convert Float32 PCM samples (number[] from Inworld SDK) to raw Int16 PCM Buffer.
-// Inworld TTSOutputStream yields chunks with audio.data as Float32 samples in
-// [-1.0, 1.0] range. Browser AudioContext expects raw Int16 PCM bytes over WebSocket.
-function float32SamplesToInt16Buffer(samples: ArrayLike<number>): Buffer {
-  const int16 = new Int16Array(samples.length)
-  for (let i = 0; i < samples.length; i++) {
-    const s = Math.max(-1, Math.min(1, samples[i]))
-    int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF
-  }
-  return Buffer.from(int16.buffer)
-}
+// BUG-045B: Inworld SDK's TTSOutputStream stores audio.data as a Buffer
+// containing raw Float32 PCM bytes (4 bytes/sample, -1.0 to 1.0 range).
+// tts_output.js line 205: Buffer.from(chunk.audio.data, 'base64')
+// Audio constructor line 64: this.data = chunk.data  (stores Buffer directly)
+// Browser Web Audio API uses Float32 natively — send the bytes directly.
+// No conversion needed. Previous Int16 conversion was iterating raw bytes
+// (0-255) as if they were float samples, producing only 0s and 32767s.
 
 // ============================================================================
 // SESSION FACTORY
@@ -567,22 +563,39 @@ Current user context:
             console.info('[VoicePipeline-v3] TTSOutputStream handler entered')
             for await (const chunk of ttsStream) {
               if (chunk.audio?.data) {
-                const audioData = chunk.audio.data as ArrayLike<number>
+                // chunk.audio.data is a Buffer of raw Float32 PCM bytes
+                const rawBuffer = Buffer.isBuffer(chunk.audio.data)
+                  ? chunk.audio.data
+                  : Buffer.from(chunk.audio.data)
+                const sampleCount = rawBuffer.length / 4 // 4 bytes per Float32
+
                 if (chunkCount === 0) {
+                  // BUG-045B diagnostic: confirm data type, sample rate, and actual Float32 values
+                  const view = new Float32Array(rawBuffer.buffer, rawBuffer.byteOffset, Math.min(10, sampleCount))
+                  const sample1000 = new Float32Array(rawBuffer.buffer, rawBuffer.byteOffset, Math.min(1000, sampleCount))
+                  let min = Infinity, max = -Infinity
+                  for (let i = 0; i < sample1000.length; i++) {
+                    if (sample1000[i] < min) min = sample1000[i]
+                    if (sample1000[i] > max) max = sample1000[i]
+                  }
+                  console.info('[BUG-045B] Audio data type:', chunk.audio.data?.constructor?.name,
+                    'byteLength:', rawBuffer.length, 'samples:', sampleCount)
+                  console.info('[BUG-045B] Float32 first 10:', Array.from(view).map(v => v.toFixed(6)))
+                  console.info('[BUG-045B] Float32 range: min:', min.toFixed(6), 'max:', max.toFixed(6))
                   console.info('[TTS-DIAG] Audio metadata:', {
                     sampleRate: chunk.audio?.sampleRate,
                     channels: chunk.audio?.channels,
-                    dataLength: audioData.length,
+                    format: 'float32',
                   })
                 }
-                const pcmBuffer = float32SamplesToInt16Buffer(audioData)
+
                 chunkCount++
-                totalBytes += pcmBuffer.length
+                totalBytes += rawBuffer.length
                 console.info(`[VoicePipeline-v3] TTS chunk ${chunkCount} sent`, {
-                  samples: audioData.length,
-                  bytes: pcmBuffer.length,
+                  samples: sampleCount,
+                  bytes: rawBuffer.length,
                 })
-                onTTSChunk?.(pcmBuffer)
+                onTTSChunk?.(rawBuffer)
               }
             }
           },
