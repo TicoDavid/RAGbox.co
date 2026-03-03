@@ -405,7 +405,22 @@ function maskModel(modelUsed?: string): string {
 function maskProvider(provider?: string): string {
   if (!provider) return ''
   if (provider === 'aegis') return 'ConnexUS AEGIS'
-  return provider
+  // BUG-049: Format provider slugs from model IDs (e.g., "deepseek" → "DeepSeek")
+  const providerNames: Record<string, string> = {
+    'anthropic': 'Anthropic',
+    'openai': 'OpenAI',
+    'google': 'Google',
+    'deepseek': 'DeepSeek',
+    'meta-llama': 'Meta',
+    'mistralai': 'Mistral',
+    'cohere': 'Cohere',
+    'qwen': 'Qwen',
+    'x-ai': 'xAI',
+    'nvidia': 'NVIDIA',
+    '01-ai': '01.AI',
+    'perplexity': 'Perplexity',
+  }
+  return providerNames[provider] || provider.charAt(0).toUpperCase() + provider.slice(1)
 }
 
 // ============================================================================

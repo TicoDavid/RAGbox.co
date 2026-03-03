@@ -506,6 +506,23 @@ export const useChatStore = create<ChatState>()(
             }
           }
 
+          // BUG-049: Backend metadata may report "aegis" even when BYOLLM was
+          // used. Override with the frontend's selected model so the Evidence
+          // tab reflects the actually selected model.
+          if (selectedModel !== 'aegis') {
+            if (!modelUsed || modelUsed === 'aegis' || modelUsed === 'aegis-core' || modelUsed.startsWith('aegis/')) {
+              modelUsed = selectedModel
+              doneMetadata.modelUsed = selectedModel
+            }
+            if (!provider || provider === 'aegis') {
+              const resolvedProvider = selectedModel.includes('/')
+                ? selectedModel.split('/')[0]
+                : 'OpenRouter'
+              provider = resolvedProvider
+              doneMetadata.provider = resolvedProvider
+            }
+          }
+
           // Build citation blocks
           const blocks =
             citations && citations.length > 0
