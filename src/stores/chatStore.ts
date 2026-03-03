@@ -24,7 +24,7 @@ function resolveDocumentName(documentId: string, backendName?: string): string {
   if (backendName && !UUID_RE.test(backendName)) return backendName
   const doc = useVaultStore.getState().documents[documentId]
   if (doc?.name) return doc.name
-  return backendName || 'Document'
+  return 'Document'
 }
 
 export interface ThreadSummary {
