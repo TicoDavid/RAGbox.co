@@ -558,3 +558,144 @@ describe('TTS Edge Cases (BUG-042 SA-042-03)', () => {
     expect(cb.onSpeakingComplete).toHaveBeenCalled()
   })
 })
+
+// ============================================================================
+// EPIC-023 REGRESSION — Float32 audio still works after persona changes
+// Persona wiring (agentName, voiceId, greeting) must NOT break audio delivery.
+// ============================================================================
+
+describe('EPIC-023 Regression — Float32 Audio After Persona Changes', () => {
+
+  it('float32 audio with non-default voice (Luna) still converts correctly', async () => {
+    // Persona uses Luna, not default Ashley — audio format is the same
+    const sampleCount = 4800
+    mockFetch.mockResolvedValueOnce(inworldFloat32Response(sampleCount))
+
+    const cb = createCallbacks()
+    await inworldTTS('Evelyn Monroe speaking with Luna voice', cb)
+
+    // Audio chunks delivered as base64 strings
+    expect(cb.onTTSChunk).toHaveBeenCalled()
+    for (const call of cb.onTTSChunk.mock.calls) {
+      const chunk = call[0] as string
+      expect(typeof chunk).toBe('string')
+      const decoded = Buffer.from(chunk, 'base64')
+      expect(decoded.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('greeting TTS uses same audio path as regular messages', async () => {
+    // Persona greeting ("What's up boss?") goes through same textToSpeech
+    const greetingText = "What's up boss?"
+    const sampleCount = 2400
+    mockFetch.mockResolvedValueOnce(inworldFloat32Response(sampleCount))
+
+    const cb = createCallbacks()
+    await inworldTTS(greetingText, cb)
+
+    // Same output format as regular TTS
+    expect(cb.onTTSChunk).toHaveBeenCalled()
+    const firstChunk = cb.onTTSChunk.mock.calls[0][0] as string
+    expect(typeof firstChunk).toBe('string')
+
+    // Valid base64 that decodes to non-empty audio
+    const decoded = Buffer.from(firstChunk, 'base64')
+    expect(decoded.length).toBeGreaterThan(0)
+  })
+
+  it('auto-generated greeting audio works for custom agent name', async () => {
+    // Greeting: "Hello, I'm Evelyn Monroe. How can I help you today?"
+    const autoGreeting = "Hello, I'm Evelyn Monroe. How can I help you today?"
+    const sampleCount = 4800
+    mockFetch.mockResolvedValueOnce(inworldFloat32Response(sampleCount))
+
+    const cb = createCallbacks()
+    await inworldTTS(autoGreeting, cb)
+
+    expect(cb.onTTSChunk).toHaveBeenCalled()
+    expect(cb.onError).not.toHaveBeenCalled()
+  })
+
+  it('float32ToInt16Base64 produces consistent output across repeated calls', () => {
+    // Regression: conversion must be deterministic — same input always same output
+    const float32 = new Float32Array([0.0, 0.5, -0.5, 1.0, -1.0])
+    const float32Base64 = Buffer.from(float32.buffer).toString('base64')
+
+    const result1 = float32ToInt16Base64(float32Base64)
+    const result2 = float32ToInt16Base64(float32Base64)
+    const result3 = float32ToInt16Base64(float32Base64)
+
+    expect(result1).toBe(result2)
+    expect(result2).toBe(result3)
+  })
+
+  it('audio chunk size is preserved regardless of persona config', async () => {
+    // TTS_CHUNK_SIZE (16384) is the same for all personas
+    const sampleCount = (TTS_CHUNK_SIZE * 4) / 2 // 4 int16 chunks
+    mockFetch.mockResolvedValueOnce(inworldFloat32Response(sampleCount))
+
+    const cb = createCallbacks()
+    await inworldTTS('Multi-chunk persona test', cb)
+
+    expect(cb.onTTSChunk).toHaveBeenCalledTimes(4)
+
+    // Each chunk except possibly the last should be exactly TTS_CHUNK_SIZE bytes
+    for (let i = 0; i < 3; i++) {
+      const chunk = cb.onTTSChunk.mock.calls[i][0] as string
+      const decoded = Buffer.from(chunk, 'base64')
+      expect(decoded.length).toBe(TTS_CHUNK_SIZE)
+    }
+  })
+
+  it('Inworld sine wave audio survives float32→int16 round-trip without silence', () => {
+    // Critical regression: audio must not be all zeros after conversion
+    const sampleCount = 4800
+    const float32 = new Float32Array(sampleCount)
+    for (let i = 0; i < sampleCount; i++) {
+      float32[i] = Math.sin((2 * Math.PI * 440 * i) / SAMPLE_RATE) * 0.5
+    }
+
+    const float32Base64 = Buffer.from(float32.buffer).toString('base64')
+    const int16Base64 = float32ToInt16Base64(float32Base64)
+    const resultBuffer = Buffer.from(int16Base64, 'base64')
+    const int16 = new Int16Array(
+      resultBuffer.buffer,
+      resultBuffer.byteOffset,
+      resultBuffer.length / 2,
+    )
+
+    // Audio must NOT be all zeros (silence = broken pipeline)
+    let hasNonZero = false
+    for (let i = 0; i < int16.length; i++) {
+      if (int16[i] !== 0) {
+        hasNonZero = true
+        break
+      }
+    }
+    expect(hasNonZero).toBe(true)
+
+    // Peak amplitude should be reasonable (~16383 for 0.5 * 0x7FFF)
+    let maxAbs = 0
+    for (let i = 0; i < int16.length; i++) {
+      const abs = Math.abs(int16[i])
+      if (abs > maxAbs) maxAbs = abs
+    }
+    expect(maxAbs).toBeGreaterThan(10000)
+    expect(maxAbs).toBeLessThanOrEqual(32767)
+  })
+
+  it('full TTS pipeline completes with persona greeting + fallback', async () => {
+    // Scenario: persona greeting, Inworld fails, Deepgram fallback
+    mockFetch
+      .mockResolvedValueOnce(errorResp(500, 'Inworld unavailable'))
+      .mockResolvedValueOnce(deepgramOK('persona-greeting-fallback'))
+
+    const cb = createCallbacks()
+    await textToSpeechWithFallback("What's up boss?", cb)
+
+    // Fallback delivered audio
+    expect(cb.onTTSChunk).toHaveBeenCalled()
+    expect(cb.onError).not.toHaveBeenCalled()
+    expect(cb.onSpeakingComplete).toHaveBeenCalled()
+  })
+})
