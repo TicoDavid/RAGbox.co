@@ -358,3 +358,48 @@ describe('Settings Integration — Persona in Refusal Responses', () => {
     expect(result).toContain('Mercury')
   })
 })
+
+// ============================================================================
+// PERSONA TAB → RESPONSE TONE (Future — stubs)
+// When Sheldon builds persona-driven tone modulation, these stubs become real tests.
+// ============================================================================
+
+describe('Settings Integration — Persona Tab (response tone)', () => {
+
+  it.todo('professional persona produces formal response tone')
+
+  it.todo('friendly persona produces casual response tone')
+
+  it.todo('technical persona produces data-oriented response tone')
+
+  it.todo('custom personalityPrompt overrides preset tone')
+
+  it.todo('persona tone is consistent across multiple messages in session')
+
+  // Minimal validation that personalityPrompt reaches the pipeline
+  it('personalityPrompt from settings is passed through to session config', async () => {
+    const prompt = 'You are a warm, professional legal AI assistant specializing in contract review.'
+
+    mockFetch.mockResolvedValueOnce(
+      settingsResponse({
+        name: 'Evelyn Monroe',
+        voiceId: 'Luna',
+        personalityPrompt: prompt,
+      }),
+    )
+
+    const config = await fetchMercuryConfig('user-1')
+
+    expect(config.personalityPrompt).toBe(prompt)
+  })
+
+  it('missing personalityPrompt defaults to undefined (no persona override)', async () => {
+    mockFetch.mockResolvedValueOnce(
+      settingsResponse({ name: 'Mercury' }),
+    )
+
+    const config = await fetchMercuryConfig('user-1')
+
+    expect(config.personalityPrompt).toBeUndefined()
+  })
+})
