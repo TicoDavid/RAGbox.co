@@ -370,54 +370,31 @@ function createTTSPlayer(sampleRate: number): {
 
   return {
     play(pcm: ArrayBuffer) {
-      // Skip empty frames
       if (pcm.byteLength === 0) return
 
-      // BUG-045B: Sheldon sends raw Float32 PCM directly (4 bytes/sample, -1.0 to 1.0).
-      // No Int16/Uint16 conversion needed — Web Audio API uses Float32 natively.
+      // Server sends raw Float32 PCM (4 bytes/sample, -1.0 to 1.0).
       // Guard: Float32Array requires byteLength divisible by 4
       const safeLen = pcm.byteLength - (pcm.byteLength % 4)
       const float32 = safeLen === pcm.byteLength
         ? new Float32Array(pcm)
         : new Float32Array(pcm.slice(0, safeLen))
 
-      // Skip silent padding frames (all samples near zero)
+      // Skip silent padding frames
       const checkLen = Math.min(100, float32.length)
       let maxAbs = 0
       for (let i = 0; i < checkLen; i++) {
         const a = Math.abs(float32[i])
         if (a > maxAbs) maxAbs = a
       }
-      if (maxAbs < 0.0001) {
-        console.info('[BUG-045B] Skipping silent frame, byteLength:', pcm.byteLength)
-        return
-      }
+      if (maxAbs < 0.0001) return
 
       if (!ctx) ctx = new AudioContext({ sampleRate })
       // BUG-044: Chrome suspends AudioContext created outside user gestures.
       if (ctx.state === 'suspended') ctx.resume()
 
-      // BUG-045B DIAG: verify Float32 values and AudioContext state
-      const diagLen = Math.min(1000, float32.length)
-      const diagSlice = float32.slice(0, diagLen)
-      let min = Infinity, max = -Infinity
-      for (let i = 0; i < diagSlice.length; i++) {
-        if (diagSlice[i] < min) min = diagSlice[i]
-        if (diagSlice[i] > max) max = diagSlice[i]
-      }
-      console.info('[BUG-045B] play() byteLength:', pcm.byteLength,
-        'samples:', float32.length, 'ctx.state:', ctx.state,
-        'ctx.sampleRate:', ctx.sampleRate)
-      console.info('[BUG-045B] Float32 first 5:',
-        Array.from(float32.slice(0, 5)).map(v => v.toFixed(4)),
-        'range:', min.toFixed(4), 'to', max.toFixed(4))
-
       const buffer = ctx.createBuffer(1, float32.length, sampleRate)
       buffer.getChannelData(0).set(float32)
       queue.push(buffer)
-      console.info('[BUG-045B] Queued AudioBuffer: channels:', buffer.numberOfChannels,
-        'length:', buffer.length, 'bufferSampleRate:', buffer.sampleRate,
-        'queueSize:', queue.length)
 
       if (!playing) playNext()
     },
@@ -634,7 +611,6 @@ export function useSovereignAgentVoice(
     playerRef.current = createTTSPlayer(ttsSampleRateRef.current)
 
     ws.binaryType = 'arraybuffer'
-    console.info('[BUG-045] WebSocket created, binaryType:', ws.binaryType)
 
     // Wait for WebSocket to actually open before resolving
     try {
@@ -666,23 +642,14 @@ export function useSovereignAgentVoice(
     }
 
     ws.onmessage = async (event) => {
-      // BUG-045B: Binary = raw Float32 TTS audio from server
+      // Binary = raw Float32 TTS audio from server
       if (event.data instanceof ArrayBuffer) {
-        const byteLen = event.data.byteLength
-        console.info(`[BUG-045B] ArrayBuffer received, byteLength: ${byteLen}, samples: ${byteLen / 4}`)
-        // Peek at raw Float32 samples before handing to player
-        if (byteLen >= 20) {
-          const peek = new Float32Array(event.data.slice(0, Math.min(byteLen, 4000)))
-          console.info('[BUG-045B] First 10 Float32 samples:',
-            Array.from(peek.slice(0, 10)).map(v => v.toFixed(4)))
-        }
         playerRef.current?.play(event.data)
         return
       }
 
-      // BUG-045B: Blob fallback — if binaryType wasn't set, data arrives as Blob
+      // Blob fallback — if binaryType wasn't set correctly
       if (event.data instanceof Blob) {
-        console.warn('[BUG-045B] GOT BLOB, NOT ARRAYBUFFER — binaryType may not be set')
         event.data.arrayBuffer().then(ab => {
           playerRef.current?.play(ab)
         })

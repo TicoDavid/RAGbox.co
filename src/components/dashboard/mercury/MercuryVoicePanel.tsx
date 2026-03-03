@@ -300,10 +300,16 @@ export function MercuryVoicePanel({ agentName = 'Mercury' }: MercuryVoicePanelPr
           )}
         </div>
 
-        {/* Status Footer */}
+        {/* Status Footer — dynamic voice state */}
         <div className="shrink-0 text-center">
           <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
-            {isPoweredOn ? 'Hands-free voice mode' : 'Voice agent offline'}
+            {state === 'connecting' ? 'Connecting...'
+              : state === 'listening' ? 'Listening...'
+              : isSpeaking ? `${agentName} is speaking...`
+              : state === 'processing' ? 'Processing...'
+              : state === 'error' ? 'Voice unavailable'
+              : isPoweredOn ? 'Hands-free voice mode'
+              : `Press power to activate ${agentName}`}
           </p>
         </div>
       </div>
