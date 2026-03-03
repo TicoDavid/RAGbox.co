@@ -492,24 +492,32 @@ Current user context:
         conversationHistory.push({ role: 'user', content: `[Tool Result]\n${userText}` })
       }
 
-      // BUG-050 DIAGNOSTIC: Log exact request to Go backend for comparison
-      // with text chat path (src/app/api/chat/route.ts).
-      // KEY DIFFERENCES vs text chat:
-      //   Text: stream=true,  personaId=<persona>, useVectorPipeline=true
-      //   Voice: stream=false, persona='mercury',   useVectorPipeline=MISSING
+      // BUG-050 FIX: Align voice Go backend request with text chat path
+      // (src/app/api/chat/route.ts lines 184-204). Four fields were wrong:
+      //   1. stream: false → true (Go backend returns different format)
+      //   2. persona → personaId (Go backend expects personaId field)
+      //   3. useVectorPipeline: missing → true (triggers RAG retrieval)
+      //   4. history: included system prompt → strip to user/assistant only
       const backendUrl = `${GO_BACKEND_URL}/api/chat`
       const backendHeaders = {
         'Content-Type': 'application/json',
         'X-Internal-Auth': INTERNAL_AUTH,
         'X-User-ID': toolContext?.userId || 'anonymous',
       }
+      // BUG-050 FIX #4: Strip system messages from history — text chat only
+      // sends user/assistant turns. System prompt in history confuses the
+      // Go backend's context handling.
+      const chatHistory = conversationHistory
+        .filter(h => h.role === 'user' || h.role === 'assistant')
+        .slice(-10)
       const backendBody = {
         query: userText,
-        stream: false,
+        stream: true,                                      // FIX #1: was false
+        useVectorPipeline: true,                           // FIX #3: was missing
         privilegeMode: toolContext?.privilegeMode || false,
         maxTier: 3,
-        persona: 'mercury',
-        history: conversationHistory.slice(-10), // last 10 turns
+        personaId: 'mercury',                              // FIX #2: was 'persona'
+        history: chatHistory,                              // FIX #4: stripped system
       }
 
       console.info('[BUG-050-DIAG] Go backend REQUEST', {
@@ -518,12 +526,12 @@ Current user context:
         body: {
           query: backendBody.query,
           stream: backendBody.stream,
+          useVectorPipeline: backendBody.useVectorPipeline,
           privilegeMode: backendBody.privilegeMode,
           maxTier: backendBody.maxTier,
-          persona: backendBody.persona,
+          personaId: backendBody.personaId,
           historyLength: backendBody.history.length,
           historyRoles: backendBody.history.map(h => h.role),
-          // NOTE: text chat sends personaId (not persona) and useVectorPipeline=true
         },
       })
 
