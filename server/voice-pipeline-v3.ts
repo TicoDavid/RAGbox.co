@@ -513,10 +513,9 @@ Current user context:
       const backendBody = {
         query: userText,
         stream: true,                                      // FIX #1: was false
-        useVectorPipeline: true,                           // FIX #3: was missing
         privilegeMode: toolContext?.privilegeMode || false,
         maxTier: 3,
-        personaId: 'mercury',                              // FIX #2: was 'persona'
+        persona: 'mercury',                                // Go backend expects 'persona' not 'personaId'
         history: chatHistory,                              // FIX #4: stripped system
       }
 
@@ -526,10 +525,9 @@ Current user context:
         body: {
           query: backendBody.query,
           stream: backendBody.stream,
-          useVectorPipeline: backendBody.useVectorPipeline,
           privilegeMode: backendBody.privilegeMode,
           maxTier: backendBody.maxTier,
-          personaId: backendBody.personaId,
+          persona: backendBody.persona,
           historyLength: backendBody.history.length,
           historyRoles: backendBody.history.map(h => h.role),
         },

@@ -72,7 +72,7 @@ export async function POST() {
     let voiceToken: string | null = null
     if (voiceJwtSecret) {
       voiceToken = jwt.sign(
-        { userId: session.user.email, role: 'User' },
+        { userId: (session.user as { id?: string }).id ?? session.user.email, role: 'User' },
         voiceJwtSecret,
         { expiresIn: '1h' }
       )
