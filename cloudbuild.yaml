@@ -11,7 +11,7 @@
 substitutions:
   _REGION: us-east4
   _SERVICE_NAME: ragbox-app
-  _REPOSITORY: ragbox-repo
+  _REPOSITORY: ragbox
   # SENTRY_DSN now managed via Secret Manager (sentry-dsn secret)
   _MIN_INSTANCES: '0'
   _MAX_INSTANCES: '100'
@@ -249,8 +249,5 @@ images:
 timeout: '1800s'
 
 # Artifact Registry for Docker images
-# Note: Ensure Artifact Registry repository exists:
-# gcloud artifacts repositories create ragbox-repo \
-#   --repository-format=docker \
-#   --location=us-central1 \
-#   --description="RAGbox Docker images"
+# Both ragbox-app and mercury-voice now use the 'ragbox' repository.
+# Consolidated from ragbox-repo (2026-03-04, ADAM).
