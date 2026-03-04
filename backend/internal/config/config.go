@@ -69,7 +69,7 @@ func Load() (*Config, error) {
 		GCPProject:          gcpProject,
 		GCPRegion:           envStr("GCP_REGION", "us-east4"),
 		VertexAILocation:    envStr("VERTEX_AI_LOCATION", "global"),
-		VertexAIModel:       envStr("VERTEX_AI_MODEL", "gemini-3-pro-preview"),
+		VertexAIModel:       envStr("VERTEX_AI_MODEL", "gemini-2.5-flash"),
 		EmbeddingLocation:   envStr("VERTEX_AI_EMBEDDING_LOCATION", envStr("GCP_REGION", "us-east4")),
 		EmbeddingModel:      envStr("VERTEX_AI_EMBEDDING_MODEL", "text-embedding-004"),
 		EmbeddingDimensions: envInt("EMBEDDING_DIMENSIONS", 768),

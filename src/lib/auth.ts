@@ -153,6 +153,31 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     async signIn({ user, account, profile }) {
+      // Ensure User record exists in DB on every login.
+      // Prevents tier-check mismatches: JWT token.id (Google sub) must match
+      // the User.id in the database for subscription entitlements to resolve.
+      if (user?.id && user?.email) {
+        try {
+          await prisma.user.upsert({
+            where: { id: user.id },
+            create: {
+              id: user.id,
+              email: user.email,
+              name: user.name ?? null,
+              image: user.image ?? null,
+            },
+            update: {
+              name: user.name ?? undefined,
+              image: user.image ?? undefined,
+              lastLoginAt: new Date(),
+            },
+          })
+        } catch (err) {
+          // Non-blocking — don't prevent login if user upsert fails
+          logger.error('[Auth] User auto-create failed', { error: err instanceof Error ? err.message : String(err) })
+        }
+      }
+
       // Auto-create MercuryPersona with defaults on first login.
       // Ensures Mercury is ready before the user reaches Settings or voice.
       try {

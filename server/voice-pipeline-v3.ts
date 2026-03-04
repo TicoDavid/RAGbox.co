@@ -45,7 +45,10 @@ interface MercuryConfig {
   name?: string
   voiceId?: string
   greeting?: string
-  personalityPrompt?: string  // free-text custom instructions for persona
+  personalityPrompt?: string
+  ttsTemperature?: number   // 0-2, from expressiveness slider
+  ttsSpeakingRate?: number  // 0.5-2.0, from speaking rate slider
+  ttsModelId?: string       // override for TTS model
 }
 
 export interface VoiceSession {
@@ -285,11 +288,17 @@ async function fetchMercuryConfig(userId: string): Promise<MercuryConfig> {
     })
     if (persona) {
       const name = [persona.firstName, persona.lastName].filter(Boolean).join(' ')
+      const voiceCfg = (typeof persona.channelConfig === 'object' && persona.channelConfig !== null
+        ? (persona.channelConfig as Record<string, unknown>).voice
+        : undefined) as { expressiveness?: number; speakingRate?: number; voiceId?: string; modelId?: string } | undefined
       return {
         name: name || undefined,
-        voiceId: persona.voiceId || undefined,
+        voiceId: voiceCfg?.voiceId || persona.voiceId || undefined,
         greeting: persona.greeting || undefined,
         personalityPrompt: persona.personalityPrompt || undefined,
+        ttsTemperature: voiceCfg?.expressiveness != null ? voiceCfg.expressiveness * 2 : undefined,
+        ttsSpeakingRate: voiceCfg?.speakingRate || undefined,
+        ttsModelId: voiceCfg?.modelId || undefined,
       }
     }
   } catch (err) {
@@ -371,7 +380,10 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
   const agentName = mercuryConfig.name || 'Mercury'
   const voiceId = mercuryConfig.voiceId || DEFAULT_VOICE_ID
   const personality = mercuryConfig.personalityPrompt || ''
-  console.info('[VoicePipeline-v3] Session config', { agentName, voiceId, hasPersonality: !!personality })
+  const ttsTemperature = mercuryConfig.ttsTemperature ?? 1.1
+  const ttsSpeakingRate = mercuryConfig.ttsSpeakingRate ?? 1.0
+  const ttsModelId = mercuryConfig.ttsModelId || DEFAULT_TTS_MODEL_ID
+  console.info('[VoicePipeline-v3] Session config', { agentName, voiceId, ttsTemperature, ttsSpeakingRate, ttsModelId })
 
   // Build tool descriptions for system context (sent to Go backend via history)
   const toolDescriptions = TOOL_DEFINITIONS.map(t => {
@@ -411,16 +423,16 @@ Current user context:
     console.info('[VoicePipeline-v3] Loaded thread history', { messages: threadHistory.length })
   }
 
-  // Create TTS component — EPIC-023: temperature 1.1 for expressiveness
+  // EPIC-022 V-001: TTS params from MercuryPersona Settings
   const ttsComponent = new RemoteTTSComponent({
     id: 'tts_component',
     synthesisConfig: {
       type: 'inworld',
       config: {
-        modelId: DEFAULT_TTS_MODEL_ID,
+        modelId: ttsModelId,
         inference: {
-          temperature: 1.1,
-          speakingRate: 1.0,
+          temperature: ttsTemperature,
+          speakingRate: ttsSpeakingRate,
         },
         postprocessing: {
           sampleRate: SAMPLE_RATE,

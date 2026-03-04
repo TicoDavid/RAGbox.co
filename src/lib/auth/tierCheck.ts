@@ -48,10 +48,20 @@ async function loadUserTier(req: NextRequest): Promise<TierGateResult> {
   }
 
   const userId = (token.id as string) || token.email || ''
-  const user = await prisma.user.findUnique({
+
+  // Look up by id first; fall back to email if not found.
+  // JWT token.id = Google sub (OAuth) or email (OTP), but User records
+  // created via Stripe provisioning use cuid IDs with email as the lookup key.
+  let user = await prisma.user.findUnique({
     where: { id: userId },
     select: { subscriptionTier: true, subscriptionStatus: true },
   })
+  if (!user && token.email) {
+    user = await prisma.user.findUnique({
+      where: { email: token.email as string },
+      select: { subscriptionTier: true, subscriptionStatus: true },
+    })
+  }
 
   const tier = normalizeTier(user?.subscriptionTier || 'free')
   const entitlements = getEntitlements(tier)
