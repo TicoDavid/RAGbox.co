@@ -59,7 +59,7 @@ interface MercuryConfigPayload {
   channels: {
     email: { enabled: boolean; address?: string }
     whatsapp: { enabled: boolean }
-    voice: { enabled: boolean; voiceId?: string }
+    voice: { enabled: boolean; voiceId?: string; expressiveness?: number; speakingRate?: number }
   }
 }
 
@@ -93,7 +93,7 @@ function toConfigPayload(persona: {
     ? persona.channelConfig
     : {}) as Record<string, unknown>
 
-  const voiceChannel = channels.voice as { enabled?: boolean; voiceId?: string } | undefined
+  const voiceChannel = channels.voice as { enabled?: boolean; voiceId?: string; expressiveness?: number; speakingRate?: number } | undefined
 
   return {
     name: [persona.firstName, persona.lastName].filter(Boolean).join(' '),
@@ -115,6 +115,8 @@ function toConfigPayload(persona: {
       voice: {
         enabled: voiceChannel?.enabled ?? true,
         voiceId: persona.voiceId || undefined,
+        expressiveness: voiceChannel?.expressiveness ?? 0.5,
+        speakingRate: voiceChannel?.speakingRate ?? 1.0,
       },
     },
   }
@@ -212,6 +214,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         voice: {
           enabled: body.channels.voice?.enabled ?? true,
           voiceId: body.channels.voice?.voiceId,
+          expressiveness: body.channels.voice?.expressiveness,
+          speakingRate: body.channels.voice?.speakingRate,
         },
       }
     : undefined

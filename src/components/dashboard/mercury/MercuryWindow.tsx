@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { Settings, Mic, Power, PowerOff, Radio } from 'lucide-react'
 import { useSession } from 'next-auth/react'
@@ -8,6 +8,8 @@ import { MercuryPanel } from './MercuryPanel'
 import { MercurySettingsModal } from './MercurySettingsModal'
 import { useSovereignAgentVoice } from '@/hooks/useSovereignAgentVoice'
 import { usePrivilegeStore } from '@/stores/privilegeStore'
+import { useMercuryStore } from '@/stores/mercuryStore'
+import type { ChatMessage } from '@/types/ragbox'
 
 // ============================================================================
 // AUDIO LEVEL BAR — Compact inline visualization
@@ -38,6 +40,8 @@ export function MercuryWindow() {
   const [configOpen, setConfigOpen] = useState(false)
   const [agentName, setAgentName] = useState('Mercury')
   const [agentTitle, setAgentTitle] = useState('AI Assistant')
+  const [greeting, setGreeting] = useState('')
+  const greetingInjectedRef = useRef(false)
 
   // Voice state
   const { data: session } = useSession()
@@ -88,11 +92,33 @@ export function MercuryWindow() {
       if (json.success && json.data?.config) {
         setAgentName(json.data.config.name || 'Mercury')
         setAgentTitle(json.data.config.title || 'AI Assistant')
+        setGreeting(json.data.config.greeting || '')
       }
     } catch { /* use defaults */ }
   }, [])
 
   useEffect(() => { loadIdentity() }, [loadIdentity])
+
+  // Greeting wiring: inject greeting into Mercury thread when voice powers on
+  useEffect(() => {
+    if (isPoweredOn && greeting && !greetingInjectedRef.current) {
+      greetingInjectedRef.current = true
+      const greetingMsg: ChatMessage = {
+        id: `voice-greeting-${Date.now()}`,
+        role: 'assistant',
+        content: greeting,
+        timestamp: new Date(),
+        channel: 'voice',
+      }
+      useMercuryStore.setState((s) => ({
+        messages: [...s.messages, greetingMsg],
+      }))
+    }
+    // Reset greeting injection flag when voice disconnects
+    if (!isPoweredOn) {
+      greetingInjectedRef.current = false
+    }
+  }, [isPoweredOn, greeting])
 
   // Voice state label for the subheader
   const voiceStateLabel = isConnecting
@@ -241,9 +267,10 @@ export function MercuryWindow() {
       <MercurySettingsModal
         open={configOpen}
         onClose={() => setConfigOpen(false)}
-        onSaved={({ name, title }) => {
+        onSaved={({ name, title, greeting: g }) => {
           setAgentName(name || 'Mercury')
           setAgentTitle(title || 'AI Assistant')
+          if (g !== undefined) setGreeting(g)
         }}
       />
     </div>

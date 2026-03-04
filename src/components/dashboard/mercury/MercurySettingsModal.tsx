@@ -46,10 +46,17 @@ const GROUPED = groupSections()
 // CONFIG STATE
 // ============================================================================
 
+interface VoiceChannelConfig {
+  enabled: boolean
+  voiceId?: string
+  expressiveness?: number  // 0-1, maps to TTS temperature
+  speakingRate?: number    // 0.5-2.0, TTS speaking rate
+}
+
 interface ChannelConfig {
   email: { enabled: boolean; address?: string }
   whatsapp: { enabled: boolean }
-  voice: { enabled: boolean; voiceId?: string }
+  voice: VoiceChannelConfig
 }
 
 interface ConfigState {
@@ -113,7 +120,7 @@ const MERCURY_VOICES = [
 interface MercurySettingsModalProps {
   open: boolean
   onClose: () => void
-  onSaved?: (config: { name: string; title: string }) => void
+  onSaved?: (config: { name: string; title: string; greeting?: string }) => void
 }
 
 export function MercurySettingsModal({ open, onClose, onSaved }: MercurySettingsModalProps) {
@@ -185,7 +192,7 @@ export function MercurySettingsModal({ open, onClose, onSaved }: MercurySettings
       }
       toast.success('Mercury configuration saved')
       setDirty(false)
-      onSaved?.({ name: config.name, title: config.title })
+      onSaved?.({ name: config.name, title: config.title, greeting: config.greeting })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to save')
     } finally {
@@ -416,8 +423,14 @@ function IdentitySection({
 }
 
 // ============================================================================
-// SECTION: Voice (Voice selector — Ashley/Dennis/Luna/Mark)
+// SECTION: Voice (Voice selector, expressiveness, rate, preview)
 // ============================================================================
+
+interface VoiceOption {
+  id: string
+  label: string
+  description: string
+}
 
 function VoiceSection({
   config,
@@ -427,23 +440,52 @@ function VoiceSection({
   updateField: <K extends keyof ConfigState>(key: K, value: ConfigState[K]) => void
 }) {
   const currentVoiceId = config.channels.voice?.voiceId || ''
+  const expressiveness = config.channels.voice?.expressiveness ?? 0.5
+  const speakingRate = config.channels.voice?.speakingRate ?? 1.0
+  const [voices, setVoices] = useState<VoiceOption[]>(MERCURY_VOICES)
+  const [previewing, setPreviewing] = useState(false)
 
-  const selectVoice = (voiceId: string) => {
+  // Fetch dynamic voice list (Sheldon's API) — static fallback
+  useEffect(() => {
+    fetch('/api/voice/list')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        const list = json?.data?.voices
+        if (Array.isArray(list) && list.length > 0) setVoices(list)
+      })
+      .catch(() => {}) // use static MERCURY_VOICES fallback
+  }, [])
+
+  const updateVoice = (patch: Partial<VoiceChannelConfig>) => {
     updateField('channels', {
       ...config.channels,
-      voice: { ...config.channels.voice, enabled: true, voiceId },
+      voice: { ...config.channels.voice, ...patch },
     })
+  }
+
+  const handlePreview = () => {
+    if (previewing || typeof window === 'undefined') return
+    setPreviewing(true)
+    const text = config.greeting || `Hello, I'm ${config.name || 'Mercury'}. How can I help you today?`
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.rate = speakingRate
+    utterance.pitch = 0.8 + expressiveness * 0.4
+    utterance.onend = () => setPreviewing(false)
+    utterance.onerror = () => setPreviewing(false)
+    speechSynthesis.cancel()
+    speechSynthesis.speak(utterance)
   }
 
   return (
     <div className="space-y-6">
-      <SectionHeader title="Voice" description="Select the voice for Mercury's text-to-speech output." />
+      <SectionHeader title="Voice" description="Configure Mercury's voice for text-to-speech output." />
 
+      {/* Voice Selection */}
       <div className="space-y-2">
-        {MERCURY_VOICES.map((v) => (
+        {voices.map((v) => (
           <button
             key={v.id}
-            onClick={() => selectVoice(v.id)}
+            onClick={() => updateVoice({ enabled: true, voiceId: v.id })}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all ${
               currentVoiceId === v.id
                 ? 'border-[var(--warning)]/60 bg-[var(--warning)]/10'
@@ -464,6 +506,72 @@ function VoiceSection({
           </button>
         ))}
       </div>
+
+      {/* Expressiveness Slider */}
+      <div className="p-5 rounded-xl bg-[var(--bg-tertiary)]/50 border border-[var(--border-default)]">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <span className="text-sm font-medium text-[var(--text-primary)]">Expressiveness</span>
+            <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5">How dynamic and varied the voice sounds</p>
+          </div>
+          <span className="text-sm font-mono text-[var(--warning)]">
+            {(expressiveness * 100).toFixed(0)}%
+          </span>
+        </div>
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={5}
+          value={expressiveness * 100}
+          onChange={(e) => updateVoice({ expressiveness: Number(e.target.value) / 100 })}
+          className="w-full accent-[var(--warning)]"
+        />
+        <div className="flex justify-between text-[10px] text-[var(--text-tertiary)] mt-2">
+          <span>Calm</span>
+          <span>Expressive</span>
+        </div>
+      </div>
+
+      {/* Speaking Rate Slider */}
+      <div className="p-5 rounded-xl bg-[var(--bg-tertiary)]/50 border border-[var(--border-default)]">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <span className="text-sm font-medium text-[var(--text-primary)]">Speaking Rate</span>
+            <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5">How fast the agent speaks</p>
+          </div>
+          <span className="text-sm font-mono text-[var(--warning)]">
+            {speakingRate.toFixed(1)}&times;
+          </span>
+        </div>
+        <input
+          type="range"
+          min={50}
+          max={200}
+          step={10}
+          value={speakingRate * 100}
+          onChange={(e) => updateVoice({ speakingRate: Number(e.target.value) / 100 })}
+          className="w-full accent-[var(--warning)]"
+        />
+        <div className="flex justify-between text-[10px] text-[var(--text-tertiary)] mt-2">
+          <span>0.5&times; Slow</span>
+          <span>2.0&times; Fast</span>
+        </div>
+      </div>
+
+      {/* Voice Preview */}
+      <button
+        onClick={handlePreview}
+        disabled={previewing}
+        className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all border ${
+          previewing
+            ? 'bg-[var(--warning)]/20 text-[var(--warning)] border-[var(--warning)]/40 cursor-not-allowed'
+            : 'bg-[var(--bg-tertiary)]/50 text-[var(--text-secondary)] border-[var(--border-default)] hover:border-[var(--warning)]/40 hover:text-[var(--text-primary)]'
+        }`}
+      >
+        <Mic className="w-4 h-4" />
+        {previewing ? 'Playing Preview...' : 'Preview Voice'}
+      </button>
     </div>
   )
 }
