@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
@@ -67,11 +67,13 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [actionFilter, setActionFilter] = useState<AuditAction | ''>('')
   const [severityFilter, setSeverityFilter] = useState<AuditSeverity | ''>('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [showFilters, setShowFilters] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   // Pagination
   const [page, setPage] = useState(1)
@@ -80,6 +82,26 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
 
   // Detail modal
   const [selectedEvent, setSelectedEvent] = useState<AuditEvent | null>(null)
+
+  // STORY-241: Debounce search — avoids API call on every keystroke
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  // STORY-241: Keyboard shortcut — "/" focuses search bar
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
+        const tag = (e.target as HTMLElement)?.tagName
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+        e.preventDefault()
+        searchInputRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   // Fetch logs
   const fetchLogs = useCallback(async () => {
@@ -96,7 +118,7 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
       if (severityFilter) params.set('severity', severityFilter)
       if (startDate) params.set('startDate', startDate)
       if (endDate) params.set('endDate', endDate)
-      if (searchTerm) params.set('search', searchTerm)
+      if (debouncedSearch) params.set('search', debouncedSearch)
 
       const response = await apiFetch(`/api/audit?${params.toString()}`)
       if (!response.ok) {
@@ -112,7 +134,7 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
     } finally {
       setIsLoading(false)
     }
-  }, [page, actionFilter, severityFilter, startDate, endDate, searchTerm])
+  }, [page, actionFilter, severityFilter, startDate, endDate, debouncedSearch])
 
   // Fetch on mount and filter changes
   useEffect(() => {
@@ -122,7 +144,7 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
   // Reset page when filters change
   useEffect(() => {
     setPage(1)
-  }, [actionFilter, severityFilter, startDate, endDate, searchTerm])
+  }, [actionFilter, severityFilter, startDate, endDate, debouncedSearch])
 
   // Clear filters
   const clearFilters = () => {
@@ -146,13 +168,14 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
           <div className="flex-1 relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)]" />
             <input
+              ref={searchInputRef}
               type="text"
               placeholder="Search audit logs..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               aria-label="Search audit logs"
               className={cn(
-                'w-full pl-11 pr-4 py-3 rounded-xl',
+                'w-full pl-11 pr-10 py-3 rounded-xl',
                 'bg-[var(--bg-secondary)]',
                 'text-[var(--text-primary)]',
                 'border border-[var(--border-default)]',
@@ -160,6 +183,22 @@ export function AuditTimeline({ className }: AuditTimelineProps) {
                 'focus:outline-none focus:ring-2 focus:ring-electric-500/50'
               )}
             />
+            {/* Keyboard shortcut hint */}
+            {!searchTerm && (
+              <kbd className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] text-[var(--text-tertiary)] border border-[var(--border-default)] rounded px-1.5 py-0.5 font-mono">
+                /
+              </kbd>
+            )}
+            {/* Clear search */}
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+                aria-label="Clear search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
           {/* Filter toggle */}

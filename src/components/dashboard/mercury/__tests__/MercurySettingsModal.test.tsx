@@ -111,7 +111,7 @@ describe('MercurySettingsModal', () => {
     // Switch to Voice tab
     fireEvent.click(screen.getByText('Voice'))
     await waitFor(() => {
-      expect(screen.getByText(/Select the voice/)).toBeInTheDocument()
+      expect(screen.getByText(/Configure Mercury's voice/)).toBeInTheDocument()
     })
   })
 
@@ -212,7 +212,7 @@ describe('MercurySettingsModal', () => {
     fireEvent.click(saveBtn)
 
     await waitFor(() => {
-      expect(onSaved).toHaveBeenCalledWith({ name: 'Atlas', title: 'AI Assistant' })
+      expect(onSaved).toHaveBeenCalledWith({ name: 'Atlas', title: 'AI Assistant', greeting: 'Welcome to RAGbox.' })
     })
     expect(mockToast.success).toHaveBeenCalledWith('Mercury configuration saved')
   })

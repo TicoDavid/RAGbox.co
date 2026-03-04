@@ -30,6 +30,7 @@ import { useVaultStore } from '@/stores/vaultStore'
 import { useBrandStore, templateToFile } from '@/stores/brandStore'
 import { MindMapPreview } from './MindMapPreview'
 import { ArtifactPreviewPane } from './ArtifactPreviewPane'
+import { MatrixRain } from '@/components/sovereignStudio/MatrixRain'
 
 // ============================================================================
 // TYPES
@@ -497,35 +498,43 @@ function GenerationProgress({
   }, [])
 
   return (
-    <div className="p-6 text-center">
-      <motion.div
-        animate={{ rotate: 360 }}
-        transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-        className="w-16 h-16 mx-auto mb-4"
-      >
-        <Loader2 className="w-16 h-16 text-[var(--warning)]" />
-      </motion.div>
+    <div className="relative rounded-xl overflow-hidden" style={{ minHeight: 220 }}>
+      {/* STORY-243: Matrix Rain background */}
+      <div className="absolute inset-0">
+        <MatrixRain />
+      </div>
 
-      <h4 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
-        Manufacturing {artifactLabel}
-      </h4>
-
-      <motion.p
-        key={phaseIndex}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-sm text-[var(--warning)]"
-      >
-        {GENERATION_PHASES[phaseIndex]}
-      </motion.p>
-
-      {/* Indeterminate progress bar */}
-      <div className="mt-6 h-1 bg-[var(--bg-secondary)] rounded-full overflow-hidden">
+      {/* Overlay content */}
+      <div className="relative z-10 flex flex-col items-center justify-center p-6 text-center" style={{ minHeight: 220 }}>
         <motion.div
-          className="h-full w-1/3 bg-gradient-to-r from-[var(--warning)] to-orange-500"
-          animate={{ x: ['-100%', '400%'] }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-        />
+          animate={{ rotate: 360 }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+          className="w-12 h-12 mb-4"
+        >
+          <Loader2 className="w-12 h-12 text-[#D4A853] drop-shadow-[0_0_10px_rgba(212,168,83,0.5)]" />
+        </motion.div>
+
+        <h4 className="text-lg font-semibold text-[#D4A853] mb-2 drop-shadow-[0_0_8px_rgba(212,168,83,0.4)]">
+          Manufacturing {artifactLabel}
+        </h4>
+
+        <motion.p
+          key={phaseIndex}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-sm text-[#D4A853]/80"
+        >
+          {GENERATION_PHASES[phaseIndex]}
+        </motion.p>
+
+        {/* Progress bar */}
+        <div className="mt-5 w-48 h-1 bg-black/40 rounded-full overflow-hidden">
+          <motion.div
+            className="h-full w-1/3 bg-gradient-to-r from-[#D4A853] to-[#F0C674]"
+            animate={{ x: ['-100%', '400%'] }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        </div>
       </div>
     </div>
   )
