@@ -4,6 +4,123 @@
 
 ---
 
+## 2026-03-03 — MEGA SPRINT (Deploys 29-31)
+
+### Backend Changes
+
+#### Go Backend TTFB Optimization (Sheldon)
+
+Model swap from `gemini-3-pro-preview` to `gemini-2.5-flash`. Self-RAG max iterations reduced from 3 to 1.
+
+**Impact:** Response TTFB reduced from 8-12s to 1-2s. No API contract changes — SSE event shapes and `DonePayload` structure unchanged.
+
+**Confidence threshold:** Maintained at ≥0.60. Tests verify flash model confidence delta ≤0.15 vs previous model.
+
+#### MercuryPersona Auto-Create (Sheldon)
+
+New OAuth users automatically receive a `MercuryPersona` record on first sign-in.
+
+**Defaults:**
+| Field | Value |
+|-------|-------|
+| `name` | Mercury |
+| `greeting` | Welcome to RAGbox. |
+| `voiceId` | null (system default) |
+| `channelConfig` | `{}` |
+
+No API endpoint changes — handled transparently in the NextAuth `signIn` callback via `prisma.user.upsert` + `prisma.mercuryPersona.upsert`.
+
+### Modified Endpoints
+
+#### `POST /api/mercury/config`
+
+**New fields in `channelConfig.voice`:**
+
+| Field | Type | Range | Description |
+|-------|------|-------|-------------|
+| `expressiveness` | number | 0.0–1.0 | Maps to TTS temperature (×2 → 0.0–2.0) |
+| `speakingRate` | number | 0.5–2.0 | TTS speaking rate passthrough |
+| `modelId` | string? | — | TTS model override (default: system) |
+
+**Example:**
+```json
+{
+  "channels": {
+    "voice": {
+      "enabled": true,
+      "voiceId": "aura-asteria-en",
+      "expressiveness": 0.5,
+      "speakingRate": 1.0,
+      "modelId": null
+    }
+  }
+}
+```
+
+#### `GET /api/documents`
+
+**Changed:** Now accepts `?limit=N` query parameter (default: 1000, max: 5000). Previously returned all documents without pagination support.
+
+#### `GET /api/audit/export-formatted`
+
+**Changed:** PDF export now uses async pdfkit rendering with uncompressed content streams. The `generatePdfBuffer` function is now async — callers must `await`.
+
+**PDF structure:** Uncompressed (`compress: false`) for forensic text searchability in compliance contexts.
+
+### New Features
+
+#### Audit Log Search Bar (Jordan — STORY-241)
+
+Frontend-only search/filter for audit entries. Filters by action, user, severity, and date range. No backend API changes.
+
+#### Sovereign Studio Artifact Engine (Sheldon — STORY-235)
+
+Backend artifact generation via Vertex AI. Supports 8 artifact types and 3 tones.
+
+**Artifact types:** `audio`, `video`, `mindmap`, `report`, `compliance`, `infographic`, `deck`, `evidence`
+
+**Tones:** `standard`, `executive`, `forensic`
+
+#### Voice Settings V2 (Jordan — V-006)
+
+UI sliders for expressiveness and speaking rate. Voice preview/audition button. Expanded voice dropdown from 4 hardcoded voices to dynamic list via Inworld API.
+
+#### Perplexity-Style Response Layout (Jordan — STORY-239)
+
+Mercury responses now display with clean cited-answer formatting: prose answer with inline citation badges, collapsible Sources section, and Evidence summary.
+
+#### PDF Export Fix (Sheldon — STORY-237)
+
+PDF audit export engine rebuilt with pdfkit. Real PDF generation with fonts, layout, verification hash footer. Previously returning empty buffers.
+
+#### BYOLLM Regression Fix (Sheldon — STORY-238)
+
+Fixed BYOLLM model routing regression. Custom LLM selection now persists across sessions.
+
+### Security Changes
+
+#### Audit Export Model Masking (Sarah — STORY-231)
+
+Audit export endpoints now sanitize model metadata. Raw model names (e.g., `gemini-2.5-flash`) replaced with `AEGIS` or `Custom LLM` in exported audit entries. Internal audit log retains full model info.
+
+#### Upload Edge Cases (Jordan — STORY-195b)
+
+- 50MB file size limit enforced (413 response)
+- Unsupported file types rejected with descriptive errors
+- 0-byte file rejection added
+- Rate limiting at middleware layer (30/min per user on `/api/documents/extract`)
+- Duplicate filename detection (STORY-195 — pending)
+
+#### Privilege Toggle Role Guard (Jordan — STORY-15)
+
+Privileged mode toggle now hidden for non-Partner roles. Only `Partner` and `Admin` users see the privilege badge and toggle in the global header.
+
+#### 429 Rate Limit Toast (Jordan — STORY-202)
+
+Global 429 interceptor in `apiFetch()` shows user-facing toast: "You've reached your query limit. Upgrade your plan for more."
+
+---
+
 ## 2026-02-21 — Deploy 16 (Ship Night)
 
 ### New Endpoints
@@ -223,4 +340,4 @@ Returns the tenant's LLM policy configuration.
 
 ---
 
-*Last updated: February 21, 2026 — Sarah, Engineering, RAGbox.co*
+*Last updated: March 3, 2026 — Sarah, Engineering, RAGbox.co*

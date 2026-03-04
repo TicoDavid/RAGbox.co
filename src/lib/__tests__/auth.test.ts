@@ -8,6 +8,15 @@
  */
 import { generateOTP, hasValidOTP, debugOTPStore, authOptions } from '../auth'
 
+// Mock Prisma — signIn callback calls prisma.user.upsert + prisma.mercuryPersona.upsert
+jest.mock('@/lib/prisma', () => ({
+  __esModule: true,
+  default: {
+    user: { upsert: jest.fn().mockResolvedValue({ id: 'user-abc' }) },
+    mercuryPersona: { upsert: jest.fn().mockResolvedValue({}) },
+  },
+}))
+
 // ── Setup ─────────────────────────────────────────────────────
 
 beforeEach(() => {

@@ -175,7 +175,7 @@ describe('Upload Edge Cases — STORY-195b', () => {
       expect(res.status).toBe(400)
       expect(body.success).toBe(false)
       expect(typeof body.error).toBe('string')
-      expect((body.error as string).toLowerCase()).toContain('unsupported')
+      expect((body.error as string).toLowerCase()).toMatch(/unsupported|not supported/)
     }
   })
 

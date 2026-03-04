@@ -72,8 +72,8 @@ describe('vaultStore', () => {
       expect(calls[0][0]).toBe('/api/documents/extract')
       expect(calls[0][1].method).toBe('POST')
 
-      // Second call: fetchDocuments refresh
-      expect(calls[1][0]).toBe('/api/documents')
+      // Second call: fetchDocuments refresh (STORY-223: includes limit=1000)
+      expect(calls[1][0]).toContain('/api/documents')
     })
 
     test('passes folderId in FormData when provided', async () => {

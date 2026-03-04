@@ -76,7 +76,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const dateSuffix = new Date().toISOString().split('T')[0]
 
     if (format === 'pdf') {
-      const buffer = generatePdfBuffer(events, {
+      const buffer = await generatePdfBuffer(events, {
         organizationName: 'RAGbox.co',
         exportedBy: userId,
         startDate: startDate ?? undefined,

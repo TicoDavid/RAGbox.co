@@ -60,6 +60,19 @@ Mercury's responses include:
 | **VAD toggle** | Enable/disable Voice Activity Detection |
 | **Audio level bar** | Shows your microphone input level |
 
+### Voice Settings (V2)
+
+Configure voice parameters in **Settings → Voice**:
+
+| Setting | Range | Description |
+|---------|-------|-------------|
+| **Voice** | Dynamic list | Select from 25+ available voices (fetched from Inworld API) |
+| **Expressiveness** | 0–100% | Controls vocal emotion/variation (maps to TTS temperature) |
+| **Speaking Rate** | 0.5×–2.0× | Speed of speech playback |
+| **Preview** | Button | Audition the selected voice with current settings |
+
+Changes take effect on the next voice session connection.
+
 ### Voice Status Indicators
 
 | Indicator | Meaning |
@@ -150,4 +163,10 @@ The silence threshold is configurable in Mercury settings:
 
 ---
 
-*Last updated: February 21, 2026 — Sarah, Engineering, RAGbox.co*
+## Voice Session History
+
+Mercury now maintains conversation context across voice sessions. When you start a voice session, Mercury loads recent messages from your current thread — she remembers what was discussed in previous text and voice interactions within the same thread.
+
+---
+
+*Last updated: March 3, 2026 — Sarah, Engineering, RAGbox.co*

@@ -172,7 +172,8 @@ describe('vaultStore – fetchDocuments', () => {
     await useVaultStore.getState().fetchDocuments()
 
     const url = (global.fetch as jest.Mock).mock.calls[0][0]
-    expect(url).toContain('/api/documents?search=contract')
+    expect(url).toContain('/api/documents')
+    expect(url).toContain('search=contract')
   })
 
   test('uses doc.name fallback when filename is missing', async () => {

@@ -178,24 +178,33 @@ function renderPdf(
 }
 
 /**
+ * Collect all data from a PDFDocument into a Buffer.
+ * Uses a promise to handle pdfkit's async stream flushing.
+ */
+function collectPdfBuffer(doc: PDFKit.PDFDocument): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = []
+    doc.on('data', (chunk: Buffer) => chunks.push(chunk))
+    doc.on('end', () => resolve(Buffer.concat(chunks)))
+    doc.on('error', reject)
+    doc.end()
+  })
+}
+
+/**
  * Generate audit PDF as base64 string.
  */
-export function generateAuditPdfContent(
+export async function generateAuditPdfContent(
   events: AuditEvent[],
   options: PdfExportOptions
-): PdfExportResult {
+): Promise<PdfExportResult> {
   const exportedAt = new Date()
   const filename = `ragbox_audit_${exportedAt.toISOString().split('T')[0]}.pdf`
   const reportHash = computeReportHash(events)
 
-  const doc = new PDFDocument({ size: 'LETTER', margin: 72 })
-  const chunks: Buffer[] = []
-  doc.on('data', (chunk: Buffer) => chunks.push(chunk))
-
+  const doc = new PDFDocument({ size: 'LETTER', margin: 72, compress: false })
   renderPdf(doc, events, options, exportedAt, reportHash)
-  doc.end()
-
-  const pdfBuffer = Buffer.concat(chunks)
+  const pdfBuffer = await collectPdfBuffer(doc)
 
   return {
     data: pdfBuffer.toString('base64'),
@@ -210,17 +219,12 @@ export function generateAuditPdfContent(
 /**
  * Generate PDF buffer for direct download.
  */
-export function generatePdfBuffer(
+export async function generatePdfBuffer(
   events: AuditEvent[],
   options: PdfExportOptions
-): Buffer {
+): Promise<Buffer> {
   const reportHash = computeReportHash(events)
-  const doc = new PDFDocument({ size: 'LETTER', margin: 72 })
-  const chunks: Buffer[] = []
-  doc.on('data', (chunk: Buffer) => chunks.push(chunk))
-
+  const doc = new PDFDocument({ size: 'LETTER', margin: 72, compress: false })
   renderPdf(doc, events, options, new Date(), reportHash)
-  doc.end()
-
-  return Buffer.concat(chunks)
+  return collectPdfBuffer(doc)
 }
