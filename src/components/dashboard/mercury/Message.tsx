@@ -2,11 +2,10 @@
 
 import React, { useState, useCallback } from 'react'
 import type { ChatMessage, MercuryChannel, Citation } from '@/types/ragbox'
-import { CitationTag } from './CitationTag'
 import { ConfidenceBadge } from './ConfidenceBadge'
 import { ModelBadge } from './ModelBadge'
 import { MarkdownRenderer } from './MarkdownRenderer'
-import { Copy, Check, ThumbsUp, ThumbsDown, Share2 } from 'lucide-react'
+import { Copy, Check, ThumbsUp, ThumbsDown, Share2, FileText, ExternalLink } from 'lucide-react'
 
 // ============================================================================
 // JSON GUARD — same fix as CenterMessage (BUG-009 / BUG-019 / HOTFIX)
@@ -86,9 +85,8 @@ const CHANNEL_BADGE: Record<MercuryChannel, { label: string; color: string }> = 
   sms: { label: 'SMS', color: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' },
 }
 
-function ChannelBadge({ channel, isUser }: { channel?: MercuryChannel; isUser?: boolean }) {
-  // Hide badge on user messages — user always sends from current channel, badge is redundant and has poor contrast on blue bg
-  if (!channel || isUser) return null
+function ChannelBadge({ channel }: { channel?: MercuryChannel }) {
+  if (!channel) return null
   const badge = CHANNEL_BADGE[channel]
   return (
     <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider border ${badge.color}`}>
@@ -96,6 +94,53 @@ function ChannelBadge({ channel, isUser }: { channel?: MercuryChannel; isUser?: 
     </span>
   )
 }
+
+// ============================================================================
+// STORY-239: Perplexity-style Source Cards
+// ============================================================================
+
+function SourceCard({ citation }: { citation: Citation }) {
+  const score = Math.round(citation.relevanceScore * 100)
+
+  return (
+    <div className="flex items-start gap-2.5 p-3 rounded-lg bg-[var(--bg-primary)]/60 border border-[var(--border-subtle)] hover:border-[var(--brand-blue)]/30 transition-colors group/source cursor-pointer">
+      {/* Citation index badge */}
+      <div className="shrink-0 w-6 h-6 rounded-full bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] text-[10px] font-bold flex items-center justify-center mt-0.5">
+        {citation.citationIndex}
+      </div>
+      <div className="flex-1 min-w-0">
+        {/* Document name */}
+        <div className="flex items-center gap-1.5">
+          <FileText className="w-3 h-3 text-[var(--text-tertiary)] shrink-0" />
+          <span className="text-xs font-medium text-[var(--text-primary)] truncate">
+            {citation.documentName}
+          </span>
+          <ExternalLink className="w-3 h-3 text-[var(--text-tertiary)] opacity-0 group-hover/source:opacity-100 transition-opacity shrink-0" />
+        </div>
+        {/* Excerpt snippet */}
+        {citation.excerpt && (
+          <p className="text-[11px] text-[var(--text-tertiary)] mt-1 line-clamp-2 leading-relaxed">
+            {citation.excerpt}
+          </p>
+        )}
+        {/* Relevance score bar */}
+        <div className="flex items-center gap-2 mt-1.5">
+          <div className="flex-1 h-1 bg-[var(--bg-elevated)] rounded-full overflow-hidden max-w-[60px]">
+            <div
+              className="h-full bg-[var(--brand-blue)] rounded-full transition-all"
+              style={{ width: `${score}%` }}
+            />
+          </div>
+          <span className="text-[9px] text-[var(--text-tertiary)]">{score}% match</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============================================================================
+// ACTION BUTTONS
+// ============================================================================
 
 function ActionButtons({ content }: { content: string }) {
   const [copied, setCopied] = useState(false)
@@ -109,13 +154,13 @@ function ActionButtons({ content }: { content: string }) {
     } catch { /* clipboard may not be available */ }
   }, [content])
 
-  const btnClass = 'p-1 rounded hover:bg-[var(--bg-elevated)] transition-colors text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
-
   const handleShare = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(content)
     } catch { /* clipboard may not be available */ }
   }, [content])
+
+  const btnClass = 'p-1 rounded hover:bg-[var(--bg-elevated)] transition-colors text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
 
   return (
     <div className="flex items-center gap-0.5 mt-1.5 -ml-1">
@@ -143,6 +188,13 @@ function ActionButtons({ content }: { content: string }) {
   )
 }
 
+// ============================================================================
+// MESSAGE COMPONENT — STORY-239: Perplexity-style layout
+//
+// User messages: compact right-aligned bubbles (unchanged).
+// Assistant messages: full-width, no bubble, source cards below answer.
+// ============================================================================
+
 export function Message({ message }: MessageProps) {
   const isUser = message.role === 'user'
 
@@ -151,55 +203,65 @@ export function Message({ message }: MessageProps) {
     ? { content: message.content, citations: message.citations, confidence: message.confidence }
     : parseStructuredResponse(message.content, message.citations, message.confidence)
 
-  return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4 group`}>
-      <div
-        className={`max-w-[75%] rounded-xl px-4 py-3 overflow-hidden break-words ${
-          isUser
-            ? 'bg-[var(--brand-blue)] text-[var(--text-primary)]'
-            : message.isError
-              ? 'bg-[var(--danger)]/10 border border-[var(--danger)]/30 text-[var(--text-primary)]'
-              : 'bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)]'
-        }`}
-      >
-        {/* Content — HOTFIX: parsed.content is always prose, never raw JSON */}
-        {isUser ? (
+  // ── User message: compact right-aligned bubble ──
+  if (isUser) {
+    return (
+      <div className="flex justify-end mb-4 group">
+        <div className="max-w-[75%] rounded-xl px-4 py-3 overflow-hidden break-words bg-[var(--brand-blue)] text-[var(--text-primary)]">
           <div className="text-sm whitespace-pre-wrap leading-relaxed">
             {message.content}
           </div>
-        ) : (
-          <MarkdownRenderer content={parsed.content} />
-        )}
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-[10px] text-[var(--text-primary)]/60">
+              {formatTime(message.timestamp)}
+            </span>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
-        {/* Citations — from SSE events OR extracted from JSON content */}
-        {parsed.citations && parsed.citations.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-2.5 pt-2.5 border-t border-[var(--border-subtle)]">
+  // ── Assistant message: full-width Perplexity-style ──
+  return (
+    <div className="mb-6 group">
+      {/* Answer content — full-width, clean layout */}
+      <div className={
+        message.isError
+          ? 'p-4 rounded-xl bg-[var(--danger)]/10 border border-[var(--danger)]/30 text-[var(--text-primary)]'
+          : 'text-[var(--text-primary)]'
+      }>
+        <MarkdownRenderer content={parsed.content} />
+      </div>
+
+      {/* Sources — Perplexity-style source cards */}
+      {parsed.citations && parsed.citations.length > 0 && (
+        <div className="mt-4">
+          <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider font-semibold mb-2">
+            Sources
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {parsed.citations.map((citation) => (
-              <CitationTag key={citation.citationIndex} citation={citation} />
+              <SourceCard key={citation.citationIndex} citation={citation} />
             ))}
           </div>
-        )}
-
-        {/* Footer: time + channel badge + confidence */}
-        <div className="flex items-center gap-2 mt-2">
-          <span className={`text-[10px] ${isUser ? 'text-[var(--text-primary)]/60' : 'text-[var(--text-tertiary)]'}`}>
-            {formatTime(message.timestamp)}
-          </span>
-          <ChannelBadge channel={message.channel} isUser={isUser} />
-          {parsed.confidence !== undefined && !isUser && (
-            <ConfidenceBadge confidence={parsed.confidence} />
-          )}
-          {!isUser && (
-            <ModelBadge modelUsed={message.modelUsed} provider={message.provider} latencyMs={message.latencyMs} />
-          )}
         </div>
+      )}
 
-        {/* Action buttons (assistant messages only, visible on hover) */}
-        {!isUser && (
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-            <ActionButtons content={parsed.content} />
-          </div>
+      {/* Footer: time + channel + confidence + model */}
+      <div className="flex items-center gap-2 mt-3">
+        <span className="text-[10px] text-[var(--text-tertiary)]">
+          {formatTime(message.timestamp)}
+        </span>
+        <ChannelBadge channel={message.channel} />
+        {parsed.confidence !== undefined && (
+          <ConfidenceBadge confidence={parsed.confidence} />
         )}
+        <ModelBadge modelUsed={message.modelUsed} provider={message.provider} latencyMs={message.latencyMs} />
+      </div>
+
+      {/* Action buttons — visible on hover */}
+      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+        <ActionButtons content={parsed.content} />
       </div>
     </div>
   )

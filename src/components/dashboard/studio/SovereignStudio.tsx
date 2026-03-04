@@ -23,10 +23,13 @@ import {
   Crosshair,
   AlertCircle,
   Plus,
+  Eye,
 } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { useVaultStore } from '@/stores/vaultStore'
+import { useBrandStore, templateToFile } from '@/stores/brandStore'
 import { MindMapPreview } from './MindMapPreview'
+import { ArtifactPreviewPane } from './ArtifactPreviewPane'
 
 // ============================================================================
 // TYPES
@@ -45,12 +48,6 @@ type ArtifactType =
   | 'evidence'
 
 type GenerationPhase = 'idle' | 'selecting' | 'generating' | 'complete' | 'error'
-
-interface BrandConfig {
-  wordTemplate: File | null
-  slideTemplate: File | null
-  tone: ToneOption
-}
 
 interface GenerationState {
   phase: GenerationPhase
@@ -92,23 +89,27 @@ const TONES: Array<{ value: ToneOption; label: string }> = [
 // ============================================================================
 
 function BrandDNAAccordion({
-  config,
-  onChange,
   isExpanded,
   onToggle,
 }: {
-  config: BrandConfig
-  onChange: (config: BrandConfig) => void
   isExpanded: boolean
   onToggle: () => void
 }) {
+  const wordTemplate = useBrandStore((s) => s.wordTemplate)
+  const slideTemplate = useBrandStore((s) => s.slideTemplate)
+  const tone = useBrandStore((s) => s.tone)
+  const setWordTemplate = useBrandStore((s) => s.setWordTemplate)
+  const setSlideTemplate = useBrandStore((s) => s.setSlideTemplate)
+  const setTone = useBrandStore((s) => s.setTone)
+
   const handleFileUpload = (type: 'word' | 'slide') => (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      onChange({
-        ...config,
-        [type === 'word' ? 'wordTemplate' : 'slideTemplate']: file,
-      })
+      if (type === 'word') {
+        setWordTemplate(file)
+      } else {
+        setSlideTemplate(file)
+      }
     }
   }
 
@@ -127,7 +128,14 @@ function BrandDNAAccordion({
           </div>
           <div className="text-left">
             <p className="text-sm font-semibold text-[var(--text-primary)]">Brand DNA</p>
-            <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">Template Configuration</p>
+            <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">
+              Template Configuration
+              {(wordTemplate || slideTemplate) && (
+                <span className="ml-1.5 text-[var(--success)]">
+                  ({[wordTemplate && 'Word', slideTemplate && 'Slides'].filter(Boolean).join(' + ')} loaded)
+                </span>
+              )}
+            </p>
           </div>
         </div>
         {isExpanded ? (
@@ -153,21 +161,32 @@ function BrandDNAAccordion({
                 <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider block mb-2">
                   Report Letterhead (.docx)
                 </label>
-                <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-[var(--border-strong)] hover:border-[var(--warning)]/50 cursor-pointer transition-colors bg-[var(--bg-primary)]/50">
-                  <Upload className="w-4 h-4 text-[var(--text-secondary)]" />
-                  <span className="text-xs text-[var(--text-secondary)] truncate flex-1">
-                    {config.wordTemplate?.name || 'Upload Word Template'}
-                  </span>
-                  {config.wordTemplate && (
-                    <Check className="w-4 h-4 text-[var(--success)]" />
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-[var(--border-strong)] hover:border-[var(--warning)]/50 cursor-pointer transition-colors bg-[var(--bg-primary)]/50 flex-1">
+                    <Upload className="w-4 h-4 text-[var(--text-secondary)]" />
+                    <span className="text-xs text-[var(--text-secondary)] truncate flex-1">
+                      {wordTemplate?.name || 'Upload Word Template'}
+                    </span>
+                    {wordTemplate && (
+                      <Check className="w-4 h-4 text-[var(--success)]" />
+                    )}
+                    <input
+                      type="file"
+                      accept=".docx"
+                      onChange={handleFileUpload('word')}
+                      className="hidden"
+                    />
+                  </label>
+                  {wordTemplate && (
+                    <button
+                      onClick={() => setWordTemplate(null)}
+                      className="p-2 rounded-lg hover:bg-[var(--bg-elevated)]/30 transition-colors"
+                      aria-label="Remove word template"
+                    >
+                      <X className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+                    </button>
                   )}
-                  <input
-                    type="file"
-                    accept=".docx"
-                    onChange={handleFileUpload('word')}
-                    className="hidden"
-                  />
-                </label>
+                </div>
               </div>
 
               {/* Slide Template */}
@@ -175,21 +194,32 @@ function BrandDNAAccordion({
                 <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider block mb-2">
                   Presentation Deck (.pptx)
                 </label>
-                <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-[var(--border-strong)] hover:border-[var(--warning)]/50 cursor-pointer transition-colors bg-[var(--bg-primary)]/50">
-                  <Upload className="w-4 h-4 text-[var(--text-secondary)]" />
-                  <span className="text-xs text-[var(--text-secondary)] truncate flex-1">
-                    {config.slideTemplate?.name || 'Upload Slide Master'}
-                  </span>
-                  {config.slideTemplate && (
-                    <Check className="w-4 h-4 text-[var(--success)]" />
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-[var(--border-strong)] hover:border-[var(--warning)]/50 cursor-pointer transition-colors bg-[var(--bg-primary)]/50 flex-1">
+                    <Upload className="w-4 h-4 text-[var(--text-secondary)]" />
+                    <span className="text-xs text-[var(--text-secondary)] truncate flex-1">
+                      {slideTemplate?.name || 'Upload Slide Master'}
+                    </span>
+                    {slideTemplate && (
+                      <Check className="w-4 h-4 text-[var(--success)]" />
+                    )}
+                    <input
+                      type="file"
+                      accept=".pptx"
+                      onChange={handleFileUpload('slide')}
+                      className="hidden"
+                    />
+                  </label>
+                  {slideTemplate && (
+                    <button
+                      onClick={() => setSlideTemplate(null)}
+                      className="p-2 rounded-lg hover:bg-[var(--bg-elevated)]/30 transition-colors"
+                      aria-label="Remove slide template"
+                    >
+                      <X className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+                    </button>
                   )}
-                  <input
-                    type="file"
-                    accept=".pptx"
-                    onChange={handleFileUpload('slide')}
-                    className="hidden"
-                  />
-                </label>
+                </div>
               </div>
 
               {/* Tone Selector */}
@@ -198,14 +228,14 @@ function BrandDNAAccordion({
                   Voice & Tone
                 </label>
                 <select
-                  value={config.tone}
-                  onChange={(e) => onChange({ ...config, tone: e.target.value as ToneOption })}
+                  value={tone}
+                  onChange={(e) => setTone(e.target.value as ToneOption)}
                   aria-label="Voice and tone"
                   className="w-full px-3 py-2 rounded-lg bg-[var(--bg-primary)]/50 border border-[var(--border-strong)] text-sm text-[var(--text-primary)] focus:border-[var(--warning)]/50 focus:outline-none transition-colors"
                 >
-                  {TONES.map((tone) => (
-                    <option key={tone.value} value={tone.value}>
-                      {tone.label}
+                  {TONES.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
                     </option>
                   ))}
                 </select>
@@ -545,12 +575,14 @@ function ArtifactResult({
   artifactType,
   onDownload,
   onDismiss,
+  onPreview,
 }: {
   name: string
   preview?: string
   artifactType?: string
   onDownload: () => void
   onDismiss: () => void
+  onPreview: () => void
 }) {
   const isMindMap = artifactType === 'mindmap' && preview
 
@@ -570,23 +602,31 @@ function ArtifactResult({
         </div>
       </div>
 
-      {/* Mind map: render SVG inline via mermaid */}
-      {isMindMap && (
-        <div className="mb-3">
+      {/* Compact inline preview snippet */}
+      {preview && (
+        <div
+          className="mb-3 p-2.5 rounded-lg bg-[var(--bg-primary)]/50 border border-[var(--border-subtle)] cursor-pointer hover:border-[var(--brand-blue)]/30 transition-colors"
+          onClick={onPreview}
+        >
           <p className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] mb-1">Preview</p>
-          <MindMapPreview mermaidCode={preview} title={name.replace(/\.[^.]+$/, '')} />
-        </div>
-      )}
-
-      {/* Other artifacts: text preview */}
-      {!isMindMap && preview && (
-        <div className="mb-3 p-2.5 rounded-lg bg-[var(--bg-primary)]/50 border border-[var(--border-subtle)]">
-          <p className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] mb-1">Preview</p>
-          <p className="text-xs text-[var(--text-secondary)] line-clamp-4 whitespace-pre-wrap">{preview}</p>
+          {isMindMap ? (
+            <MindMapPreview mermaidCode={preview} title={name.replace(/\.[^.]+$/, '')} />
+          ) : (
+            <p className="text-xs text-[var(--text-secondary)] line-clamp-4 whitespace-pre-wrap">{preview}</p>
+          )}
         </div>
       )}
 
       <div className="flex gap-2">
+        {/* STORY-242: Full preview button */}
+        <button
+          onClick={onPreview}
+          className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[var(--bg-elevated)] text-[var(--text-primary)] text-sm hover:bg-[var(--bg-elevated)]/80 transition-colors border border-[var(--border-default)]"
+          aria-label={`Preview ${name}`}
+        >
+          <Eye className="w-4 h-4" />
+          Preview
+        </button>
         <button
           onClick={onDownload}
           className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[var(--warning)] text-black font-medium text-sm hover:bg-[var(--warning)] transition-colors"
@@ -612,12 +652,10 @@ function ArtifactResult({
 // ============================================================================
 
 export function SovereignStudio() {
-  // Brand configuration state
-  const [brandConfig, setBrandConfig] = useState<BrandConfig>({
-    wordTemplate: null,
-    slideTemplate: null,
-    tone: 'standard',
-  })
+  // Brand config lives in persisted brandStore (STORY-240)
+  const brandTone = useBrandStore((s) => s.tone)
+  const brandWordTemplate = useBrandStore((s) => s.wordTemplate)
+  const brandSlideTemplate = useBrandStore((s) => s.slideTemplate)
   const [brandExpanded, setBrandExpanded] = useState(false)
 
   // Generation state
@@ -628,6 +666,9 @@ export function SovereignStudio() {
     progress: '',
     result: null,
   })
+
+  // STORY-242: Preview pane state
+  const [showPreview, setShowPreview] = useState(false)
 
   // Upload modal state
   const [showIngestion, setShowIngestion] = useState(false)
@@ -650,17 +691,21 @@ export function SovereignStudio() {
     })
 
     try {
+      // STORY-240: Include persisted letterhead templates in generation request
+      const formData = new FormData()
+      formData.append('artifactType', generation.artifact || '')
+      formData.append('sourceDocumentIds', JSON.stringify(fileIds))
+      formData.append('tone', brandTone)
+      if (brandWordTemplate) {
+        formData.append('wordTemplate', templateToFile(brandWordTemplate))
+      }
+      if (brandSlideTemplate) {
+        formData.append('slideTemplate', templateToFile(brandSlideTemplate))
+      }
+
       const response = await apiFetch('/api/studio/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          artifactType: generation.artifact,
-          sourceDocumentIds: fileIds,
-          brandConfig: {
-            tone: brandConfig.tone,
-            companyName: undefined,
-          },
-        }),
+        body: formData,
       })
 
       const data = await response.json()
@@ -721,8 +766,6 @@ export function SovereignStudio() {
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
         {/* Brand DNA Configuration */}
         <BrandDNAAccordion
-          config={brandConfig}
-          onChange={setBrandConfig}
           isExpanded={brandExpanded}
           onToggle={() => setBrandExpanded(!brandExpanded)}
         />
@@ -748,6 +791,7 @@ export function SovereignStudio() {
             artifactType={generation.artifact ?? undefined}
             onDownload={handleDownload}
             onDismiss={handleDismiss}
+            onPreview={() => setShowPreview(true)}
           />
         )}
 
@@ -840,6 +884,16 @@ export function SovereignStudio() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* STORY-242: Full artifact preview pane */}
+      <ArtifactPreviewPane
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        onDownload={handleDownload}
+        name={generation.result?.name ?? ''}
+        preview={generation.result?.preview}
+        artifactType={generation.artifact ?? undefined}
+      />
     </div>
   )
 }
