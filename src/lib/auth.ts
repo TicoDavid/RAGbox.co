@@ -5,6 +5,7 @@ import AzureADProvider from "next-auth/providers/azure-ad";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { getRedis } from "@/lib/cache/redisClient";
 import { logger } from "@/lib/logger";
+import prisma from "@/lib/prisma";
 
 const useSecureCookies = (process.env.NEXTAUTH_URL ?? "").startsWith("https://");
 
@@ -152,6 +153,25 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     async signIn({ user, account, profile }) {
+      // Auto-create MercuryPersona with defaults on first login.
+      // Ensures Mercury is ready before the user reaches Settings or voice.
+      try {
+        await prisma.mercuryPersona.upsert({
+          where: { tenantId: 'default' },
+          update: {},
+          create: {
+            tenantId: 'default',
+            firstName: 'Mercury',
+            lastName: '',
+            title: 'AI Assistant',
+            personalityPrompt: 'You are Mercury, an AI assistant powered by RAGbox. You answer questions based on documents in the user vault. Always cite your sources. If you are not confident, invoke the Silence Protocol.',
+            greeting: "Hi, I'm Mercury. How can I help you today?",
+          },
+        })
+      } catch (err) {
+        // Non-blocking — don't prevent login if persona creation fails
+        logger.error('[Auth] MercuryPersona auto-create failed', { error: err instanceof Error ? err.message : String(err) })
+      }
       return true;
     },
     async redirect({ url, baseUrl }) {

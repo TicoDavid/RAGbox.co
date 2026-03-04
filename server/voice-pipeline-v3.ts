@@ -246,29 +246,15 @@ export function interceptGroundingRefusal(
 ): string {
   const lower = response.toLowerCase().trim()
 
-  const tooShort = lower.length < 5
-  const matchedPattern = GROUNDING_REFUSAL_PATTERNS.find(p => lower.includes(p))
-  const isRefusal = tooShort || !!matchedPattern
-
-  // BUG-050 DIAGNOSTIC: Log every interceptor evaluation so we can see what
-  // the Go backend actually returned and whether the interceptor fires.
-  console.info('[BUG-050-DIAG] interceptGroundingRefusal evaluation', {
-    responseLength: response.length,
-    responsePreview: response.substring(0, 200),
-    responseFull: response.length <= 500 ? response : response.substring(0, 500) + '...[truncated]',
-    tooShort,
-    matchedPattern: matchedPattern || null,
-    isRefusal,
-    queryPreview: userQuery.substring(0, 80),
-    agentName,
-  })
+  const isRefusal = lower.length < 5
+    || GROUNDING_REFUSAL_PATTERNS.some(p => lower.includes(p))
 
   if (!isRefusal) return response
 
-  console.warn('[BUG-050-DIAG] INTERCEPTOR FIRED — replacing RAG response with conversational fallback', {
-    reason: tooShort ? `response too short (${lower.length} chars)` : `matched pattern: "${matchedPattern}"`,
-    originalResponse: response.substring(0, 300),
-    query: userQuery,
+  console.info('[VoicePipeline-v3] RAG grounding refusal intercepted', {
+    refusalPreview: response.substring(0, 80),
+    queryPreview: userQuery.substring(0, 80),
+    agentName,
   })
 
   return generateConversationalResponse(userQuery, agentName)
@@ -310,6 +296,36 @@ async function fetchMercuryConfig(userId: string): Promise<MercuryConfig> {
     console.warn('[VoicePipeline-v3] Mercury config fetch failed, using defaults', err)
   }
   return {}
+}
+
+const THREAD_HISTORY_LIMIT = 20
+
+/**
+ * Load recent messages from the user's persistent mercury thread.
+ * Returns user/assistant messages in chronological order for conversation context.
+ */
+async function loadThreadHistory(userId: string): Promise<Array<{ role: string; content: string }>> {
+  try {
+    const thread = await prisma.mercuryThread.findFirst({
+      where: { userId },
+      orderBy: { updatedAt: 'desc' },
+      select: { id: true },
+    })
+    if (!thread) return []
+
+    const messages = await prisma.mercuryThreadMessage.findMany({
+      where: { threadId: thread.id },
+      orderBy: { createdAt: 'desc' },
+      take: THREAD_HISTORY_LIMIT,
+      select: { role: true, content: true },
+    })
+
+    // Reverse to chronological order
+    return messages.reverse().map(m => ({ role: m.role, content: m.content }))
+  } catch (err) {
+    console.warn('[VoicePipeline-v3] Thread history load failed, starting fresh', err)
+    return []
+  }
 }
 
 // BUG-045B: Inworld SDK's TTSOutputStream stores audio.data as a Buffer
@@ -384,9 +400,16 @@ Current user context:
 - Role: ${toolContext?.role || 'User'}
 - Privilege Mode: ${toolContext?.privilegeMode ? 'ENABLED' : 'disabled'}`
 
+  // Load persistent thread history so voice remembers prior conversation
+  const threadHistory = await loadThreadHistory(toolContext?.userId || 'anonymous')
+
   let conversationHistory: Array<{ role: string; content: string }> = [
     { role: 'system', content: systemPrompt },
+    ...threadHistory,
   ]
+  if (threadHistory.length > 0) {
+    console.info('[VoicePipeline-v3] Loaded thread history', { messages: threadHistory.length })
+  }
 
   // Create TTS component — EPIC-023: temperature 1.1 for expressiveness
   const ttsComponent = new RemoteTTSComponent({
@@ -492,46 +515,23 @@ Current user context:
         conversationHistory.push({ role: 'user', content: `[Tool Result]\n${userText}` })
       }
 
-      // BUG-050 FIX: Align voice Go backend request with text chat path
-      // (src/app/api/chat/route.ts lines 184-204). Four fields were wrong:
-      //   1. stream: false → true (Go backend returns different format)
-      //   2. persona → personaId (Go backend expects personaId field)
-      //   3. useVectorPipeline: missing → true (triggers RAG retrieval)
-      //   4. history: included system prompt → strip to user/assistant only
       const backendUrl = `${GO_BACKEND_URL}/api/chat`
       const backendHeaders = {
         'Content-Type': 'application/json',
         'X-Internal-Auth': INTERNAL_AUTH,
         'X-User-ID': toolContext?.userId || 'anonymous',
       }
-      // BUG-050 FIX #4: Strip system messages from history — text chat only
-      // sends user/assistant turns. System prompt in history confuses the
-      // Go backend's context handling.
       const chatHistory = conversationHistory
         .filter(h => h.role === 'user' || h.role === 'assistant')
         .slice(-10)
       const backendBody = {
         query: userText,
-        stream: true,                                      // FIX #1: was false
+        stream: true,
         privilegeMode: toolContext?.privilegeMode || false,
         maxTier: 3,
-        persona: 'mercury',                                // Go backend expects 'persona' not 'personaId'
-        history: chatHistory,                              // FIX #4: stripped system
+        persona: 'mercury',
+        history: chatHistory,
       }
-
-      console.info('[BUG-050-DIAG] Go backend REQUEST', {
-        url: backendUrl,
-        headers: { ...backendHeaders, 'X-Internal-Auth': backendHeaders['X-Internal-Auth'] ? '[SET]' : '[EMPTY]' },
-        body: {
-          query: backendBody.query,
-          stream: backendBody.stream,
-          privilegeMode: backendBody.privilegeMode,
-          maxTier: backendBody.maxTier,
-          persona: backendBody.persona,
-          historyLength: backendBody.history.length,
-          historyRoles: backendBody.history.map(h => h.role),
-        },
-      })
 
       // Call Go backend /api/chat directly
       const res = await fetch(backendUrl, {
@@ -540,32 +540,14 @@ Current user context:
         body: JSON.stringify(backendBody),
       })
 
-      console.info('[BUG-050-DIAG] Go backend RESPONSE status', {
-        status: res.status,
-        statusText: res.statusText,
-        contentType: res.headers.get('content-type'),
-        query: userText.substring(0, 80),
-      })
-
       if (!res.ok) {
         const errText = await res.text()
-        console.error('[BUG-050-DIAG] Go backend ERROR response', {
-          status: res.status,
-          body: errText.substring(0, 500),
-        })
         throw new Error(`Backend error ${res.status}: ${errText.substring(0, 200)}`)
       }
 
       // Go backend returns SSE (text/event-stream). Parse to extract answer.
       const rawText = await res.text()
 
-      // BUG-050 DIAGNOSTIC: Log full raw response from Go backend
-      console.info('[BUG-050-DIAG] Go backend RAW response', {
-        length: rawText.length,
-        preview: rawText.substring(0, 500),
-        startsWithBrace: rawText.startsWith('{'),
-        fullResponse: rawText.length <= 2000 ? rawText : rawText.substring(0, 2000) + '...[truncated]',
-      })
       let answer = ''
 
       if (rawText.startsWith('{')) {
@@ -579,8 +561,6 @@ Current user context:
         // SSE format — extract tokens and done payload
         const tokens: string[] = []
         let currentEventType = ''
-        // BUG-050 DIAGNOSTIC: Track all SSE events for debugging
-        const sseEvents: Array<{ event: string; dataPreview: string }> = []
 
         for (const line of rawText.split('\n')) {
           if (line.startsWith('event: ')) {
@@ -588,9 +568,6 @@ Current user context:
           } else if (line.startsWith('data: ')) {
             const dataStr = line.slice(6).trim()
             if (!dataStr) continue
-
-            // BUG-050 DIAGNOSTIC: Log every SSE event
-            sseEvents.push({ event: currentEventType || '(none)', dataPreview: dataStr.substring(0, 200) })
 
             if (currentEventType === 'token') {
               try {
@@ -622,16 +599,6 @@ Current user context:
           }
         }
         if (!answer) answer = tokens.join('')
-
-        // BUG-050 DIAGNOSTIC: Summary of all SSE events received
-        console.info('[BUG-050-DIAG] SSE events summary', {
-          totalEvents: sseEvents.length,
-          eventTypes: sseEvents.map(e => e.event),
-          events: sseEvents,
-          tokenCount: tokens.length,
-          tokensJoined: tokens.join('').substring(0, 200),
-          answerFromDone: answer.substring(0, 200),
-        })
       }
 
       // Strip JSON wrapper if model returned structured JSON
@@ -642,37 +609,14 @@ Current user context:
         } catch { /* not JSON, use as-is */ }
       }
 
-      // BUG-050 DIAGNOSTIC: Log parsed answer before any interceptor processing
-      console.info('[BUG-050-DIAG] Parsed answer (pre-interceptor)', {
-        answerLength: answer.length,
-        answerPreview: answer.substring(0, 300),
-        answerEmpty: !answer,
-        query: userText.substring(0, 80),
-      })
-
       if (!answer) {
-        console.warn('[BUG-050-DIAG] Answer is EMPTY after parsing — will use fallback message')
         answer = "I'm sorry, I couldn't process that request. Please try again."
       }
 
       console.info('[VoicePipeline-v3] LLM answer', { chars: answer.length, preview: answer.substring(0, 100) })
 
       // BUG-042 Bug B: Intercept grounding refusals before TTS
-      const preInterceptAnswer = answer
       answer = interceptGroundingRefusal(answer, userText, agentName)
-
-      // BUG-050 DIAGNOSTIC: Log whether interceptor changed the answer
-      if (answer !== preInterceptAnswer) {
-        console.warn('[BUG-050-DIAG] INTERCEPTOR CHANGED ANSWER', {
-          before: preInterceptAnswer.substring(0, 200),
-          after: answer.substring(0, 200),
-          query: userText.substring(0, 80),
-        })
-      } else {
-        console.info('[BUG-050-DIAG] Interceptor passed through (no change)', {
-          answerPreview: answer.substring(0, 100),
-        })
-      }
 
       // Check for tool calls in response
       const { toolCall, cleanText } = parseToolCalls(answer)
