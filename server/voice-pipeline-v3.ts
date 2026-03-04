@@ -393,11 +393,16 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
     return `**${t.name}**: ${t.description}${params ? '\n' + params : ''}`
   }).join('\n\n')
 
+  // Build personality section from MercuryPersona.personalityPrompt (EPIC-022 V-009)
+  const personalitySection = personality
+    ? `\n## Personality & Instructions\n${personality}\n`
+    : ''
+
   const systemPrompt = `You are ${agentName}, the Virtual Representative (V-Rep) for RAGbox.co.
 
 Keep responses concise and professional - you are speaking aloud, so be conversational but precise.
 After using a tool, explain the results naturally in spoken language.
-
+${personalitySection}
 ## Available Tools
 When you need to access documents or perform actions, use these tools by outputting a JSON block:
 
