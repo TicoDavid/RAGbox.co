@@ -82,11 +82,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       data: {
         userId,
         userEmail,
-        type: body.type,
-        description: trimmed,
+        category: body.type!,
+        message: trimmed,
         currentUrl: body.currentUrl || null,
         browserInfo: body.browserInfo || null,
-      },
+      } as any,
     })
   } catch (dbErr) {
     logger.error('Failed to persist feedback report:', dbErr)

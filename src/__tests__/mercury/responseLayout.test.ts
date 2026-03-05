@@ -15,21 +15,21 @@
 // LAYOUT TYPE SYSTEM
 // ============================================================================
 
-type ResponseLayout = 'dossier' | 'conversation' | 'analyst'
+type TestResponseLayout = 'dossier' | 'conversation' | 'analyst'
 
-const LAYOUT_LABELS: Record<ResponseLayout, string> = {
+const LAYOUT_LABELS: Record<TestResponseLayout, string> = {
   dossier: 'Dossier',
   conversation: 'Conversation',
   analyst: 'Analyst',
 }
 
-const LAYOUT_ICONS: Record<ResponseLayout, string> = {
+const LAYOUT_ICONS: Record<TestResponseLayout, string> = {
   dossier: '📋',
   conversation: '💬',
   analyst: '📊',
 }
 
-const DEFAULT_LAYOUT: ResponseLayout = 'dossier'
+const DEFAULT_LAYOUT: TestResponseLayout = 'dossier'
 
 // Shared test response data — same data renders differently per layout
 const TEST_RESPONSE = {
@@ -57,7 +57,7 @@ describe('Sarah — Response Layout: Toggle Persistence', () => {
     mockStorage = {}
   })
 
-  function getLayout(): ResponseLayout {
+  function getLayout(): TestResponseLayout {
     const stored = mockStorage['ragbox-response-layout']
     if (stored && (stored === 'dossier' || stored === 'conversation' || stored === 'analyst')) {
       return stored
@@ -65,7 +65,7 @@ describe('Sarah — Response Layout: Toggle Persistence', () => {
     return DEFAULT_LAYOUT
   }
 
-  function setLayout(layout: ResponseLayout): void {
+  function setLayout(layout: TestResponseLayout): void {
     mockStorage['ragbox-response-layout'] = layout
   }
 
@@ -100,7 +100,7 @@ describe('Sarah — Response Layout: Toggle Persistence', () => {
   })
 
   test('all 3 layouts have labels', () => {
-    const layouts: ResponseLayout[] = ['dossier', 'conversation', 'analyst']
+    const layouts: TestResponseLayout[] = ['dossier', 'conversation', 'analyst']
     for (const layout of layouts) {
       expect(LAYOUT_LABELS[layout]).toBeDefined()
       expect(LAYOUT_LABELS[layout].length).toBeGreaterThan(0)
@@ -108,7 +108,7 @@ describe('Sarah — Response Layout: Toggle Persistence', () => {
   })
 
   test('all 3 layouts have icons', () => {
-    const layouts: ResponseLayout[] = ['dossier', 'conversation', 'analyst']
+    const layouts: TestResponseLayout[] = ['dossier', 'conversation', 'analyst']
     for (const layout of layouts) {
       expect(LAYOUT_ICONS[layout]).toBeDefined()
     }
