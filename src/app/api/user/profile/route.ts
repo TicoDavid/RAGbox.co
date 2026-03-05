@@ -17,20 +17,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const userId = (token.id as string) || token.email || ''
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      image: true,
-      role: true,
-    },
-  })
+  // Use raw SQL — isAdmin field may not be in generated Prisma client yet
+  const users = await prisma.$queryRawUnsafe<Array<{
+    id: string; name: string | null; email: string; image: string | null; role: string; is_admin: boolean
+  }>>(
+    `SELECT id, name, email, image, role, is_admin FROM users WHERE id = $1 LIMIT 1`,
+    userId
+  )
 
-  if (!user) {
+  if (users.length === 0) {
     return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 })
   }
+
+  const user = users[0]
 
   return NextResponse.json({
     success: true,
@@ -39,6 +38,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       email: user.email,
       avatarUrl: user.image,
       role: user.role,
+      isAdmin: user.is_admin === true,
     },
   })
 }

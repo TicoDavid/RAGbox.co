@@ -39,6 +39,7 @@ model User {
   industry     String? @map("industry")
   companySize  String? @map("company_size")
   useCase      String? @map("use_case")
+  isAdmin      Boolean @default(false) @map("is_admin")
   createdAt DateTime @default(now()) @map("created_at")
   lastLoginAt DateTime? @map("last_login_at")
 

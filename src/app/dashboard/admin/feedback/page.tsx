@@ -1,13 +1,14 @@
 'use client'
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react'
-import { Download, Filter, ArrowUpDown, ChevronDown, ChevronRight, Image as ImageIcon } from 'lucide-react'
+import { Download, Filter, ArrowUpDown, ChevronDown, ChevronRight, Image as ImageIcon, ShieldAlert } from 'lucide-react'
 import { useFeedbackStore } from '@/stores/feedbackStore'
 import type { FeedbackTicket, FeedbackType, FeedbackSeverity, FeedbackModule, FeedbackStatus } from '@/stores/feedbackStore'
+import { useUserRoleInfo } from '@/hooks/useUserRole'
 
 // ============================================================================
 // STORY-236: Admin Feedback Dashboard — /admin/feedback
-// Protected route: Owner role only (enforced by layout)
+// Protected route: isAdmin only
 // ============================================================================
 
 const STATUS_OPTIONS: FeedbackStatus[] = ['New', 'Reviewed', 'Filed', 'Closed']
@@ -65,6 +66,7 @@ function exportToCsv(tickets: FeedbackTicket[]) {
 const SEVERITY_ORDER: Record<FeedbackSeverity, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 }
 
 export default function AdminFeedbackPage() {
+  const { isAdmin } = useUserRoleInfo()
   const tickets = useFeedbackStore((s) => s.tickets)
   const updateTicketStatus = useFeedbackStore((s) => s.updateTicketStatus)
   const updateTicketNotes = useFeedbackStore((s) => s.updateTicketNotes)
@@ -88,8 +90,19 @@ export default function AdminFeedbackPage() {
   }, [tickets])
 
   useEffect(() => {
-    loadTickets()
-  }, [loadTickets])
+    if (isAdmin) loadTickets()
+  }, [loadTickets, isAdmin])
+
+  if (!isAdmin) {
+    return (
+      <div className="h-full flex items-center justify-center bg-[var(--bg-primary)]">
+        <div className="text-center">
+          <ShieldAlert className="w-10 h-10 text-[var(--danger)] mx-auto mb-3 opacity-60" />
+          <p className="text-sm text-[var(--text-secondary)]">Admin access required</p>
+        </div>
+      </div>
+    )
+  }
 
   const handleSort = useCallback((key: SortKey) => {
     setSortDir((prev) => (sortKey === key ? (prev === 'asc' ? 'desc' : 'asc') : 'desc'))

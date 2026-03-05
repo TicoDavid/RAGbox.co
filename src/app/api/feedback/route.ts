@@ -109,14 +109,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '50', 10)))
   const offset = (page - 1) * limit
 
-  // Admin check: Partner role can see all feedback
+  // Admin check: is_admin flag on user record
   let isAdmin = false
   try {
-    const users = await prisma.$queryRawUnsafe<Array<{ role: string }>>(
-      `SELECT role FROM users WHERE id = $1 LIMIT 1`,
+    const users = await prisma.$queryRawUnsafe<Array<{ is_admin: boolean }>>(
+      `SELECT is_admin FROM users WHERE id = $1 LIMIT 1`,
       userId
     )
-    isAdmin = users.length > 0 && users[0].role === 'Partner'
+    isAdmin = users.length > 0 && users[0].is_admin === true
   } catch {
     // Fall through — non-admin view
   }

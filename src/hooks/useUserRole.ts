@@ -8,8 +8,18 @@ import { useState, useEffect } from 'react'
 
 export type UserRole = 'Partner' | 'Associate' | 'Auditor'
 
+interface UserRoleInfo {
+  role: UserRole | null
+  isAdmin: boolean
+}
+
 export function useUserRole(): UserRole | null {
-  const [role, setRole] = useState<UserRole | null>(null)
+  const info = useUserRoleInfo()
+  return info.role
+}
+
+export function useUserRoleInfo(): UserRoleInfo {
+  const [info, setInfo] = useState<UserRoleInfo>({ role: null, isAdmin: false })
 
   useEffect(() => {
     let cancelled = false
@@ -21,15 +31,18 @@ export function useUserRole(): UserRole | null {
       })
       .then((data) => {
         if (!cancelled) {
-          setRole((data.data?.role as UserRole) ?? null)
+          setInfo({
+            role: (data.data?.role as UserRole) ?? null,
+            isAdmin: data.data?.isAdmin === true,
+          })
         }
       })
       .catch(() => {
-        // Silently fail — privilege toggle stays hidden (safe default)
+        // Silently fail — privilege toggle stays hidden, admin stays false (safe default)
       })
 
     return () => { cancelled = true }
   }, [])
 
-  return role
+  return info
 }

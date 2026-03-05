@@ -24,14 +24,14 @@ export async function PATCH(request: NextRequest, { params }: RouteContext): Pro
     return NextResponse.json({ success: false, error: 'Unable to determine user identity' }, { status: 401 })
   }
 
-  // Admin check: Partner role only
+  // Admin check: is_admin flag on user record
   let isAdmin = false
   try {
-    const users = await prisma.$queryRawUnsafe<Array<{ role: string }>>(
-      `SELECT role FROM users WHERE id = $1 LIMIT 1`,
+    const users = await prisma.$queryRawUnsafe<Array<{ is_admin: boolean }>>(
+      `SELECT is_admin FROM users WHERE id = $1 LIMIT 1`,
       userId
     )
-    isAdmin = users.length > 0 && users[0].role === 'Partner'
+    isAdmin = users.length > 0 && users[0].is_admin === true
   } catch {
     // Fall through
   }
