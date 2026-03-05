@@ -14,6 +14,7 @@
 // TYPES — Slack Event API shapes
 // ============================================================================
 
+import crypto from 'crypto'
 import type { MercuryChannel } from '@/types/ragbox'
 
 interface SlackEvent {
@@ -256,8 +257,6 @@ describe('Sarah — Slack Channel: Mercury Thread Persistence', () => {
 // ============================================================================
 
 describe('Sarah — Slack Channel: Signature Verification', () => {
-  const crypto = require('crypto')
-
   function verifySlackSignature(
     signingSecret: string,
     timestamp: string,
