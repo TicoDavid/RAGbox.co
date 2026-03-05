@@ -32,13 +32,14 @@ export async function GET(): Promise<NextResponse> {
 
   const apiKey = process.env.INWORLD_API_KEY
   if (!apiKey) {
-    return NextResponse.json({ success: true, data: { voices: FALLBACK_VOICES } })
+    console.warn('[Voice/List] INWORLD_API_KEY not set — returning 4 fallback voices')
+    return NextResponse.json({ success: true, data: { voices: FALLBACK_VOICES, source: 'fallback' } })
   }
 
   try {
     const res = await fetch(INWORLD_VOICES_URL, {
       headers: {
-        'Authorization': `Basic ${Buffer.from(apiKey).toString('base64')}`,
+        'Authorization': `Basic ${apiKey}`,
         'Accept': 'application/json',
       },
       signal: AbortSignal.timeout(5000),
@@ -64,7 +65,7 @@ export async function GET(): Promise<NextResponse> {
     cachedVoices = voices
     cacheExpiresAt = Date.now() + 5 * 60 * 1000
 
-    return NextResponse.json({ success: true, data: { voices } })
+    return NextResponse.json({ success: true, data: { voices, source: 'inworld' } })
   } catch (err) {
     console.warn('[Voice/List] Inworld API unreachable, using fallback', err)
     return NextResponse.json({ success: true, data: { voices: FALLBACK_VOICES } })
