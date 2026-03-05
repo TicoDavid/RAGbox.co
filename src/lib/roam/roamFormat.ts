@@ -60,9 +60,10 @@ export function formatForRoam(
 /**
  * Format a Silence Protocol refusal for ROAM.
  */
-export function formatSilenceForRoam(suggestions?: string[]): string {
+export function formatSilenceForRoam(suggestions?: string[], personaName?: string): string {
+  const name = personaName || 'Mercury'
   const lines = [
-    '🔇 M.E.R.C.U.R.Y. — Silence Protocol',
+    `🔇 ${name} — Silence Protocol`,
     '',
     'I cannot provide a confident answer to this query based on the documents in your vault.',
     'Rather than speculate, I choose to remain silent.',
@@ -83,9 +84,10 @@ export function formatSilenceForRoam(suggestions?: string[]): string {
 /**
  * Format an error message for ROAM.
  */
-export function formatErrorForRoam(errorCode?: string): string {
+export function formatErrorForRoam(errorCode?: string, personaName?: string): string {
+  const name = personaName || 'Mercury'
   return [
-    '⚠ M.E.R.C.U.R.Y. — Processing Error',
+    `⚠ ${name} — Processing Error`,
     '',
     'I encountered an issue processing your request.',
     errorCode ? `Error: ${errorCode}` : '',
@@ -129,10 +131,11 @@ export function formatMeetingSummary(
   title: string,
   participants: string[],
   summaryText: string,
-  durationSeconds?: number
+  durationSeconds?: number,
+  personaName?: string
 ): string {
   const lines: string[] = [
-    '📋 M.E.R.C.U.R.Y. — Meeting Summary',
+    `📋 ${personaName || 'Mercury'} — Meeting Summary`,
     '',
     `Meeting: ${title}`,
   ]

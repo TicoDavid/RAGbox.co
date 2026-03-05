@@ -104,6 +104,7 @@ interface TenantContext {
   userId: string
   apiKey: string | null
   personalityPrompt: string | null
+  personaName: string
 }
 
 // ── Key revocation handler ──────────────────────────────────────────
@@ -235,16 +236,19 @@ async function resolveTenant(groupId: string): Promise<TenantContext> {
   const tenantId = integration?.tenantId || 'default'
   const userId = integration?.userId || ROAM_DEFAULT_USER_ID
 
-  // Load persona for personality context
+  // Load persona for personality context + display name
+  let personaName = process.env.ROAM_SENDER_NAME || 'Mercury'
   const persona = await prisma.mercuryPersona.findUnique({
     where: { tenantId },
-    select: { personalityPrompt: true },
+    select: { personalityPrompt: true, firstName: true, lastName: true },
   })
   if (persona) {
     personalityPrompt = persona.personalityPrompt
+    const full = [persona.firstName, persona.lastName].filter(Boolean).join(' ')
+    if (full) personaName = full
   }
 
-  return { tenantId, userId, apiKey, personalityPrompt }
+  return { tenantId, userId, apiKey, personalityPrompt, personaName }
 }
 
 // ── Message processor ──────────────────────────────────────────────
@@ -275,7 +279,7 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
     return
   }
 
-  // Self-loop prevention: skip messages sent by Mercury itself
+  // Self-loop prevention (static): skip messages sent by Mercury itself
   const SELF_IDS = new Set(['mercury', 'm.e.r.c.u.r.y', 'mercury-bot'])
   if (SELF_IDS.has(senderId.toLowerCase()) || senderName?.toLowerCase() === 'm.e.r.c.u.r.y') {
     logger.info(`[ROAM Processor] Self-loop prevented — sender: ${senderId} (${senderName})`)
@@ -299,6 +303,12 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
 
   if (!userId) {
     logger.error('[ROAM Processor] No userId resolved for group:', groupId)
+    return
+  }
+
+  // Self-loop prevention (dynamic): check against resolved persona name
+  if (senderName && senderName.toLowerCase() === tenant.personaName.toLowerCase()) {
+    logger.info(`[ROAM Processor] Self-loop prevented (persona name) — sender: ${senderId} (${senderName})`)
     return
   }
 
@@ -380,7 +390,7 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
 
     if (!ragResponse.ok) {
       logger.error(`[ROAM Processor] RAG backend error: ${ragResponse.status}`)
-      replyText = formatErrorForRoam('UPSTREAM_FAILURE')
+      replyText = formatErrorForRoam('UPSTREAM_FAILURE', tenant.personaName)
     } else {
       const responseText = await ragResponse.text()
       const parsed = parseSSEText(responseText)
@@ -388,7 +398,7 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
 
       if (parsed.isSilence || (confidence !== undefined && confidence < SILENCE_THRESHOLD)) {
         // Silence Protocol
-        replyText = formatSilenceForRoam(parsed.suggestions)
+        replyText = formatSilenceForRoam(parsed.suggestions, tenant.personaName)
       } else {
         // Build citation objects for formatter
         citations = parsed.citations.map(c => ({
@@ -403,11 +413,11 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
     }
   } catch (error) {
     logger.error('[ROAM Processor] RAG query failed:', error)
-    replyText = formatErrorForRoam('INTERNAL_ERROR')
+    replyText = formatErrorForRoam('INTERNAL_ERROR', tenant.personaName)
   }
 
   if (!replyText) {
-    replyText = formatErrorForRoam()
+    replyText = formatErrorForRoam(undefined, tenant.personaName)
   }
 
   // 3. S02+S05: Reply via v0 chat.post with Block Kit, fallback to v1 sendMessage
@@ -453,7 +463,8 @@ async function processMessage(event: RoamChatEvent): Promise<void> {
     sourceGroupId: groupId,
     roamMessageId: String(Date.now()), // response timestamp
     roamThreadId: threadId || threadTimestamp,
-    senderId: 'mercury',
+    senderId: tenant.personaName.toLowerCase().replace(/\s+/g, '-'),
+    senderName: tenant.personaName,
     queryId, // Same UUID — links feedback clicks back to this specific response
     citations: citations.map(c => c.documentId).filter(Boolean),
     citationCount: citations.length,
@@ -555,7 +566,8 @@ async function processTranscript(event: RoamTranscriptEvent): Promise<void> {
     transcript.title || 'Meeting',
     transcript.participants || [],
     summaryText,
-    transcript.duration
+    transcript.duration,
+    tenant.personaName
   )
 
   // Post summary to source group
