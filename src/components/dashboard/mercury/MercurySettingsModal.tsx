@@ -193,6 +193,7 @@ export function MercurySettingsModal({ open, onClose, onSaved }: MercurySettings
       toast.success('Mercury configuration saved')
       setDirty(false)
       onSaved?.({ name: config.name, title: config.title, greeting: config.greeting })
+      onClose()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to save')
     } finally {
@@ -463,17 +464,39 @@ function VoiceSection({
     })
   }
 
-  const handlePreview = () => {
+  const [previewFallback, setPreviewFallback] = useState(false)
+
+  const handlePreview = async () => {
     if (previewing || typeof window === 'undefined') return
     setPreviewing(true)
+    setPreviewFallback(false)
     const text = config.greeting || `Hello, I'm ${config.name || 'Mercury'}. How can I help you today?`
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.rate = speakingRate
-    utterance.pitch = 0.8 + expressiveness * 0.4
-    utterance.onend = () => setPreviewing(false)
-    utterance.onerror = () => setPreviewing(false)
-    speechSynthesis.cancel()
-    speechSynthesis.speak(utterance)
+
+    try {
+      const res = await fetch('/api/voice/synthesize', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, voiceId: currentVoiceId || undefined }),
+      })
+      if (!res.ok) throw new Error('TTS failed')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const audio = new Audio(url)
+      audio.onended = () => { setPreviewing(false); URL.revokeObjectURL(url) }
+      audio.onerror = () => { setPreviewing(false); URL.revokeObjectURL(url) }
+      await audio.play()
+    } catch {
+      // Fallback to browser Speech API
+      setPreviewFallback(true)
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.rate = speakingRate
+      utterance.pitch = 0.8 + expressiveness * 0.4
+      utterance.onend = () => setPreviewing(false)
+      utterance.onerror = () => setPreviewing(false)
+      speechSynthesis.cancel()
+      speechSynthesis.speak(utterance)
+    }
   }
 
   return (
@@ -569,8 +592,11 @@ function VoiceSection({
             : 'bg-[var(--bg-tertiary)]/50 text-[var(--text-secondary)] border-[var(--border-default)] hover:border-[var(--warning)]/40 hover:text-[var(--text-primary)]'
         }`}
       >
-        <Mic className="w-4 h-4" />
-        {previewing ? 'Playing Preview...' : 'Preview Voice'}
+        {previewing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mic className="w-4 h-4" />}
+        {previewing
+          ? previewFallback ? 'Playing Preview (browser)...' : 'Playing Preview...'
+          : 'Preview Voice'
+        }
       </button>
     </div>
   )
@@ -662,12 +688,17 @@ function PersonaSection({
 
       {/* Custom personality prompt */}
       <div>
-        <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">Custom Instructions</label>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="text-xs font-medium text-[var(--text-secondary)]">Custom Instructions</label>
+          <span className={`text-[10px] ${config.personalityPrompt.length > 0 ? 'text-[var(--text-secondary)]' : 'text-[var(--text-tertiary)]'}`}>
+            {config.personalityPrompt.length} / 2000
+          </span>
+        </div>
         <textarea
           value={config.personalityPrompt}
-          onChange={(e) => updateField('personalityPrompt', e.target.value)}
-          rows={3}
-          className={`${inputClass} resize-none font-mono text-xs`}
+          onChange={(e) => updateField('personalityPrompt', e.target.value.slice(0, 2000))}
+          rows={6}
+          className={`${inputClass} resize-y min-h-[200px] max-h-[400px] font-mono text-xs`}
           placeholder="Additional personality instructions..."
         />
       </div>
