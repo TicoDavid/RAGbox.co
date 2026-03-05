@@ -26,6 +26,7 @@ func NewPersonaRepo(pool *pgxpool.Pool) *PersonaRepo {
 func (r *PersonaRepo) GetByTenantID(ctx context.Context, tenantID string) (*model.MercuryPersona, error) {
 	row := r.pool.QueryRow(ctx, `
 		SELECT id, tenant_id, first_name, last_name, title, personality_prompt,
+		       personality_preset, role_preset,
 		       voice_id, silence_high_threshold, silence_med_threshold,
 		       channel_config, greeting, signature_block, avatar_url,
 		       is_active, email_enabled, email_address,
@@ -41,6 +42,7 @@ func (r *PersonaRepo) GetByTenantID(ctx context.Context, tenantID string) (*mode
 
 	err := row.Scan(
 		&p.ID, &p.TenantID, &p.FirstName, &p.LastName, &p.Title, &p.PersonalityPrompt,
+		&p.PersonalityPreset, &p.RolePreset,
 		&p.VoiceID, &p.SilenceHighThreshold, &p.SilenceMedThreshold,
 		&channelConfig, &p.Greeting, &p.SignatureBlock, &p.AvatarURL,
 		&p.IsActive, &p.EmailEnabled, &p.EmailAddress,

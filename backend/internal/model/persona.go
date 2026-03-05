@@ -14,6 +14,8 @@ type MercuryPersona struct {
 	LastName             string          `json:"lastName"`
 	Title                *string         `json:"title,omitempty"`
 	PersonalityPrompt    string          `json:"personalityPrompt"`
+	PersonalityPreset    *string         `json:"personalityPreset,omitempty"`
+	RolePreset           *string         `json:"rolePreset,omitempty"`
 	VoiceID              *string         `json:"voiceId,omitempty"`
 	SilenceHighThreshold float64         `json:"silenceHighThreshold"`
 	SilenceMedThreshold  float64         `json:"silenceMedThreshold"`
