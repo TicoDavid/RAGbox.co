@@ -1,5 +1,5 @@
 /**
- * CyGraph Context Pack API
+ * CyGraph Context Pack API — Phase 2
  *
  * GET  /api/cygraph/context-pack?query=...&documentId=...&messageId=...
  * POST /api/cygraph/context-pack  { chunkIds?, documentId?, query? }
@@ -7,9 +7,14 @@
  * Combines vector search results with knowledge graph context:
  * 1. Entities mentioned in retrieved chunks
  * 2. Claims tied to those entities
- * 3. Relationships between entities
+ * 3. Relationships between entities (1-hop + 2-hop for key types)
+ * 4. Temporal filtering: only returns currently valid edges
  *
  * The frontend Evidence tab calls GET; the chat pipeline calls POST.
+ *
+ * Phase 2 enhancements (FINAL WAVE Tasks 6+7):
+ * - Multi-hop traversal: 2-hop expansion for Organization, Contract, Person
+ * - Temporal edges: filters expired relationships via valid_from/valid_to
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -47,6 +52,12 @@ interface ContextPack {
   claims: ContextPackClaim[]
   relationships: ContextPackRelationship[]
 }
+
+// Entity types that benefit from 2-hop expansion
+const EXPANDABLE_TYPES = new Set(['organization', 'contract', 'person'])
+
+// Max paths to return from multi-hop to avoid noise
+const MAX_RELATIONSHIPS = 50
 
 // C1: GET handler for Jordan's Evidence tab
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -129,11 +140,10 @@ async function buildContextPack(
     const tenantId = userId
     const pack: ContextPack = { entities: [], claims: [], relationships: [] }
 
-    // Step 1: Find entities mentioned in the given chunks or document
+    // Step 1: Find anchor entities
     let entityIds: string[] = []
 
     if (chunkIds && chunkIds.length > 0) {
-      // Find entities mentioned in specific chunks
       const placeholders = chunkIds.map((_, i) => `$${i + 2}`).join(', ')
       const mentions = await prisma.$queryRawUnsafe<Array<{
         entity_id: string
@@ -149,13 +159,12 @@ async function buildContextPack(
       )
       entityIds = mentions.map(m => m.entity_id)
 
-      // Build entity list with mention counts
       if (entityIds.length > 0) {
         const entityPlaceholders = entityIds.map((_, i) => `$${i + 1}`).join(', ')
         const entities = await prisma.$queryRawUnsafe<Array<{
           id: string; name: string; entity_type: string
         }>>(
-          `SELECT id, name, entity_type FROM kg_entities WHERE id IN (${entityPlaceholders})`,
+          `SELECT id, name, entity_type FROM kg_entities WHERE id IN (${entityPlaceholders}) AND merged_into IS NULL`,
           ...entityIds
         )
         const mentionMap = new Map(mentions.map(m => [m.entity_id, Number(m.mention_count)]))
@@ -167,7 +176,6 @@ async function buildContextPack(
         }))
       }
     } else if (documentId) {
-      // Find all entities mentioned in any chunk of this document
       const mentions = await prisma.$queryRawUnsafe<Array<{
         entity_id: string
         mention_count: bigint
@@ -187,7 +195,7 @@ async function buildContextPack(
         const entities = await prisma.$queryRawUnsafe<Array<{
           id: string; name: string; entity_type: string
         }>>(
-          `SELECT id, name, entity_type FROM kg_entities WHERE id IN (${entityPlaceholders})`,
+          `SELECT id, name, entity_type FROM kg_entities WHERE id IN (${entityPlaceholders}) AND merged_into IS NULL`,
           ...entityIds
         )
         const mentionMap = new Map(mentions.map(m => [m.entity_id, Number(m.mention_count)]))
@@ -199,12 +207,11 @@ async function buildContextPack(
         }))
       }
     } else if (query) {
-      // Fuzzy entity search by name
       const entities = await prisma.$queryRawUnsafe<Array<{
         id: string; name: string; entity_type: string
       }>>(
         `SELECT id, name, entity_type FROM kg_entities
-         WHERE tenant_id = $1 AND LOWER(name) LIKE $2
+         WHERE tenant_id = $1 AND LOWER(name) LIKE $2 AND merged_into IS NULL
          LIMIT 20`,
         tenantId, `%${query.toLowerCase()}%`
       )
@@ -217,7 +224,7 @@ async function buildContextPack(
       }))
     }
 
-    // Step 2: Fetch claims for these entities
+    // Step 2: Fetch claims for anchor entities
     if (entityIds.length > 0) {
       const claimPlaceholders = entityIds.map((_, i) => `$${i + 1}`).join(', ')
       const claims = await prisma.$queryRawUnsafe<Array<{
@@ -246,37 +253,78 @@ async function buildContextPack(
       }))
     }
 
-    // Step 3: Fetch relationships (edges) between these entities
-    if (entityIds.length > 1) {
-      const edgePlaceholders = entityIds.map((_, i) => `$${i + 1}`).join(', ')
-      const edges = await prisma.$queryRawUnsafe<Array<{
-        id: string
-        from_entity_id: string
-        to_entity_id: string
-        relation_type: string
-        weight: number
-      }>>(
-        `SELECT id, from_entity_id, to_entity_id, relation_type, weight
-         FROM kg_edges
-         WHERE from_entity_id IN (${edgePlaceholders})
-           AND to_entity_id IN (${edgePlaceholders})
-         ORDER BY weight DESC
-         LIMIT 50`,
-        ...entityIds, ...entityIds
-      )
+    // Step 3: Multi-hop graph traversal with temporal filtering
+    if (entityIds.length > 0) {
+      const allEdges = await fetchTemporalEdges(entityIds, tenantId)
 
-      // C2: Map to frontend CyGraphRelationship shape
+      // 2-hop expansion for expandable entity types
+      const expandableEntityIds = pack.entities
+        .filter(e => EXPANDABLE_TYPES.has(e.type))
+        .map(e => e.id)
+
+      if (expandableEntityIds.length > 0) {
+        // Collect 1-hop neighbor IDs from edges
+        const neighborIds = new Set<string>()
+        for (const edge of allEdges) {
+          if (expandableEntityIds.includes(edge.from_entity_id)) {
+            neighborIds.add(edge.to_entity_id)
+          }
+          if (expandableEntityIds.includes(edge.to_entity_id)) {
+            neighborIds.add(edge.from_entity_id)
+          }
+        }
+
+        // Remove already-known entities
+        const newNeighborIds = [...neighborIds].filter(id => !entityIds.includes(id))
+
+        if (newNeighborIds.length > 0) {
+          // 2nd hop: fetch edges from 1-hop neighbors
+          const hop2Edges = await fetchTemporalEdges(newNeighborIds, tenantId)
+          allEdges.push(...hop2Edges)
+
+          // Fetch entity details for new neighbors
+          const neighborPlaceholders = newNeighborIds.map((_, i) => `$${i + 1}`).join(', ')
+          const neighborEntities = await prisma.$queryRawUnsafe<Array<{
+            id: string; name: string; entity_type: string
+          }>>(
+            `SELECT id, name, entity_type FROM kg_entities WHERE id IN (${neighborPlaceholders}) AND merged_into IS NULL`,
+            ...newNeighborIds
+          )
+          for (const ne of neighborEntities) {
+            if (!pack.entities.some(e => e.id === ne.id)) {
+              pack.entities.push({
+                id: ne.id,
+                name: ne.name,
+                type: ne.entity_type,
+                mentionCount: 0,
+              })
+            }
+          }
+        }
+      }
+
+      // Deduplicate edges by ID and map to response format
       const entityNameMap = new Map(pack.entities.map(e => [e.id, e.name]))
       const entityTypeMap = new Map(pack.entities.map(e => [e.id, e.type]))
-      pack.relationships = edges.map(e => ({
-        id: e.id,
-        fromEntity: entityNameMap.get(e.from_entity_id) ?? e.from_entity_id,
-        fromType: entityTypeMap.get(e.from_entity_id) ?? 'unknown',
-        relationship: e.relation_type,
-        toEntity: entityNameMap.get(e.to_entity_id) ?? e.to_entity_id,
-        toType: entityTypeMap.get(e.to_entity_id) ?? 'unknown',
-        confidence: e.weight,
-      }))
+      const seenEdgeIds = new Set<string>()
+
+      pack.relationships = allEdges
+        .filter(e => {
+          if (seenEdgeIds.has(e.id)) return false
+          seenEdgeIds.add(e.id)
+          return true
+        })
+        .sort((a, b) => b.weight - a.weight)
+        .slice(0, MAX_RELATIONSHIPS)
+        .map(e => ({
+          id: e.id,
+          fromEntity: entityNameMap.get(e.from_entity_id) ?? e.from_entity_id,
+          fromType: entityTypeMap.get(e.from_entity_id) ?? 'unknown',
+          relationship: e.relation_type,
+          toEntity: entityNameMap.get(e.to_entity_id) ?? e.to_entity_id,
+          toType: entityTypeMap.get(e.to_entity_id) ?? 'unknown',
+          confidence: e.weight,
+        }))
     }
 
     logger.info('[CyGraph] Context pack built', {
@@ -291,4 +339,44 @@ async function buildContextPack(
     logger.error('[CyGraph] Context pack error:', err)
     return NextResponse.json({ success: false, error: 'Failed to build context pack' }, { status: 500 })
   }
+}
+
+/**
+ * Fetch temporally valid edges for a set of entity IDs.
+ * Filters out expired edges (valid_to < NOW()) and not-yet-valid edges (valid_from > NOW()).
+ * Null valid_from/valid_to are treated as unbounded (always valid).
+ */
+async function fetchTemporalEdges(
+  entityIds: string[],
+  _tenantId: string,
+): Promise<Array<{
+  id: string
+  from_entity_id: string
+  to_entity_id: string
+  relation_type: string
+  weight: number
+}>> {
+  if (entityIds.length === 0) return []
+
+  const placeholders = entityIds.map((_, i) => `$${i + 1}`).join(', ')
+  // Duplicate placeholders for both from_entity_id and to_entity_id IN clauses
+  const offset = entityIds.length
+
+  return prisma.$queryRawUnsafe<Array<{
+    id: string
+    from_entity_id: string
+    to_entity_id: string
+    relation_type: string
+    weight: number
+  }>>(
+    `SELECT id, from_entity_id, to_entity_id, relation_type, weight
+     FROM kg_edges
+     WHERE (from_entity_id IN (${placeholders})
+        OR to_entity_id IN (${entityIds.map((_, i) => `$${i + offset + 1}`).join(', ')}))
+       AND (valid_from IS NULL OR valid_from <= NOW())
+       AND (valid_to IS NULL OR valid_to > NOW())
+     ORDER BY weight DESC
+     LIMIT 100`,
+    ...entityIds, ...entityIds
+  )
 }
