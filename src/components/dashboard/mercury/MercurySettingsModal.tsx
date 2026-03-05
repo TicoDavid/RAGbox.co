@@ -482,17 +482,21 @@ function VoiceSection({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, voiceId: currentVoiceId || undefined }),
       })
-      if (!res.ok) throw new Error('TTS failed')
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+        throw new Error(errBody.error || `TTS failed (${res.status})`)
+      }
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const audio = new Audio(url)
       audio.onended = () => { setPreviewing(false); URL.revokeObjectURL(url) }
       audio.onerror = () => { setPreviewing(false); URL.revokeObjectURL(url) }
       await audio.play()
-    } catch {
+    } catch (err) {
       setPreviewing(false)
       setPreviewError(true)
-      toast.error('Voice preview unavailable — Inworld service is offline')
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      toast.error(`Voice preview failed — ${message}`)
     }
   }
 

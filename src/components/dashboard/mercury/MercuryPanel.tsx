@@ -293,17 +293,8 @@ export function MercuryPanel() {
     useMercuryStore.setState((state) => ({
       messages: [...state.messages, msg],
     }))
-    // Persist voice message to thread
-    fetch('/api/mercury/thread/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        threadId,
-        role: 'user',
-        channel: 'voice',
-        content: detail.text,
-      }),
-    }).catch(() => {})
+    // Server-side persistThreadMessage in agent-ws.ts already writes to thread —
+    // removed client-side duplicate persist that caused user message to appear twice
   }, [threadId])
 
   const handleVoiceResponse = useCallback((e: Event) => {

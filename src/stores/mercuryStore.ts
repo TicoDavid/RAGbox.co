@@ -885,15 +885,18 @@ export const useMercuryStore = create<MercuryState>()(
           })
         )
 
-        // Merge with existing local messages, deduplicate by ID
+        // Merge with existing local messages, deduplicate by ID + content prefix
         const existing = get().messages
-        const seen = new Set<string>()
+        const seenIds = new Set<string>()
+        const seenContent = new Set<string>()
         const merged: ChatMessage[] = []
         for (const msg of [...serverMessages, ...existing]) {
-          if (!seen.has(msg.id)) {
-            seen.add(msg.id)
-            merged.push(msg)
-          }
+          if (seenIds.has(msg.id)) continue
+          const contentKey = `${msg.role}:${msg.content.slice(0, 80)}`
+          if (seenContent.has(contentKey)) continue
+          seenIds.add(msg.id)
+          seenContent.add(contentKey)
+          merged.push(msg)
         }
         merged.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
         set({ messages: merged, threadLoaded: true })
