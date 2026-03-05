@@ -10,6 +10,7 @@
 
 import prisma from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { upsertWithResolution } from './entityResolution'
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -178,7 +179,10 @@ export async function extractFromChunks(
     const entityMap = new Map<string, string>()
     for (const entity of result.entities) {
       try {
-        const entityId = await upsertEntity(tenantId, entity)
+        const entityId = await upsertWithResolution(
+          tenantId, entity.name, entity.type, entity.aliases,
+          entity.attributes as Record<string, unknown> | undefined,
+        )
         entityMap.set(entity.name.toLowerCase(), entityId)
 
         // Create mentions for each chunk in this batch
