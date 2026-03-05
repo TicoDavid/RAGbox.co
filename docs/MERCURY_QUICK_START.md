@@ -169,4 +169,89 @@ Mercury now maintains conversation context across voice sessions. When you start
 
 ---
 
-*Last updated: March 3, 2026 — Sarah, Engineering, RAGbox.co*
+## Email & SMS Actions
+
+Mercury can send emails and text messages on your behalf. These are tool actions detected from natural language:
+
+### Sending Email
+
+```
+"Email the contract summary to jane@acme.com"
+"Send an email about the Q3 report to cfo@company.com"
+"Mail the risk analysis to legal@firm.com"
+```
+
+Mercury will:
+1. Detect the email intent and recipient
+2. If the content references documents (e.g., "summary of"), Mercury queries the vault and generates the email body
+3. Show a confirmation preview with To, Subject, and Body
+4. Send only after you confirm
+
+### Sending SMS
+
+```
+"Text the key dates to +1-555-123-4567"
+"Send a text about the deadline to +12025551234"
+"SMS the update to +1 800 555 0100"
+```
+
+Mercury strips formatting from phone numbers and shows a confirmation before sending.
+
+### Confirmation Flow
+
+All outbound communications require explicit confirmation. Mercury never sends an email or SMS without showing you the full message first and waiting for approval.
+
+---
+
+## User Profile
+
+Your profile is accessible at **Settings → Profile**:
+
+| Field | Description |
+|-------|-------------|
+| **Display Name** | Shown in Mercury responses and audit logs (max 100 chars) |
+| **Email** | Auto-populated from OAuth, read-only |
+| **Avatar** | Profile picture from OAuth provider |
+| **Role** | Determines feature access (Partner, Admin, Associate) |
+
+Only users with **Partner** or **Admin** role can access privileged mode.
+
+---
+
+## Cross-Session Memory
+
+Mercury remembers context across sessions. When you close a session, Mercury automatically saves a summary of:
+
+- Topics discussed
+- Decisions made
+- Action items identified
+- Message count
+
+On your next visit, Mercury loads the last 3 session summaries to maintain continuity. This means Mercury can reference previous conversations naturally.
+
+---
+
+## Document Scope
+
+Focus Mercury on a single document by selecting it in the vault before asking questions. When document scope is active:
+
+- Queries only search within the selected document
+- Citations reference only that document
+- Useful for deep analysis of a single contract or report
+
+Clear the scope to return to searching all documents.
+
+---
+
+## Incognito Mode
+
+Toggle incognito mode to prevent message persistence. In incognito:
+
+- Messages are not saved to the thread
+- Messages are excluded from session summaries
+- RAG retrieval still works normally
+- Useful for sensitive queries you don't want logged
+
+---
+
+*Last updated: March 4, 2026 — Sarah, Engineering, RAGbox.co*

@@ -4,6 +4,100 @@
 
 ---
 
+## 2026-03-04 — JARVIS Sprint
+
+### New Endpoints
+
+#### `POST /api/v1/knowledge/ingest`
+
+Webhook-based knowledge event ingestion. Accepts structured events from external systems (CRM, email, Slack). Creates a Document + KnowledgeEvent, publishes to Pub/Sub for async processing.
+
+**Auth:** API key with `write` scope
+**Rate limit:** 100 events/min/tenant
+**Returns:** 202 Accepted
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `event_id` | string | Yes | Unique per tenant (idempotency key) |
+| `source_id` | string | Yes | Source system identifier |
+| `title` | string | Yes | Event title (max 512 chars) |
+| `content_type` | enum | Yes | `text/plain`, `text/markdown`, `text/html`, `application/json` |
+| `content` | string | Yes | Body text (max 1 MB) |
+| `privilege_level` | enum | No | `standard` (default), `confidential`, `privileged` |
+| `tags` | string[] | No | Max 20 tags, 64 chars each |
+| `callback_url` | URL | No | Webhook callback on completion |
+
+#### `POST /api/v1/knowledge/process`
+
+Pub/Sub push endpoint for processing knowledge events. Updates status to `processing`, calls Go backend for text ingestion, updates to `indexed` or `failed`. Fires callback URL on completion.
+
+**Auth:** Pub/Sub push (auto-detected) or `X-Internal-Auth` header
+
+#### `GET /api/v1/knowledge`
+
+Returns vault statistics: document count, privileged count, chunk count, embedding dimensions (768), query count.
+
+**Auth:** API key with `read` scope
+
+#### `GET /api/v1/knowledge/events`
+
+Lists knowledge events with filtering and pagination.
+
+**Query params:** `status`, `source_id`, `limit` (1-100), `offset`
+**Auth:** API key with `read` scope
+
+#### `POST /api/mercury/session`
+
+Saves a session summary for cross-session memory (E24-002). Called on page unload via `navigator.sendBeacon()`.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `summary` | string | LLM-generated session summary |
+| `topics` | string[] | Key topics discussed |
+| `decisions` | string[] | Decisions made |
+| `actionItems` | string[] | Follow-up items |
+| `messageCount` | number | Messages in session |
+| `persona` | string? | Active persona |
+
+#### `GET /api/mercury/session`
+
+Loads last N session summaries for context injection. Default limit: 3 (max: 10).
+
+### Modified Endpoints
+
+#### `POST /api/documents/folders` (New)
+
+Creates a vault folder. Supports nesting via `parentId`.
+
+#### `PATCH /api/documents/folders/[id]` (New)
+
+Renames a folder. Max 255 chars.
+
+#### `DELETE /api/documents/folders/[id]` (New)
+
+Deletes a folder. Documents and child folders move to root.
+
+#### `POST /api/documents/[id]/move` (New)
+
+Moves a document to a folder or root (`folderId: null`).
+
+### Test Coverage
+
+| Suite | Tests | Status |
+|-------|-------|--------|
+| BUG-051/052/053 regression | 48 | PASS |
+| CyGraph extraction service | 63 | PASS |
+| CyGraph context pack | 25 | PASS |
+| Redis query cache | 18 | PASS |
+| Mercury tool router | 44 | PASS |
+| Billing/tier enforcement | 34 | PASS |
+| Async ingestion + vault folders | 45 | PASS |
+| Session summary + user profile | 35 | PASS |
+| **Total new tests** | **312** | **0 failures** |
+| **Full suite** | **2048+** | **PASS** |
+
+---
+
 ## 2026-03-03 — MEGA SPRINT (Deploys 29-31)
 
 ### Backend Changes
@@ -340,4 +434,4 @@ Returns the tenant's LLM policy configuration.
 
 ---
 
-*Last updated: March 3, 2026 — Sarah, Engineering, RAGbox.co*
+*Last updated: March 4, 2026 — Sarah, Engineering, RAGbox.co*
