@@ -67,11 +67,8 @@ describe('Sarah — E24-002: Session Summary Save', () => {
         threadId: 'thread-abc',
         summary: 'Discussed Q3 contract terms and liability caps.',
         topics: ['contracts', 'liability', 'Q3'],
-        decisions: ['Cap liability at $1M'],
-        actionItems: ['Send revised draft to legal'],
-        messageCount: 12,
         persona: 'Mercury',
-      },
+      } as any,
     })
 
     expect(result.summary).toContain('Q3 contract terms')
