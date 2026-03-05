@@ -823,7 +823,7 @@ function WorkProfileSettings() {
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
-    fetch('/api/user/work-profile')
+    fetch('/api/user/profile', { credentials: 'include' })
       .then((res) => res.json())
       .then((json) => {
         if (json.success && json.data) {
@@ -846,9 +846,10 @@ function WorkProfileSettings() {
   const handleSave = async () => {
     setSaving(true)
     try {
-      const res = await fetch('/api/user/work-profile', {
-        method: 'PUT',
+      const res = await fetch('/api/user/profile', {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           companyName: workProfile.companyName || null,
           jobTitle: workProfile.jobTitle || null,
@@ -857,8 +858,8 @@ function WorkProfileSettings() {
           useCase: workProfile.useCase || null,
         }),
       })
+      const json = await res.json()
       if (!res.ok) {
-        const json = await res.json()
         throw new Error(json.error || 'Failed to save work profile')
       }
       toast.success('Work profile saved')
@@ -1009,8 +1010,20 @@ function LanguageSettings() {
 }
 
 function BillingSettings() {
-  const { subscription } = useSettings()
-  const usagePercent = (subscription.tokensUsed / subscription.tokensLimit) * 100
+  const [planTier, setPlanTier] = useState<string>('free')
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/user/profile', { credentials: 'include' })
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.data?.subscriptionTier) {
+          setPlanTier(json.data.subscriptionTier)
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
 
   const planLabels: Record<string, string> = {
     free: 'Free Tier',
@@ -1018,7 +1031,6 @@ function BillingSettings() {
     professional: 'Professional',
     enterprise: 'Enterprise',
     sovereign: 'Sovereign',
-    // Legacy (backward compat for any cached UI state)
     mercury: 'Starter',
     syndicate: 'Enterprise',
   }
@@ -1035,31 +1047,20 @@ function BillingSettings() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-xs text-[var(--brand-blue)] font-medium mb-1">CURRENT PLAN</p>
-            <p className="text-xl font-bold text-[var(--text-primary)]">{planLabels[subscription.plan]}</p>
+            {loading ? (
+              <div className="h-7 w-32 bg-[var(--bg-tertiary)] rounded animate-pulse" />
+            ) : (
+              <p className="text-xl font-bold text-[var(--text-primary)]">{planLabels[planTier] || planTier}</p>
+            )}
           </div>
           <div className="p-3 bg-[var(--brand-blue)]/20 rounded-xl">
             <Zap className="w-6 h-6 text-[var(--brand-blue)]" />
           </div>
         </div>
 
-        {/* Token Usage */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-[var(--text-secondary)]">Tokens Used</span>
-            <span className="text-[var(--text-primary)] font-medium">
-              {(subscription.tokensUsed / 1000000).toFixed(2)}M / {(subscription.tokensLimit / 1000000).toFixed(0)}M
-            </span>
-          </div>
-          <div className="h-2 bg-[var(--bg-tertiary)]rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-[var(--brand-blue)] to-[var(--brand-blue-dim)] rounded-full transition-all"
-              style={{ width: `${Math.min(usagePercent, 100)}%` }}
-            />
-          </div>
-          <p className="text-xs text-[var(--text-tertiary)]">
-            Renews on {new Date(subscription.renewalDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-          </p>
-        </div>
+        <p className="text-xs text-[var(--text-tertiary)]">
+          Beta Access — usage tracking coming soon
+        </p>
       </div>
 
       {/* Manage Subscription */}

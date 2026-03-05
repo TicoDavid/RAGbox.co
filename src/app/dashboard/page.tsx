@@ -47,22 +47,45 @@ export default function Dashboard() {
   // Plan gate: check subscription tier, redirect to plan selection if none
   useEffect(() => {
     if (status !== 'authenticated') return
-    // Skip plan gate if user just completed checkout
     const params = new URLSearchParams(window.location.search)
+
     if (params.get('checkout') === 'success') {
+      // User just completed checkout — sync subscription to DB and let them in
+      const sessionId = params.get('session_id')
+      fetch('/api/billing/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sessionId ? { sessionId } : {}),
+        credentials: 'include',
+      }).catch(() => {})
       setTierChecked(true)
+      window.history.replaceState({}, '', '/dashboard')
       return
     }
 
     fetch('/api/user/profile', { credentials: 'include' })
       .then((r) => r.json())
-      .then((json) => {
+      .then(async (json) => {
         const tier = json.data?.subscriptionTier
-        if (!tier || tier === 'none' || tier === 'free') {
-          router.replace('/onboarding/plan')
-        } else {
+        if (tier && tier !== 'none' && tier !== 'free') {
           setTierChecked(true)
+          return
         }
+        // Tier shows free — verify with Stripe before redirecting
+        try {
+          const syncRes = await fetch('/api/billing/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: '{}',
+            credentials: 'include',
+          })
+          const syncData = await syncRes.json()
+          if (syncData.tier && syncData.tier !== 'free' && syncData.tier !== 'none') {
+            setTierChecked(true)
+            return
+          }
+        } catch { /* sync failed, proceed with redirect */ }
+        router.replace('/onboarding/plan')
       })
       .catch(() => {
         // On error, allow dashboard access (don't block)
