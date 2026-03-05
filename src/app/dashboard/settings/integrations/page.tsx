@@ -848,6 +848,7 @@ export default function IntegrationsSettings() {
 
       {/* ================================================================== */}
       {/* SECTION 2: Mercury Voice */}
+      {/* TODO: EPIC-028 — Move Mercury Voice settings to dedicated Mercury config panel */}
       {/* ================================================================== */}
       <div className="rounded-lg border border-[var(--bg-tertiary)] bg-[var(--bg-primary)] p-4 mb-4">
         <div className="flex items-center justify-between mb-3">

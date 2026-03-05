@@ -47,10 +47,37 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { stripeCustomerId: true },
+      select: { id: true, email: true, stripeCustomerId: true },
     })
 
-    if (!user?.stripeCustomerId) {
+    let stripeCustomerId = user?.stripeCustomerId
+
+    // Fallback: if the user has no stripeCustomerId saved (e.g. webhook race,
+    // email mismatch during checkout), search Stripe by email and backfill.
+    if (!stripeCustomerId && user?.email) {
+      try {
+        const customers = await getStripe().customers.list({
+          email: user.email,
+          limit: 1,
+        })
+        if (customers.data.length > 0) {
+          stripeCustomerId = customers.data[0].id
+          // Backfill so future requests hit the fast path
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { stripeCustomerId },
+          })
+          logger.info('[Billing Portal] Backfilled stripeCustomerId from Stripe lookup', {
+            userId: user.id,
+            stripeCustomerId,
+          })
+        }
+      } catch (err) {
+        logger.warn('[Billing Portal] Stripe customer lookup failed:', err)
+      }
+    }
+
+    if (!stripeCustomerId) {
       return NextResponse.json(
         { success: false, error: 'No active subscription. Subscribe from the pricing page to manage billing.' },
         { status: 400 },
@@ -62,7 +89,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       : 'https://app.ragbox.co/dashboard'
 
     const session = await getStripe().billingPortal.sessions.create({
-      customer: user.stripeCustomerId,
+      customer: stripeCustomerId,
       return_url: returnUrl,
     })
 

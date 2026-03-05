@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getToken } from 'next-auth/jwt'
 import Stripe from 'stripe'
 
 let _stripe: Stripe | null = null
@@ -48,6 +49,12 @@ export async function POST(req: NextRequest) {
 
   try {
     const appUrl = getAppUrl()
+
+    // Pin checkout to the authenticated user's email so the webhook
+    // provisionFromCheckout upsert matches the correct User record.
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
+    const customerEmail = token?.email as string | undefined
+
     const session = await getStripe().checkout.sessions.create({
       mode: 'subscription',
       line_items: validPrices.map((price) => ({ price, quantity: 1 })),
@@ -55,6 +62,7 @@ export async function POST(req: NextRequest) {
       cancel_url: `${appUrl}/onboarding/plan?checkout=cancel`,
       metadata: { plan },
       allow_promotion_codes: true,
+      ...(customerEmail ? { customer_email: customerEmail } : {}),
     })
 
     return NextResponse.json({ url: session.url })
