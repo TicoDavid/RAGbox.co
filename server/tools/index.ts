@@ -196,6 +196,15 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       limit: { type: 'number', description: 'Maximum sessions to return (default 10)' },
     },
   },
+  {
+    name: 'make_call',
+    description: 'Make an outbound phone call to a specified number. Mercury will speak a message and listen for a response. Requires confirmation before dialing.',
+    parameters: {
+      phoneNumber: { type: 'string', description: 'The phone number to call (E.164 format, e.g., +15558675309)', required: true },
+      message: { type: 'string', description: 'The message Mercury should speak when the call is answered', required: true },
+    },
+    requiredRole: 'Admin',
+  },
 ]
 
 // ============================================================================
@@ -580,6 +589,64 @@ function togglePrivilegeMode(args: { enabled: boolean }, ctx: ToolContext): { ok
 }
 
 // ============================================================================
+// OUTBOUND CALL (Twilio)
+// ============================================================================
+
+const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || ''
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || ''
+const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER || ''
+const VOICE_WS_URL = process.env.NEXT_PUBLIC_VOICE_WS_URL || 'wss://mercury-voice-100739220279.us-east4.run.app/agent/ws'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://app.ragbox.co'
+
+async function makeOutboundCall(
+  args: { phoneNumber: string; message: string },
+  ctx: ToolContext,
+): Promise<{ ok: boolean; callSid?: string; message: string }> {
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
+    return { ok: false, message: 'Twilio not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER.' }
+  }
+
+  // Validate phone number (basic E.164)
+  const cleanNumber = args.phoneNumber.replace(/[\s\-\(\)]/g, '')
+  if (!/^\+?\d{7,15}$/.test(cleanNumber)) {
+    return { ok: false, message: `Invalid phone number: ${args.phoneNumber}` }
+  }
+  const e164 = cleanNumber.startsWith('+') ? cleanNumber : `+1${cleanNumber}`
+
+  // TwiML: Mercury speaks the message, then connects to voice pipeline for conversation
+  const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="alice">${args.message.replace(/[<>&"']/g, '')}</Say><Connect><Stream url="${VOICE_WS_URL}?userId=${ctx.userId}&amp;channel=phone" /></Connect></Response>`
+
+  // Create call via Twilio REST API
+  const auth = Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64')
+  const callRes = await fetch(
+    `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Calls.json`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        To: e164,
+        From: TWILIO_PHONE_NUMBER,
+        Twiml: twiml,
+        StatusCallback: `${APP_URL}/api/webhooks/twilio/status`,
+      }).toString(),
+    },
+  )
+
+  if (!callRes.ok) {
+    const errBody = await callRes.text()
+    console.error('[Tools/make_call] Twilio call failed:', errBody)
+    return { ok: false, message: `Call failed: ${callRes.status}` }
+  }
+
+  const callData = await callRes.json() as { sid: string }
+  console.info('[Tools/make_call] Call initiated', { callSid: callData.sid, to: e164 })
+  return { ok: true, callSid: callData.sid, message: `Calling ${e164}...` }
+}
+
+// ============================================================================
 // MAIN EXECUTOR
 // ============================================================================
 
@@ -677,6 +744,10 @@ export async function executeTool(call: ToolCall, ctx: ToolContext): Promise<Too
 
       case 'export_audit_log':
         result = { message: 'Audit export initiated', jobId: `audit_${Date.now()}` }
+        break
+
+      case 'make_call':
+        result = await makeOutboundCall(call.arguments as { phoneNumber: string; message: string }, ctx)
         break
 
       default:
