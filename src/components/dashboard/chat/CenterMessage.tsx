@@ -590,13 +590,12 @@ function EvidencePanel({
         <ClaimsPanel
           claims={cyGraph?.claims ?? []}
           loading={cyLoading}
-          onNavigate={(docId) => selectItem(docId)}
         />
       )}
 
       {subTab === 'relationships' && (
         <RelationshipsPanel
-          relationships={cyGraph?.relationships ?? []}
+          edges={cyGraph?.edges ?? []}
           loading={cyLoading}
         />
       )}

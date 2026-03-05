@@ -143,7 +143,21 @@ export default function BillingSettings() {
       const res = await fetch('/api/billing/usage')
       if (res.ok) {
         const json = await res.json()
-        if (json.data) setData(json.data)
+        // Map Sheldon's response shape → internal UsageData
+        // API returns: { documents: { used, limit }, storage: { used, limit }, queries: { used, limit }, period }
+        if (json.documents || json.storage || json.queries) {
+          setData((prev) => ({
+            ...prev,
+            usage: {
+              storageUsedBytes: json.storage?.used ?? 0,
+              storageLimitBytes: json.storage?.limit ?? 100 * 1024 * 1024,
+              documentCount: json.documents?.used ?? 0,
+              documentLimit: json.documents?.limit ?? 5,
+              queriesThisMonth: json.queries?.used ?? 0,
+              queryLimit: json.queries?.limit ?? 25,
+            },
+          }))
+        }
       }
     } catch {
       // Use default data on error
