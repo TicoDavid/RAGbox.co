@@ -1,15 +1,15 @@
 /**
  * CyGraph Context Pack API
  *
- * POST /api/cygraph/context-pack
+ * GET  /api/cygraph/context-pack?query=...&documentId=...&messageId=...
+ * POST /api/cygraph/context-pack  { chunkIds?, documentId?, query? }
  *
  * Combines vector search results with knowledge graph context:
  * 1. Entities mentioned in retrieved chunks
  * 2. Claims tied to those entities
- * 3. Relationships (edges) between entities
+ * 3. Relationships between entities
  *
- * The frontend (or chat pipeline) calls this to enrich RAG context
- * with structured knowledge before sending to the LLM.
+ * The frontend Evidence tab calls GET; the chat pipeline calls POST.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -32,17 +32,58 @@ interface ContextPackClaim {
   subjectEntity: string
 }
 
-interface ContextPackEdge {
+interface ContextPackRelationship {
+  id: string
   fromEntity: string
+  fromType: string
+  relationship: string
   toEntity: string
-  relationType: string
-  weight: number
+  toType: string
+  confidence: number
 }
 
 interface ContextPack {
   entities: ContextPackEntity[]
   claims: ContextPackClaim[]
-  edges: ContextPackEdge[]
+  relationships: ContextPackRelationship[]
+}
+
+// C1: GET handler for Jordan's Evidence tab
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const token = await getToken({ req: request })
+  if (!token) {
+    return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 })
+  }
+
+  const userId = (token.id as string) || token.email || ''
+  if (!userId) {
+    return NextResponse.json({ success: false, error: 'Unable to determine user identity' }, { status: 401 })
+  }
+
+  const searchParams = request.nextUrl.searchParams
+  const query = searchParams.get('query') || undefined
+  const documentId = searchParams.get('documentId') || undefined
+  const messageId = searchParams.get('messageId') || undefined
+
+  // If messageId provided, look up the message content to use as query
+  let resolvedQuery = query
+  if (!resolvedQuery && !documentId && messageId) {
+    try {
+      const msg = await prisma.mercuryThreadMessage.findUnique({
+        where: { id: messageId },
+        select: { content: true },
+      })
+      if (msg) resolvedQuery = msg.content.slice(0, 200)
+    } catch {
+      // Fall through — return empty pack
+    }
+  }
+
+  if (!resolvedQuery && !documentId) {
+    return NextResponse.json({ success: true, data: { entities: [], claims: [], relationships: [] } })
+  }
+
+  return buildContextPack(userId, { query: resolvedQuery, documentId })
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -71,8 +112,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       )
     }
 
+    return buildContextPack(userId, { chunkIds, documentId, query })
+  } catch (err) {
+    logger.error('[CyGraph] Context pack POST error:', err)
+    return NextResponse.json({ success: false, error: 'Failed to build context pack' }, { status: 500 })
+  }
+}
+
+// Shared logic for GET and POST
+async function buildContextPack(
+  userId: string,
+  params: { chunkIds?: string[]; documentId?: string; query?: string }
+): Promise<NextResponse> {
+  try {
+    const { chunkIds, documentId, query } = params
     const tenantId = userId
-    const pack: ContextPack = { entities: [], claims: [], edges: [] }
+    const pack: ContextPack = { entities: [], claims: [], relationships: [] }
 
     // Step 1: Find entities mentioned in the given chunks or document
     let entityIds: string[] = []
@@ -191,16 +246,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }))
     }
 
-    // Step 3: Fetch edges between these entities
+    // Step 3: Fetch relationships (edges) between these entities
     if (entityIds.length > 1) {
       const edgePlaceholders = entityIds.map((_, i) => `$${i + 1}`).join(', ')
       const edges = await prisma.$queryRawUnsafe<Array<{
+        id: string
         from_entity_id: string
         to_entity_id: string
         relation_type: string
         weight: number
       }>>(
-        `SELECT from_entity_id, to_entity_id, relation_type, weight
+        `SELECT id, from_entity_id, to_entity_id, relation_type, weight
          FROM kg_edges
          WHERE from_entity_id IN (${edgePlaceholders})
            AND to_entity_id IN (${edgePlaceholders})
@@ -209,12 +265,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         ...entityIds, ...entityIds
       )
 
+      // C2: Map to frontend CyGraphRelationship shape
       const entityNameMap = new Map(pack.entities.map(e => [e.id, e.name]))
-      pack.edges = edges.map(e => ({
+      const entityTypeMap = new Map(pack.entities.map(e => [e.id, e.type]))
+      pack.relationships = edges.map(e => ({
+        id: e.id,
         fromEntity: entityNameMap.get(e.from_entity_id) ?? e.from_entity_id,
+        fromType: entityTypeMap.get(e.from_entity_id) ?? 'unknown',
+        relationship: e.relation_type,
         toEntity: entityNameMap.get(e.to_entity_id) ?? e.to_entity_id,
-        relationType: e.relation_type,
-        weight: e.weight,
+        toType: entityTypeMap.get(e.to_entity_id) ?? 'unknown',
+        confidence: e.weight,
       }))
     }
 
@@ -222,7 +283,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       tenantId,
       entities: pack.entities.length,
       claims: pack.claims.length,
-      edges: pack.edges.length,
+      relationships: pack.relationships.length,
     })
 
     return NextResponse.json({ success: true, data: pack })

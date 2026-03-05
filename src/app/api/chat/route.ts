@@ -102,9 +102,35 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
       }
     }
 
+    // E24-003 C3: Inject user profile context into query for Go backend
+    let profilePrefix = ''
+    try {
+      const profiles = await prisma.$queryRawUnsafe<Array<{
+        display_name: string | null
+        role: string | null
+        company: string | null
+      }>>(
+        `SELECT display_name, role, company FROM mercury_user_profiles WHERE user_id = $1 LIMIT 1`,
+        userId
+      )
+      if (profiles.length > 0) {
+        const p = profiles[0]
+        const parts = [
+          p.display_name && `User: ${p.display_name}`,
+          p.role && `Role: ${p.role}`,
+          p.company && `Company: ${p.company}`,
+        ].filter(Boolean)
+        if (parts.length > 0) {
+          profilePrefix = `[Context: ${parts.join('. ')}] `
+        }
+      }
+    } catch {
+      // Non-critical — proceed without profile context
+    }
+
     // Web context is sent as a separate field to the Go backend, which creates
     // ephemeral pseudo-chunks. The query stays clean (no prepending).
-    const effectiveQuery = query
+    const effectiveQuery = profilePrefix + query
 
     // Check cache for non-streaming requests (or when explicitly not streaming)
     // Only cache simple queries (no conversation history — those are context-dependent)
