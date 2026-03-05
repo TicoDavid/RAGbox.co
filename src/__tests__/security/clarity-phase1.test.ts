@@ -4,7 +4,7 @@
  * Tests for Sheldon's Phase 1 fixes:
  * - STORY-220: SSE tokens contain ONLY text, no JSON
  * - STORY-224: Pipeline timeout + stuck document recovery
- * - STORY-225: Data Airlock zip rejection, per-file error reporting
+ * - STORY-225: Data Vault zip rejection, per-file error reporting
  *
  * — Sarah, QA
  */
@@ -222,10 +222,10 @@ describe('Pipeline Timeout + Stuck Document Recovery (STORY-224)', () => {
 })
 
 // ══════════════════════════════════════════════════════════════════
-// SECTION 3: Data Airlock — STORY-225
+// SECTION 3: Data Vault — STORY-225
 // ══════════════════════════════════════════════════════════════════
 
-describe('Data Airlock (STORY-225)', () => {
+describe('Data Vault (STORY-225)', () => {
   describe('archive file rejection', () => {
     it('rejects .zip files with clear error message', () => {
       const archiveExts = new Set(['.zip', '.rar', '.7z', '.tar', '.gz', '.bz2', '.xz'])

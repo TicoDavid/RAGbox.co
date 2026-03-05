@@ -293,7 +293,7 @@ const IngestionModal: React.FC<IngestionModalProps> = ({
           className="absolute inset-0 bg-[var(--bg-primary)]/70 backdrop-blur-xl"
         />
 
-        {/* Modal - The Data Airlock */}
+        {/* Modal - The Data Vault */}
         <motion.div
           initial={{ scale: 0.95, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -307,13 +307,13 @@ const IngestionModal: React.FC<IngestionModalProps> = ({
           {/* Header */}
           <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-[var(--border-default)]">
             <div>
-              <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">Data Airlock</h2>
-              <p className="text-xs text-[var(--text-tertiary)] mt-0.5">Inspect cargo before ingestion</p>
+              <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">Data Vault</h2>
+              <p className="text-xs text-[var(--text-tertiary)] mt-0.5">Add documents to your Vault</p>
             </div>
             <button
               onClick={onClose}
               className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-all"
-              aria-label="Close data airlock"
+              aria-label="Close data vault"
             >
               <CloseIcon />
             </button>
@@ -577,7 +577,7 @@ const IngestionModal: React.FC<IngestionModalProps> = ({
               `}
             >
               <IngestIcon />
-              INGEST EVIDENCE
+              ADD TO VAULT
             </button>
           </div>
         </motion.div>
