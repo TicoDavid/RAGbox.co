@@ -414,7 +414,15 @@ export const useMercuryStore = create<MercuryState>()(
                   switch (eventType) {
                     case 'token':
                       fullContent += data.text ?? ''
-                      set({ streamingContent: fullContent })
+                      // BUG-053: Don't display JSON-shaped streaming to user
+                      // (backend sometimes sends structured JSON as tokens).
+                      {
+                        const trimmed = fullContent.trim()
+                        const hasJson = trimmed.startsWith('{') || /\{"answer"\s*:/.test(trimmed)
+                        if (!hasJson) {
+                          set({ streamingContent: fullContent })
+                        }
+                      }
                       break
                     case 'citations':
                       // Citations come as a raw array
@@ -522,6 +530,22 @@ export const useMercuryStore = create<MercuryState>()(
                 if (confidence === undefined && typeof d.confidence === 'number') confidence = d.confidence
               }
             } catch { /* not valid JSON — keep fullContent as-is */ }
+          } else {
+            // BUG-053: JSON embedded after preamble text (e.g. "Here is the answer:\n{...}")
+            const jsonIdx = cleaned.indexOf('{"answer"')
+            const jsonIdx2 = jsonIdx === -1 ? cleaned.indexOf('{"data"') : jsonIdx
+            const idx = jsonIdx !== -1 ? jsonIdx : jsonIdx2
+            if (idx > 0) {
+              try {
+                const parsed = JSON.parse(cleaned.slice(idx))
+                const d = parsed.data ?? parsed
+                if (typeof d.answer === 'string' && d.answer.length > 0) {
+                  fullContent = d.answer
+                  if (!citations && Array.isArray(d.citations)) citations = d.citations
+                  if (confidence === undefined && typeof d.confidence === 'number') confidence = d.confidence
+                }
+              } catch { /* embedded JSON not parseable — keep as-is */ }
+            }
           }
         }
 
