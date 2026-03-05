@@ -77,6 +77,10 @@ func buildDonePayload(
 		answer = initial.Answer
 	}
 
+	// BUG-054 safety net: if the answer looks like a raw JSON response object,
+	// extract just the answer text so JSON never leaks to the frontend.
+	answer = sanitizeAnswer(answer)
+
 	// Model name
 	modelName := ""
 	if initial != nil {
@@ -756,7 +760,8 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 					// Every event: token contains ONLY prose — no JSON structure,
 					// no braces, no "answer:" keys. Citations and confidence go
 					// via their own dedicated SSE events.
-					answerTokens := splitIntoTokens(initial.Answer)
+					// BUG-054: sanitize in case ParseGenerationResponse returned raw JSON
+					answerTokens := splitIntoTokens(sanitizeAnswer(initial.Answer))
 					for _, token := range answerTokens {
 						if ctx.Err() != nil {
 							return
@@ -902,7 +907,8 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 		} else {
 			// Stream tokens only if NOT already streamed (non-streaming path)
 			if !streamedTokens {
-				tokens := splitIntoTokens(result.FinalAnswer)
+				// BUG-054: sanitize before streaming to prevent JSON leaking
+				tokens := splitIntoTokens(sanitizeAnswer(result.FinalAnswer))
 				for _, token := range tokens {
 					if ctx.Err() != nil {
 						return
@@ -1027,6 +1033,33 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			}()
 		}
 	}
+}
+
+// sanitizeAnswer ensures the answer text is clean prose, not a raw JSON object.
+// BUG-054: If the LLM returns {"answer":"...", "citations":[...], "confidence":0.9}
+// as the answer text (because ParseGenerationResponse's fallback path returned raw),
+// extract just the answer value so JSON never reaches the frontend.
+func sanitizeAnswer(answer string) string {
+	trimmed := strings.TrimSpace(answer)
+	if !strings.HasPrefix(trimmed, "{") {
+		return answer // not JSON — safe
+	}
+
+	// Quick check: does it look like a structured response object?
+	if !strings.Contains(trimmed, `"answer"`) {
+		return answer // JSON but not a response object — leave it
+	}
+
+	var obj struct {
+		Answer string `json:"answer"`
+	}
+	if json.Unmarshal([]byte(trimmed), &obj) == nil && obj.Answer != "" {
+		slog.Warn("[BUG-054] sanitizeAnswer extracted answer from leaked JSON",
+			"raw_len", len(trimmed), "answer_len", len(obj.Answer))
+		return obj.Answer
+	}
+
+	return answer
 }
 
 // sendEvent writes a single SSE event in the standard format.

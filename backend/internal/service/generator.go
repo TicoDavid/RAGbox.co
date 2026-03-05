@@ -327,22 +327,76 @@ type generationJSON struct {
 	} `json:"citations"`
 }
 
-// ParseGenerationResponse extracts structured data from the model's raw response.
-func ParseGenerationResponse(raw string, chunks []RankedChunk) (*GenerationResult, error) {
-	// Strip markdown code fences if present
-	cleaned := strings.TrimSpace(raw)
-	if strings.HasPrefix(cleaned, "```") {
-		lines := strings.Split(cleaned, "\n")
-		// Remove first and last lines (code fences)
-		if len(lines) >= 3 {
-			cleaned = strings.Join(lines[1:len(lines)-1], "\n")
+// extractJSON attempts to find and unmarshal a JSON object from text.
+// Handles: raw JSON, code-fenced JSON anywhere in text, JSON embedded in prose.
+func extractJSON(text string) (string, bool) {
+	trimmed := strings.TrimSpace(text)
+
+	// 1. Direct parse — clean JSON
+	if strings.HasPrefix(trimmed, "{") {
+		return trimmed, true
+	}
+
+	// 2. Code fence anywhere: ```json ... ``` or ``` ... ```
+	if idx := strings.Index(trimmed, "```"); idx >= 0 {
+		rest := trimmed[idx+3:]
+		// Skip language tag on the same line
+		if nl := strings.Index(rest, "\n"); nl >= 0 {
+			rest = rest[nl+1:]
+		}
+		if endIdx := strings.Index(rest, "```"); endIdx >= 0 {
+			candidate := strings.TrimSpace(rest[:endIdx])
+			if strings.HasPrefix(candidate, "{") {
+				return candidate, true
+			}
 		}
 	}
-	cleaned = strings.TrimSpace(cleaned)
+
+	// 3. Embedded JSON: find {"answer" in the text and extract the object
+	if idx := strings.Index(trimmed, `{"answer"`); idx >= 0 {
+		candidate := trimmed[idx:]
+		// Find the matching closing brace
+		depth := 0
+		for i, ch := range candidate {
+			if ch == '{' {
+				depth++
+			}
+			if ch == '}' {
+				depth--
+				if depth == 0 {
+					return candidate[:i+1], true
+				}
+			}
+		}
+		// No matched brace — try the rest of the string
+		return candidate, true
+	}
+
+	return trimmed, false
+}
+
+// ParseGenerationResponse extracts structured data from the model's raw response.
+// BUG-054: Robust JSON extraction — handles code fences, prose-wrapped JSON,
+// and embedded JSON blocks so raw JSON never leaks into the answer text.
+func ParseGenerationResponse(raw string, chunks []RankedChunk) (*GenerationResult, error) {
+	jsonText, _ := extractJSON(raw)
 
 	var parsed generationJSON
-	if err := json.Unmarshal([]byte(cleaned), &parsed); err != nil {
-		// If JSON parsing fails, treat raw text as the answer with no citations
+	if err := json.Unmarshal([]byte(jsonText), &parsed); err != nil {
+		// If JSON parsing fails, treat raw text as the answer with no citations.
+		// But first: if the raw text itself looks like JSON with an "answer" key,
+		// that means extraction found it but unmarshal failed on trailing junk.
+		// Attempt a more aggressive trim.
+		if strings.Contains(raw, `"answer"`) {
+			// Try to find any parseable JSON substring
+			for i := len(jsonText) - 1; i > 0; i-- {
+				if jsonText[i] == '}' {
+					if json.Unmarshal([]byte(jsonText[:i+1]), &parsed) == nil && parsed.Answer != "" {
+						goto parsed_ok
+					}
+				}
+			}
+		}
 		return &GenerationResult{
 			Answer:     raw,
 			Citations:  []CitationRef{},
@@ -350,12 +404,13 @@ func ParseGenerationResponse(raw string, chunks []RankedChunk) (*GenerationResul
 		}, nil
 	}
 
+parsed_ok:
 	// BUG-052: Some BYOLLM models return JSON with non-standard keys
 	// (e.g., "response", "text", "content" instead of "answer").
 	// Try alternate keys before falling back to raw text.
 	if parsed.Answer == "" {
 		var altKeys map[string]json.RawMessage
-		if json.Unmarshal([]byte(cleaned), &altKeys) == nil {
+		if json.Unmarshal([]byte(jsonText), &altKeys) == nil {
 			for _, key := range []string{"response", "text", "content", "result", "output", "message"} {
 				if v, ok := altKeys[key]; ok {
 					var s string
