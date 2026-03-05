@@ -71,7 +71,7 @@ export function useCyGraphContext(messageId: string) {
       const json = await res.json()
       setData({
         claims: json.data?.claims ?? [],
-        edges: json.data?.edges ?? [],
+        edges: json.data?.relationships ?? [],
       })
     } catch {
       setError('Could not load knowledge graph data.')

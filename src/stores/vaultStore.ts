@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 const ALLOWED_EXTENSIONS = new Set([
   '.pdf', '.doc', '.docx', '.txt', '.csv', '.xlsx', '.xls', '.pptx',
   '.png', '.jpg', '.jpeg', '.gif', '.webp', '.md', '.json',
+  '.mp3', '.wav', '.m4a', '.webm', '.ogg', '.flac',
 ])
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50 MB
