@@ -8,6 +8,7 @@ import {
   Image,
   Video,
   Table,
+  Mic,
   Folder as FolderIcon,
   Brain,
   Cloud,
@@ -51,7 +52,14 @@ function getFileIcon(name: string): React.ReactNode {
     case 'xls':
     case 'tsv':
       return <Table className="w-5 h-5" />
+    case 'mp3':
+    case 'wav':
+    case 'ogg':
+    case 'm4a':
+    case 'flac':
+      return <Mic className="w-5 h-5" />
     default:
+      if (name.toLowerCase().includes('transcript')) return <Mic className="w-5 h-5" />
       return <File className="w-5 h-5" />
   }
 }

@@ -28,6 +28,7 @@ import {
   Loader2,
   AlertTriangle,
   FolderPlus,
+  Mic,
 } from 'lucide-react'
 import { useVaultStore } from '@/stores/vaultStore'
 import type { VaultItem, FolderNode } from '@/types/ragbox'
@@ -77,6 +78,11 @@ function getFileIcon(mimeType?: string, name?: string) {
   // Presentations
   if (mimeType?.includes('presentation') || ext === 'pptx' || ext === 'ppt') {
     return <FileText className="w-4 h-4 text-orange-400" />
+  }
+  // Meeting transcripts / audio
+  if (mimeType?.startsWith('audio/') || ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'webm'].includes(ext ?? '') ||
+      name?.toLowerCase().includes('transcript')) {
+    return <Mic className="w-4 h-4 text-amber-400" />
   }
   // Generic
   return <File className="w-4 h-4 text-[var(--text-tertiary)]" />
