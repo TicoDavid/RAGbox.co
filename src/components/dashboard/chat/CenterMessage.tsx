@@ -5,6 +5,7 @@ import { MarkdownRenderer } from '@/components/dashboard/mercury/MarkdownRendere
 import {
   Copy, ThumbsUp, ThumbsDown, Check, X,
   MessageSquare, FileText, ShieldCheck, RefreshCw, AlertTriangle,
+  Sparkles, Network,
 } from 'lucide-react'
 import { useVaultStore } from '@/stores/vaultStore'
 import { useChatStore } from '@/stores/chatStore'
@@ -12,8 +13,10 @@ import { usePrivilegeStore } from '@/stores/privilegeStore'
 import type { ChatMessage, Citation } from '@/types/ragbox'
 import { ChannelBadge } from './ChannelBadge'
 import { formatModelLabel } from '@/components/dashboard/mercury/ModelBadge'
+import { ClaimsPanel, RelationshipsPanel, useCyGraphContext } from './CyGraphPanels'
 
 type ResponseTab = 'answer' | 'sources' | 'evidence'
+type EvidenceSubTab = 'snippets' | 'claims' | 'relationships'
 
 // ============================================================================
 // JSON GUARD — If content is raw JSON (BUG-009 / BUG-019), extract structured
@@ -445,6 +448,10 @@ function EvidencePanel({
   confidence?: number
   citations?: Citation[]
 }) {
+  const [subTab, setSubTab] = useState<EvidenceSubTab>('snippets')
+  const selectItem = useVaultStore((s) => s.selectItem)
+  const { data: cyGraph, loading: cyLoading } = useCyGraphContext(message.id)
+
   const meta = message.metadata as Record<string, unknown> | undefined
   const docsSearched = (meta?.docsSearched as number) ?? (meta?.totalDocumentsSearched as number) ?? null
   const chunksEvaluated = (meta?.chunksEvaluated as number) ?? (meta?.totalChunksSearched as number) ?? null
@@ -463,93 +470,136 @@ function EvidencePanel({
   const selfragSkipped = (meta?.selfrag_skipped as boolean) ?? true
   const hasBreakdown = embedMs != null && searchMs != null && generateMs != null
 
+  const SUB_TABS: { id: EvidenceSubTab; label: string; icon: typeof ShieldCheck }[] = [
+    { id: 'snippets', label: 'Snippets', icon: ShieldCheck },
+    { id: 'claims', label: 'Claims', icon: Sparkles },
+    { id: 'relationships', label: 'Relationships', icon: Network },
+  ]
+
   return (
-    <div className="space-y-5">
-      {/* Confidence — large and prominent */}
-      <div className="flex items-center gap-4 p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)]">
-        <div className="text-center">
-          <p className="text-3xl font-bold">
-            <ConfidenceBadge score={confidence} />
-            {confidence == null && <span className="text-[var(--text-tertiary)]">--</span>}
-          </p>
-          <p className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] font-semibold mt-1">
-            Confidence
-          </p>
-        </div>
-        <div className="h-10 w-px bg-[var(--border-default)]" />
-        <div className="flex-1 grid grid-cols-2 gap-y-2 gap-x-6">
-          <EvidenceRow label="Citations" value={citationCount.toString()} />
-          <EvidenceRow
-            label="Model"
-            value={displayProvider ? `${displayProvider} / ${displayModel}` : displayModel}
-          />
-          <EvidenceRow
-            label="Latency"
-            value={totalMs != null ? `${(totalMs / 1000).toFixed(1)}s` : latency != null ? `${(latency / 1000).toFixed(1)}s` : '--'}
-          />
-          <EvidenceRow label="Time" value={formatTime(message.timestamp)} />
-        </div>
+    <div className="space-y-4">
+      {/* Sub-tab bar */}
+      <div className="flex items-center gap-3 border-b border-[var(--border-subtle)]">
+        {SUB_TABS.map((tab) => {
+          const Icon = tab.icon
+          const isActive = subTab === tab.id
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setSubTab(tab.id)}
+              className={`flex items-center gap-1.5 pb-2 text-xs font-medium transition-colors border-b-2 -mb-px ${
+                isActive
+                  ? 'text-[var(--text-primary)] border-[var(--brand-blue)]'
+                  : 'text-[var(--text-tertiary)] border-transparent hover:text-[var(--text-secondary)]'
+              }`}
+            >
+              <Icon className="w-3 h-3" />
+              {tab.label}
+            </button>
+          )
+        })}
       </div>
 
-      {/* Pipeline Breakdown — only when extended fields are available */}
-      {hasBreakdown && (
-        <div className="p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)]">
-          <p className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] font-semibold mb-3">
-            Pipeline Breakdown
-          </p>
-          <LatencyBar
-            embedMs={embedMs}
-            searchMs={searchMs}
-            generateMs={generateMs}
-            selfragMs={selfragSkipped ? 0 : (selfragMs ?? 0)}
-            totalMs={totalMs ?? 0}
-          />
-          {/* Badges */}
-          <div className="flex items-center gap-2 mt-3">
-            {embedCached && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                Cached
-              </span>
-            )}
-            {selfragSkipped && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                SelfRAG Skipped
-              </span>
-            )}
+      {/* Sub-tab content */}
+      {subTab === 'snippets' && (
+        <div className="space-y-5">
+          {/* Confidence — large and prominent */}
+          <div className="flex items-center gap-4 p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)]">
+            <div className="text-center">
+              <p className="text-3xl font-bold">
+                <ConfidenceBadge score={confidence} />
+                {confidence == null && <span className="text-[var(--text-tertiary)]">--</span>}
+              </p>
+              <p className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] font-semibold mt-1">
+                Confidence
+              </p>
+            </div>
+            <div className="h-10 w-px bg-[var(--border-default)]" />
+            <div className="flex-1 grid grid-cols-2 gap-y-2 gap-x-6">
+              <EvidenceRow label="Citations" value={citationCount.toString()} />
+              <EvidenceRow
+                label="Model"
+                value={displayProvider ? `${displayProvider} / ${displayModel}` : displayModel}
+              />
+              <EvidenceRow
+                label="Latency"
+                value={totalMs != null ? `${(totalMs / 1000).toFixed(1)}s` : latency != null ? `${(latency / 1000).toFixed(1)}s` : '--'}
+              />
+              <EvidenceRow label="Time" value={formatTime(message.timestamp)} />
+            </div>
+          </div>
+
+          {/* Pipeline Breakdown — only when extended fields are available */}
+          {hasBreakdown && (
+            <div className="p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)]">
+              <p className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] font-semibold mb-3">
+                Pipeline Breakdown
+              </p>
+              <LatencyBar
+                embedMs={embedMs}
+                searchMs={searchMs}
+                generateMs={generateMs}
+                selfragMs={selfragSkipped ? 0 : (selfragMs ?? 0)}
+                totalMs={totalMs ?? 0}
+              />
+              <div className="flex items-center gap-2 mt-3">
+                {embedCached && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    Cached
+                  </span>
+                )}
+                {selfragSkipped && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                    SelfRAG Skipped
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Retrieval stats */}
+          <div className="p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)]">
+            <p className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] font-semibold mb-3">
+              Retrieval Pipeline
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 rounded-lg bg-[var(--bg-primary)]">
+                <p className="text-lg font-bold text-[var(--text-primary)]">{docsSearched ?? '--'}</p>
+                <p className="text-xs text-[var(--text-tertiary)]">Documents searched</p>
+              </div>
+              <div className="p-3 rounded-lg bg-[var(--bg-primary)]">
+                <p className="text-lg font-bold text-[var(--text-primary)]">{chunksEvaluated ?? '--'}</p>
+                <p className="text-xs text-[var(--text-tertiary)]">Chunks evaluated</p>
+              </div>
+              <div className="p-3 rounded-lg bg-[var(--bg-primary)]">
+                <p className="text-lg font-bold text-[var(--text-primary)]">{citationCount}</p>
+                <p className="text-xs text-[var(--text-tertiary)]">Sources cited</p>
+              </div>
+              <div className="p-3 rounded-lg bg-[var(--bg-primary)]">
+                <p className="text-lg font-bold text-[var(--text-primary)]">
+                  {confidence != null ? `${Math.round(confidence * 100)}%` : '--'}
+                </p>
+                <p className="text-xs text-[var(--text-tertiary)]">Confidence score</p>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Retrieval stats */}
-      <div className="p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)]">
-        <p className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] font-semibold mb-3">
-          Retrieval Pipeline
-        </p>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="p-3 rounded-lg bg-[var(--bg-primary)]">
-            <p className="text-lg font-bold text-[var(--text-primary)]">
-              {docsSearched ?? '--'}
-            </p>
-            <p className="text-xs text-[var(--text-tertiary)]">Documents searched</p>
-          </div>
-          <div className="p-3 rounded-lg bg-[var(--bg-primary)]">
-            <p className="text-lg font-bold text-[var(--text-primary)]">
-              {chunksEvaluated ?? '--'}
-            </p>
-            <p className="text-xs text-[var(--text-tertiary)]">Chunks evaluated</p>
-          </div>
-          <div className="p-3 rounded-lg bg-[var(--bg-primary)]">
-            <p className="text-lg font-bold text-[var(--text-primary)]">{citationCount}</p>
-            <p className="text-xs text-[var(--text-tertiary)]">Sources cited</p>
-          </div>
-          <div className="p-3 rounded-lg bg-[var(--bg-primary)]">
-            <p className="text-lg font-bold text-[var(--text-primary)]">
-              {confidence != null ? `${Math.round(confidence * 100)}%` : '--'}
-            </p>
-            <p className="text-xs text-[var(--text-tertiary)]">Confidence score</p>
-          </div>
-        </div>
-      </div>
+      {subTab === 'claims' && (
+        <ClaimsPanel
+          claims={cyGraph?.claims ?? []}
+          loading={cyLoading}
+          onNavigate={(docId) => selectItem(docId)}
+        />
+      )}
+
+      {subTab === 'relationships' && (
+        <RelationshipsPanel
+          relationships={cyGraph?.relationships ?? []}
+          loading={cyLoading}
+        />
+      )}
     </div>
   )
 }
