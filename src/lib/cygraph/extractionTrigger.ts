@@ -8,6 +8,8 @@
 
 import prisma from '@/lib/prisma'
 import { extractFromChunks } from './extractionService'
+import { correlateConversationEntities } from './conversationCorrelation'
+import { shouldRunAnalysis, runProactiveAnalysis } from './proactiveDetection'
 import { logger } from '@/lib/logger'
 
 /**
@@ -53,6 +55,13 @@ export async function triggerDocumentExtraction(
     })
 
     await extractFromChunks(chunkInputs, tenantId)
+
+    // After extraction, check if proactive analysis should run
+    if (await shouldRunAnalysis(tenantId)) {
+      runProactiveAnalysis(tenantId, tenantId).catch(err => {
+        logger.warn('[CyGraph] Proactive analysis failed (non-blocking):', err)
+      })
+    }
   } catch (err) {
     logger.error('[CyGraph] Document extraction trigger failed:', { documentId, error: err })
   }
@@ -84,7 +93,29 @@ export async function triggerConversationExtraction(
     })
 
     await extractFromChunks(chunkInputs, tenantId)
+
+    // Cross-channel correlation: link conversation entities to document entities
+    const entityIds = await getRecentEntityIds(threadId)
+    if (entityIds.length > 0) {
+      correlateConversationEntities(entityIds, tenantId, threadId, 'conversation').catch(err => {
+        logger.warn('[CyGraph] Cross-channel correlation failed (non-blocking):', err)
+      })
+    }
   } catch (err) {
     logger.error('[CyGraph] Conversation extraction trigger failed:', { threadId, error: err })
   }
+}
+
+/**
+ * Get entity IDs recently extracted for a thread (via mentions on thread pseudo-document).
+ */
+async function getRecentEntityIds(threadId: string): Promise<string[]> {
+  const mentions = await prisma.$queryRawUnsafe<Array<{ entity_id: string }>>(
+    `SELECT DISTINCT entity_id FROM kg_mentions
+     WHERE document_id = $1
+     ORDER BY entity_id
+     LIMIT 50`,
+    `thread:${threadId}`,
+  )
+  return mentions.map(m => m.entity_id)
 }
