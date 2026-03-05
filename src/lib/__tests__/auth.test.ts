@@ -126,8 +126,8 @@ describe('authOptions', () => {
     expect(authOptions.session?.maxAge).toBe(30 * 24 * 60 * 60)
   })
 
-  test('configures three providers (Google, AzureAD, email-otp)', () => {
-    expect(authOptions.providers).toHaveLength(3)
+  test('configures two providers (Google, email-otp)', () => {
+    expect(authOptions.providers).toHaveLength(2)
   })
 
   test('sets custom sign-in page to /', () => {

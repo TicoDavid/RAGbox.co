@@ -22,6 +22,7 @@ jest.mock('@/stores/vaultStore', () => ({
       selectedItemId: null,
       isLoading: false,
       documents: {},
+      folders: {},
     }),
   ),
 }))

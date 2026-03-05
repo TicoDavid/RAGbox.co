@@ -65,6 +65,7 @@ model User {
   notificationSettings  NotificationSettings?
   feedbackReports       FeedbackReport[]
   proactiveInsights     MercuryProactiveInsight[]
+  cloudDriveCredential  CloudDriveCredential?
 
   @@map("users")
 }
@@ -1152,4 +1153,25 @@ model MercuryProactiveInsight {
 
   @@index([userId, dismissed])
   @@map("mercury_proactive_insights")
+}
+
+// ============================================
+// Cloud Drive Integration (Microsoft OneDrive/SharePoint)
+// ============================================
+
+model CloudDriveCredential {
+  id           String   @id @default(cuid())
+  userId       String   @unique @map("user_id")
+  provider     String   @default("microsoft")
+  accessToken  String   @map("access_token")   // AES-256-GCM encrypted
+  refreshToken String   @map("refresh_token")  // AES-256-GCM encrypted
+  expiresAt    DateTime @map("expires_at")
+  scopes       String
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("cloud_drive_credentials")
 }

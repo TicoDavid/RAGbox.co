@@ -14,6 +14,7 @@ jest.mock('next-auth/jwt', () => ({
 
 const mockFindUnique = jest.fn()
 const mockUpdate = jest.fn()
+const mockQueryRawUnsafe = jest.fn()
 jest.mock('@/lib/prisma', () => ({
   __esModule: true,
   default: {
@@ -21,6 +22,7 @@ jest.mock('@/lib/prisma', () => ({
       findUnique: (...args: unknown[]) => mockFindUnique(...args),
       update: (...args: unknown[]) => mockUpdate(...args),
     },
+    $queryRawUnsafe: (...args: unknown[]) => mockQueryRawUnsafe(...args),
   },
 }))
 
@@ -61,12 +63,18 @@ const mockUser = {
   role: 'Associate',
 }
 
+const mockUserRow = {
+  ...mockUser,
+  is_admin: false,
+}
+
 // ── Setup ────────────────────────────────────────────────
 
 beforeEach(() => {
   jest.clearAllMocks()
   authenticateAs()
   mockFindUnique.mockResolvedValue(mockUser)
+  mockQueryRawUnsafe.mockResolvedValue([mockUserRow])
 })
 
 // ═══════════════════════════════════════════════════════════
@@ -93,7 +101,7 @@ describe('GET /api/user/profile', () => {
   })
 
   test('returns 404 when user not found', async () => {
-    mockFindUnique.mockResolvedValue(null)
+    mockQueryRawUnsafe.mockResolvedValue([])
     const res = await GET(buildRequest('GET'))
     expect(res.status).toBe(404)
   })

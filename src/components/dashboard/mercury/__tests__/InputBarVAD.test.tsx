@@ -9,6 +9,9 @@
  * for mic toggle, transcript sync, and audio level visualization.
  */
 
+// ── Global fetch mock (jsdom lacks fetch) ────────────────────────
+global.fetch = jest.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({}) }) as unknown as typeof fetch
+
 import React from 'react'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 
@@ -84,6 +87,17 @@ jest.mock('sonner', () => ({
 // ── Mock api fetch ───────────────────────────────────────────────
 jest.mock('@/lib/api', () => ({
   apiFetch: jest.fn(),
+}))
+
+// ── Mock useSubscriptionTier (return professional so voice is unlocked) ──
+jest.mock('@/hooks/useSubscriptionTier', () => ({
+  useSubscriptionTier: () => ({
+    tier: 'professional',
+    loading: false,
+    isStarter: false,
+    hasVoice: true,
+    hasAllChannels: false,
+  }),
 }))
 
 import { InputBar } from '../InputBar'

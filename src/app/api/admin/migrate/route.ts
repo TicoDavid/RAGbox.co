@@ -713,6 +713,35 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       results.push(`mercury_personas per-user migration: SKIPPED (${personaMigErr instanceof Error ? personaMigErr.message.slice(0, 80) : 'error'})`)
     }
 
+    // ========================================
+    // EPIC-027: onboarding_completed (ensure column exists + set David's accounts)
+    // ========================================
+    await prisma.$executeRawUnsafe(`DO $$ BEGIN ALTER TABLE "users" ADD COLUMN "onboarding_completed" BOOLEAN NOT NULL DEFAULT false; EXCEPTION WHEN duplicate_column THEN NULL; END $$`)
+    await prisma.$executeRawUnsafe(`UPDATE users SET onboarding_completed = true WHERE email IN ('d05279090@gmail.com', 'theconnexusai@gmail.com') AND onboarding_completed = false`)
+    results.push('users.onboarding_completed: OK')
+
+    // ========================================
+    // EPIC-027: CloudDriveCredential table (Microsoft OAuth)
+    // ========================================
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "cloud_drive_credentials" (
+        "id" TEXT NOT NULL,
+        "user_id" TEXT NOT NULL,
+        "provider" TEXT NOT NULL DEFAULT 'microsoft',
+        "access_token" TEXT NOT NULL,
+        "refresh_token" TEXT NOT NULL,
+        "expires_at" TIMESTAMP(3) NOT NULL,
+        "scopes" TEXT NOT NULL,
+        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "cloud_drive_credentials_pkey" PRIMARY KEY ("id"),
+        CONSTRAINT "cloud_drive_credentials_user_id_key" UNIQUE ("user_id"),
+        CONSTRAINT "cloud_drive_credentials_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE
+      )
+    `)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "cloud_drive_credentials_user_id_idx" ON "cloud_drive_credentials"("user_id")`)
+    results.push('cloud_drive_credentials: OK')
+
     return NextResponse.json({ success: true, results })
   } catch (error) {
     return NextResponse.json({
