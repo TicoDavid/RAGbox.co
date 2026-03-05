@@ -15,7 +15,7 @@ export interface SidebarProps {
 
 export function Sidebar({ onNavigate, activePanelId }: SidebarProps) {
   const navItems: NavItem[] = [
-    { icon: Archive, label: 'The Box', id: 'box' },
+    { icon: Archive, label: 'Vault', id: 'box' },
   ]
 
   return (

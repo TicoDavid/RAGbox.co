@@ -83,7 +83,7 @@ export function useRagSounds() {
 
   return {
     /**
-     * Play when a file is dropped into The Box
+     * Play when a file is dropped into the Vault
      * Low-frequency sci-fi hum / thud
      */
     playDropSound: () => playSound('/sounds/drop.mp3', dropVolume),

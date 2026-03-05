@@ -247,7 +247,7 @@ export function TheBox() {
                 ? 'Authenticating...'
                 : isDragOver
                   ? 'Release to Upload'
-                  : 'Feed the Box'}
+                  : 'Feed the Vault'}
             </motion.p>
             <p className="text-sm text-slate-400">
               {isAbsorbing
