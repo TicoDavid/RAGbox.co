@@ -971,3 +971,110 @@ model FeedbackReport {
 
   @@map("feedback_reports")
 }
+
+// ============================================
+// CyGraph2026 — Knowledge Graph (Q3 VERITAS)
+// Empty tables — schema-only, zero-risk prep
+// ============================================
+
+model KgEntity {
+  id          String   @id @default(cuid())
+  tenantId    String   @default("default") @map("tenant_id")
+  name        String
+  entityType  String   @map("entity_type")  // person | organization | concept | location | date | event | regulation | statute
+  canonical   String?                        // canonical/normalized form
+  metadata    Json?                          // type-specific attributes
+  mergedInto  String?  @map("merged_into")   // points to canonical entity after dedup
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  edgesFrom   KgEdge[]     @relation("EdgeFrom")
+  edgesTo     KgEdge[]     @relation("EdgeTo")
+  mentions    KgMention[]
+  claims      KgClaim[]    @relation("ClaimSubject")
+
+  @@index([tenantId, entityType])
+  @@index([tenantId, name])
+  @@index([mergedInto])
+  @@map("kg_entities")
+}
+
+model KgEdge {
+  id            String   @id @default(cuid())
+  tenantId      String   @default("default") @map("tenant_id")
+  fromEntityId  String   @map("from_entity_id")
+  toEntityId    String   @map("to_entity_id")
+  relationType  String   @map("relation_type")  // employs | references | cites | contradicts | amends | relates_to
+  weight        Float    @default(1.0)
+  metadata      Json?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Relations
+  fromEntity KgEntity @relation("EdgeFrom", fields: [fromEntityId], references: [id], onDelete: Cascade)
+  toEntity   KgEntity @relation("EdgeTo", fields: [toEntityId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, relationType])
+  @@index([fromEntityId])
+  @@index([toEntityId])
+  @@map("kg_edges")
+}
+
+model KgClaim {
+  id              String   @id @default(cuid())
+  tenantId        String   @default("default") @map("tenant_id")
+  subjectEntityId String   @map("subject_entity_id")
+  predicate       String                        // "was_convicted_of" | "filed_on" | "earned_revenue_of"
+  objectValue     String   @map("object_value") // the claim value (text, number, date as string)
+  objectEntityId  String?  @map("object_entity_id") // optional link to another entity
+  confidence      Float    @default(1.0)
+  status          String   @default("active")   // active | disputed | retracted
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  subjectEntity KgEntity       @relation("ClaimSubject", fields: [subjectEntityId], references: [id], onDelete: Cascade)
+  provenance    KgProvenance[]
+
+  @@index([tenantId, predicate])
+  @@index([subjectEntityId])
+  @@index([status])
+  @@map("kg_claims")
+}
+
+model KgProvenance {
+  id          String   @id @default(cuid())
+  claimId     String   @map("claim_id")
+  documentId  String   @map("document_id")
+  chunkId     String?  @map("chunk_id")
+  excerpt     String?  @db.Text               // exact passage supporting the claim
+  pageNumber  Int?     @map("page_number")
+  confidence  Float    @default(1.0)
+  extractedAt DateTime @default(now()) @map("extracted_at")
+
+  // Relations
+  claim KgClaim @relation(fields: [claimId], references: [id], onDelete: Cascade)
+
+  @@index([claimId])
+  @@index([documentId])
+  @@map("kg_provenance")
+}
+
+model KgMention {
+  id          String   @id @default(cuid())
+  entityId    String   @map("entity_id")
+  documentId  String   @map("document_id")
+  chunkId     String?  @map("chunk_id")
+  mentionText String   @map("mention_text")
+  startOffset Int?     @map("start_offset")
+  endOffset   Int?     @map("end_offset")
+  confidence  Float    @default(1.0)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  entity KgEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@index([entityId])
+  @@index([documentId])
+  @@index([documentId, entityId])
+  @@map("kg_mentions")
+}
