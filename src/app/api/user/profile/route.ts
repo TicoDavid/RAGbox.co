@@ -10,7 +10,7 @@ import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const token = await getToken({ req: request })
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
   if (!token) {
     return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 })
   }
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 }
 
 export async function PUT(request: NextRequest): Promise<NextResponse> {
-  const token = await getToken({ req: request })
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
   if (!token) {
     return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 })
   }

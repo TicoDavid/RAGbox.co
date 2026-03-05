@@ -39,7 +39,7 @@ function isMaskedValue(value: unknown): boolean {
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    const token = await getToken({ req: request })
+    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
     if (!token) {
       return NextResponse.json(
         { success: false, error: 'Authentication required' },
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 export async function PUT(request: NextRequest): Promise<NextResponse> {
   try {
-    const token = await getToken({ req: request })
+    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
     if (!token) {
       return NextResponse.json(
         { success: false, error: 'Authentication required' },

@@ -13,7 +13,7 @@ import prisma from '@/lib/prisma'
 const DEFAULT_TENANT = 'default'
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const token = await getToken({ req: request })
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
   if (!token) {
     return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 })
   }

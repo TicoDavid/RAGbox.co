@@ -24,7 +24,7 @@ function getVertex(): VertexAI {
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const token = await getToken({ req: request })
+    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
     if (!token) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }

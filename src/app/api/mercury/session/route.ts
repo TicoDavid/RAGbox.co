@@ -17,7 +17,7 @@ const MAX_SUMMARIES = 3
 
 // POST: Save a session summary
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const token = await getToken({ req: request })
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
   if (!token) {
     return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 })
   }
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
 // GET: Load last N session summaries for context injection
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const token = await getToken({ req: request })
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
   if (!token) {
     return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 })
   }

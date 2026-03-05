@@ -12,7 +12,7 @@ export async function POST(
 
   // E25-003: Invalidate query cache — recovered document may change RAG results
   if (response.status >= 200 && response.status < 400) {
-    const token = await getToken({ req: request })
+    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
     const userId = (token?.id as string) || token?.email || ''
     if (userId) {
       invalidateUserCache(userId).catch(() => {})

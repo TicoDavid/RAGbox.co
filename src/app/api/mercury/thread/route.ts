@@ -19,7 +19,7 @@ const threadSelect = {
 } as const
 
 async function authenticateUser(request: NextRequest) {
-  const token = await getToken({ req: request })
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
   if (!token) return null
   const userId = (token.id as string) || token.email || ''
   return userId || null

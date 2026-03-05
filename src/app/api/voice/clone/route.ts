@@ -23,7 +23,7 @@ const INWORLD_API_KEY = process.env.INWORLD_API_KEY || process.env.INWORLD_STUDI
 const INWORLD_API_URL = process.env.INWORLD_API_URL || 'https://studio.inworld.ai/v1'
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const token = await getToken({ req: request })
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
   if (!token) {
     return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 })
   }
@@ -136,7 +136,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
  * List available voices including custom ones.
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const token = await getToken({ req: request })
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
   if (!token) {
     return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 })
   }

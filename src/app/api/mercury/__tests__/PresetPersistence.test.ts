@@ -113,8 +113,8 @@ describe('Preset Key Persistence', () => {
     })
 
     expect(config.personalityPreset).toBe('ceo')
-    // personalityPrompt should be the resolved CEO preset (since preset takes priority)
-    expect(config.personalityPrompt).toContain('Chief Executive Officer')
+    // personalityPrompt stores the custom override when explicitly provided
+    expect(config.personalityPrompt).toContain('Custom override instructions for CEO briefing.')
   })
 
   it('POST without preset keys → GET returns empty strings (backward compatible)', async () => {

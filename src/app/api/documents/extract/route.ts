@@ -75,7 +75,7 @@ function isAllowedType(contentType: string, ext: string): boolean {
 
 export async function POST(request: NextRequest) {
   // Auth check
-  const token = await getToken({ req: request })
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
   if (!token) {
     return NextResponse.json(
       { success: false, error: 'Authentication required' },

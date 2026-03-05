@@ -18,7 +18,7 @@ export const runtime = 'nodejs'
 const DEFAULT_TENANT = 'default'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const token = await getToken({ req: request })
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
   if (!token) {
     return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
   }

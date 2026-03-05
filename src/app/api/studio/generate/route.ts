@@ -120,7 +120,7 @@ async function parseRequest(request: NextRequest, userId: string): Promise<Gener
 export async function POST(request: NextRequest) {
   try {
     // 1. Authenticate via NextAuth JWT
-    const token = await getToken({ req: request })
+    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
     if (!token) {
       return NextResponse.json(
         { success: false, error: 'Authentication required' },

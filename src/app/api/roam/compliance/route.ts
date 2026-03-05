@@ -14,7 +14,7 @@ import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   // Auth: allow session auth OR OIDC tokens from Cloud Scheduler
-  const token = await getToken({ req: request })
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
   const oidcAuth = request.headers.get('authorization')?.startsWith('Bearer ')
   if (!token && !oidcAuth) {
     return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 })

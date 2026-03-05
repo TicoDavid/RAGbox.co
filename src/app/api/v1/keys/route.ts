@@ -13,7 +13,7 @@ import { writeAuditEntry } from '@/lib/audit/auditWriter'
 import { checkApiKeyCreation } from '@/lib/auth/tierCheck'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const token = await getToken({ req: request })
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
   if (!token) {
     return NextResponse.json({ success: false, error: 'Session authentication required' }, { status: 401 })
   }
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 }
 
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
-  const token = await getToken({ req: request })
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
   if (!token) {
     return NextResponse.json({ success: false, error: 'Session authentication required' }, { status: 401 })
   }

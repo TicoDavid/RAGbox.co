@@ -22,7 +22,7 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || ''
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const token = await getToken({ req: request })
+    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
     if (!token) {
       return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 })
     }
