@@ -444,10 +444,12 @@ function VoiceSection({
   const expressiveness = config.channels.voice?.expressiveness ?? 0.5
   const speakingRate = config.channels.voice?.speakingRate ?? 1.0
   const [voices, setVoices] = useState<VoiceOption[]>(MERCURY_VOICES)
+  const [voicesLoading, setVoicesLoading] = useState(true)
   const [previewing, setPreviewing] = useState(false)
 
   // Fetch dynamic voice list (Sheldon's API) — static fallback
   useEffect(() => {
+    setVoicesLoading(true)
     fetch('/api/voice/list')
       .then((r) => (r.ok ? r.json() : null))
       .then((json) => {
@@ -455,6 +457,7 @@ function VoiceSection({
         if (Array.isArray(list) && list.length > 0) setVoices(list)
       })
       .catch(() => {}) // use static MERCURY_VOICES fallback
+      .finally(() => setVoicesLoading(false))
   }, [])
 
   const updateVoice = (patch: Partial<VoiceChannelConfig>) => {
@@ -464,12 +467,12 @@ function VoiceSection({
     })
   }
 
-  const [previewFallback, setPreviewFallback] = useState(false)
+  const [previewError, setPreviewError] = useState(false)
 
   const handlePreview = async () => {
     if (previewing || typeof window === 'undefined') return
     setPreviewing(true)
-    setPreviewFallback(false)
+    setPreviewError(false)
     const text = config.greeting || `Hello, I'm ${config.name || 'Mercury'}. How can I help you today?`
 
     try {
@@ -487,15 +490,9 @@ function VoiceSection({
       audio.onerror = () => { setPreviewing(false); URL.revokeObjectURL(url) }
       await audio.play()
     } catch {
-      // Fallback to browser Speech API
-      setPreviewFallback(true)
-      const utterance = new SpeechSynthesisUtterance(text)
-      utterance.rate = speakingRate
-      utterance.pitch = 0.8 + expressiveness * 0.4
-      utterance.onend = () => setPreviewing(false)
-      utterance.onerror = () => setPreviewing(false)
-      speechSynthesis.cancel()
-      speechSynthesis.speak(utterance)
+      setPreviewing(false)
+      setPreviewError(true)
+      toast.error('Voice preview unavailable — Inworld service is offline')
     }
   }
 
@@ -505,6 +502,12 @@ function VoiceSection({
 
       {/* Voice Selection */}
       <div className="space-y-2">
+        {voicesLoading && (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="w-4 h-4 animate-spin text-[var(--text-tertiary)]" />
+            <span className="ml-2 text-xs text-[var(--text-tertiary)]">Loading voices...</span>
+          </div>
+        )}
         {voices.map((v) => (
           <button
             key={v.id}
@@ -594,8 +597,8 @@ function VoiceSection({
       >
         {previewing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mic className="w-4 h-4" />}
         {previewing
-          ? previewFallback ? 'Playing Preview (browser)...' : 'Playing Preview...'
-          : 'Preview Voice'
+          ? 'Playing Preview...'
+          : previewError ? 'Retry Preview' : 'Preview Voice'
         }
       </button>
     </div>

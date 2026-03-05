@@ -22,15 +22,19 @@ export function OnboardingChecklist() {
   const documents = useVaultStore((s) => s.documents)
   const messages = useMercuryStore((s) => s.messages)
 
+  // Only show for truly new users with 0 queries
+  const hasQueries = messages.some((m) => m.role === 'user')
+  const hasDocuments = Object.keys(documents).length > 0
+
   useEffect(() => {
     const wasDismissed = localStorage.getItem(ONBOARDING_KEY) === 'true'
     setDismissed(wasDismissed)
-    if (!wasDismissed) {
+    if (!wasDismissed && !hasQueries && !hasDocuments) {
       // Small delay so dashboard renders first
       const timer = setTimeout(() => setVisible(true), 800)
       return () => clearTimeout(timer)
     }
-  }, [])
+  }, [hasQueries, hasDocuments])
 
   const handleDismiss = useCallback(() => {
     setVisible(false)
@@ -74,7 +78,7 @@ export function OnboardingChecklist() {
   const completedCount = steps.filter((s) => s.check()).length
   const allDone = completedCount === steps.length
 
-  if (dismissed) return null
+  if (dismissed || hasQueries || hasDocuments) return null
 
   return (
     <AnimatePresence>
