@@ -348,8 +348,8 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
       },
 
       onNoSpeech: () => {
-        console.info('[AgentWS] No speech detected', { sessionId })
-        sendJSON(ws, { type: 'agent_text_final', text: "I didn't catch that. Could you try again?" })
+        // Bug B fix: Silence is not an error — just return to idle without messaging
+        console.info('[AgentWS] No speech detected — staying silent', { sessionId })
         setState('idle')
       },
 

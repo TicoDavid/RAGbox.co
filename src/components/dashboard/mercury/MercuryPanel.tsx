@@ -267,17 +267,8 @@ export function MercuryPanel() {
     useMercuryStore.setState((state) => ({
       messages: [...state.messages, msg],
     }))
-    // Persist voice response to thread
-    fetch('/api/mercury/thread/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        threadId,
-        role: 'assistant',
-        channel: 'voice',
-        content: detail.text,
-      }),
-    }).catch(() => {})
+    // Server-side persistThreadMessage in agent-ws.ts already writes to thread —
+    // removed client-side duplicate persist that caused greeting to appear twice
   }, [threadId])
 
   useEffect(() => {

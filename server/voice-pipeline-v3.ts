@@ -319,6 +319,7 @@ function buildPersonalityPrompt(
 /**
  * Fetch Mercury persona config from Prisma MercuryPersona table (best-effort).
  * BUG-047 FIX: Reads from the same DB table the frontend Settings modal saves to.
+ * Bug D FIX: No caching — fresh DB read each session so greeting changes take effect immediately.
  * Returns defaults if the query fails.
  */
 async function fetchMercuryConfig(userId: string): Promise<MercuryConfig> {
@@ -421,6 +422,7 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
   }
 
   let isActive = false
+  let greetingSent = false
   let audioBuffer: Float32Array[] = []
 
   // Fetch Mercury persona config (best-effort, falls back to defaults)
@@ -633,98 +635,123 @@ Current user context:
         } catch {
           answer = rawText
         }
+        // Non-streaming: TTS the full answer
+        if (answer && answer.length > 5) {
+          await textToSpeech(answer)
+        }
       } else {
         // SSE stream — parse tokens progressively and fire TTS per sentence
-        const allTokens: string[] = []
-        let sentenceBuffer = ''
-        let currentEventType = ''
-        let silenceAnswer = ''
-        let doneAnswer = ''
-        let lineBuffer = ''
+        // Bug C fix: wrap in try/catch — if streaming reader fails, fall back to
+        // collecting the full response text and doing a single TTS pass.
+        try {
+          const allTokens: string[] = []
+          let sentenceBuffer = ''
+          let currentEventType = ''
+          let silenceAnswer = ''
+          let doneAnswer = ''
+          let lineBuffer = ''
 
-        const reader = res.body?.getReader()
-        const decoder = new TextDecoder()
+          const reader = res.body?.getReader()
+          const decoder = new TextDecoder()
 
-        if (reader) {
-          let done = false
-          while (!done) {
-            const { value, done: streamDone } = await reader.read()
-            done = streamDone
-            if (!value) continue
+          if (reader) {
+            let done = false
+            while (!done) {
+              const { value, done: streamDone } = await reader.read()
+              done = streamDone
+              if (!value) continue
 
-            lineBuffer += decoder.decode(value, { stream: true })
-            const lines = lineBuffer.split('\n')
-            // Keep incomplete last line in buffer
-            lineBuffer = lines.pop() ?? ''
+              lineBuffer += decoder.decode(value, { stream: true })
+              const lines = lineBuffer.split('\n')
+              // Keep incomplete last line in buffer
+              lineBuffer = lines.pop() ?? ''
 
-            for (const line of lines) {
-              if (line.startsWith('event: ')) {
-                currentEventType = line.slice(7).trim()
-              } else if (line.startsWith('data: ')) {
-                const dataStr = line.slice(6).trim()
-                if (!dataStr) continue
+              for (const line of lines) {
+                if (line.startsWith('event: ')) {
+                  currentEventType = line.slice(7).trim()
+                } else if (line.startsWith('data: ')) {
+                  const dataStr = line.slice(6).trim()
+                  if (!dataStr) continue
 
-                if (currentEventType === 'token') {
-                  let tokenText = ''
-                  try {
-                    const payload = JSON.parse(dataStr) as { text?: string }
-                    tokenText = payload.text ?? ''
-                  } catch {
-                    if (dataStr !== '[DONE]') tokenText = dataStr
-                  }
-
-                  if (tokenText) {
-                    allTokens.push(tokenText)
-                    sentenceBuffer += tokenText
-
-                    // Check for sentence boundary: . ? ! followed by space or end
-                    const sentenceBoundary = /([.!?])\s/g
-                    let match: RegExpExecArray | null
-                    let lastIndex = 0
-
-                    while ((match = sentenceBoundary.exec(sentenceBuffer)) !== null) {
-                      const sentence = sentenceBuffer.slice(lastIndex, match.index + 1).trim()
-                      lastIndex = match.index + match[0].length
-
-                      if (sentence.length > 5) {
-                        console.info('[VoicePipeline-v3] Sentence TTS →', { chars: sentence.length, preview: sentence.substring(0, 60) })
-                        // Fire-and-forget: TTS plays while more tokens arrive
-                        textToSpeech(sentence).catch(err =>
-                          console.warn('[VoicePipeline-v3] Sentence TTS failed:', err)
-                        )
-                      }
+                  if (currentEventType === 'token') {
+                    let tokenText = ''
+                    try {
+                      const payload = JSON.parse(dataStr) as { text?: string }
+                      tokenText = payload.text ?? ''
+                    } catch {
+                      if (dataStr !== '[DONE]') tokenText = dataStr
                     }
-                    // Keep remainder after last sentence boundary
-                    sentenceBuffer = sentenceBuffer.slice(lastIndex)
+
+                    if (tokenText) {
+                      allTokens.push(tokenText)
+                      sentenceBuffer += tokenText
+
+                      // Check for sentence boundary: . ? ! followed by space or end
+                      const sentenceBoundary = /([.!?])\s/g
+                      let match: RegExpExecArray | null
+                      let lastIndex = 0
+
+                      while ((match = sentenceBoundary.exec(sentenceBuffer)) !== null) {
+                        const sentence = sentenceBuffer.slice(lastIndex, match.index + 1).trim()
+                        lastIndex = match.index + match[0].length
+
+                        if (sentence.length > 5) {
+                          console.info('[VoicePipeline-v3] Sentence TTS →', { chars: sentence.length, preview: sentence.substring(0, 60) })
+                          // Fire-and-forget: TTS plays while more tokens arrive
+                          textToSpeech(sentence).catch(err =>
+                            console.warn('[VoicePipeline-v3] Sentence TTS failed:', err)
+                          )
+                        }
+                      }
+                      // Keep remainder after last sentence boundary
+                      sentenceBuffer = sentenceBuffer.slice(lastIndex)
+                    }
+                  } else if (currentEventType === 'silence') {
+                    try {
+                      const payload = JSON.parse(dataStr) as { message?: string }
+                      if (payload.message) silenceAnswer = payload.message
+                    } catch {
+                      if (dataStr) silenceAnswer = dataStr
+                    }
+                  } else if (currentEventType === 'done') {
+                    try {
+                      const payload = JSON.parse(dataStr) as { data?: { answer?: string }; answer?: string }
+                      const d = payload.data ?? payload
+                      if (typeof d.answer === 'string' && d.answer) doneAnswer = d.answer
+                    } catch { /* ignore */ }
                   }
-                } else if (currentEventType === 'silence') {
-                  try {
-                    const payload = JSON.parse(dataStr) as { message?: string }
-                    if (payload.message) silenceAnswer = payload.message
-                  } catch {
-                    if (dataStr) silenceAnswer = dataStr
-                  }
-                } else if (currentEventType === 'done') {
-                  try {
-                    const payload = JSON.parse(dataStr) as { data?: { answer?: string }; answer?: string }
-                    const d = payload.data ?? payload
-                    if (typeof d.answer === 'string' && d.answer) doneAnswer = d.answer
-                  } catch { /* ignore */ }
+                  currentEventType = ''
                 }
-                currentEventType = ''
               }
             }
           }
-        }
 
-        // Resolve final answer
-        answer = silenceAnswer || doneAnswer || allTokens.join('')
+          // Resolve final answer
+          answer = silenceAnswer || doneAnswer || allTokens.join('')
 
-        // TTS any remaining buffer (last sentence fragment)
-        const remainder = sentenceBuffer.trim()
-        if (remainder.length > 5) {
-          console.info('[VoicePipeline-v3] Final fragment TTS →', { chars: remainder.length })
-          await textToSpeech(remainder)
+          // TTS any remaining buffer (last sentence fragment)
+          const remainder = sentenceBuffer.trim()
+          if (remainder.length > 5) {
+            console.info('[VoicePipeline-v3] Final fragment TTS →', { chars: remainder.length })
+            await textToSpeech(remainder)
+          }
+        } catch (streamError) {
+          // Bug C fix: Streaming reader failed — fall back to res.text() approach
+          console.error('[VOICE-STREAM-ERROR] SSE reader failed, falling back to full-text:', streamError)
+          try {
+            const fallbackText = await res.text()
+            try {
+              const data = JSON.parse(fallbackText) as { data?: { answer?: string }; answer?: string }
+              answer = data.data?.answer || data.answer || fallbackText
+            } catch {
+              answer = fallbackText
+            }
+            if (answer && answer.length > 5) {
+              await textToSpeech(answer)
+            }
+          } catch (fallbackError) {
+            console.error('[VOICE-STREAM-ERROR] Fallback also failed:', fallbackError)
+          }
         }
       }
 
@@ -925,13 +952,19 @@ Current user context:
         })
       }
 
-      if (transcription.trim()) {
-        console.info('[VoicePipeline-v3] Transcription', { transcription })
-        await processWithLLM(transcription)
+      const trimmed = transcription.trim()
+      const wordCount = trimmed.split(/\s+/).filter(Boolean).length
+      if (trimmed && wordCount >= 3) {
+        console.info('[VoicePipeline-v3] Transcription', { transcription: trimmed, wordCount })
+        onTranscriptFinal?.(trimmed)
+        await processWithLLM(trimmed)
         onSpeakingComplete?.()
+      } else if (trimmed && wordCount < 3) {
+        // Bug B fix: Discard short utterances (noise, partial words) — keep listening
+        console.info('[VoicePipeline-v3] Short utterance discarded (noise filter)', { text: trimmed, wordCount })
       } else {
-        console.info('[VoicePipeline-v3] No speech detected')
-        onNoSpeech?.()
+        console.info('[VoicePipeline-v3] No speech detected — staying silent')
+        // Bug B fix: Don't fire onNoSpeech for silence — just keep listening
       }
     } catch (error) {
       console.error('[VoicePipeline-v3] STT error:', error)
@@ -986,6 +1019,13 @@ Current user context:
     },
 
     async triggerGreeting(): Promise<void> {
+      // Bug A fix: Guard against duplicate greeting fires (WebSocket reconnect, StrictMode, etc.)
+      if (greetingSent) {
+        console.info('[VoicePipeline-v3] Greeting already sent — skipping duplicate')
+        return
+      }
+      greetingSent = true
+
       let greeting: string
       if (mercuryConfig.greeting) {
         greeting = mercuryConfig.greeting
