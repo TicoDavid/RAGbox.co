@@ -1,7 +1,7 @@
 'use client'
 
 import { useChatStore } from '@/stores/chatStore'
-import { MessageSquare, FileText, X, MessageSquarePlus, EyeOff, PanelLeft } from 'lucide-react'
+import { MessageSquare, FileText, X, MessageSquarePlus, EyeOff, PanelLeft, ClipboardList, Columns2 } from 'lucide-react'
 
 export function CenterHeader() {
   const messages = useChatStore((s) => s.messages)
@@ -13,7 +13,15 @@ export function CenterHeader() {
   const incognitoMode = useChatStore((s) => s.incognitoMode)
   const sidebarOpen = useChatStore((s) => s.sidebarOpen)
   const setSidebarOpen = useChatStore((s) => s.setSidebarOpen)
+  const responseLayout = useChatStore((s) => s.responseLayout)
+  const setResponseLayout = useChatStore((s) => s.setResponseLayout)
   const queryCount = messages.filter((m) => m.role === 'user').length
+
+  const LAYOUT_MODES = [
+    { id: 'dossier' as const, icon: ClipboardList, label: 'Dossier' },
+    { id: 'conversation' as const, icon: MessageSquare, label: 'Conversation' },
+    { id: 'analyst' as const, icon: Columns2, label: 'Analyst' },
+  ]
 
   return (
     <div className="shrink-0 flex flex-col border-b border-[var(--border-default)]">
@@ -36,6 +44,28 @@ export function CenterHeader() {
           </span>
         </div>
         <div className="flex items-center gap-4 text-xs text-[var(--text-tertiary)]">
+          {/* Layout mode toggle */}
+          <div className="flex items-center rounded-lg bg-[var(--bg-tertiary)] p-0.5">
+            {LAYOUT_MODES.map((mode) => {
+              const Icon = mode.icon
+              const isActive = responseLayout === mode.id
+              return (
+                <button
+                  key={mode.id}
+                  onClick={() => setResponseLayout(mode.id)}
+                  className={`p-1 rounded-md transition-colors ${
+                    isActive
+                      ? 'bg-[var(--brand-blue)]/15 text-[var(--brand-blue)]'
+                      : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+                  }`}
+                  aria-label={`${mode.label} layout`}
+                  title={mode.label}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                </button>
+              )
+            })}
+          </div>
           {incognitoMode && (
             <span
               className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--warning)]/15 text-[var(--warning)] text-[10px] font-semibold uppercase tracking-wider"

@@ -14,6 +14,9 @@ import type { ChatMessage, Citation } from '@/types/ragbox'
 import { ChannelBadge } from './ChannelBadge'
 import { formatModelLabel } from '@/components/dashboard/mercury/ModelBadge'
 import { ClaimsPanel, RelationshipsPanel, useCyGraphContext } from './CyGraphPanels'
+import { DossierLayout } from '@/components/dashboard/mercury/layouts/DossierLayout'
+import { ConversationLayout } from '@/components/dashboard/mercury/layouts/ConversationLayout'
+import { AnalystLayout } from '@/components/dashboard/mercury/layouts/AnalystLayout'
 
 type ResponseTab = 'answer' | 'sources' | 'evidence'
 type EvidenceSubTab = 'snippets' | 'claims' | 'relationships'
@@ -132,6 +135,7 @@ export function CenterMessage({ message }: { message: ChatMessage }) {
   const sendMessage = useChatStore((s) => s.sendMessage)
   const messages = useChatStore((s) => s.messages)
   const privilegeMode = usePrivilegeStore((s) => s.isEnabled)
+  const responseLayout = useChatStore((s) => s.responseLayout)
 
   // Error message with retry + dismiss
   if (message.isError) {
@@ -224,69 +228,106 @@ export function CenterMessage({ message }: { message: ChatMessage }) {
 
       {/* Message body */}
       <div>
-        {/* ── Response tabs (AI only) ── */}
-        {!isUser && visibleTabs.length > 1 && (
-          <div className="flex items-center gap-4 mb-3 border-b border-[var(--border-subtle)]">
-            {visibleTabs.map((tab) => {
-              const Icon = tab.icon
-              const isActive = activeTab === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-1.5 pb-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
-                    isActive
-                      ? 'text-[var(--text-primary)] border-[var(--brand-blue)]'
-                      : 'text-[var(--text-tertiary)] border-transparent hover:text-[var(--text-secondary)]'
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  {tab.label}
-                </button>
-              )
-            })}
-          </div>
-        )}
-
-        {/* ── Tab content ── */}
-        <div className="text-base leading-relaxed max-w-none">
-          {isUser ? (
+        {isUser ? (
+          <div className="text-base leading-relaxed max-w-none">
             <p className="text-[var(--text-primary)]">{message.content}</p>
-          ) : activeTab === 'answer' ? (
-            <MarkdownRenderer content={displayContent} />
-          ) : activeTab === 'sources' ? (
-            <SourcesPanel
+          </div>
+        ) : responseLayout === 'dossier' ? (
+          <>
+            <DossierLayout
+              content={displayContent}
               citations={displayCitations}
-              onNavigate={(docId) => selectItem(docId)}
-            />
-          ) : (
-            <EvidencePanel
-              message={message}
               confidence={displayConfidence}
-              citations={displayCitations}
+              message={message}
+              onNavigateDocument={(docId) => selectItem(docId)}
             />
-          )}
-        </div>
-
-        {/* Footer: timestamp + inline citation badges (Answer tab only) */}
-        {!isUser && activeTab === 'answer' && (
-          <div className="flex flex-wrap items-center gap-3 mt-3 text-xs text-[var(--text-tertiary)]">
-            <span>{formatTime(message.timestamp)}</span>
-            {displayConfidence != null && <ConfidenceBadge score={displayConfidence} />}
-            {displayCitations && displayCitations.length > 0 && (
-              <div className="flex gap-1 flex-wrap">
-                {displayCitations.map((c, i) => (
-                  <span
-                    key={i}
-                    className="px-1.5 py-0.5 rounded bg-[var(--brand-blue)]/10 text-[var(--brand-blue)] text-[10px] font-medium cursor-default"
-                    title={`${c.documentName}: ${c.excerpt?.slice(0, 100) ?? ''}...`}
-                  >
-                    [{(c.citationIndex ?? i) + 1}]
-                  </span>
-                ))}
+            <div className="flex flex-wrap items-center gap-3 mt-3 text-xs text-[var(--text-tertiary)]">
+              <span>{formatTime(message.timestamp)}</span>
+            </div>
+          </>
+        ) : responseLayout === 'analyst' ? (
+          <>
+            <AnalystLayout
+              content={displayContent}
+              citations={displayCitations}
+              confidence={displayConfidence}
+              message={message}
+              onNavigateDocument={(docId) => selectItem(docId)}
+            />
+            <div className="flex flex-wrap items-center gap-3 mt-3 text-xs text-[var(--text-tertiary)]">
+              <span>{formatTime(message.timestamp)}</span>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Conversation mode — tabs (current default) */}
+            {visibleTabs.length > 1 && (
+              <div className="flex items-center gap-4 mb-3 border-b border-[var(--border-subtle)]">
+                {visibleTabs.map((tab) => {
+                  const Icon = tab.icon
+                  const isActive = activeTab === tab.id
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex items-center gap-1.5 pb-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+                        isActive
+                          ? 'text-[var(--text-primary)] border-[var(--brand-blue)]'
+                          : 'text-[var(--text-tertiary)] border-transparent hover:text-[var(--text-secondary)]'
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      {tab.label}
+                    </button>
+                  )
+                })}
               </div>
             )}
-          </div>
+
+            <div className="text-base leading-relaxed max-w-none">
+              {activeTab === 'answer' ? (
+                <ConversationLayout
+                  content={displayContent}
+                  citations={displayCitations}
+                  confidence={displayConfidence}
+                  message={message}
+                  onNavigateDocument={(docId) => selectItem(docId)}
+                />
+              ) : activeTab === 'sources' ? (
+                <SourcesPanel
+                  citations={displayCitations}
+                  onNavigate={(docId) => selectItem(docId)}
+                />
+              ) : (
+                <EvidencePanel
+                  message={message}
+                  confidence={displayConfidence}
+                  citations={displayCitations}
+                />
+              )}
+            </div>
+
+            {/* Footer: timestamp + confidence + citation badges (Answer tab only) */}
+            {activeTab === 'answer' && (
+              <div className="flex flex-wrap items-center gap-3 mt-3 text-xs text-[var(--text-tertiary)]">
+                <span>{formatTime(message.timestamp)}</span>
+                {displayConfidence != null && <ConfidenceBadge score={displayConfidence} />}
+                {displayCitations && displayCitations.length > 0 && (
+                  <div className="flex gap-1 flex-wrap">
+                    {displayCitations.map((c, i) => (
+                      <span
+                        key={i}
+                        className="px-1.5 py-0.5 rounded bg-[var(--brand-blue)]/10 text-[var(--brand-blue)] text-[10px] font-medium cursor-default"
+                        title={`${c.documentName}: ${c.excerpt?.slice(0, 100) ?? ''}...`}
+                      >
+                        [{(c.citationIndex ?? i) + 1}]
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </>
         )}
 
         {/* Hover actions */}

@@ -66,6 +66,9 @@ export interface ChatState {
   // Incognito mode: no persistence, no audit trail
   incognitoMode: boolean
 
+  // Response layout mode
+  responseLayout: 'dossier' | 'conversation' | 'analyst'
+
   // Actions
   setInputValue: (value: string) => void
   sendMessage: (privilegeMode: boolean) => Promise<void>
@@ -73,6 +76,7 @@ export interface ChatState {
   setModel: (model: string) => void
   setDocumentScope: (docId: string | null) => void
   toggleIncognito: () => void
+  setResponseLayout: (layout: 'dossier' | 'conversation' | 'analyst') => void
   startDocumentChat: (docId: string, docName: string) => Promise<void>
   stopStreaming: () => void
   clearThread: () => void
@@ -162,6 +166,7 @@ export const useChatStore = create<ChatState>()(
       documentScope: null,
       documentScopeName: null,
       incognitoMode: false,
+      responseLayout: 'conversation',
 
       setInputValue: (value) => set({ inputValue: value }),
 
@@ -174,6 +179,8 @@ export const useChatStore = create<ChatState>()(
 
       toggleIncognito: () =>
         set((state) => ({ incognitoMode: !state.incognitoMode })),
+
+      setResponseLayout: (layout) => set({ responseLayout: layout }),
 
       startDocumentChat: async (docId, docName) => {
         // Clear existing thread, scope to this document, and send initial query
@@ -665,6 +672,7 @@ export const useChatStore = create<ChatState>()(
               documentScopeName: state.documentScopeName,
               selectedModel: state.selectedModel,
               sidebarOpen: state.sidebarOpen,
+              responseLayout: state.responseLayout,
             },
     },
     ),
