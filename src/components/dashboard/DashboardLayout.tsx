@@ -30,6 +30,10 @@ import {
   Menu,
   X,
   Wrench,
+  MessageSquare,
+  HardDrive,
+  Bot,
+  Layers,
 } from 'lucide-react'
 import IngestionModal from '@/app/dashboard/components/IngestionModal'
 import { apiFetch } from '@/lib/api'
@@ -225,12 +229,12 @@ interface MobileToolbarProps {
 
 function MobileToolbar({ onLeftOpen, onRightOpen }: MobileToolbarProps) {
   return (
-    <div className="flex md:hidden items-center justify-between px-3 py-2
+    <div className="flex md:hidden items-center justify-between px-3 py-1.5
                     bg-[var(--bg-secondary)] border-b border-[var(--border-subtle)]">
       <button
         onClick={onLeftOpen}
         aria-label="Open vault menu"
-        className="w-10 h-10 flex items-center justify-center rounded-xl
+        className="w-11 h-11 flex items-center justify-center rounded-xl
                    text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]
                    transition-colors"
       >
@@ -238,19 +242,64 @@ function MobileToolbar({ onLeftOpen, onRightOpen }: MobileToolbarProps) {
       </button>
 
       <span className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">
-        Mercury
+        RAGbox
       </span>
 
       <button
         onClick={onRightOpen}
         aria-label="Open tools menu"
-        className="w-10 h-10 flex items-center justify-center rounded-xl
+        className="w-11 h-11 flex items-center justify-center rounded-xl
                    text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]
                    transition-colors"
       >
         <Wrench className="w-5 h-5" />
       </button>
     </div>
+  )
+}
+
+// ============================================================================
+// MOBILE BOTTOM TAB BAR — persistent navigation on mobile
+// ============================================================================
+
+type MobileTab = 'chat' | 'vault' | 'mercury' | 'tools'
+
+const MOBILE_TABS: { id: MobileTab; label: string; icon: typeof MessageSquare }[] = [
+  { id: 'chat', label: 'Chat', icon: MessageSquare },
+  { id: 'vault', label: 'Vault', icon: HardDrive },
+  { id: 'mercury', label: 'Mercury', icon: Bot },
+  { id: 'tools', label: 'Tools', icon: Layers },
+]
+
+function MobileBottomNav({
+  activeTab,
+  onTabChange,
+}: {
+  activeTab: MobileTab
+  onTabChange: (tab: MobileTab) => void
+}) {
+  return (
+    <nav className="flex md:hidden shrink-0 bg-[var(--bg-secondary)] border-t border-[var(--border-default)] pb-[env(safe-area-inset-bottom)]">
+      {MOBILE_TABS.map((tab) => {
+        const Icon = tab.icon
+        const isActive = activeTab === tab.id
+        return (
+          <button
+            key={tab.id}
+            onClick={() => onTabChange(tab.id)}
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 min-h-[52px] transition-colors ${
+              isActive
+                ? 'text-[var(--brand-blue)]'
+                : 'text-[var(--text-tertiary)]'
+            }`}
+            aria-label={tab.label}
+          >
+            <Icon className="w-5 h-5" />
+            <span className="text-[10px] font-medium">{tab.label}</span>
+          </button>
+        )
+      })}
+    </nav>
   )
 }
 
@@ -294,6 +343,7 @@ export function DashboardLayout() {
   // Mobile overlay state
   const [mobileLeftOpen, setMobileLeftOpen] = useState(false)
   const [mobileRightOpen, setMobileRightOpen] = useState(false)
+  const [mobileActiveTab, setMobileActiveTab] = useState<MobileTab>('chat')
 
   // Onboarding wizard state
   const [showOnboarding, setShowOnboarding] = useState(false)
@@ -338,6 +388,31 @@ export function DashboardLayout() {
   useEffect(() => {
     fetchGapSummary()
   }, [fetchGapSummary])
+
+  // Mobile bottom tab handler
+  const handleMobileTabChange = useCallback((tab: MobileTab) => {
+    setMobileActiveTab(tab)
+    setMobileLeftOpen(false)
+    setMobileRightOpen(false)
+
+    switch (tab) {
+      case 'chat':
+        // Already the default view — close overlays
+        break
+      case 'vault':
+        setLeftTab('vault')
+        setMobileLeftOpen(true)
+        break
+      case 'mercury':
+        setRightTab('mercury')
+        setMobileRightOpen(true)
+        break
+      case 'tools':
+        setRightTab('studio')
+        setMobileRightOpen(true)
+        break
+    }
+  }, [])
 
   // Handlers
   const handleLeftTabClick = useCallback((tab: LeftRailTab) => {
@@ -524,8 +599,8 @@ export function DashboardLayout() {
       {/* Mobile toolbar — hamburger + tools buttons (visible < 768px) */}
       {isMobile && (
         <MobileToolbar
-          onLeftOpen={() => setMobileLeftOpen(true)}
-          onRightOpen={() => setMobileRightOpen(true)}
+          onLeftOpen={() => { setMobileActiveTab('vault'); setMobileLeftOpen(true) }}
+          onRightOpen={() => { setMobileActiveTab('tools'); setMobileRightOpen(true) }}
         />
       )}
 
@@ -639,11 +714,18 @@ export function DashboardLayout() {
         side="left"
       >
         {isMobile ? (
-          /* Mobile: show Sidebar navigation (not visible inline) */
-          <Sidebar
-            onNavigate={handleSidebarNavigate}
-            activePanelId={sidebarActivePanel}
-          />
+          /* Mobile: show Sidebar + vault panel content */
+          <div className="h-full flex flex-col bg-[var(--bg-secondary)]">
+            <div className="shrink-0 border-b border-[var(--border-subtle)]">
+              <Sidebar
+                onNavigate={handleSidebarNavigate}
+                activePanelId={sidebarActivePanel}
+              />
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              {renderLeftContent()}
+            </div>
+          </div>
         ) : (
           /* Tablet: Sidebar is visible inline, show vault panel content */
           <div className="h-full bg-[var(--bg-secondary)]">
@@ -697,6 +779,14 @@ export function DashboardLayout() {
 
       {/* Post-checkout wizard — triggered by ?checkout=success */}
       <PostCheckoutWizard />
+
+      {/* Mobile bottom tab navigation */}
+      {isMobile && (
+        <MobileBottomNav
+          activeTab={mobileActiveTab}
+          onTabChange={handleMobileTabChange}
+        />
+      )}
 
     </div>
   )

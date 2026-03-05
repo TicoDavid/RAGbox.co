@@ -159,16 +159,16 @@ export function CenterChat() {
 
         {isEmpty ? (
           /* Empty state: logo, caption, and input centered as one group */
-          <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-8 min-h-0">
+          <div className="flex-1 flex flex-col items-center justify-center px-3 sm:px-8 min-h-0 pb-[env(safe-area-inset-bottom)]">
             <Image
               src="https://storage.googleapis.com/connexusai-assets/RAGb%C3%B6x_ICON.png"
               alt=""
-              className="w-48 sm:w-56 h-auto opacity-20 select-none mb-6"
+              className="w-32 sm:w-48 md:w-56 h-auto opacity-20 select-none mb-4 sm:mb-6"
               width={224}
               height={224}
               draggable={false}
             />
-            <p className="text-sm text-[var(--text-tertiary)] mb-8">
+            <p className="text-xs sm:text-sm text-[var(--text-tertiary)] mb-6 sm:mb-8">
               Ask anything about your documents
             </p>
             <div className="w-full max-w-[800px]">
@@ -192,8 +192,8 @@ export function CenterChat() {
             </div>
 
             {/* Input bar — pinned to bottom when messages exist */}
-            <div className="shrink-0">
-              <div className="max-w-[800px] mx-auto px-4 sm:px-8 py-4">
+            <div className="shrink-0 pb-[env(safe-area-inset-bottom)]">
+              <div className="max-w-[800px] mx-auto px-3 sm:px-8 py-3 sm:py-4">
                 <CenterInputBar />
               </div>
             </div>

@@ -88,6 +88,13 @@
   --vault-expanded-width: 400px;
 }
 
+/* ===== Mobile Overrides ===== */
+@media (max-width: 767px) {
+  :root {
+    --header-height: 48px;
+  }
+}
+
 /* ===== Theme: Midnight Cobalt (Default) ===== */
 [data-theme="cobalt"] {
   --bg-primary: #0A192F;
