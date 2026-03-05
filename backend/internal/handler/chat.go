@@ -171,6 +171,8 @@ type ChatRequest struct {
 	// Safety mode: when false, web-fetched content is accepted as pseudo-chunks
 	SafetyMode *bool  `json:"safetyMode,omitempty"`
 	WebContext string `json:"webContext,omitempty"`
+	// Document scope: when set, retrieval results are filtered to this document only (E24-001)
+	DocumentScope string `json:"documentScope,omitempty"`
 	// BYOLLM fields (optional — absent means use AEGIS/Vertex AI)
 	LLMProvider string `json:"llmProvider,omitempty"`
 	LLMModel    string `json:"llmModel,omitempty"`
@@ -495,6 +497,23 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 					"total_chunks_now", len(retrieval.Chunks),
 				)
 			}
+		}
+
+		// E24-001: Document scope filtering — restrict chunks to a single document
+		if req.DocumentScope != "" && len(retrieval.Chunks) > 0 {
+			filtered := make([]service.RankedChunk, 0, len(retrieval.Chunks))
+			for _, c := range retrieval.Chunks {
+				if c.Document.ID == req.DocumentScope {
+					filtered = append(filtered, c)
+				}
+			}
+			slog.Info("[DEBUG-CHAT] document scope filter",
+				"user_id", userID,
+				"scope_doc_id", req.DocumentScope,
+				"before", len(retrieval.Chunks),
+				"after", len(filtered),
+			)
+			retrieval.Chunks = filtered
 		}
 
 		slog.Info("[DEBUG-CHAT] retrieval complete",

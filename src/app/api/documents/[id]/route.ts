@@ -1,5 +1,7 @@
 import { NextRequest } from 'next/server'
+import { getToken } from 'next-auth/jwt'
 import { proxyToBackend } from '@/lib/backend-proxy'
+import { invalidateUserCache } from '@/lib/cache/queryCache'
 
 export async function GET(
   request: NextRequest,
@@ -14,7 +16,18 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
-  return proxyToBackend(request, { backendPath: `/api/documents/${id}` })
+  const response = await proxyToBackend(request, { backendPath: `/api/documents/${id}` })
+
+  // E25-003: Invalidate query cache — deleted document may change RAG results
+  if (response.status >= 200 && response.status < 400) {
+    const token = await getToken({ req: request })
+    const userId = (token?.id as string) || token?.email || ''
+    if (userId) {
+      invalidateUserCache(userId).catch(() => {})
+    }
+  }
+
+  return response
 }
 
 export async function PATCH(

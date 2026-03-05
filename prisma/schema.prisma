@@ -54,8 +54,9 @@ model User {
   whatsappContacts      WhatsAppContact[]
   whatsappConversations WhatsAppConversation[]
   integrationSettings   IntegrationSettings?
-  mercuryThreads        MercuryThread[]
-  mercuryActions        MercuryAction[]
+  mercuryThreads          MercuryThread[]
+  mercuryActions          MercuryAction[]
+  mercurySessionSummaries MercurySessionSummary[]
   auditEntries          AuditEntry[]
   apiKeys               ApiKey[]
   knowledgeEvents       KnowledgeEvent[]
@@ -800,6 +801,30 @@ model MercuryAction {
   @@index([actionType])
   @@index([createdAt])
   @@map("mercury_actions")
+}
+
+// ============================================
+// Mercury Session Summary (E24-002)
+// LLM-generated summary of a completed session.
+// Last 3 loaded on next session start for cross-session memory.
+// ============================================
+
+model MercurySessionSummary {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  threadId     String?  @map("thread_id")
+  summary      String   @db.Text  // LLM-generated session summary
+  topics       String[] @default([])
+  decisions    String[] @default([])
+  actionItems  String[] @default([]) @map("action_items")
+  messageCount Int      @default(0) @map("message_count")
+  persona      String?  // active persona during session
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("mercury_session_summaries")
 }
 
 // ============================================

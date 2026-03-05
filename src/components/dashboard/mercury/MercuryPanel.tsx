@@ -5,7 +5,7 @@ import { ContextBar } from './ContextBar'
 import { ConversationThread } from './ConversationThread'
 import { InputBar } from './InputBar'
 import { ActionConfirmationOverlay } from './ToolConfirmationDialog'
-import { useMercuryStore } from '@/stores/mercuryStore'
+import { useMercuryStore, saveSessionSummary } from '@/stores/mercuryStore'
 import { usePrivilegeStore } from '@/stores/privilegeStore'
 import { useVaultStore } from '@/stores/vaultStore'
 import type { ChatMessage } from '@/types/ragbox'
@@ -135,9 +135,11 @@ export function MercuryPanel() {
     }
   }, [selectedItemId, vaultDocuments, setDocumentScope])
 
-  // Load unified thread on mount
+  // Load unified thread on mount + E24-002: save session summary on unload
   useEffect(() => {
     loadThread()
+    window.addEventListener('beforeunload', saveSessionSummary)
+    return () => window.removeEventListener('beforeunload', saveSessionSummary)
   }, [loadThread])
 
   // Handle pending tool actions (navigate, toggle_privilege, export_audit, open_document)

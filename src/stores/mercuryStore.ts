@@ -79,6 +79,13 @@ interface MercuryState {
   // Context
   temperaturePreset: TemperaturePreset
 
+  // Document scope: when set, retrieval is filtered to this document (E24-001)
+  documentScope: string | null
+  documentScopeName: string | null
+
+  // Cross-session memory (E24-002)
+  sessionSummaries: Array<{ id: string; summary: string; topics: string[]; createdAt: string }>
+
   // Tool Actions (pending UI-side effects from tool execution)
   pendingAction: { type: string; payload: Record<string, unknown> } | null
 
@@ -109,6 +116,9 @@ interface MercuryState {
   // BYOLLM Actions
   setSelectedLlm: (llm: SelectedLlm) => void
   setMercuryIntelligence: (intel: ActiveIntelligence) => void
+
+  // Document Scope Actions (E24-001)
+  setDocumentScope: (docId: string | null, docName?: string | null) => void
 
   // Neural Shift Actions
   setPersona: (persona: PersonaId) => void
@@ -152,6 +162,35 @@ function persistToThread(
   })
 }
 
+// E24-002: Save session summary via navigator.sendBeacon (works on page close)
+export function saveSessionSummary(): void {
+  const state = useMercuryStore.getState()
+  if (state.sessionQueryCount < 2) return // Don't summarize trivial sessions
+
+  const recentMessages = state.messages.slice(-20) // Last 20 messages for summary
+  if (recentMessages.length === 0) return
+
+  const conversationText = recentMessages
+    .map(m => `${m.role}: ${m.content.slice(0, 300)}`)
+    .join('\n')
+
+  // Build a quick extractive summary (no LLM call on beforeunload — too slow)
+  const summary = `Session with ${state.sessionQueryCount} queries. Topics: ${state.sessionTopics.slice(0, 5).join(', ') || 'general'}. Last query: "${recentMessages[recentMessages.length - 1]?.content.slice(0, 100)}"`
+
+  const payload = JSON.stringify({
+    summary,
+    topics: state.sessionTopics.slice(0, 10),
+    decisions: [],
+    actionItems: [],
+    messageCount: state.messages.length,
+    persona: state.activePersona,
+    threadId: state.threadId,
+  })
+
+  // sendBeacon works even during page unload
+  navigator.sendBeacon('/api/mercury/session', payload)
+}
+
 // Call Gemini Flash to generate a short thread title from the user query
 async function generateThreadTitle(query: string): Promise<string> {
   const res = await fetch('/api/mercury/thread/generate-title', {
@@ -180,6 +219,9 @@ export const useMercuryStore = create<MercuryState>()(
     sessionQueryCount: 0,
     sessionTopics: [],
     temperaturePreset: 'executive-cpo',
+    documentScope: null,
+    documentScopeName: null,
+    sessionSummaries: [],
     pendingAction: null,
     pendingConfirmation: null,
     threadId: null,
@@ -273,7 +315,7 @@ export const useMercuryStore = create<MercuryState>()(
         }
 
         // Build request body with persona + optional BYOLLM routing
-        const { selectedLlm, activePersona } = get()
+        const { selectedLlm, activePersona, documentScope } = get()
         const chatBody: Record<string, unknown> = {
           query: inputValue,
           stream: true,
@@ -282,6 +324,7 @@ export const useMercuryStore = create<MercuryState>()(
           maxTier: 3,
           personaId: activePersona,
           history: messages.map(m => ({ role: m.role, content: m.content })),
+          ...(documentScope ? { documentScope } : {}),
         }
         if (selectedLlm.provider === 'byollm') {
           chatBody.llmProvider = 'byollm'
@@ -610,6 +653,12 @@ export const useMercuryStore = create<MercuryState>()(
 
     setTemperaturePreset: (preset) => set({ temperaturePreset: preset }),
 
+    // E24-001: Document scope for context injection
+    setDocumentScope: (docId, docName) => set({
+      documentScope: docId,
+      documentScopeName: docName ?? null,
+    }),
+
     clearPendingAction: () => set({ pendingAction: null }),
 
     // Ad-Hoc Attachment Actions
@@ -800,6 +849,19 @@ export const useMercuryStore = create<MercuryState>()(
         }
         merged.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
         set({ messages: merged, threadLoaded: true })
+
+        // E24-002: Load recent session summaries for cross-session context
+        try {
+          const summaryRes = await fetch('/api/mercury/session?limit=3')
+          if (summaryRes.ok) {
+            const summaryData = await summaryRes.json()
+            if (summaryData.data?.length > 0) {
+              set({ sessionSummaries: summaryData.data })
+            }
+          }
+        } catch {
+          // Non-critical — continue without session memory
+        }
       } catch (error) {
         logger.warn('[MercuryStore] Failed to load thread:', error)
         set({ threadLoaded: true })
