@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useMemo, useCallback, useEffect } from 'react'
-import { Download, Filter, ArrowUpDown } from 'lucide-react'
+import React, { useState, useMemo, useCallback, useEffect } from 'react'
+import { Download, Filter, ArrowUpDown, ChevronDown, ChevronRight, Image as ImageIcon } from 'lucide-react'
 import { useFeedbackStore } from '@/stores/feedbackStore'
 import type { FeedbackTicket, FeedbackType, FeedbackSeverity, FeedbackModule, FeedbackStatus } from '@/stores/feedbackStore'
 
@@ -79,6 +79,13 @@ export default function AdminFeedbackPage() {
     status: 'All',
   })
   const [showFilters, setShowFilters] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<FeedbackStatus, number> = { New: 0, Reviewed: 0, Filed: 0, Closed: 0 }
+    for (const t of tickets) counts[t.status]++
+    return counts
+  }, [tickets])
 
   useEffect(() => {
     loadTickets()
@@ -113,10 +120,22 @@ export default function AdminFeedbackPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold text-[var(--text-primary)]">Beta Feedback</h1>
-          <p className="text-xs text-[var(--text-tertiary)] mt-1">
-            {tickets.length} ticket{tickets.length !== 1 ? 's' : ''} total
-            {filtered.length !== tickets.length && ` · ${filtered.length} shown`}
-          </p>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-xs text-[var(--text-tertiary)]">
+              {tickets.length} ticket{tickets.length !== 1 ? 's' : ''} total
+              {filtered.length !== tickets.length && ` · ${filtered.length} shown`}
+            </p>
+            {statusCounts.New > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--brand-blue)]/15 text-[var(--brand-blue)]">
+                {statusCounts.New} New
+              </span>
+            )}
+            {statusCounts.Reviewed > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--warning)]/15 text-[var(--warning)]">
+                {statusCounts.Reviewed} Reviewed
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -172,43 +191,98 @@ export default function AdminFeedbackPage() {
                 </td>
               </tr>
             ) : (
-              filtered.map((ticket) => (
-                <tr key={ticket.id} className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)]/50 transition-colors">
-                  <td className="px-4 py-3 text-xs text-[var(--text-tertiary)] whitespace-nowrap">
-                    {new Date(ticket.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{ticket.type}</td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs font-medium ${SEVERITY_COLORS[ticket.severity]}`}>
-                      {ticket.severity}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{ticket.module}</td>
-                  <td className="px-4 py-3 text-xs text-[var(--text-primary)] max-w-[300px] truncate">
-                    {ticket.description}
-                  </td>
-                  <td className="px-4 py-3">
-                    <select
-                      value={ticket.status}
-                      onChange={(e) => updateTicketStatus(ticket.id, e.target.value as FeedbackStatus)}
-                      className={`text-xs font-medium px-2 py-1 rounded-lg border-0 cursor-pointer ${STATUS_COLORS[ticket.status]}`}
+              filtered.map((ticket) => {
+                const isExpanded = expandedId === ticket.id
+                return (
+                  <React.Fragment key={ticket.id}>
+                    <tr
+                      onClick={() => setExpandedId(isExpanded ? null : ticket.id)}
+                      className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)]/50 transition-colors cursor-pointer"
                     >
-                      {STATUS_OPTIONS.map((s) => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="px-4 py-3">
-                    <input
-                      type="text"
-                      value={ticket.cpoNotes}
-                      onChange={(e) => updateTicketNotes(ticket.id, e.target.value)}
-                      placeholder="Add notes..."
-                      className="w-full text-xs bg-transparent border-0 border-b border-transparent hover:border-[var(--border-default)] focus:border-[var(--brand-blue)] text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none py-1 transition-colors"
-                    />
-                  </td>
-                </tr>
-              ))
+                      <td className="px-4 py-3 text-xs text-[var(--text-tertiary)] whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          {isExpanded
+                            ? <ChevronDown className="w-3 h-3 shrink-0" />
+                            : <ChevronRight className="w-3 h-3 shrink-0" />
+                          }
+                          {new Date(ticket.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{ticket.type}</td>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs font-medium ${SEVERITY_COLORS[ticket.severity]}`}>
+                          {ticket.severity}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{ticket.module}</td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-primary)] max-w-[300px] truncate">
+                        {ticket.description}
+                      </td>
+                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                        <select
+                          value={ticket.status}
+                          onChange={(e) => updateTicketStatus(ticket.id, e.target.value as FeedbackStatus)}
+                          className={`text-xs font-medium px-2 py-1 rounded-lg border-0 cursor-pointer ${STATUS_COLORS[ticket.status]}`}
+                        >
+                          {STATUS_OPTIONS.map((s) => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-[var(--text-tertiary)]">
+                        {ticket.cpoNotes ? ticket.cpoNotes.slice(0, 40) + (ticket.cpoNotes.length > 40 ? '...' : '') : '--'}
+                      </td>
+                    </tr>
+                    {isExpanded && (
+                      <tr className="bg-[var(--bg-secondary)]/30">
+                        <td colSpan={7} className="px-6 py-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            {/* Full description */}
+                            <div>
+                              <p className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] font-semibold mb-2">
+                                Full Description
+                              </p>
+                              <p className="text-xs text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap">
+                                {ticket.description}
+                              </p>
+                              {ticket.screenshotUrl && (
+                                <div className="mt-3">
+                                  <p className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] font-semibold mb-2 flex items-center gap-1">
+                                    <ImageIcon className="w-3 h-3" /> Screenshot
+                                  </p>
+                                  <img
+                                    src={ticket.screenshotUrl}
+                                    alt="Feedback screenshot"
+                                    className="max-w-full max-h-[200px] rounded-lg border border-[var(--border-default)]"
+                                  />
+                                </div>
+                              )}
+                              <div className="mt-3 flex items-center gap-4 text-[10px] text-[var(--text-tertiary)]">
+                                <span>User: {ticket.userId}</span>
+                                <span>URL: {ticket.currentUrl}</span>
+                                <span>Session: {ticket.sessionId}</span>
+                              </div>
+                            </div>
+                            {/* Admin response */}
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <p className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] font-semibold mb-2">
+                                Admin Response
+                              </p>
+                              <textarea
+                                value={ticket.cpoNotes}
+                                onChange={(e) => updateTicketNotes(ticket.id, e.target.value)}
+                                placeholder="Write admin response..."
+                                rows={4}
+                                className="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-lg text-xs text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--brand-blue)] resize-y"
+                              />
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                )
+              })
             )}
           </tbody>
         </table>
