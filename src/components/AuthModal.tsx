@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import { KeyRound } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 
 interface AuthModalProps {
@@ -28,19 +27,7 @@ export function AuthModal({ isOpen, onClose, context = 'signin', errorMessage }:
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [devOtp, setDevOtp] = useState(''); // For dev mode display
-  const [betaCode, setBetaCode] = useState('');
-  const [codeError, setCodeError] = useState('');
-  const [isReturningUser, setIsReturningUser] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  // Check if this is a returning user (previously authenticated on this browser)
-  useEffect(() => {
-    try {
-      if (typeof window !== 'undefined' && localStorage.getItem('ragbox_user_verified')) {
-        setIsReturningUser(true);
-      }
-    } catch { /* private browsing */ }
-  }, []);
 
   // Reset state when modal opens/closes
   useEffect(() => {
@@ -52,8 +39,6 @@ export function AuthModal({ isOpen, onClose, context = 'signin', errorMessage }:
         setIsLoading(false);
         setError('');
         setDevOtp('');
-        setBetaCode('');
-        setCodeError('');
       }, 300);
     }
   }, [isOpen]);
@@ -169,44 +154,12 @@ export function AuthModal({ isOpen, onClose, context = 'signin', errorMessage }:
     }
   };
 
-  // 4. Beta code helpers
-  const storeBetaCode = () => {
-    if (typeof window !== 'undefined' && betaCode.trim()) {
-      sessionStorage.setItem('ragbox_beta_code', betaCode.trim().toUpperCase());
-    }
-  };
-
-  const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setBetaCode(e.target.value.toUpperCase());
-    if (codeError) setCodeError('');
-  };
-
-  // 5. Google Sign In
+  // 4. Google Sign In — direct to dashboard, no beta gate
   const handleGoogleSignIn = () => {
-    if (!isReturningUser && !betaCode.trim()) {
-      setCodeError('Please enter your access code');
-      return;
-    }
-    setCodeError('');
-    if (betaCode.trim()) storeBetaCode();
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('ragbox_auth_initiated', '1');
     }
     signIn('google', { callbackUrl: '/dashboard' });
-  };
-
-  // 6. Microsoft Sign In (Azure AD)
-  const handleMicrosoftSignIn = () => {
-    if (!isReturningUser && !betaCode.trim()) {
-      setCodeError('Please enter your access code');
-      return;
-    }
-    setCodeError('');
-    if (betaCode.trim()) storeBetaCode();
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('ragbox_auth_initiated', '1');
-    }
-    signIn('azure-ad', { callbackUrl: '/dashboard' });
   };
 
   return (
@@ -250,41 +203,6 @@ export function AuthModal({ isOpen, onClose, context = 'signin', errorMessage }:
               }
             </p>
           </div>
-
-          {/* Beta Access Code — hidden for returning users */}
-          {step === 'email' && !isReturningUser && (
-            <div className="mb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <KeyRound className="w-4 h-4 text-amber-500" />
-                <span className="text-xs font-semibold text-[#8892B0] uppercase tracking-wide">Enter Your Access Code</span>
-              </div>
-              <input
-                type="text"
-                value={betaCode}
-                onChange={handleCodeChange}
-                placeholder="RBX-LEGAL-XXXXXX"
-                className={`w-full px-4 py-3 rounded-xl bg-white/5 border text-white text-sm font-mono tracking-widest text-center placeholder:text-white/20 focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-all ${
-                  codeError ? 'border-red-400' : 'border-white/10 hover:border-white/20'
-                }`}
-                autoComplete="off"
-                spellCheck={false}
-              />
-              {codeError && (
-                <p className="text-xs text-red-400 mt-1.5 text-center">{codeError}</p>
-              )}
-              <p className="text-[10px] text-[#8892B0] mt-1.5 text-center">
-                Don&apos;t have a code?{' '}
-                <a
-                  href="https://app.ragbox.co"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-amber-500 hover:text-amber-400 underline underline-offset-2 transition-colors"
-                >
-                  Apply at app.ragbox.co
-                </a>
-              </p>
-            </div>
-          )}
 
           {/* Error Display */}
           {error && (
@@ -355,23 +273,14 @@ export function AuthModal({ isOpen, onClose, context = 'signin', errorMessage }:
                   </div>
                 )}
 
-                {/* Social Buttons — outline style */}
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={handleGoogleSignIn}
-                    className="h-10 rounded-lg bg-transparent hover:bg-white/5 border border-white/10 hover:border-white/20 text-[#8892B0] hover:text-white text-xs font-medium transition-colors flex items-center justify-center gap-2"
-                  >
-                     <svg className="w-4 h-4" viewBox="0 0 24 24"><path fill="currentColor" d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .533 5.333.533 12S5.867 24 12.48 24c3.44 0 6.04-1.133 8.16-3.293 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.133H12.48z"/></svg>
-                     Google
-                  </button>
-                  <button
-                    onClick={handleMicrosoftSignIn}
-                    className="h-10 rounded-lg bg-transparent hover:bg-white/5 border border-white/10 hover:border-white/20 text-[#8892B0] hover:text-white text-xs font-medium transition-colors flex items-center justify-center gap-2"
-                  >
-                     <svg className="w-4 h-4" viewBox="0 0 24 24"><path fill="currentColor" d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zM24 11.4H12.6V0H24v11.4z"/></svg>
-                     Microsoft
-                  </button>
-                </div>
+                {/* Google Sign In */}
+                <button
+                  onClick={handleGoogleSignIn}
+                  className="w-full h-10 rounded-lg bg-transparent hover:bg-white/5 border border-white/10 hover:border-white/20 text-[#8892B0] hover:text-white text-xs font-medium transition-colors flex items-center justify-center gap-2"
+                >
+                   <svg className="w-4 h-4" viewBox="0 0 24 24"><path fill="currentColor" d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .533 5.333.533 12S5.867 24 12.48 24c3.44 0 6.04-1.133 8.16-3.293 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.133H12.48z"/></svg>
+                   Continue with Google
+                </button>
               </motion.div>
             )}
 

@@ -389,8 +389,8 @@ export function FileExplorer() {
         {rootFolders.length === 0 && rootDocs.length === 0 && (
           <div className="px-4 py-8 text-center">
             <FileText className="w-10 h-10 mx-auto mb-2 text-[var(--text-tertiary)] opacity-40" />
-            <p className="text-sm text-[var(--text-tertiary)]">No files yet</p>
-            <p className="text-xs text-[var(--text-tertiary)] mt-1">Upload documents to get started</p>
+            <p className="text-sm text-[var(--text-tertiary)]">Upload your first document</p>
+            <p className="text-xs text-[var(--text-tertiary)] mt-1">Drag and drop files or use the upload button to get started.</p>
           </div>
         )}
       </div>

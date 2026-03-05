@@ -688,7 +688,7 @@ export default function IntegrationsSettings() {
       </div>
 
       {/* ================================================================== */}
-      {/* SECTION 1: WhatsApp — Vonage Demo */}
+      {/* SECTION 1: WhatsApp */}
       {/* ================================================================== */}
       <div className="rounded-lg border border-[var(--bg-tertiary)] bg-[var(--bg-primary)] p-4 mb-4">
         <div className="flex items-center justify-between mb-3">

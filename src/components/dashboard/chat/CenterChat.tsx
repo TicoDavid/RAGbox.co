@@ -169,7 +169,7 @@ export function CenterChat() {
               draggable={false}
             />
             <p className="text-xs sm:text-sm text-[var(--text-tertiary)] mb-6 sm:mb-8">
-              Ask anything about your documents
+              Hi, I&apos;m Mercury. Upload a document and ask me anything.
             </p>
             <div className="w-full max-w-[800px]">
               <CenterInputBar />
