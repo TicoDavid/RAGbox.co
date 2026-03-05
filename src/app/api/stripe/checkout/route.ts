@@ -14,19 +14,20 @@ function isStripeConfigured(): boolean {
   return Boolean(process.env.STRIPE_SECRET_KEY)
 }
 
+function getAppUrl(): string {
+  return process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://app.ragbox.co'
+}
+
 function getPrices(): Record<string, string[]> {
-  return {
-    // Canonical tier names (EPIC-016)
+  const prices: Record<string, string[]> = {
     starter: [process.env.STRIPE_PRICE_STARTER!],
     professional: [process.env.STRIPE_PRICE_PROFESSIONAL || process.env.STRIPE_PRICE_MERCURY!],
     enterprise: [process.env.STRIPE_PRICE_ENTERPRISE!],
-    sovereign: [process.env.STRIPE_PRICE_SOVEREIGN!],
-    // Legacy aliases (backward compat for existing checkout links)
-    sovereign_mercury: [
-      process.env.STRIPE_PRICE_SOVEREIGN!,
-      process.env.STRIPE_PRICE_MERCURY!,
-    ],
   }
+  if (process.env.STRIPE_PRICE_SOVEREIGN) {
+    prices.sovereign = [process.env.STRIPE_PRICE_SOVEREIGN]
+  }
+  return prices
 }
 
 export async function POST(req: NextRequest) {
@@ -40,14 +41,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
   }
 
-  const session = await getStripe().checkout.sessions.create({
-    mode: 'subscription',
-    line_items: priceIds.map((price) => ({ price, quantity: 1 })),
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?checkout=success`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/onboarding/plan?checkout=cancel`,
-    metadata: { plan },
-    allow_promotion_codes: true,
-  })
+  const validPrices = priceIds.filter(Boolean)
+  if (validPrices.length === 0) {
+    return NextResponse.json({ error: 'Price not configured for this plan' }, { status: 503 })
+  }
 
-  return NextResponse.json({ url: session.url })
+  try {
+    const appUrl = getAppUrl()
+    const session = await getStripe().checkout.sessions.create({
+      mode: 'subscription',
+      line_items: validPrices.map((price) => ({ price, quantity: 1 })),
+      success_url: `${appUrl}/dashboard?checkout=success`,
+      cancel_url: `${appUrl}/onboarding/plan?checkout=cancel`,
+      metadata: { plan },
+      allow_promotion_codes: true,
+    })
+
+    return NextResponse.json({ url: session.url })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Checkout session creation failed'
+    console.error('[stripe/checkout] Error creating session:', message)
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
 }

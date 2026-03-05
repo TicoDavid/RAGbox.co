@@ -70,17 +70,14 @@ describe('Stripe Checkout', () => {
       expect(createArgs.line_items[0].price).toBe('price_sovereign_test')
     })
 
-    it('POST with plan: "sovereign_mercury" → creates session with 2 line items', async () => {
+    it('POST with plan: "sovereign_mercury" → 400 (legacy alias removed)', async () => {
       const { POST } = require('@/app/api/stripe/checkout/route')
       const req = createMockRequest({ plan: 'sovereign_mercury' })
       const res = await POST(req as Request)
-      const data = await res.json()
 
-      expect(data.url).toBe('https://checkout.stripe.com/test')
-      const createArgs = mockCreate.mock.calls[0][0]
-      expect(createArgs.line_items).toHaveLength(2)
-      expect(createArgs.line_items[0].price).toBe('price_sovereign_test')
-      expect(createArgs.line_items[1].price).toBe('price_mercury_test')
+      expect(res.status).toBe(400)
+      const data = await res.json()
+      expect(data.error).toBe('Invalid plan')
     })
 
     it('POST with plan: "invalid" → 400 {error: "Invalid plan"}', async () => {
@@ -125,13 +122,12 @@ describe('Stripe Checkout', () => {
       expect(items).toHaveLength(1)
     })
 
-    it('sovereign_mercury plan maps to exactly 2 price IDs', async () => {
+    it('sovereign_mercury plan is no longer valid (legacy removed)', async () => {
       const { POST } = require('@/app/api/stripe/checkout/route')
       const req = createMockRequest({ plan: 'sovereign_mercury' })
-      await POST(req as Request)
+      const res = await POST(req as Request)
 
-      const items = mockCreate.mock.calls[0][0].line_items
-      expect(items).toHaveLength(2)
+      expect(res.status).toBe(400)
     })
 
     it('syndicate key does not exist in PRICES (enterprise is manual)', async () => {

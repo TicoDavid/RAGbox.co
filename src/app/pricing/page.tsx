@@ -22,16 +22,16 @@ import { Navbar } from '@/components/Navbar'
 import Footer from '@/components/Footer'
 
 // ============================================================================
-// STRIPE CHECKOUT — wired to POST /api/billing/checkout (Sheldon backend)
+// STRIPE CHECKOUT — wired to POST /api/stripe/checkout
 // ============================================================================
 
 type PlanKey = 'starter' | 'professional' | 'enterprise'
 
 async function handleCheckout(plan: PlanKey) {
-  const res = await fetch('/api/billing/checkout', {
+  const res = await fetch('/api/stripe/checkout', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ plan, interval: 'month' }),
+    body: JSON.stringify({ plan }),
   })
   const { url } = await res.json()
   if (url) window.location.href = url

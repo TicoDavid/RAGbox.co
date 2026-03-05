@@ -188,10 +188,10 @@ export default function BillingSettings() {
 
   const handleUpgrade = async (plan: string) => {
     try {
-      const res = await fetch('/api/billing/checkout', {
+      const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan, interval: data.plan.interval }),
+        body: JSON.stringify({ plan }),
       })
       const json = await res.json()
       if (json.url) window.location.href = json.url
