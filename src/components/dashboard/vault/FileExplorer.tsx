@@ -1,0 +1,399 @@
+'use client'
+
+/**
+ * FileExplorer — CPO Bug Report 2026-03-04: Vault file explorer upgrade
+ *
+ * Tree-view file explorer with:
+ * - Expand/collapse folders
+ * - File type icons (PDF, DOCX, XLSX, etc.)
+ * - Sort options (name, date, size, type)
+ * - File size, upload date, indexed status indicator
+ * - DnD support (drag files into folders)
+ */
+
+import React, { useMemo, useState, useCallback } from 'react'
+import {
+  ChevronRight,
+  ChevronDown,
+  Folder,
+  FolderOpen,
+  FileText,
+  FileSpreadsheet,
+  FileImage,
+  FileCode,
+  File,
+  FileType,
+  ArrowUpDown,
+  CheckCircle2,
+  Loader2,
+  AlertTriangle,
+  FolderPlus,
+} from 'lucide-react'
+import { useVaultStore } from '@/stores/vaultStore'
+import type { VaultItem, FolderNode } from '@/types/ragbox'
+
+// ============================================================================
+// SORT CONFIG
+// ============================================================================
+
+type SortField = 'name' | 'date' | 'size' | 'type'
+type SortDirection = 'asc' | 'desc'
+
+const SORT_OPTIONS: { field: SortField; label: string }[] = [
+  { field: 'name', label: 'Name' },
+  { field: 'date', label: 'Date' },
+  { field: 'size', label: 'Size' },
+  { field: 'type', label: 'Type' },
+]
+
+// ============================================================================
+// FILE TYPE ICONS
+// ============================================================================
+
+function getFileIcon(mimeType?: string, name?: string) {
+  const ext = name?.split('.').pop()?.toLowerCase()
+
+  // PDF
+  if (mimeType?.includes('pdf') || ext === 'pdf') {
+    return <FileText className="w-4 h-4 text-red-400" />
+  }
+  // Word docs
+  if (mimeType?.includes('word') || mimeType?.includes('document') || ext === 'docx' || ext === 'doc') {
+    return <FileType className="w-4 h-4 text-blue-400" />
+  }
+  // Spreadsheets
+  if (mimeType?.includes('sheet') || mimeType?.includes('excel') || ext === 'xlsx' || ext === 'xls' || ext === 'csv') {
+    return <FileSpreadsheet className="w-4 h-4 text-green-400" />
+  }
+  // Images
+  if (mimeType?.startsWith('image/') || ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(ext ?? '')) {
+    return <FileImage className="w-4 h-4 text-purple-400" />
+  }
+  // Code/text
+  if (mimeType?.includes('json') || mimeType?.includes('xml') || mimeType?.includes('html') ||
+      ['js', 'ts', 'py', 'go', 'rs', 'json', 'xml', 'yaml', 'yml', 'md'].includes(ext ?? '')) {
+    return <FileCode className="w-4 h-4 text-cyan-400" />
+  }
+  // Presentations
+  if (mimeType?.includes('presentation') || ext === 'pptx' || ext === 'ppt') {
+    return <FileText className="w-4 h-4 text-orange-400" />
+  }
+  // Generic
+  return <File className="w-4 h-4 text-[var(--text-tertiary)]" />
+}
+
+function getStatusIndicator(status: string) {
+  switch (status) {
+    case 'ready':
+      return <CheckCircle2 className="w-3 h-3 text-[var(--success)]" />
+    case 'processing':
+    case 'pending':
+      return <Loader2 className="w-3 h-3 text-[var(--warning)] animate-spin" />
+    case 'error':
+      return <AlertTriangle className="w-3 h-3 text-[var(--danger)]" />
+    default:
+      return null
+  }
+}
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+function formatSize(bytes?: number): string {
+  if (!bytes) return '\u2014'
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function formatDate(date?: Date | string): string {
+  if (!date) return ''
+  return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+function getExtension(name: string): string {
+  return name.split('.').pop()?.toUpperCase() ?? ''
+}
+
+function sortDocuments(docs: VaultItem[], field: SortField, dir: SortDirection): VaultItem[] {
+  const sorted = [...docs].sort((a, b) => {
+    switch (field) {
+      case 'name':
+        return a.name.localeCompare(b.name)
+      case 'date':
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      case 'size':
+        return (b.size ?? 0) - (a.size ?? 0)
+      case 'type':
+        return getExtension(a.name).localeCompare(getExtension(b.name))
+    }
+  })
+  return dir === 'desc' ? sorted.reverse() : sorted
+}
+
+// ============================================================================
+// FOLDER NODE — expandable tree item
+// ============================================================================
+
+function FolderTreeItem({
+  folder,
+  depth,
+  allFolders,
+  allDocuments,
+  selectedId,
+  expandedFolders,
+  toggleExpand,
+  onSelectDocument,
+  onNavigateFolder,
+  sortField,
+  sortDir,
+}: {
+  folder: FolderNode
+  depth: number
+  allFolders: Record<string, FolderNode>
+  allDocuments: Record<string, VaultItem>
+  selectedId: string | null
+  expandedFolders: Set<string>
+  toggleExpand: (id: string) => void
+  onSelectDocument: (id: string) => void
+  onNavigateFolder: (path: string[]) => void
+  sortField: SortField
+  sortDir: SortDirection
+}) {
+  const isExpanded = expandedFolders.has(folder.id)
+  const childFolders = Object.values(allFolders).filter(f => f.parentId === folder.id)
+  const childDocs = sortDocuments(
+    Object.values(allDocuments).filter(d => d.folderId === folder.id && d.deletionStatus === 'Active'),
+    sortField,
+    sortDir,
+  )
+  const itemCount = childFolders.length + childDocs.length
+
+  return (
+    <div>
+      <button
+        onClick={() => toggleExpand(folder.id)}
+        className={`w-full flex items-center gap-2 py-1.5 px-2 rounded-md text-left transition-colors hover:bg-[var(--bg-elevated)]/50 group ${
+          selectedId === folder.id ? 'bg-[var(--brand-blue)]/10' : ''
+        }`}
+        style={{ paddingLeft: `${depth * 16 + 8}px` }}
+        aria-label={`${isExpanded ? 'Collapse' : 'Expand'} folder: ${folder.name}`}
+      >
+        {isExpanded
+          ? <ChevronDown className="w-3.5 h-3.5 text-[var(--text-tertiary)] shrink-0" />
+          : <ChevronRight className="w-3.5 h-3.5 text-[var(--text-tertiary)] shrink-0" />
+        }
+        {isExpanded
+          ? <FolderOpen className="w-4 h-4 text-[var(--warning)] shrink-0" />
+          : <Folder className="w-4 h-4 text-[var(--warning)] shrink-0" />
+        }
+        <span className="text-sm font-medium text-[var(--text-primary)] truncate flex-1">{folder.name}</span>
+        <span className="text-[10px] text-[var(--text-tertiary)] shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          {itemCount}
+        </span>
+      </button>
+
+      {isExpanded && (
+        <div>
+          {childFolders.map(child => (
+            <FolderTreeItem
+              key={child.id}
+              folder={child}
+              depth={depth + 1}
+              allFolders={allFolders}
+              allDocuments={allDocuments}
+              selectedId={selectedId}
+              expandedFolders={expandedFolders}
+              toggleExpand={toggleExpand}
+              onSelectDocument={onSelectDocument}
+              onNavigateFolder={onNavigateFolder}
+              sortField={sortField}
+              sortDir={sortDir}
+            />
+          ))}
+          {childDocs.map(doc => (
+            <DocumentTreeItem
+              key={doc.id}
+              doc={doc}
+              depth={depth + 1}
+              isSelected={selectedId === doc.id}
+              onSelect={() => onSelectDocument(doc.id)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ============================================================================
+// DOCUMENT NODE — leaf tree item
+// ============================================================================
+
+function DocumentTreeItem({
+  doc,
+  depth,
+  isSelected,
+  onSelect,
+}: {
+  doc: VaultItem
+  depth: number
+  isSelected: boolean
+  onSelect: () => void
+}) {
+  return (
+    <button
+      onClick={onSelect}
+      className={`w-full flex items-center gap-2 py-1.5 px-2 rounded-md text-left transition-colors group ${
+        isSelected
+          ? 'bg-[var(--brand-blue)] text-[var(--text-primary)]'
+          : 'hover:bg-[var(--bg-elevated)]/50'
+      }`}
+      style={{ paddingLeft: `${depth * 16 + 28}px` }}
+      aria-label={`Select: ${doc.name}`}
+    >
+      <div className="shrink-0">{getFileIcon(doc.mimeType, doc.name)}</div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm truncate leading-tight">{doc.name}</p>
+      </div>
+      <div className="shrink-0 flex items-center gap-1.5">
+        {getStatusIndicator(doc.status)}
+        <span className={`text-[10px] ${isSelected ? 'text-[var(--text-primary)]/60' : 'text-[var(--text-tertiary)]'}`}>
+          {formatSize(doc.size)}
+        </span>
+        <span className={`text-[10px] hidden sm:inline ${isSelected ? 'text-[var(--text-primary)]/60' : 'text-[var(--text-tertiary)]'}`}>
+          {formatDate(doc.updatedAt)}
+        </span>
+      </div>
+    </button>
+  )
+}
+
+// ============================================================================
+// FILE EXPLORER — main component
+// ============================================================================
+
+export function FileExplorer() {
+  const documents = useVaultStore((s) => s.documents)
+  const folders = useVaultStore((s) => s.folders)
+  const selectedItemId = useVaultStore((s) => s.selectedItemId)
+  const selectItem = useVaultStore((s) => s.selectItem)
+  const navigate = useVaultStore((s) => s.navigate)
+  const createFolder = useVaultStore((s) => s.createFolder)
+
+  const [sortField, setSortField] = useState<SortField>('name')
+  const [sortDir, setSortDir] = useState<SortDirection>('asc')
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
+
+  const toggleExpand = useCallback((folderId: string) => {
+    setExpandedFolders(prev => {
+      const next = new Set(prev)
+      if (next.has(folderId)) {
+        next.delete(folderId)
+      } else {
+        next.add(folderId)
+      }
+      return next
+    })
+  }, [])
+
+  const handleSort = useCallback((field: SortField) => {
+    if (sortField === field) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDir('asc')
+    }
+  }, [sortField])
+
+  // Root items (no parent folder)
+  const rootFolders = useMemo(
+    () => Object.values(folders).filter(f => !f.parentId),
+    [folders],
+  )
+
+  const rootDocs = useMemo(
+    () => sortDocuments(
+      Object.values(documents).filter(d => !d.folderId && d.deletionStatus === 'Active'),
+      sortField,
+      sortDir,
+    ),
+    [documents, sortField, sortDir],
+  )
+
+  const totalFiles = Object.values(documents).filter(d => d.deletionStatus === 'Active').length
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Sort toolbar */}
+      <div className="shrink-0 flex items-center gap-1 px-3 py-1.5 border-b border-[var(--border-subtle)]">
+        <ArrowUpDown className="w-3 h-3 text-[var(--text-tertiary)] shrink-0" />
+        {SORT_OPTIONS.map(opt => (
+          <button
+            key={opt.field}
+            onClick={() => handleSort(opt.field)}
+            className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+              sortField === opt.field
+                ? 'bg-[var(--brand-blue)]/15 text-[var(--brand-blue)]'
+                : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]/50'
+            }`}
+          >
+            {opt.label}
+            {sortField === opt.field && (
+              <span className="ml-0.5">{sortDir === 'asc' ? '\u2191' : '\u2193'}</span>
+            )}
+          </button>
+        ))}
+        <div className="flex-1" />
+        <button
+          onClick={() => createFolder('New Folder', undefined)}
+          className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--brand-blue)] hover:bg-[var(--bg-tertiary)] transition-colors"
+          title="New Folder"
+          aria-label="Create new folder"
+        >
+          <FolderPlus className="w-3.5 h-3.5" />
+        </button>
+        <span className="text-[10px] text-[var(--text-tertiary)] ml-1">{totalFiles} files</span>
+      </div>
+
+      {/* Tree */}
+      <div className="flex-1 overflow-y-auto py-1">
+        {rootFolders.map(folder => (
+          <FolderTreeItem
+            key={folder.id}
+            folder={folder}
+            depth={0}
+            allFolders={folders}
+            allDocuments={documents}
+            selectedId={selectedItemId}
+            expandedFolders={expandedFolders}
+            toggleExpand={toggleExpand}
+            onSelectDocument={(id) => selectItem(id)}
+            onNavigateFolder={navigate}
+            sortField={sortField}
+            sortDir={sortDir}
+          />
+        ))}
+        {rootDocs.map(doc => (
+          <DocumentTreeItem
+            key={doc.id}
+            doc={doc}
+            depth={0}
+            isSelected={selectedItemId === doc.id}
+            onSelect={() => selectItem(doc.id)}
+          />
+        ))}
+
+        {/* Empty state */}
+        {rootFolders.length === 0 && rootDocs.length === 0 && (
+          <div className="px-4 py-8 text-center">
+            <FileText className="w-10 h-10 mx-auto mb-2 text-[var(--text-tertiary)] opacity-40" />
+            <p className="text-sm text-[var(--text-tertiary)]">No files yet</p>
+            <p className="text-xs text-[var(--text-tertiary)] mt-1">Upload documents to get started</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

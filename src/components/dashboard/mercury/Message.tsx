@@ -33,30 +33,43 @@ function parseStructuredResponse(
     }
   }
 
-  if (!cleaned.startsWith('{')) {
-    return { content: raw, citations: existingCitations, confidence: existingConfidence }
-  }
+  // Helper: try to extract answer from a JSON string
+  const tryExtract = (jsonStr: string): ParsedResponse | null => {
+    try {
+      const json = JSON.parse(jsonStr)
+      const data = json.data ?? json
+      const answer = data.answer
+      if (typeof answer !== 'string') return null
 
-  try {
-    const json = JSON.parse(cleaned)
-    const data = json.data ?? json
-
-    const answer = data.answer
-    if (typeof answer !== 'string') {
-      return { content: raw, citations: existingCitations, confidence: existingConfidence }
+      const jsonCitations = Array.isArray(data.citations) ? data.citations : undefined
+      const citations = existingCitations && existingCitations.length > 0
+        ? existingCitations
+        : jsonCitations
+      const confidence = existingConfidence ?? (typeof data.confidence === 'number' ? data.confidence : undefined)
+      return { content: answer, citations, confidence }
+    } catch {
+      return null
     }
+  }
 
-    const jsonCitations = Array.isArray(data.citations) ? data.citations : undefined
-    const citations = existingCitations && existingCitations.length > 0
-      ? existingCitations
-      : jsonCitations
-
-    const confidence = existingConfidence ?? (typeof data.confidence === 'number' ? data.confidence : undefined)
-
-    return { content: answer, citations, confidence }
-  } catch {
+  // Case 1: Content IS JSON (starts with {)
+  if (cleaned.startsWith('{')) {
+    const result = tryExtract(cleaned)
+    if (result) return result
     return { content: raw, citations: existingCitations, confidence: existingConfidence }
   }
+
+  // BUG-053: Case 2: JSON embedded after preamble text
+  const jsonIdx = cleaned.indexOf('{"answer"')
+  const jsonIdx2 = jsonIdx === -1 ? cleaned.indexOf('{"data"') : jsonIdx
+  const idx = jsonIdx !== -1 ? jsonIdx : jsonIdx2
+  if (idx > 0) {
+    const result = tryExtract(cleaned.slice(idx))
+    if (result) return result
+  }
+
+  // Not JSON — return as-is
+  return { content: raw, citations: existingCitations, confidence: existingConfidence }
 }
 
 /** Extract prose only — used by ConversationThread streaming indicator */

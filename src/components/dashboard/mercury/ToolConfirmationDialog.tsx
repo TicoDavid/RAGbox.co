@@ -95,6 +95,7 @@ function EmailConfirmationCard({
   onDeny: () => void
 }) {
   const [expiresAt] = useState(() => Date.now() + AUTO_CANCEL_SECONDS * 1000)
+  const from = payload.from as string | undefined
   const to = payload.to as string
   const subject = payload.subject as string
   const body = payload.body as string
@@ -129,8 +130,14 @@ function EmailConfirmationCard({
           </div>
         </div>
 
-        {/* Email Preview */}
+        {/* Email Preview — E24-009 */}
         <div className="mb-5 space-y-3 p-4 rounded-lg bg-[var(--bg-primary)]/60 border border-[var(--border-default)]/50">
+          {from && (
+            <div className="flex items-start gap-2">
+              <span className="text-xs font-medium text-[var(--text-tertiary)] w-14 shrink-0 pt-0.5">From</span>
+              <span className="text-sm text-[var(--text-secondary)] break-all">{from}</span>
+            </div>
+          )}
           <div className="flex items-start gap-2">
             <span className="text-xs font-medium text-[var(--text-tertiary)] w-14 shrink-0 pt-0.5">To</span>
             <span className="text-sm text-[var(--text-primary)] break-all">{to}</span>
@@ -209,13 +216,13 @@ function SmsConfirmationCard({
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
         className="w-full max-w-md mx-4 p-6 rounded-2xl border
-                   border-[var(--brand-blue)]/30 bg-[var(--bg-primary)]/95 backdrop-blur-xl
+                   border-cyan-500/30 bg-[var(--bg-primary)]/95 backdrop-blur-xl
                    shadow-[0_0_30px_rgba(6,182,212,0.15)]"
       >
-        {/* Header */}
+        {/* Header — E24-009: cyan accent for SMS */}
         <div className="flex items-center gap-4 mb-4">
-          <div className="p-3 rounded-xl bg-[var(--brand-blue)]/10">
-            <MessageSquare className="w-6 h-6 text-[var(--brand-blue)]" />
+          <div className="p-3 rounded-xl bg-cyan-500/10">
+            <MessageSquare className="w-6 h-6 text-cyan-400" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-[var(--text-primary)]">
@@ -268,8 +275,8 @@ function SmsConfirmationCard({
             <button
               onClick={onConfirm}
               className="px-4 py-2 rounded-lg text-sm font-medium
-                        text-[var(--text-primary)] transition-all flex items-center gap-2
-                        bg-[var(--brand-blue)] hover:bg-[var(--brand-blue)]"
+                        text-black transition-all flex items-center gap-2
+                        bg-cyan-400 hover:bg-cyan-300"
             >
               <Send className="w-4 h-4" />
               Send SMS

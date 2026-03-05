@@ -83,8 +83,8 @@ export async function POST(request: NextRequest) {
       return a.name.localeCompare(b.name)
     })
 
-    // Return only safe fields — strip pricing internals
-    const models = sortedModels.slice(0, 500).map((m: { id: string; name: string; context_length: number }) => ({
+    // BUG-051: Return ALL models — no truncation. Strip pricing internals only.
+    const models = sortedModels.map((m: { id: string; name: string; context_length: number }) => ({
       id: m.id,
       name: m.name,
       context_length: m.context_length,

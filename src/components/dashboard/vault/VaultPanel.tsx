@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useVaultStore } from '@/stores/vaultStore'
 import { useChatStore } from '@/stores/chatStore'
 import { VaultRail } from './VaultRail'
-import { ColumnBrowser } from './ColumnBrowser'
+import { FileExplorer } from './FileExplorer'
 import { StorageFooter } from './StorageFooter'
 import { SovereignCertificate } from './SovereignCertificate'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -369,7 +369,7 @@ export function VaultPanel() {
               </div>
             ) : (
               <div className="flex-1 overflow-hidden">
-                <ColumnBrowser />
+                <FileExplorer />
               </div>
             )}
           </motion.div>

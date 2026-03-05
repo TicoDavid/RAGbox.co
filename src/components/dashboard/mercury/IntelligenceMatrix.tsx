@@ -425,7 +425,7 @@ export function IntelligenceMatrix({ isOpen, onClose, anchorRef }: IntelligenceM
                 {filteredUniverse.length > 0 && (
                   <div className="mt-2">
                     <SectionHeader title="Open Universe" count={filteredUniverse.length} tier="universe" />
-                    {filteredUniverse.slice(0, 500).map((option) => (
+                    {filteredUniverse.slice(0, 100).map((option) => (
                       <IntelligenceOptionItem
                         key={option.id}
                         option={option}
@@ -433,9 +433,9 @@ export function IntelligenceMatrix({ isOpen, onClose, anchorRef }: IntelligenceM
                         onSelect={() => handleSelect(option)}
                       />
                     ))}
-                    {filteredUniverse.length > 500 && (
+                    {filteredUniverse.length > 100 && (
                       <div className="px-3 py-2 text-center text-xs text-[var(--text-tertiary)]">
-                        + {filteredUniverse.length - 500} more models · Refine your search
+                        {filteredUniverse.length - 100} more models available · Type to search
                       </div>
                     )}
                   </div>

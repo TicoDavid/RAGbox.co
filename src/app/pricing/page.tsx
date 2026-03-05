@@ -1,48 +1,44 @@
 // THEME-EXEMPT: Public pricing page, locked to Obsidian Gold palette
 // Pricing canonical source: connexus-ops/docs/POS-BILLING-ARCHITECTURE.md
+// E26-006: Interactive tier comparison with checkout buttons
 'use client'
 
-import React from 'react'
-import { motion } from 'framer-motion'
+import React, { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Check,
+  X,
   Shield,
-  Zap,
   Crown,
   ArrowRight,
-  Building2,
-  Lock,
-  FileText,
-  Users,
-  HardDrive,
   Bot,
   Mic,
   Mail,
   MessageCircle,
   Monitor,
-  Plus,
   Calculator,
 } from 'lucide-react'
 import { Navbar } from '@/components/Navbar'
 import Footer from '@/components/Footer'
 
 // ============================================================================
-// STRIPE PLACEHOLDERS — wire to real price IDs when Stripe products configured
+// STRIPE CHECKOUT — wired to POST /api/billing/checkout (Sheldon backend)
 // ============================================================================
 
-async function handleCheckout(plan: 'starter' | 'professional' | 'enterprise' | 'sovereign') {
-  const res = await fetch('/api/stripe/checkout', {
+type PlanKey = 'sovereign' | 'sovereign_mercury'
+
+async function handleCheckout(plan: PlanKey, annual: boolean) {
+  const res = await fetch('/api/billing/checkout', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ plan }),
+    body: JSON.stringify({ plan, interval: annual ? 'year' : 'month' }),
   })
   const { url } = await res.json()
   if (url) window.location.href = url
 }
 
 function handleEnterprise() {
-  // Enterprise/Sovereign are sales-led, not self-serve
-  window.location.href = 'mailto:david@theconnexus.ai?subject=RAGb%C3%B6x%20Enterprise%20%E2%80%94%20Inquiry'
+  window.location.href = 'mailto:david@theconnexus.ai?subject=RAGb%C3%B6x%20Syndicate%20%E2%80%94%20Inquiry'
 }
 
 // ============================================================================
@@ -63,108 +59,90 @@ function FadeUp({ delay = 0, children }: { delay?: number; children: React.React
 }
 
 // ============================================================================
-// SOVEREIGN CARD — The Anchor
+// BILLING TOGGLE
 // ============================================================================
 
-// 9 features — audited 2026-02-21, all distinct (BUG-029 WONTFIX)
+function BillingToggle({ annual, onToggle }: { annual: boolean; onToggle: () => void }) {
+  return (
+    <div className="flex items-center justify-center gap-4 mb-12">
+      <span className={`text-sm font-medium transition-colors ${!annual ? 'text-white' : 'text-white/30'}`}>
+        Monthly
+      </span>
+      <button
+        onClick={onToggle}
+        className="relative w-14 h-7 rounded-full bg-white/10 border border-white/10 transition-colors hover:border-white/20"
+        aria-label={annual ? 'Switch to monthly billing' : 'Switch to annual billing'}
+      >
+        <motion.div
+          className="absolute top-0.5 w-6 h-6 rounded-full bg-amber-400"
+          animate={{ left: annual ? '30px' : '2px' }}
+          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+        />
+      </button>
+      <span className={`text-sm font-medium transition-colors ${annual ? 'text-white' : 'text-white/30'}`}>
+        Annual
+      </span>
+      <AnimatePresence>
+        {annual && (
+          <motion.span
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full"
+          >
+            Save 20%
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+// ============================================================================
+// PRICE DISPLAY
+// ============================================================================
+
+function PriceDisplay({ monthly, annual, isAnnual }: { monthly: number; annual: number; isAnnual: boolean }) {
+  const price = isAnnual ? annual : monthly
+  return (
+    <div className="mb-1">
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={isAnnual ? 'annual' : 'monthly'}
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 8 }}
+          transition={{ duration: 0.2 }}
+          className="flex items-baseline gap-1"
+        >
+          <span className="text-4xl font-bold text-white tracking-tight">${price}</span>
+          <span className="text-sm text-white/30 font-medium">/ mo</span>
+        </motion.div>
+      </AnimatePresence>
+      {isAnnual && (
+        <p className="text-[11px] text-amber-400/70 mt-1">
+          ${annual * 12}/yr (save ${(monthly - annual) * 12}/yr)
+        </p>
+      )}
+    </div>
+  )
+}
+
+// ============================================================================
+// TIER CARDS
+// ============================================================================
+
 const SOVEREIGN_FEATURES = [
   'Unlimited Vault storage',
   'Sovereign RAG pipeline (Aegis AI)',
-  'Citation-backed answers with source verification',
+  'Citation-backed answers',
   'Silence Protocol (confidence gating)',
-  'Sovereign Studio — reports, decks, evidence timelines',
-  '10 Expert Personas (CEO to Whistleblower)',
-  'Privilege Mode (Attorney-Client segregation)',
-  'Veritas immutable audit trail',
-  'AES-256-GCM encryption at rest',
+  'Sovereign Studio',
+  '10 Expert Personas',
+  'Privilege Mode',
+  'Veritas audit trail',
+  'AES-256-GCM encryption',
 ]
-
-function SovereignCard() {
-  return (
-    <div className="relative rounded-2xl overflow-hidden bg-[var(--bg-secondary)]/80 backdrop-blur-sm border border-amber-500/30 shadow-[0_0_60px_-15px_rgba(245,158,11,0.15)]">
-      {/* Top accent line */}
-      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-500 to-transparent" />
-
-      <div className="p-8 md:p-10">
-        {/* Badge */}
-        <span className="inline-block text-[10px] font-bold uppercase tracking-[0.2em] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full mb-5">
-          The Foundation
-        </span>
-
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-8">
-          {/* Left: Identity */}
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-11 h-11 rounded-xl bg-amber-500/15 flex items-center justify-center">
-                <Shield className="w-5.5 h-5.5 text-amber-400" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-white tracking-tight">Sovereign</h2>
-                <p className="text-sm text-white/30">Digital Insurance for Intellectual Property</p>
-              </div>
-            </div>
-
-            <p className="text-sm text-white/40 leading-relaxed mb-6 max-w-lg">
-              Everything you need to transform unstructured documents into sovereign intelligence.
-              One user. Unlimited power.
-            </p>
-
-            {/* Features grid */}
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2.5">
-              {SOVEREIGN_FEATURES.map((f) => (
-                <li key={f} className="flex items-start gap-2.5 text-sm text-white/55">
-                  <Check className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                  {f}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Right: Price + CTA */}
-          <div className="shrink-0 md:text-right md:min-w-[200px]">
-            <div className="flex items-baseline gap-1.5 md:justify-end mb-1">
-              <span className="text-5xl font-bold text-white tracking-tight">$99</span>
-              <span className="text-sm text-white/30 font-medium">/ mo</span>
-            </div>
-            <p className="text-xs text-white/25 mb-6">Single user. Cancel anytime.</p>
-
-            <button
-              onClick={() => handleCheckout('sovereign')}
-              className="w-full md:w-auto px-8 py-3.5 rounded-xl text-sm font-bold transition-all duration-200
-                         bg-gradient-to-r from-amber-500 to-amber-600 text-black
-                         hover:from-amber-400 hover:to-amber-500
-                         shadow-lg shadow-amber-500/20"
-            >
-              Start Free Trial
-              <ArrowRight className="w-4 h-4 inline ml-2" />
-            </button>
-            <p className="text-[11px] text-white/20 mt-2.5">14 days free. No credit card required.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ============================================================================
-// PLUS CONNECTOR
-// ============================================================================
-
-function PlusConnector() {
-  return (
-    <div className="flex items-center justify-center py-4">
-      <div className="w-px h-8 bg-white/[0.06]" />
-      <div className="mx-4 w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-        <Plus className="w-5 h-5 text-amber-400/60" />
-      </div>
-      <div className="w-px h-8 bg-white/[0.06]" />
-    </div>
-  )
-}
-
-// ============================================================================
-// MERCURY CARD — The Digital Hire
-// ============================================================================
 
 const MERCURY_CHANNELS = [
   { icon: Mic, label: 'Voice' },
@@ -173,173 +151,319 @@ const MERCURY_CHANNELS = [
   { icon: MessageCircle, label: 'SMS' },
 ]
 
-const MERCURY_FEATURES = [
-  'Mercury AI assistant across every channel',
-  'Voice agent — talk to your documents',
-  'Email integration (reads and responds)',
-  'SMS & WhatsApp support',
-  'BYOLLM (bring your own LLM)',
-  'Multi-channel conversation history',
-]
-
-function MercuryCard() {
+function SovereignCard({ isAnnual }: { isAnnual: boolean }) {
   return (
-    <div className="relative rounded-2xl overflow-hidden bg-[var(--bg-secondary)]/80 backdrop-blur-sm border border-white/[0.08] hover:border-amber-500/20 transition-colors">
-      <div className="p-8 md:p-10">
-        {/* Badge */}
-        <span className="inline-block text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--accent-gold)] bg-[var(--accent-gold)]/10 border border-[var(--accent-gold)]/20 px-2.5 py-1 rounded-full mb-5">
+    <div className="relative rounded-2xl overflow-hidden bg-[var(--bg-secondary)]/80 backdrop-blur-sm border border-amber-500/30 shadow-[0_0_60px_-15px_rgba(245,158,11,0.15)] flex flex-col h-full">
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-500 to-transparent" />
+
+      <div className="p-8 flex flex-col flex-1">
+        <span className="inline-block text-[10px] font-bold uppercase tracking-[0.2em] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full mb-4 self-start">
+          Most Popular
+        </span>
+
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center">
+            <Shield className="w-5 h-5 text-amber-400" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-white tracking-tight">Sovereign</h2>
+            <p className="text-xs text-white/30">Digital Insurance for IP</p>
+          </div>
+        </div>
+
+        <PriceDisplay monthly={99} annual={79} isAnnual={isAnnual} />
+        <p className="text-xs text-white/25 mb-5">Single user. Cancel anytime.</p>
+
+        <ul className="space-y-2 flex-1">
+          {SOVEREIGN_FEATURES.map((f) => (
+            <li key={f} className="flex items-start gap-2 text-sm text-white/55">
+              <Check className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              {f}
+            </li>
+          ))}
+        </ul>
+
+        <button
+          onClick={() => handleCheckout('sovereign', isAnnual)}
+          className="w-full mt-6 px-6 py-3.5 rounded-xl text-sm font-bold transition-all duration-200
+                     bg-gradient-to-r from-amber-500 to-amber-600 text-black
+                     hover:from-amber-400 hover:to-amber-500
+                     shadow-lg shadow-amber-500/20"
+        >
+          Start Free Trial
+          <ArrowRight className="w-4 h-4 inline ml-2" />
+        </button>
+        <p className="text-[11px] text-white/20 mt-2 text-center">14 days free. No credit card required.</p>
+      </div>
+    </div>
+  )
+}
+
+function MercuryCard({ isAnnual }: { isAnnual: boolean }) {
+  return (
+    <div className="relative rounded-2xl overflow-hidden bg-[var(--bg-secondary)]/80 backdrop-blur-sm border border-white/[0.08] hover:border-amber-500/20 transition-colors flex flex-col h-full">
+      <div className="p-8 flex flex-col flex-1">
+        <span className="inline-block text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--accent-gold)] bg-[var(--accent-gold)]/10 border border-[var(--accent-gold)]/20 px-2.5 py-1 rounded-full mb-4 self-start">
           The Digital Hire
         </span>
 
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-8">
-          {/* Left: Identity */}
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-11 h-11 rounded-xl bg-[var(--accent-gold)]/15 flex items-center justify-center">
-                <Bot className="w-5.5 h-5.5 text-[var(--accent-gold)]" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-white tracking-tight">Protocol Mercury</h2>
-                <p className="text-sm text-white/30">Add-on to Sovereign</p>
-              </div>
-            </div>
-
-            <p className="text-sm text-white/40 leading-relaxed mb-5 max-w-lg">
-              For $99, you hire an Executive Assistant that listens to every call, reads every email,
-              and works 24/7/365. A real EA costs $60,000/year. Mercury costs $1,200.
-            </p>
-
-            {/* Channel icons */}
-            <div className="flex items-center gap-3 mb-5">
-              {MERCURY_CHANNELS.map((ch) => {
-                const Icon = ch.icon
-                return (
-                  <div
-                    key={ch.label}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-white/40"
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                    <span className="text-xs font-medium">{ch.label}</span>
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* Features */}
-            <ul className="space-y-2.5">
-              {MERCURY_FEATURES.map((f) => (
-                <li key={f} className="flex items-start gap-2.5 text-sm text-white/55">
-                  <Check className="w-4 h-4 text-[var(--accent-gold)] shrink-0 mt-0.5" />
-                  {f}
-                </li>
-              ))}
-            </ul>
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-xl bg-[var(--accent-gold)]/15 flex items-center justify-center">
+            <Bot className="w-5 h-5 text-[var(--accent-gold)]" />
           </div>
-
-          {/* Right: Price + CTA */}
-          <div className="shrink-0 md:text-right md:min-w-[200px]">
-            <div className="flex items-baseline gap-1.5 md:justify-end mb-1">
-              <span className="text-lg text-white/30 font-medium">+</span>
-              <span className="text-5xl font-bold text-white tracking-tight">$99</span>
-              <span className="text-sm text-white/30 font-medium">/ mo</span>
-            </div>
-            <p className="text-xs text-white/25 mb-2">Requires Sovereign plan.</p>
-
-            {/* ROI callout */}
-            <div className="inline-block px-3 py-1.5 rounded-lg bg-amber-500/[0.07] border border-amber-500/15 mb-5">
-              <p className="text-[11px] text-amber-400/70 font-medium">
-                98% cheaper than a human EA
-              </p>
-            </div>
-
-            <div>
-              <button
-                onClick={() => handleCheckout('professional')}
-                className="w-full md:w-auto px-8 py-3.5 rounded-xl text-sm font-bold transition-all duration-200
-                           bg-white/5 text-white border border-white/10
-                           hover:bg-white/10 hover:border-white/20"
-              >
-                Get Sovereign + Mercury
-                <ArrowRight className="w-4 h-4 inline ml-2" />
-              </button>
-              <p className="text-xs text-white/25 mt-2 md:text-right">$198/mo total. 14 days free.</p>
-            </div>
+          <div>
+            <h2 className="text-xl font-bold text-white tracking-tight">Sovereign + Mercury</h2>
+            <p className="text-xs text-white/30">Everything + AI Assistant</p>
           </div>
         </div>
+
+        <PriceDisplay monthly={198} annual={158} isAnnual={isAnnual} />
+        <p className="text-xs text-white/25 mb-2">Sovereign + Mercury bundle.</p>
+
+        <div className="inline-block px-3 py-1.5 rounded-lg bg-amber-500/[0.07] border border-amber-500/15 mb-4 self-start">
+          <p className="text-[11px] text-amber-400/70 font-medium">
+            98% cheaper than a human EA
+          </p>
+        </div>
+
+        {/* Channel icons */}
+        <div className="flex items-center gap-2 mb-4">
+          {MERCURY_CHANNELS.map((ch) => {
+            const Icon = ch.icon
+            return (
+              <div
+                key={ch.label}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.06] text-white/40"
+              >
+                <Icon className="w-3 h-3" />
+                <span className="text-[10px] font-medium">{ch.label}</span>
+              </div>
+            )
+          })}
+        </div>
+
+        <ul className="space-y-2 flex-1">
+          <li className="flex items-start gap-2 text-sm text-white/55">
+            <Check className="w-4 h-4 text-[var(--accent-gold)] shrink-0 mt-0.5" />
+            Everything in Sovereign
+          </li>
+          <li className="flex items-start gap-2 text-sm text-white/55">
+            <Check className="w-4 h-4 text-[var(--accent-gold)] shrink-0 mt-0.5" />
+            Mercury AI across every channel
+          </li>
+          <li className="flex items-start gap-2 text-sm text-white/55">
+            <Check className="w-4 h-4 text-[var(--accent-gold)] shrink-0 mt-0.5" />
+            Voice agent — talk to your docs
+          </li>
+          <li className="flex items-start gap-2 text-sm text-white/55">
+            <Check className="w-4 h-4 text-[var(--accent-gold)] shrink-0 mt-0.5" />
+            Email & SMS integration
+          </li>
+          <li className="flex items-start gap-2 text-sm text-white/55">
+            <Check className="w-4 h-4 text-[var(--accent-gold)] shrink-0 mt-0.5" />
+            BYOLLM (bring your own LLM)
+          </li>
+          <li className="flex items-start gap-2 text-sm text-white/55">
+            <Check className="w-4 h-4 text-[var(--accent-gold)] shrink-0 mt-0.5" />
+            Multi-channel conversation history
+          </li>
+        </ul>
+
+        <button
+          onClick={() => handleCheckout('sovereign_mercury', isAnnual)}
+          className="w-full mt-6 px-6 py-3.5 rounded-xl text-sm font-bold transition-all duration-200
+                     bg-white/5 text-white border border-white/10
+                     hover:bg-white/10 hover:border-white/20"
+        >
+          Get Sovereign + Mercury
+          <ArrowRight className="w-4 h-4 inline ml-2" />
+        </button>
+        <p className="text-[11px] text-white/20 mt-2 text-center">14 days free. Proration on upgrade.</p>
+      </div>
+    </div>
+  )
+}
+
+function EnterpriseCard() {
+  return (
+    <div className="relative rounded-2xl overflow-hidden bg-[var(--bg-secondary)]/60 backdrop-blur-sm border border-white/[0.06] flex flex-col h-full">
+      <div className="p-8 flex flex-col flex-1">
+        <span className="inline-block text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 bg-white/5 border border-white/10 px-2.5 py-1 rounded-full mb-4 self-start">
+          Syndicate
+        </span>
+
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
+            <Crown className="w-5 h-5 text-white/40" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-white tracking-tight">Enterprise</h2>
+            <p className="text-xs text-white/30">Full Data Sovereignty</p>
+          </div>
+        </div>
+
+        <div className="mb-1">
+          <p className="text-[10px] text-white/25 uppercase tracking-wider font-semibold mb-1">Starting at</p>
+          <div className="flex items-baseline gap-1">
+            <span className="text-4xl font-bold text-white tracking-tight">$25K</span>
+            <span className="text-sm text-white/30 font-medium">/ year</span>
+          </div>
+        </div>
+        <p className="text-xs text-white/25 mb-5">Annual contract. Prepaid.</p>
+
+        <ul className="space-y-2 flex-1">
+          <li className="flex items-start gap-2 text-sm text-white/50">
+            <Check className="w-4 h-4 text-white/25 shrink-0 mt-0.5" />
+            Everything in Sovereign + Mercury
+          </li>
+          <li className="flex items-start gap-2 text-sm text-white/50">
+            <Check className="w-4 h-4 text-white/25 shrink-0 mt-0.5" />
+            Dedicated Cloud Run instance
+          </li>
+          <li className="flex items-start gap-2 text-sm text-white/50">
+            <Check className="w-4 h-4 text-white/25 shrink-0 mt-0.5" />
+            CMEK encryption (your keys)
+          </li>
+          <li className="flex items-start gap-2 text-sm text-white/50">
+            <Check className="w-4 h-4 text-white/25 shrink-0 mt-0.5" />
+            Custom SSO / SAML (Okta)
+          </li>
+          <li className="flex items-start gap-2 text-sm text-white/50">
+            <Check className="w-4 h-4 text-white/25 shrink-0 mt-0.5" />
+            VPC peering & private endpoints
+          </li>
+          <li className="flex items-start gap-2 text-sm text-white/50">
+            <Check className="w-4 h-4 text-white/25 shrink-0 mt-0.5" />
+            99.9% SLA + dedicated success manager
+          </li>
+        </ul>
+
+        <button
+          onClick={handleEnterprise}
+          className="w-full mt-6 px-6 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200
+                     bg-white/[0.04] text-white/70 border border-white/[0.08]
+                     hover:bg-white/[0.08] hover:text-white hover:border-white/15"
+        >
+          Talk to Sales
+          <ArrowRight className="w-4 h-4 inline ml-2" />
+        </button>
       </div>
     </div>
   )
 }
 
 // ============================================================================
-// ENTERPRISE CARD — Full Data Sovereignty
+// FEATURE COMPARISON TABLE
 // ============================================================================
 
-const ENTERPRISE_FEATURES = [
-  'Dedicated Cloud Run instance',
-  'CMEK encryption (your keys)',
-  'Custom SSO / SAML (Okta)',
-  'VPC peering & private endpoints',
-  'Data residency (Frankfurt / NY / London)',
-  'SLA with 99.9% uptime guarantee',
-  'Dedicated success manager',
-  'White-glove onboarding',
+type FeatureValue = boolean | string
+
+interface ComparisonRow {
+  feature: string
+  sovereign: FeatureValue
+  mercury: FeatureValue
+  enterprise: FeatureValue
+}
+
+const COMPARISON_SECTIONS: { title: string; rows: ComparisonRow[] }[] = [
+  {
+    title: 'Core Platform',
+    rows: [
+      { feature: 'Vault document storage', sovereign: 'Unlimited', mercury: 'Unlimited', enterprise: 'Unlimited' },
+      { feature: 'Aegis RAG pipeline', sovereign: true, mercury: true, enterprise: true },
+      { feature: 'Citation-backed answers', sovereign: true, mercury: true, enterprise: true },
+      { feature: 'Silence Protocol', sovereign: true, mercury: true, enterprise: true },
+      { feature: 'Sovereign Studio', sovereign: true, mercury: true, enterprise: true },
+      { feature: 'Expert Personas', sovereign: '10', mercury: '10', enterprise: 'Custom' },
+      { feature: 'Privilege Mode', sovereign: true, mercury: true, enterprise: true },
+      { feature: 'Veritas audit trail', sovereign: true, mercury: true, enterprise: true },
+    ],
+  },
+  {
+    title: 'Mercury AI',
+    rows: [
+      { feature: 'Dashboard chat', sovereign: true, mercury: true, enterprise: true },
+      { feature: 'Voice agent', sovereign: false, mercury: true, enterprise: true },
+      { feature: 'Email integration', sovereign: false, mercury: true, enterprise: true },
+      { feature: 'SMS & WhatsApp', sovereign: false, mercury: true, enterprise: true },
+      { feature: 'BYOLLM', sovereign: false, mercury: true, enterprise: true },
+      { feature: 'Multi-channel history', sovereign: false, mercury: true, enterprise: true },
+    ],
+  },
+  {
+    title: 'Security & Compliance',
+    rows: [
+      { feature: 'AES-256-GCM encryption', sovereign: true, mercury: true, enterprise: true },
+      { feature: 'TLS 1.3 in transit', sovereign: true, mercury: true, enterprise: true },
+      { feature: 'CMEK (your keys)', sovereign: false, mercury: false, enterprise: true },
+      { feature: 'SSO / SAML', sovereign: false, mercury: false, enterprise: true },
+      { feature: 'VPC peering', sovereign: false, mercury: false, enterprise: true },
+      { feature: 'Data residency', sovereign: false, mercury: false, enterprise: true },
+    ],
+  },
+  {
+    title: 'Support',
+    rows: [
+      { feature: 'Community support', sovereign: true, mercury: true, enterprise: true },
+      { feature: 'Priority support', sovereign: false, mercury: true, enterprise: true },
+      { feature: 'Dedicated success manager', sovereign: false, mercury: false, enterprise: true },
+      { feature: 'SLA guarantee', sovereign: false, mercury: false, enterprise: '99.9%' },
+      { feature: 'White-glove onboarding', sovereign: false, mercury: false, enterprise: true },
+    ],
+  },
 ]
 
-function EnterpriseCard() {
+function CellValue({ value }: { value: FeatureValue }) {
+  if (typeof value === 'string') {
+    return <span className="text-sm text-white/70 font-medium">{value}</span>
+  }
+  if (value) {
+    return <Check className="w-4 h-4 text-amber-400 mx-auto" />
+  }
+  return <X className="w-4 h-4 text-white/15 mx-auto" />
+}
+
+function ComparisonTable() {
   return (
-    <div className="relative rounded-2xl overflow-hidden bg-[var(--bg-secondary)]/60 backdrop-blur-sm border border-white/[0.06]">
-      <div className="p-8 md:p-10">
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-8">
-          {/* Left */}
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center">
-                <Crown className="w-5.5 h-5.5 text-white/40" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-white tracking-tight">Enterprise</h2>
-                <p className="text-sm text-white/30">Full Data Sovereignty</p>
-              </div>
-            </div>
-
-            <p className="text-sm text-white/40 leading-relaxed mb-6 max-w-lg">
-              For firms that require full data sovereignty, dedicated infrastructure,
-              and compliance-grade SLAs. We do not sell seats — we sell governance.
-            </p>
-
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2.5">
-              {ENTERPRISE_FEATURES.map((f) => (
-                <li key={f} className="flex items-start gap-2.5 text-sm text-white/50">
-                  <Check className="w-4 h-4 text-white/25 shrink-0 mt-0.5" />
-                  {f}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Right */}
-          <div className="shrink-0 md:text-right md:min-w-[200px]">
-            <p className="text-sm text-white/25 uppercase tracking-wider font-semibold mb-1">Starting at</p>
-            <div className="flex items-baseline gap-1.5 md:justify-end mb-1">
-              <span className="text-4xl font-bold text-white tracking-tight">$25K</span>
-              <span className="text-sm text-white/30 font-medium">/ year</span>
-            </div>
-            <p className="text-xs text-white/25 mb-6">Annual contract. Prepaid.</p>
-
-            <button
-              onClick={handleEnterprise}
-              className="w-full md:w-auto px-8 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200
-                         bg-white/[0.04] text-white/70 border border-white/[0.08]
-                         hover:bg-white/[0.08] hover:text-white hover:border-white/15"
-            >
-              Talk to Sales
-              <ArrowRight className="w-4 h-4 inline ml-2" />
-            </button>
-          </div>
-        </div>
+    <FadeUp>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse min-w-[640px]">
+          <thead>
+            <tr className="border-b border-white/[0.06]">
+              <th className="text-left py-4 pr-4 text-sm font-semibold text-white/40 w-[40%]">Features</th>
+              <th className="text-center py-4 px-3 text-sm font-semibold text-amber-400 w-[20%]">Sovereign</th>
+              <th className="text-center py-4 px-3 text-sm font-semibold text-[var(--accent-gold)] w-[20%]">+ Mercury</th>
+              <th className="text-center py-4 px-3 text-sm font-semibold text-white/40 w-[20%]">Enterprise</th>
+            </tr>
+          </thead>
+          <tbody>
+            {COMPARISON_SECTIONS.map((section) => (
+              <React.Fragment key={section.title}>
+                <tr>
+                  <td
+                    colSpan={4}
+                    className="pt-6 pb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-white/20"
+                  >
+                    {section.title}
+                  </td>
+                </tr>
+                {section.rows.map((row) => (
+                  <tr
+                    key={row.feature}
+                    className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors"
+                  >
+                    <td className="py-3 pr-4 text-sm text-white/50">{row.feature}</td>
+                    <td className="py-3 px-3 text-center"><CellValue value={row.sovereign} /></td>
+                    <td className="py-3 px-3 text-center"><CellValue value={row.mercury} /></td>
+                    <td className="py-3 px-3 text-center"><CellValue value={row.enterprise} /></td>
+                  </tr>
+                ))}
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
       </div>
-    </div>
+    </FadeUp>
   )
 }
 
@@ -357,22 +481,9 @@ function RoiSection() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <RoiStat
-            label="Senior Partner Rate"
-            value="$600 – $1,200"
-            sub="per hour"
-          />
-          <RoiStat
-            label="RAGböx Cost"
-            value="$198"
-            sub="per month (Sovereign + Mercury)"
-            highlight
-          />
-          <RoiStat
-            label="Break-Even"
-            value="20 minutes"
-            sub="of saved work per month"
-          />
+          <RoiStat label="Senior Partner Rate" value="$600 - $1,200" sub="per hour" />
+          <RoiStat label="RAGbox Cost" value="$198" sub="per month (Sovereign + Mercury)" highlight />
+          <RoiStat label="Break-Even" value="20 minutes" sub="of saved work per month" />
         </div>
 
         <p className="text-sm text-white/30 leading-relaxed max-w-2xl">
@@ -401,7 +512,7 @@ function RoiStat({ label, value, sub, highlight }: { label: string; value: strin
 const FAQS = [
   {
     q: 'What happens to my data?',
-    a: 'RAGböx operates on a zero-retention model. Your documents are encrypted at rest (AES-256) and in transit (TLS 1.3). We never train on your data. Enterprise adds CMEK so only your keys can decrypt.',
+    a: 'RAGbox operates on a zero-retention model. Your documents are encrypted at rest (AES-256) and in transit (TLS 1.3). We never train on your data. Enterprise adds CMEK so only your keys can decrypt.',
   },
   {
     q: 'Can I add Mercury later?',
@@ -443,12 +554,14 @@ function FaqSection() {
 // ============================================================================
 
 export default function PricingPage() {
+  const [isAnnual, setIsAnnual] = useState(false)
+
   return (
     <main className="min-h-screen bg-[var(--bg-primary)]">
       <Navbar />
 
       {/* Hero */}
-      <section className="pt-36 pb-16 px-6">
+      <section className="pt-36 pb-10 px-6">
         <div className="max-w-4xl mx-auto text-center">
           <FadeUp>
             <span className="inline-block text-[10px] font-bold uppercase tracking-[0.25em] text-amber-400/60 mb-4">
@@ -468,27 +581,22 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Sovereign Card */}
-      <section className="pb-2 px-6">
-        <div className="max-w-4xl mx-auto">
-          <FadeUp delay={0.1}>
-            <SovereignCard />
-          </FadeUp>
-        </div>
-      </section>
-
-      {/* Plus Connector */}
+      {/* Billing toggle */}
       <section className="px-6">
-        <div className="max-w-4xl mx-auto">
-          <PlusConnector />
-        </div>
+        <BillingToggle annual={isAnnual} onToggle={() => setIsAnnual((v) => !v)} />
       </section>
 
-      {/* Mercury Card */}
-      <section className="pt-2 pb-16 px-6">
-        <div className="max-w-4xl mx-auto">
+      {/* 3-Column Tier Cards */}
+      <section className="pb-20 px-6">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+          <FadeUp delay={0.05}>
+            <SovereignCard isAnnual={isAnnual} />
+          </FadeUp>
+          <FadeUp delay={0.1}>
+            <MercuryCard isAnnual={isAnnual} />
+          </FadeUp>
           <FadeUp delay={0.15}>
-            <MercuryCard />
+            <EnterpriseCard />
           </FadeUp>
         </div>
       </section>
@@ -500,16 +608,18 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Enterprise */}
+      {/* Feature Comparison Table */}
       <section className="pb-20 px-6">
         <div className="max-w-4xl mx-auto">
           <FadeUp>
-            <div className="text-center mb-8">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/20 mb-2">Enterprise</p>
-              <div className="w-12 h-px bg-white/[0.06] mx-auto" />
-            </div>
-            <EnterpriseCard />
+            <h2 className="text-2xl font-bold text-white text-center mb-2 tracking-tight">
+              Compare Plans
+            </h2>
+            <p className="text-sm text-white/30 text-center mb-10">
+              Every plan includes the core Sovereign platform. Mercury adds multi-channel AI.
+            </p>
           </FadeUp>
+          <ComparisonTable />
         </div>
       </section>
 

@@ -7,6 +7,7 @@ import { InputBar } from './InputBar'
 import { ActionConfirmationOverlay } from './ToolConfirmationDialog'
 import { useMercuryStore } from '@/stores/mercuryStore'
 import { usePrivilegeStore } from '@/stores/privilegeStore'
+import { useVaultStore } from '@/stores/vaultStore'
 import type { ChatMessage } from '@/types/ragbox'
 
 // ============================================================================
@@ -120,6 +121,20 @@ export function MercuryPanel() {
 
   const isWhistleblowerMode = activePersona === 'whistleblower'
 
+  // E24-001: Auto-sync vault selection → Mercury document scope
+  const selectedItemId = useVaultStore((s) => s.selectedItemId)
+  const vaultDocuments = useVaultStore((s) => s.documents)
+  const setDocumentScope = useMercuryStore((s) => s.setDocumentScope)
+
+  useEffect(() => {
+    if (selectedItemId) {
+      const doc = vaultDocuments[selectedItemId]
+      setDocumentScope(selectedItemId, doc?.name ?? null)
+    } else {
+      setDocumentScope(null, null)
+    }
+  }, [selectedItemId, vaultDocuments, setDocumentScope])
+
   // Load unified thread on mount
   useEffect(() => {
     loadThread()
@@ -180,6 +195,36 @@ export function MercuryPanel() {
 
     window.addEventListener('vault:documents-uploaded', handler)
     return () => window.removeEventListener('vault:documents-uploaded', handler)
+  }, [])
+
+  // E24-012: Listen for proactive indexing completion — Mercury announces when it's ready
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as {
+        filename: string
+        pages?: number
+        documentId?: string
+      }
+      if (!detail?.filename) return
+
+      const pageInfo = detail.pages ? ` It has ${detail.pages} pages.` : ''
+      const content = `I've indexed **${detail.filename}**.${pageInfo} Want me to summarize it, extract key dates, or check for risks?`
+
+      const notification: ChatMessage = {
+        id: `proactive-${Date.now()}`,
+        role: 'assistant',
+        content,
+        timestamp: new Date(),
+        channel: 'dashboard',
+        metadata: detail.documentId ? { documentId: detail.documentId } : undefined,
+      }
+      useMercuryStore.setState((state) => ({
+        messages: [...state.messages, notification],
+      }))
+    }
+
+    window.addEventListener('mercury:proactive', handler)
+    return () => window.removeEventListener('mercury:proactive', handler)
   }, [])
 
   // Sync voice transcript to Mercury chat history
