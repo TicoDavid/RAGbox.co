@@ -89,21 +89,6 @@ export default function AdminFeedbackPage() {
     return counts
   }, [tickets])
 
-  useEffect(() => {
-    if (isAdmin) loadTickets()
-  }, [loadTickets, isAdmin])
-
-  if (!isAdmin) {
-    return (
-      <div className="h-full flex items-center justify-center bg-[var(--bg-primary)]">
-        <div className="text-center">
-          <ShieldAlert className="w-10 h-10 text-[var(--danger)] mx-auto mb-3 opacity-60" />
-          <p className="text-sm text-[var(--text-secondary)]">Admin access required</p>
-        </div>
-      </div>
-    )
-  }
-
   const handleSort = useCallback((key: SortKey) => {
     setSortDir((prev) => (sortKey === key ? (prev === 'asc' ? 'desc' : 'asc') : 'desc'))
     setSortKey(key)
@@ -126,6 +111,21 @@ export default function AdminFeedbackPage() {
 
     return result
   }, [tickets, filters, sortKey, sortDir])
+
+  useEffect(() => {
+    if (isAdmin) loadTickets()
+  }, [loadTickets, isAdmin])
+
+  if (!isAdmin) {
+    return (
+      <div className="h-full flex items-center justify-center bg-[var(--bg-primary)]">
+        <div className="text-center">
+          <ShieldAlert className="w-10 h-10 text-[var(--danger)] mx-auto mb-3 opacity-60" />
+          <p className="text-sm text-[var(--text-secondary)]">Admin access required</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="h-full overflow-y-auto bg-[var(--bg-primary)] p-6">
