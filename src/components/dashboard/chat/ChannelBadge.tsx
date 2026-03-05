@@ -9,6 +9,8 @@ const CHANNEL_CONFIG: Record<MercuryChannel, { emoji: string; label: string; col
   email:     { emoji: '\uD83D\uDCE7', label: 'Email',    color: 'bg-[var(--warning)]/15 text-[var(--warning)]' },
   sms:       { emoji: '\uD83D\uDCAC', label: 'SMS',      color: 'bg-cyan-500/15 text-cyan-400' },
   roam:      { emoji: '\uD83D\uDFE0', label: 'ROAM',     color: 'bg-orange-500/15 text-orange-400' },
+  slack:     { emoji: '#',            label: 'Slack',    color: 'bg-indigo-500/15 text-indigo-400' },
+  phone:     { emoji: '\uD83D\uDCDE', label: 'Phone',   color: 'bg-red-500/15 text-red-400' },
 }
 
 interface ChannelBadgeProps {

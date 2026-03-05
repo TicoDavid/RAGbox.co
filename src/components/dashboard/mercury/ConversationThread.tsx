@@ -18,6 +18,8 @@ const CHANNEL_FILTERS: { value: MercuryChannel | 'all'; label: string; color: st
   { value: 'roam', label: 'ROAM', color: 'text-[var(--warning)] bg-[var(--warning)]/10' },
   { value: 'email', label: 'Email', color: 'text-[var(--warning)] bg-[var(--warning)]/10' },
   { value: 'sms', label: 'SMS', color: 'text-cyan-400 bg-cyan-500/10' },
+  { value: 'slack', label: 'Slack', color: 'text-indigo-400 bg-indigo-500/10' },
+  { value: 'phone', label: 'Phone', color: 'text-red-400 bg-red-500/10' },
 ]
 
 export function ConversationThread() {
