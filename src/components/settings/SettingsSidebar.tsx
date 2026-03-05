@@ -1,6 +1,6 @@
 'use client'
 
-import { User, Shield, HardDrive, Download, MessageCircle, Bot, Brain } from 'lucide-react'
+import { User, Shield, HardDrive, Download, MessageCircle, Bot, Brain, CreditCard } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: '/dashboard/settings/vault', label: 'Vault', icon: HardDrive },
   { href: '/dashboard/settings/mercury', label: 'Mercury', icon: Bot },
   { href: '/dashboard/settings/personas', label: 'Personas', icon: Brain },
+  { href: '/dashboard/settings/billing', label: 'Billing', icon: CreditCard },
   { href: '/dashboard/settings/integrations', label: 'Integrations', icon: MessageCircle },
   { href: '/dashboard/settings/export', label: 'Export', icon: Download },
 ]
