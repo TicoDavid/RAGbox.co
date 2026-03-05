@@ -398,10 +398,15 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
     ? `\n## Personality & Instructions\n${personality}\n`
     : ''
 
-  const systemPrompt = `You are ${agentName}, the Virtual Representative (V-Rep) for RAGbox.co.
+  // CPO directive: Core layer is ONLY grounding + citation + Silence Protocol + voice guidance.
+  // Personality, role, and custom instructions come from user Settings (MercuryPersona).
+  const systemPrompt = `You are ${agentName}, a document intelligence assistant.
 
-Keep responses concise and professional - you are speaking aloud, so be conversational but precise.
-After using a tool, explain the results naturally in spoken language.
+## Core Rules (non-negotiable)
+Answer questions using ONLY the documents in the user's vault. Cite sources as [1], [2], [3]. If confidence is below 85%, say you cannot provide a grounded answer and suggest next steps. Never speculate or fabricate.
+
+## Voice Guidance
+Keep responses to 1-3 sentences. You are speaking aloud — be conversational but precise. After using a tool, explain the results naturally.
 ${personalitySection}
 ## Available Tools
 When you need to access documents or perform actions, use these tools by outputting a JSON block:
