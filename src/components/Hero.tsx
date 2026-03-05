@@ -1,12 +1,14 @@
 // THEME-EXEMPT: Public landing page, locked to Cobalt palette
 "use client";
 import React, { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface HeroProps {
   onOpenAuth: () => void;
 }
 
 export default function Hero({ onOpenAuth }: HeroProps) {
+  const router = useRouter();
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -188,7 +190,7 @@ export default function Hero({ onOpenAuth }: HeroProps) {
         <div className="flex flex-col items-center justify-center gap-2 mt-6">
           {/* Primary Button - Electric Blue Gradient with Glow */}
           <button
-            onClick={onOpenAuth}
+            onClick={() => router.push('/onboarding/plan')}
             className="h-12 sm:h-14 px-6 sm:px-8 rounded-full bg-gradient-to-b from-[#4040FF] to-[#0000FF] hover:from-[#5050FF] hover:to-[#0000DD] text-white font-bold tracking-wide shadow-[0_0_30px_rgba(0,0,255,0.5),inset_0_1px_0_rgba(255,255,255,0.2)] hover:shadow-[0_0_50px_rgba(0,0,255,0.7),0_4px_20px_rgba(0,0,255,0.4)] transition-all duration-300 w-full sm:w-auto text-sm sm:text-base hover:-translate-y-0.5"
           >
             Start Free

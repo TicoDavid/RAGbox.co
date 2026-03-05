@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     mode: 'subscription',
     line_items: priceIds.map((price) => ({ price, quantity: 1 })),
     success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?checkout=success`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?checkout=cancel`,
+    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/onboarding/plan?checkout=cancel`,
     metadata: { plan },
     allow_promotion_codes: true,
   })

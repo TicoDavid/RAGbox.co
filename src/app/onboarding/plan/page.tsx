@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState } from 'react'
-import { useSession } from 'next-auth/react'
-import { redirect } from 'next/navigation'
+import { useSession, signIn } from 'next-auth/react'
 import { motion } from 'framer-motion'
+import { toast } from 'sonner'
 import {
   Check,
   Crown,
@@ -119,17 +119,15 @@ export default function PlanGatePage() {
   const [loading, setLoading] = useState<string | null>(null)
   const [promoCode, setPromoCode] = useState('')
 
-  if (status === 'loading') {
-    return (
-      <div className="flex items-center justify-center h-screen bg-[#020408]">
-        <Loader2 className="w-6 h-6 animate-spin text-white/30" />
-      </div>
-    )
-  }
-
-  if (status === 'unauthenticated') redirect('/')
-
   const handleCheckout = async (plan: string) => {
+    // If not authenticated, trigger Google sign-in first
+    if (status !== 'authenticated') {
+      // Store selected plan so we can resume after auth
+      try { sessionStorage.setItem('ragbox_pending_plan', plan) } catch { /* SSR */ }
+      signIn('google', { callbackUrl: '/onboarding/plan' })
+      return
+    }
+
     setLoading(plan)
     try {
       const res = await fetch('/api/stripe/checkout', {
@@ -138,12 +136,34 @@ export default function PlanGatePage() {
         credentials: 'include',
         body: JSON.stringify({ plan }),
       })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || `Checkout failed (${res.status})`)
+      }
       const { url } = await res.json()
-      if (url) window.location.href = url
-    } catch {
+      if (url) {
+        window.location.href = url
+      } else {
+        throw new Error('No checkout URL returned')
+      }
+    } catch (err) {
       setLoading(null)
+      toast.error(err instanceof Error ? err.message : 'Checkout failed. Please try again.')
     }
   }
+
+  // Resume checkout if user just authenticated after selecting a plan
+  React.useEffect(() => {
+    if (status !== 'authenticated') return
+    try {
+      const pending = sessionStorage.getItem('ragbox_pending_plan')
+      if (pending) {
+        sessionStorage.removeItem('ragbox_pending_plan')
+        handleCheckout(pending)
+      }
+    } catch { /* SSR */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status])
 
   return (
     <div className="min-h-screen bg-[#020408] flex flex-col items-center px-4 py-12">
