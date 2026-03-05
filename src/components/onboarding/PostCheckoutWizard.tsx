@@ -294,13 +294,16 @@ function UploadStep({
 
 function MeetStep({
   mercuryName,
+  tier,
   onFinish,
   onBack,
 }: {
   mercuryName: string
+  tier: string | null
   onFinish: () => void
   onBack: () => void
 }) {
+  const isStarter = !tier || tier === 'starter' || tier === 'free'
   return (
     <div className="flex flex-col items-center justify-center h-full px-8 text-center">
       <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center mb-6 shadow-lg shadow-amber-500/30">
@@ -310,24 +313,24 @@ function MeetStep({
         Say hello to {mercuryName}.
       </h2>
       <p className="text-sm text-white/50 max-w-md mb-3 leading-relaxed">
-        {mercuryName} is ready to work. Open the Mercury panel in your dashboard
-        to start a conversation.
+        {isStarter
+          ? `${mercuryName} text chat is ready. Upgrade to Professional for voice and all channels.`
+          : `${mercuryName} is ready to work. Open the Mercury panel in your dashboard to start a conversation.`
+        }
       </p>
 
       {/* Channel badges */}
       <div className="flex items-center gap-3 mb-8">
-        {[
-          { icon: Mic, label: 'Voice' },
-          { icon: Monitor, label: 'Chat' },
-        ].map((ch) => (
-          <div
-            key={ch.label}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-white/40 text-xs"
-          >
-            <ch.icon className="w-3.5 h-3.5" />
-            {ch.label}
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-white/40 text-xs">
+          <Monitor className="w-3.5 h-3.5" />
+          Chat
+        </div>
+        {!isStarter && (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-white/40 text-xs">
+            <Mic className="w-3.5 h-3.5" />
+            Voice
           </div>
-        ))}
+        )}
       </div>
 
       {/* Simulated greeting */}
@@ -393,6 +396,7 @@ export function PostCheckoutWizard() {
   const router = useRouter()
   const [show, setShow] = useState(false)
   const [step, setStep] = useState(0)
+  const [tier, setTier] = useState<string | null>(null)
   const [state, setState] = useState<WizardState>({
     mercuryName: 'Mercury',
     voiceId: 'Ashley',
@@ -400,10 +404,32 @@ export function PostCheckoutWizard() {
   })
 
   useEffect(() => {
-    if (searchParams.get('checkout') === 'success') {
-      setShow(true)
-    }
-  }, [searchParams])
+    if (searchParams.get('checkout') !== 'success') return
+
+    // Gate: only show for brand new users (0 docs, 0 queries, onboarding not completed)
+    Promise.all([
+      fetch('/api/user/onboarding', { credentials: 'include' }).then((r) => r.json()),
+      fetch('/api/user/profile', { credentials: 'include' }).then((r) => r.json()),
+      fetch('/api/documents?limit=1', { credentials: 'include' }).then((r) => r.json()),
+    ])
+      .then(([onboarding, profile, docs]) => {
+        const completed = onboarding.onboardingCompleted === true
+        const docCount = docs.data?.total ?? docs.total ?? (docs.data?.documents?.length ?? 0)
+        const userTier = profile.data?.subscriptionTier || 'starter'
+        setTier(userTier)
+
+        if (completed || docCount > 0) {
+          // Not a new user — skip wizard
+          router.replace('/dashboard')
+        } else {
+          setShow(true)
+        }
+      })
+      .catch(() => {
+        // On error, show wizard anyway
+        setShow(true)
+      })
+  }, [searchParams, router])
 
   const handleComplete = useCallback(async () => {
     // Save Mercury config
@@ -420,6 +446,18 @@ export function PostCheckoutWizard() {
       })
     } catch {
       // Backend endpoint may not exist yet — config will use defaults
+    }
+
+    // Mark onboarding as completed
+    try {
+      await fetch('/api/user/onboarding', {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed: true }),
+      })
+    } catch {
+      // Column may not exist yet — non-blocking
     }
 
     // Clean URL and close wizard
@@ -509,6 +547,7 @@ export function PostCheckoutWizard() {
               {step === 2 && (
                 <MeetStep
                   mercuryName={state.mercuryName}
+                  tier={tier}
                   onFinish={handleComplete}
                   onBack={() => setStep(1)}
                 />
