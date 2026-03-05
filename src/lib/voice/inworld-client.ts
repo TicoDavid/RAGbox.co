@@ -158,7 +158,8 @@ export class InworldTTSClient {
       }
 
       const errorBody = await response.text().catch(() => 'Unknown error');
-      throw new Error(`Inworld TTS failed (${response.status}): ${errorBody}`);
+      const keyPrefix = apiKey.slice(0, 8);
+      throw new Error(`Inworld TTS failed (${response.status}): ${errorBody} [keyPrefix=${keyPrefix}..., voice=${voiceId}]`);
     }
 
     throw new Error('Inworld TTS: max retries exceeded');

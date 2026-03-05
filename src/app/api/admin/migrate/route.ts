@@ -681,6 +681,38 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "idx_roam_interactions_action" ON "roam_interactions"("action_id")`)
     results.push('roam_interactions: OK')
 
+    // ========================================
+    // FINAL-DEBUG: isAdmin column on users
+    // ========================================
+    await prisma.$executeRawUnsafe(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT false`)
+    await prisma.$executeRawUnsafe(`UPDATE users SET is_admin = true WHERE email IN ('d05279090@gmail.com', 'theconnexusai@gmail.com') AND is_admin = false`)
+    results.push('users.is_admin: OK')
+
+    // ========================================
+    // FINAL-DEBUG: Per-user MercuryPersona migration
+    // Reassign the legacy shared 'default' persona to David's userId
+    // so his customized Evelyn Monroe config follows his account.
+    // Other users auto-get a fresh default persona on next login/load.
+    // ========================================
+    try {
+      // Remove any auto-created persona that may conflict with the migration
+      await prisma.$executeRawUnsafe(`
+        DELETE FROM mercury_personas
+        WHERE tenant_id = (SELECT id FROM users WHERE email = 'd05279090@gmail.com' LIMIT 1)
+          AND tenant_id != 'default'
+      `)
+      // Reassign the customized persona
+      const migrated = await prisma.$executeRawUnsafe(`
+        UPDATE mercury_personas
+        SET tenant_id = (SELECT id FROM users WHERE email = 'd05279090@gmail.com' LIMIT 1)
+        WHERE tenant_id = 'default'
+          AND EXISTS (SELECT 1 FROM users WHERE email = 'd05279090@gmail.com')
+      `)
+      results.push(`mercury_personas per-user migration: OK (${migrated} rows)`)
+    } catch (personaMigErr) {
+      results.push(`mercury_personas per-user migration: SKIPPED (${personaMigErr instanceof Error ? personaMigErr.message.slice(0, 80) : 'error'})`)
+    }
+
     return NextResponse.json({ success: true, results })
   } catch (error) {
     return NextResponse.json({

@@ -69,7 +69,8 @@ async function getAuth(request: NextRequest) {
     logger.warn('[mercury/config] getToken returned null — session cookie may be missing or NEXTAUTH_SECRET mismatch')
     return null
   }
-  return { userId: (token.id as string) || token.email || '', tenantId: DEFAULT_TENANT }
+  const userId = (token.id as string) || token.email || ''
+  return { userId, tenantId: userId }
 }
 
 /**

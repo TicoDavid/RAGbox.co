@@ -59,7 +59,8 @@ function buildCombinedPrompt(
 async function getAuth(request: NextRequest) {
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
   if (!token) return null
-  return { userId: (token.id as string) || token.email || '', tenantId: DEFAULT_TENANT }
+  const userId = (token.id as string) || token.email || ''
+  return { userId, tenantId: userId }
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {

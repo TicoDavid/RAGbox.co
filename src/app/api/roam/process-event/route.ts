@@ -237,15 +237,22 @@ async function resolveTenant(groupId: string): Promise<TenantContext> {
     }
   }
 
-  const tenantId = integration?.tenantId || 'default'
   const userId = integration?.userId || ROAM_DEFAULT_USER_ID
+  const tenantId = integration?.tenantId || userId
 
   // Load persona for personality context + display name
+  // Persona keyed by userId (per-account), fallback to tenantId for legacy records
   let personaName = process.env.ROAM_SENDER_NAME || 'Mercury'
-  const persona = await prisma.mercuryPersona.findUnique({
-    where: { tenantId },
+  let persona = await prisma.mercuryPersona.findUnique({
+    where: { tenantId: userId },
     select: { personalityPrompt: true, firstName: true, lastName: true },
   })
+  if (!persona) {
+    persona = await prisma.mercuryPersona.findUnique({
+      where: { tenantId },
+      select: { personalityPrompt: true, firstName: true, lastName: true },
+    })
+  }
   if (persona) {
     personalityPrompt = persona.personalityPrompt
     const full = [persona.firstName, persona.lastName].filter(Boolean).join(' ')

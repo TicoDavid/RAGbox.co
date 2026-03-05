@@ -173,12 +173,13 @@ export const authOptions: NextAuthOptions = {
 
       // Auto-create MercuryPersona with defaults on first login.
       // Ensures Mercury is ready before the user reaches Settings or voice.
+      // Keyed by userId so each account gets its own persona config.
       try {
         await prisma.mercuryPersona.upsert({
-          where: { tenantId: 'default' },
+          where: { tenantId: user.id },
           update: {},
           create: {
-            tenantId: 'default',
+            tenantId: user.id,
             firstName: 'Mercury',
             lastName: '',
             title: 'AI Assistant',

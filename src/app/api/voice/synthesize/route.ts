@@ -55,8 +55,9 @@ export async function POST(req: NextRequest) {
     const stack = error instanceof Error ? error.stack : undefined;
 
     if (message.includes('INWORLD_API_KEY')) {
-      logger.error('[VOICE-TTS] INWORLD_API_KEY not configured', {
-        hint: 'Set INWORLD_API_KEY env var on Cloud Run',
+      logger.error('[VOICE-TTS] INWORLD_API_KEY not configured on ragbox-app', {
+        hint: 'Ensure INWORLD_API_KEY=ragbox-inworld-api-key:latest is in cloudbuild.yaml --set-secrets',
+        hasEnvVar: !!process.env.INWORLD_API_KEY,
       });
       return NextResponse.json(
         { error: 'TTS service not configured' },
