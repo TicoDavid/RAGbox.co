@@ -249,6 +249,47 @@ export function VaultPanel() {
     setIsIngestionOpen(false)
   }
 
+  const handleUrlSubmit = async (url: string) => {
+    try {
+      const res = await fetch('/api/scrape', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Scrape failed' }))
+        const { toast } = await import('sonner')
+        toast.error(err.error || `Failed to scrape URL (${res.status})`)
+        return
+      }
+      const data = await res.json()
+      if (!data.content || data.content.length < 10) {
+        const { toast } = await import('sonner')
+        toast.error('No meaningful content found at that URL.')
+        return
+      }
+      // Convert scraped text to a .txt File and upload through the normal pipeline
+      let domain = 'web-content'
+      try { domain = new URL(url.startsWith('http') ? url : `https://${url}`).hostname } catch { /* */ }
+      const blob = new Blob([data.content], { type: 'text/plain' })
+      const file = new File([blob], `${domain}-${Date.now()}.txt`, { type: 'text/plain' })
+      const folderId = currentPath[currentPath.length - 1]
+      await uploadDocuments([file], folderId)
+      setIsIngestionOpen(false)
+    } catch {
+      const { toast } = await import('sonner')
+      toast.error('Failed to scrape URL. Please try again.')
+    }
+  }
+
+  const handleTextPaste = async (text: string) => {
+    const blob = new Blob([text], { type: 'text/plain' })
+    const file = new File([blob], `pasted-text-${Date.now()}.txt`, { type: 'text/plain' })
+    const folderId = currentPath[currentPath.length - 1]
+    await uploadDocuments([file], folderId)
+    setIsIngestionOpen(false)
+  }
+
   if (isCollapsed) {
     return (
       <>
@@ -257,6 +298,8 @@ export function VaultPanel() {
           isOpen={isIngestionOpen}
           onClose={() => setIsIngestionOpen(false)}
           onFileUpload={handleIngestionUpload}
+          onUrlSubmit={handleUrlSubmit}
+          onTextPaste={handleTextPaste}
         />
         <DuplicateFileDialog />
       </>

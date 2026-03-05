@@ -465,6 +465,44 @@ export function DashboardLayout() {
     setIsIngestionOpen(false)
   }
 
+  const handleIngestionUrl = async (url: string) => {
+    try {
+      const res = await fetch('/api/scrape', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Scrape failed' }))
+        const { toast } = await import('sonner')
+        toast.error(err.error || `Failed to scrape URL (${res.status})`)
+        return
+      }
+      const data = await res.json()
+      if (!data.content || data.content.length < 10) {
+        const { toast } = await import('sonner')
+        toast.error('No meaningful content found at that URL.')
+        return
+      }
+      let domain = 'web-content'
+      try { domain = new URL(url.startsWith('http') ? url : `https://${url}`).hostname } catch { /* */ }
+      const blob = new Blob([data.content], { type: 'text/plain' })
+      const file = new File([blob], `${domain}-${Date.now()}.txt`, { type: 'text/plain' })
+      await uploadDocuments([file])
+      setIsIngestionOpen(false)
+    } catch {
+      const { toast } = await import('sonner')
+      toast.error('Failed to scrape URL. Please try again.')
+    }
+  }
+
+  const handleIngestionText = async (text: string) => {
+    const blob = new Blob([text], { type: 'text/plain' })
+    const file = new File([blob], `pasted-text-${Date.now()}.txt`, { type: 'text/plain' })
+    await uploadDocuments([file])
+    setIsIngestionOpen(false)
+  }
+
   // Sidebar navigation — maps sidebar item clicks to panel toggles
   const handleSidebarNavigate = useCallback((itemId: string) => {
     if (isMobile) {
@@ -768,6 +806,8 @@ export function DashboardLayout() {
         isOpen={isIngestionOpen}
         onClose={() => setIsIngestionOpen(false)}
         onFileUpload={handleIngestionUpload}
+        onUrlSubmit={handleIngestionUrl}
+        onTextPaste={handleIngestionText}
       />
 
       {/* Onboarding Wizard — first-run only */}
