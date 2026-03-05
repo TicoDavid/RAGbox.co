@@ -28,6 +28,18 @@ Mercury's responses include:
 - **Sources tab** — Document names, chunk indices, and relevance scores
 - **Evidence tab** — Documents searched, chunks evaluated, and model used
 
+### Response Layouts
+
+Mercury supports three response display modes, selectable via the layout toggle in the top-right corner:
+
+| Layout | Style | Best For |
+|--------|-------|----------|
+| **Dossier** | Dark card with gold border, confidence badge, collapsible evidence drawer | Executive briefings, audit review |
+| **Conversation** | No cards or borders, inline citation chips with blue glow | Natural dialogue, quick Q&A |
+| **Analyst** | 60/40 split view — answer left, evidence right, simultaneous visibility | Deep research, evidence comparison |
+
+Your layout choice persists across sessions (stored in `ragbox-chat-storage`). In incognito mode, layout is not persisted.
+
 ### Tips
 
 - Be specific: "What are the payment terms in the Acme contract?" works better than "Tell me about Acme"
@@ -254,4 +266,50 @@ Toggle incognito mode to prevent message persistence. In incognito:
 
 ---
 
-*Last updated: March 4, 2026 — Sarah, Engineering, RAGbox.co*
+## Mercury Settings
+
+Configure Mercury via **Settings** (gear icon). The modal has 4 tabs:
+
+### Identity
+
+| Field | Description |
+|-------|-------------|
+| **Agent Name** | Mercury's display name (splits into first/last for DB) |
+| **Title** | Shown under name (default: "AI Assistant") |
+| **Greeting** | Welcome message on new sessions |
+
+### Voice
+
+| Setting | Range | Description |
+|---------|-------|-------------|
+| **Voice** | Dynamic list | Choose from available TTS voices |
+| **Expressiveness** | 0–100% | Vocal emotion/variation |
+| **Speaking Rate** | 0.5×–2.0× | Speed of speech |
+| **Preview** | Button | Speaks greeting via `/api/voice/synthesize` |
+
+### Persona
+
+- **Personality** — Professional, Friendly, or Technical preset
+- **Role** — C-Suite (CEO, CFO, CMO, COO, CPO, CTO) or Specialist (Legal, Compliance, Auditor, Whistleblower)
+- **Custom Instructions** — Free-text instructions (max 2000 characters), saved independently from presets
+
+All three (personality, role, custom instructions) are stored separately and combined at runtime.
+
+### Silence Protocol
+
+Threshold slider (40%–85%) controls when Mercury refuses to answer due to low confidence.
+
+---
+
+## Feedback
+
+Submit feedback from the floating widget (bottom-right of dashboard):
+
+- **Categories:** Bug, Feature, General
+- **Message:** 10-5000 characters required
+- **Screenshot:** Optional attachment
+- **Admin panel:** Partners can view all feedback at `/dashboard/admin/feedback`, filter by status/category, and respond
+
+---
+
+*Last updated: March 5, 2026 — Sarah, Engineering, RAGbox.co*

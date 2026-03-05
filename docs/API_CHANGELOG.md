@@ -4,6 +4,72 @@
 
 ---
 
+## 2026-03-05 — MONSTER PUSH (Post-Launch Polish)
+
+### New/Updated Endpoints
+
+#### `POST /api/feedback` (Sheldon)
+
+Submit feedback from any authenticated user. Uses raw SQL against `feedback_entries` table.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `category` | enum | Yes | `bug`, `feature`, `general` |
+| `message` | string | Yes | 10-5000 characters |
+| `screenshotUrl` | string | No | GCS URL of attached screenshot |
+| `currentUrl` | string | No | Page URL where feedback was submitted |
+| `browserInfo` | string | No | User agent / browser info |
+
+**Returns:** 201 Created with `{ feedback: { id, category, message, status, createdAt } }`
+
+#### `GET /api/feedback` (Sheldon)
+
+List feedback entries with pagination and filtering.
+
+- **Partner role** → sees all feedback
+- **Other roles** → sees only own entries
+
+**Query params:** `status` (new/reviewed/resolved), `category` (bug/feature/general), `page`, `limit` (1-100)
+
+#### `PATCH /api/feedback/[id]` (Sheldon)
+
+Update feedback status and admin response. **Partner role only** (403 otherwise).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `status` | enum | `new`, `reviewed`, `resolved` |
+| `adminResponse` | string | Admin's response text |
+
+### UI Changes
+
+#### Response Layout Selector (Jordan)
+
+Three layout modes for Mercury responses, selectable via CenterHeader toggle:
+
+- **Dossier** — Dark card with gold left border (#D4A853), confidence badge, collapsible evidence drawer
+- **Conversation** — No cards/borders, inline citation chips with blue glow on hover
+- **Analyst** — 60/40 split view, simultaneous answer + evidence, relevance bars
+
+Layout persists via Zustand (`ragbox-chat-storage`), excluded in incognito mode.
+
+#### Feedback Widget (Jordan)
+
+Floating feedback button (bottom-right) with modal form. Categories, severity levels, module selection, screenshot upload.
+
+### Test Coverage (MONSTER PUSH)
+
+| Suite | Tests | File |
+|-------|-------|------|
+| Response layout — 3 modes + toggle | 43 | `src/__tests__/layouts/responseLayouts.test.ts` |
+| Vault folder — CRUD + DnD + tree | 35 | `src/__tests__/vault/folderOperations.test.ts` |
+| Feedback system — submit + admin | 40 | `src/__tests__/feedback/feedbackSystem.test.ts` |
+| Mercury Settings — preview + save | 31 | `src/__tests__/mercury/settingsModal.test.ts` |
+| Prompt architecture — core vs user | 41 | `src/__tests__/mercury/promptArchitecture.test.ts` |
+| **New tests this sprint** | **190** | |
+| **Full suite** | **2,323+** | **0 new failures** |
+
+---
+
 ## 2026-03-04 — JARVIS Sprint
 
 ### New Endpoints
@@ -434,4 +500,4 @@ Returns the tenant's LLM policy configuration.
 
 ---
 
-*Last updated: March 4, 2026 — Sarah, Engineering, RAGbox.co*
+*Last updated: March 5, 2026 — Sarah, Engineering, RAGbox.co*
