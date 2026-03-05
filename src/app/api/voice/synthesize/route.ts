@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { InworldTTSClient } from '@/lib/voice/inworld-client';
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
@@ -51,14 +52,28 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
+    const stack = error instanceof Error ? error.stack : undefined;
 
     if (message.includes('INWORLD_API_KEY')) {
+      logger.error('[VOICE-TTS] INWORLD_API_KEY not configured', {
+        hint: 'Set INWORLD_API_KEY env var on Cloud Run',
+      });
       return NextResponse.json(
         { error: 'TTS service not configured' },
         { status: 503 }
       );
     }
 
+    // Network / timeout errors
+    if (message.includes('fetch failed') || message.includes('ECONNREFUSED') || message.includes('ETIMEDOUT')) {
+      logger.error('[VOICE-TTS] Inworld API unreachable', { message, stack });
+      return NextResponse.json(
+        { error: 'TTS service temporarily unavailable' },
+        { status: 503 }
+      );
+    }
+
+    logger.error('[VOICE-TTS] Synthesis failed', { message, stack });
     return NextResponse.json(
       { error: 'TTS synthesis failed' },
       { status: 500 }
