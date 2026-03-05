@@ -1003,19 +1003,25 @@ model NotificationSettings {
 // ============================================
 
 model FeedbackReport {
-  id          String   @id @default(uuid())
-  userId      String
-  userEmail   String?
-  type        String   // 'bug' | 'feature' | 'question'
-  description String
-  currentUrl  String?
-  browserInfo String?
-  status      String   @default("open") // 'open' | 'reviewed' | 'resolved'
-  createdAt   DateTime @default(now())
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  userEmail     String?  @map("user_email")
+  category      String   // 'bug' | 'feature' | 'general'
+  message       String
+  screenshotUrl String?  @map("screenshot_url")
+  currentUrl    String?  @map("current_url")
+  browserInfo   String?  @map("browser_info")
+  status        String   @default("new") // 'new' | 'reviewed' | 'resolved'
+  adminResponse String?  @map("admin_response")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("feedback_reports")
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("feedback_entries")
 }
 
 // ============================================
