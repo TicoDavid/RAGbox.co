@@ -19,9 +19,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   // Use raw SQL — isAdmin field may not be in generated Prisma client yet
   const users = await prisma.$queryRawUnsafe<Array<{
-    id: string; name: string | null; email: string; image: string | null; role: string; is_admin: boolean
+    id: string; name: string | null; email: string; image: string | null; role: string; is_admin: boolean; subscription_tier: string | null
   }>>(
-    `SELECT id, name, email, image, role, is_admin FROM users WHERE id = $1 LIMIT 1`,
+    `SELECT id, name, email, image, role, is_admin, subscription_tier FROM users WHERE id = $1 LIMIT 1`,
     userId
   )
 
@@ -39,6 +39,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       avatarUrl: user.image,
       role: user.role,
       isAdmin: user.is_admin === true,
+      subscriptionTier: user.subscription_tier || null,
     },
   })
 }

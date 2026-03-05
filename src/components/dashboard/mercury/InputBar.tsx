@@ -18,9 +18,11 @@ import {
   MicOff,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { Lock } from 'lucide-react'
 import { PERSONAS } from './personaData'
 import { LlmPicker } from './ChatModelPicker'
 import { useDeepgramSTT } from '@/hooks/useDeepgramSTT'
+import { useSubscriptionTier } from '@/hooks/useSubscriptionTier'
 
 export { PERSONAS, type Persona, type PersonaCategory } from './personaData'
 
@@ -47,6 +49,7 @@ export function InputBar() {
   const [urlValue, setUrlValue] = useState('')
 
   const { isListening, transcript, audioLevel, error: micError, startListening, stopListening } = useDeepgramSTT()
+  const { hasVoice } = useSubscriptionTier()
 
   const currentPersona = PERSONAS.find((p) => p.id === activePersona) || PERSONAS[0]
   const isAegisActive = mercuryIntelligence.tier === 'native'
@@ -290,28 +293,39 @@ export function InputBar() {
           />
 
           <div className="flex items-center gap-1 shrink-0">
-            {/* VAD Mic Button + Voice Level */}
+            {/* VAD Mic Button + Voice Level — locked on Starter tier */}
             <div className="relative flex items-center">
-              <button
-                onClick={handleMicToggle}
-                className={`p-2 rounded-full transition-all duration-300 ${
-                  isListening
-                    ? 'bg-[var(--danger)]/20 text-[var(--danger)] shadow-[0_0_12px_rgba(239,68,68,0.3)]'
-                    : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]/50'
-                }`}
-                title={isListening ? 'Stop listening' : 'Voice input'}
-                aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
-                aria-pressed={isListening}
-              >
-                {isListening ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
-                {/* Pulsing ring when active */}
-                {isListening && (
-                  <span className="absolute inset-0 rounded-full border-2 border-[var(--danger)] animate-ping opacity-40" />
-                )}
-              </button>
+              {hasVoice ? (
+                <button
+                  onClick={handleMicToggle}
+                  className={`p-2 rounded-full transition-all duration-300 ${
+                    isListening
+                      ? 'bg-[var(--danger)]/20 text-[var(--danger)] shadow-[0_0_12px_rgba(239,68,68,0.3)]'
+                      : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]/50'
+                  }`}
+                  title={isListening ? 'Stop listening' : 'Voice input'}
+                  aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
+                  aria-pressed={isListening}
+                >
+                  {isListening ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+                  {/* Pulsing ring when active */}
+                  {isListening && (
+                    <span className="absolute inset-0 rounded-full border-2 border-[var(--danger)] animate-ping opacity-40" />
+                  )}
+                </button>
+              ) : (
+                <button
+                  onClick={() => toast.info('Upgrade to Professional for voice input')}
+                  className="p-2 rounded-full text-[var(--text-tertiary)]/40 hover:text-[var(--text-tertiary)] hover:bg-[var(--bg-elevated)]/30 transition-all"
+                  title="Upgrade to Professional"
+                  aria-label="Voice input — upgrade to Professional"
+                >
+                  <Lock className="w-4 h-4" />
+                </button>
+              )}
 
               {/* Voice level indicator — visible only while listening */}
-              {isListening && (
+              {isListening && hasVoice && (
                 <div className="flex items-end gap-[2px] h-4 ml-1" aria-label={`Audio level ${Math.round(audioLevel * 100)}%`}>
                   {[0.2, 0.4, 0.6, 0.8, 1.0].map((threshold) => (
                     <div

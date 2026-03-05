@@ -1,25 +1,26 @@
 "use client";
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { redirect } from 'next/navigation';
+import { redirect, useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
-import { OnboardingChecklist } from '@/components/dashboard/OnboardingChecklist';
 import { FeedbackButton } from '@/components/feedback/FeedbackButton';
 import { useMercuryStore } from '@/stores/mercuryStore';
 
 export default function Dashboard() {
   const { status, data: session } = useSession();
+  const router = useRouter();
   const previousUserIdRef = useRef<string | undefined>(undefined);
+  const [tierChecked, setTierChecked] = useState(false);
 
-  // Multi-tenant fix: detect session user changes (User A → User B)
+  // Multi-tenant fix: detect session user changes (User A -> User B)
   // and clear all client-side state so the new user starts fresh.
   useEffect(() => {
     const currentUserId = (session?.user as { id?: string } | undefined)?.id;
 
     if (previousUserIdRef.current && currentUserId &&
         previousUserIdRef.current !== currentUserId) {
-      // User ID changed while authenticated — clear all stores
+      // User ID changed while authenticated - clear all stores
       useMercuryStore.getState().clearConversation();
       try {
         localStorage.removeItem('ragbox-vault');
@@ -43,6 +44,32 @@ export default function Dashboard() {
     }
   }, [status]);
 
+  // Plan gate: check subscription tier, redirect to plan selection if none
+  useEffect(() => {
+    if (status !== 'authenticated') return
+    // Skip plan gate if user just completed checkout
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('checkout') === 'success') {
+      setTierChecked(true)
+      return
+    }
+
+    fetch('/api/user/profile', { credentials: 'include' })
+      .then((r) => r.json())
+      .then((json) => {
+        const tier = json.data?.subscriptionTier
+        if (!tier || tier === 'none' || tier === 'free') {
+          router.replace('/onboarding/plan')
+        } else {
+          setTierChecked(true)
+        }
+      })
+      .catch(() => {
+        // On error, allow dashboard access (don't block)
+        setTierChecked(true)
+      })
+  }, [status, router]);
+
   if (status === 'loading') {
     return (
       <div className="flex items-center justify-center h-screen bg-[var(--bg-primary)]">
@@ -55,10 +82,19 @@ export default function Dashboard() {
 
   if (status === 'unauthenticated') redirect('/');
 
+  if (!tierChecked) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-[var(--bg-primary)]">
+        <div className="animate-pulse text-[var(--text-tertiary)] font-mono text-sm">
+          Checking subscription...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <DashboardLayout />
-      <OnboardingChecklist />
       <FeedbackButton />
     </>
   );
