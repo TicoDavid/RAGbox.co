@@ -57,6 +57,7 @@ model User {
   mercuryThreads          MercuryThread[]
   mercuryActions          MercuryAction[]
   mercurySessionSummaries MercurySessionSummary[]
+  mercuryProfile          MercuryUserProfile?
   auditEntries          AuditEntry[]
   apiKeys               ApiKey[]
   knowledgeEvents       KnowledgeEvent[]
@@ -825,6 +826,26 @@ model MercurySessionSummary {
 
   @@index([userId, createdAt(sort: Desc)])
   @@map("mercury_session_summaries")
+}
+
+// ============================================
+// Mercury User Profile (E24-003)
+// ============================================
+
+model MercuryUserProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique @map("user_id")
+  displayName String?  @map("display_name")
+  role        String?  // "CPO", "CEO", "Developer", etc.
+  company     String?
+  priorities  Json?    // ["Launch RAGbox", "Close Series A", "Hire engineers"]
+  preferences Json?    // {"communication_style": "direct", "detail_level": "executive"}
+  timezone    String?
+  lastUpdated DateTime @default(now()) @map("last_updated")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("mercury_user_profiles")
 }
 
 // ============================================

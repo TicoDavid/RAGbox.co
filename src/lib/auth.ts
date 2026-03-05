@@ -197,6 +197,22 @@ export const authOptions: NextAuthOptions = {
         // Non-blocking — don't prevent login if persona creation fails
         logger.error('[Auth] MercuryPersona auto-create failed', { error: err instanceof Error ? err.message : String(err) })
       }
+
+      // E24-003: Auto-create MercuryUserProfile from OAuth profile
+      if (user?.id) {
+        try {
+          await prisma.$executeRawUnsafe(
+            `INSERT INTO mercury_user_profiles (id, user_id, display_name, last_updated)
+             VALUES ($1, $2, $3, NOW())
+             ON CONFLICT (user_id) DO NOTHING`,
+            `mup_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+            user.id,
+            profile?.name ?? user.name ?? null
+          )
+        } catch (err) {
+          logger.error('[Auth] MercuryUserProfile auto-create failed', { error: err instanceof Error ? err.message : String(err) })
+        }
+      }
       return true;
     },
     async redirect({ url, baseUrl }) {
