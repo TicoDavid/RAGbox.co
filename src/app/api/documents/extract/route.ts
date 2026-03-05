@@ -3,6 +3,7 @@ import { getToken } from 'next-auth/jwt'
 import { PubSub } from '@google-cloud/pubsub'
 import { invalidateUserCache } from '@/lib/cache/queryCache'
 import { writeAuditEntry } from '@/lib/audit/auditWriter'
+import { triggerDocumentExtraction } from '@/lib/cygraph/extractionTrigger'
 import { logger } from '@/lib/logger'
 
 const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
@@ -258,6 +259,9 @@ export async function POST(request: NextRequest) {
 
   // Invalidate query cache — new document may change RAG results
   invalidateUserCache(userId).catch(() => {})
+
+  // CyGraph: fire-and-forget entity/claim/relationship extraction
+  triggerDocumentExtraction(documentId, userId).catch(() => {})
 
   const ingestWarning = ingestOk ? undefined : 'Document uploaded — processing queued. It will be indexed shortly.'
 

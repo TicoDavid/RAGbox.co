@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
 import { writeAuditEntry } from '@/lib/audit/auditWriter'
+import { triggerConversationExtraction } from '@/lib/cygraph/extractionTrigger'
 import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -203,6 +204,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       contentPreview: content.slice(0, 100),
       confidence: confidence ?? undefined,
     }).catch(() => {})
+
+    // CyGraph: extract entities from assistant responses (fire-and-forget)
+    if (role === 'assistant' && content.length > 50) {
+      triggerConversationExtraction(resolvedThreadId, userId, [
+        { id: message.id, content },
+      ]).catch(() => {})
+    }
 
     return NextResponse.json({ success: true, data: message }, { status: 201 })
   } catch (error) {
