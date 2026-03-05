@@ -86,6 +86,9 @@ interface MercuryState {
   // Cross-session memory (E24-002)
   sessionSummaries: Array<{ id: string; summary: string; topics: string[]; createdAt: string }>
 
+  // Proactive Insights (pattern detection from Evelyn)
+  insights: Array<{ id: string; content: string; dismissed: boolean; createdAt: string }>
+
   // Tool Actions (pending UI-side effects from tool execution)
   pendingAction: { type: string; payload: Record<string, unknown> } | null
 
@@ -128,6 +131,10 @@ interface MercuryState {
   clearPendingConfirmation: () => void
   confirmAction: () => Promise<void>
   denyAction: () => void
+
+  // Proactive Insight Actions
+  addInsight: (content: string) => void
+  dismissInsight: (id: string) => void
 
   // Unified Thread Actions
   loadThread: () => Promise<void>
@@ -222,6 +229,7 @@ export const useMercuryStore = create<MercuryState>()(
     documentScope: null,
     documentScopeName: null,
     sessionSummaries: [],
+    insights: [],
     pendingAction: null,
     pendingConfirmation: null,
     threadId: null,
@@ -948,8 +956,34 @@ export const useMercuryStore = create<MercuryState>()(
 
     filteredMessages: () => {
       const { messages, channelFilter } = get()
-      if (channelFilter === 'all') return messages
-      return messages.filter((m) => m.channel === channelFilter)
+      const SUPPRESSED_PATTERNS = [
+        "i didn't catch that",
+        "i didn\u2019t catch that",
+        "sorry, i didn't understand",
+        "could you repeat that",
+        "i couldn't understand",
+        "i couldn\u2019t understand",
+      ]
+      let result = channelFilter === 'all' ? messages : messages.filter((m) => m.channel === channelFilter)
+      result = result.filter((m) => {
+        if (m.role !== 'assistant') return true
+        const lower = m.content.toLowerCase().trim()
+        return !SUPPRESSED_PATTERNS.some((p) => lower.includes(p))
+      })
+      return result
     },
+
+    addInsight: (content) => set((state) => ({
+      insights: [...state.insights, {
+        id: `insight-${Date.now()}`,
+        content,
+        dismissed: false,
+        createdAt: new Date().toISOString(),
+      }],
+    })),
+
+    dismissInsight: (id) => set((state) => ({
+      insights: state.insights.map((i) => i.id === id ? { ...i, dismissed: true } : i),
+    })),
   }))
 )
