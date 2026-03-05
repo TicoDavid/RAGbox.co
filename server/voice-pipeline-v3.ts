@@ -567,60 +567,117 @@ Current user context:
         throw new Error(`Backend error ${res.status}: ${errText.substring(0, 200)}`)
       }
 
-      // Go backend returns SSE (text/event-stream). Parse to extract answer.
-      const rawText = await res.text()
+      // ================================================================
+      // Sentence-level streaming TTS (Fix 6):
+      // Stream SSE tokens, buffer until sentence boundary, fire TTS
+      // per sentence so first audio plays in 1-2s, not after full response.
+      // ================================================================
 
+      const contentType = res.headers.get('content-type') ?? ''
       let answer = ''
 
-      if (rawText.startsWith('{')) {
-        // Plain JSON response (future-proofing)
-        const data = JSON.parse(rawText) as {
-          data?: { answer?: string }
-          answer?: string
+      if (!contentType.includes('text/event-stream')) {
+        // Plain JSON response — TTS the full answer
+        const rawText = await res.text()
+        try {
+          const data = JSON.parse(rawText) as { data?: { answer?: string }; answer?: string }
+          answer = data.data?.answer || data.answer || rawText
+        } catch {
+          answer = rawText
         }
-        answer = data.data?.answer || data.answer || ''
       } else {
-        // SSE format — extract tokens and done payload
-        const tokens: string[] = []
+        // SSE stream — parse tokens progressively and fire TTS per sentence
+        const allTokens: string[] = []
+        let sentenceBuffer = ''
         let currentEventType = ''
+        let silenceAnswer = ''
+        let doneAnswer = ''
+        let lineBuffer = ''
 
-        for (const line of rawText.split('\n')) {
-          if (line.startsWith('event: ')) {
-            currentEventType = line.slice(7).trim()
-          } else if (line.startsWith('data: ')) {
-            const dataStr = line.slice(6).trim()
-            if (!dataStr) continue
+        const reader = res.body?.getReader()
+        const decoder = new TextDecoder()
 
-            if (currentEventType === 'token') {
-              try {
-                const payload = JSON.parse(dataStr) as { text?: string }
-                if (payload.text) tokens.push(payload.text)
-              } catch {
-                if (dataStr !== '[DONE]') tokens.push(dataStr)
-              }
-            } else if (currentEventType === 'silence') {
-              try {
-                const payload = JSON.parse(dataStr) as { message?: string }
-                if (payload.message) answer = payload.message
-              } catch {
-                if (dataStr) answer = dataStr
-              }
-            } else if (currentEventType === 'done') {
-              // Extract answer from done payload
-              try {
-                const payload = JSON.parse(dataStr) as {
-                  data?: { answer?: string }
-                  answer?: string
+        if (reader) {
+          let done = false
+          while (!done) {
+            const { value, done: streamDone } = await reader.read()
+            done = streamDone
+            if (!value) continue
+
+            lineBuffer += decoder.decode(value, { stream: true })
+            const lines = lineBuffer.split('\n')
+            // Keep incomplete last line in buffer
+            lineBuffer = lines.pop() ?? ''
+
+            for (const line of lines) {
+              if (line.startsWith('event: ')) {
+                currentEventType = line.slice(7).trim()
+              } else if (line.startsWith('data: ')) {
+                const dataStr = line.slice(6).trim()
+                if (!dataStr) continue
+
+                if (currentEventType === 'token') {
+                  let tokenText = ''
+                  try {
+                    const payload = JSON.parse(dataStr) as { text?: string }
+                    tokenText = payload.text ?? ''
+                  } catch {
+                    if (dataStr !== '[DONE]') tokenText = dataStr
+                  }
+
+                  if (tokenText) {
+                    allTokens.push(tokenText)
+                    sentenceBuffer += tokenText
+
+                    // Check for sentence boundary: . ? ! followed by space or end
+                    const sentenceBoundary = /([.!?])\s/g
+                    let match: RegExpExecArray | null
+                    let lastIndex = 0
+
+                    while ((match = sentenceBoundary.exec(sentenceBuffer)) !== null) {
+                      const sentence = sentenceBuffer.slice(lastIndex, match.index + 1).trim()
+                      lastIndex = match.index + match[0].length
+
+                      if (sentence.length > 5) {
+                        console.info('[VoicePipeline-v3] Sentence TTS →', { chars: sentence.length, preview: sentence.substring(0, 60) })
+                        // Fire-and-forget: TTS plays while more tokens arrive
+                        textToSpeech(sentence).catch(err =>
+                          console.warn('[VoicePipeline-v3] Sentence TTS failed:', err)
+                        )
+                      }
+                    }
+                    // Keep remainder after last sentence boundary
+                    sentenceBuffer = sentenceBuffer.slice(lastIndex)
+                  }
+                } else if (currentEventType === 'silence') {
+                  try {
+                    const payload = JSON.parse(dataStr) as { message?: string }
+                    if (payload.message) silenceAnswer = payload.message
+                  } catch {
+                    if (dataStr) silenceAnswer = dataStr
+                  }
+                } else if (currentEventType === 'done') {
+                  try {
+                    const payload = JSON.parse(dataStr) as { data?: { answer?: string }; answer?: string }
+                    const d = payload.data ?? payload
+                    if (typeof d.answer === 'string' && d.answer) doneAnswer = d.answer
+                  } catch { /* ignore */ }
                 }
-                const d = payload.data ?? payload
-                if (typeof d.answer === 'string' && d.answer) answer = d.answer
-              } catch { /* ignore */ }
-              if (!answer) answer = tokens.join('')
+                currentEventType = ''
+              }
             }
-            currentEventType = ''
           }
         }
-        if (!answer) answer = tokens.join('')
+
+        // Resolve final answer
+        answer = silenceAnswer || doneAnswer || allTokens.join('')
+
+        // TTS any remaining buffer (last sentence fragment)
+        const remainder = sentenceBuffer.trim()
+        if (remainder.length > 5) {
+          console.info('[VoicePipeline-v3] Final fragment TTS →', { chars: remainder.length })
+          await textToSpeech(remainder)
+        }
       }
 
       // Strip JSON wrapper if model returned structured JSON
@@ -654,11 +711,8 @@ Current user context:
 
       onAgentTextFinal?.(cleanText)
       conversationHistory.push({ role: 'assistant', content: answer })
-
-      // Convert to speech (strip tool markup before TTS)
-      if (cleanText) {
-        await textToSpeech(cleanText)
-      }
+      // Note: TTS already fired per-sentence above during streaming.
+      // No final textToSpeech(cleanText) call needed.
     } catch (error) {
       console.error('[VoicePipeline-v3] Processing error:', error)
       onError?.(error instanceof Error ? error : new Error(String(error)))
