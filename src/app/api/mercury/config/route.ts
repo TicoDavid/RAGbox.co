@@ -192,20 +192,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const firstName = nameParts[0]
   const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined
 
-  // Resolve personality from preset if provided (accept either field name)
+  // Save preset keys and custom instructions separately.
+  // Presets are combined with custom instructions at runtime (voice pipeline, chat proxy)
+  // so the user's raw text is preserved in the DB.
   const personalityKey = body.personalityPreset || body.personality
   const roleKey = body.rolePreset || body.role
-  let personalityPrompt = body.personalityPrompt
-
-  if (personalityKey && PERSONALITY_PRESETS[personalityKey]) {
-    personalityPrompt = PERSONALITY_PRESETS[personalityKey]
-  }
-  if (roleKey && PERSONALITY_PRESETS[roleKey]) {
-    const rolePrompt = PERSONALITY_PRESETS[roleKey]
-    personalityPrompt = personalityPrompt
-      ? `${personalityPrompt}\n\n${rolePrompt}`
-      : rolePrompt
-  }
+  const personalityPrompt = body.personalityPrompt
 
   // Build channel config JSON
   const channelConfig = body.channels

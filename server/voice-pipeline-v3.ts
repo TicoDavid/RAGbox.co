@@ -276,6 +276,46 @@ const INTERNAL_AUTH = process.env.INTERNAL_AUTH_SECRET || ''
 const prisma = new PrismaClient()
 const DEFAULT_TENANT = 'default'
 
+// Personality + Role presets — combined with custom instructions at runtime.
+// Mirrors src/app/api/mercury/config/route.ts PERSONALITY_PRESETS.
+const PERSONA_PRESETS: Record<string, string> = {
+  professional: 'You are precise, citation-focused, and formal. You never speculate. Every answer must be grounded in the documents provided.',
+  friendly: 'You are warm, conversational, and helpful. You explain things simply and always cite your sources. You make complex documents accessible.',
+  technical: 'You are detailed, thorough, and use precise terminology. You provide deep analysis with full citations and cross-references between documents.',
+  ceo: 'You are briefing a Chief Executive Officer. Prioritize board-level impact, strategic alignment, competitive positioning, and enterprise risk.',
+  cfo: 'You are briefing a Chief Financial Officer. Prioritize financial metrics, contractual obligations, monetary exposure, and risk quantification.',
+  cmo: 'You are briefing a Chief Marketing Officer. Focus on brand positioning, market intelligence, competitive landscape, and growth opportunities.',
+  coo: 'You are briefing a Chief Operating Officer. Focus on operational efficiency, process compliance, resource allocation, SLA adherence, and execution timelines.',
+  cpo: 'You are briefing a Chief Product Officer. Focus on product strategy, feature requirements, user impact, technical debt, and competitive differentiation.',
+  cto: 'You are briefing a Chief Technology Officer. Focus on technical architecture, system dependencies, security posture, scalability, and integration complexity.',
+  legal: 'You are briefing a legal professional. Prioritize precise language, contractual terms, regulatory references, dates, parties, and obligations.',
+  compliance: 'You are a compliance officer reviewing for regulatory adherence. Focus on policy violations, control gaps, reporting obligations, and remediation requirements.',
+  auditor: 'You are an internal auditor examining documents for control effectiveness, material weaknesses, and risk exposure.',
+  whistleblower: 'You are a forensic investigator examining documents for anomalies, irregularities, and potential misconduct.',
+}
+
+/**
+ * Build combined personality prompt from preset keys + custom instructions.
+ * Format: "You are ${personality}. You are briefing a ${role}. ${customInstructions}"
+ */
+function buildPersonalityPrompt(
+  personalityPreset: string | null,
+  rolePreset: string | null,
+  customInstructions: string | null,
+): string | undefined {
+  const parts: string[] = []
+  if (personalityPreset && PERSONA_PRESETS[personalityPreset]) {
+    parts.push(PERSONA_PRESETS[personalityPreset])
+  }
+  if (rolePreset && PERSONA_PRESETS[rolePreset]) {
+    parts.push(PERSONA_PRESETS[rolePreset])
+  }
+  if (customInstructions?.trim()) {
+    parts.push(customInstructions.trim())
+  }
+  return parts.length > 0 ? parts.join('\n\n') : undefined
+}
+
 /**
  * Fetch Mercury persona config from Prisma MercuryPersona table (best-effort).
  * BUG-047 FIX: Reads from the same DB table the frontend Settings modal saves to.
@@ -291,11 +331,19 @@ async function fetchMercuryConfig(userId: string): Promise<MercuryConfig> {
       const voiceCfg = (typeof persona.channelConfig === 'object' && persona.channelConfig !== null
         ? (persona.channelConfig as Record<string, unknown>).voice
         : undefined) as { expressiveness?: number; speakingRate?: number; voiceId?: string; modelId?: string } | undefined
+
+      // Combine personality preset + role preset + custom instructions at runtime
+      const combinedPrompt = buildPersonalityPrompt(
+        (persona as Record<string, unknown>).personalityPreset as string | null,
+        (persona as Record<string, unknown>).rolePreset as string | null,
+        persona.personalityPrompt,
+      )
+
       return {
         name: name || undefined,
         voiceId: voiceCfg?.voiceId || persona.voiceId || undefined,
         greeting: persona.greeting || undefined,
-        personalityPrompt: persona.personalityPrompt || undefined,
+        personalityPrompt: combinedPrompt || persona.personalityPrompt || undefined,
         ttsTemperature: voiceCfg?.expressiveness != null ? voiceCfg.expressiveness * 2 : undefined,
         ttsSpeakingRate: voiceCfg?.speakingRate || undefined,
         ttsModelId: voiceCfg?.modelId || undefined,
