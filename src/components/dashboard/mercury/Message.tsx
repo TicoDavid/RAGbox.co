@@ -96,6 +96,8 @@ const CHANNEL_BADGE: Record<MercuryChannel, { label: string; color: string }> = 
   roam: { label: 'ROAM', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' },
   email: { label: 'Email', color: 'bg-[var(--warning)]/20 text-[var(--warning)] border-[var(--warning)]/30' },
   sms: { label: 'SMS', color: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' },
+  slack: { label: 'Slack', color: 'bg-[#4A154B]/20 text-[#E01E5A] border-[#4A154B]/30' },
+  phone: { label: 'Phone', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
 }
 
 function ChannelBadge({ channel }: { channel?: MercuryChannel }) {
