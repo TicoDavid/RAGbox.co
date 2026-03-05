@@ -13,6 +13,10 @@
  * Silence Protocol: confidence < 0.65 → structured refusal.
  *
  * STORY-102 — EPIC-010
+ *
+ * Verified end-to-end 2026-03-04 (FINAL WAVE Task 4):
+ *   Webhook → Pub/Sub → process-event → Go backend RAG → reply-in-context
+ *   Persona name, citations, Silence Protocol, Block Kit, feedback all wired.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
