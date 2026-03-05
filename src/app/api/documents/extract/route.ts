@@ -4,6 +4,7 @@ import { PubSub } from '@google-cloud/pubsub'
 import { invalidateUserCache } from '@/lib/cache/queryCache'
 import { writeAuditEntry } from '@/lib/audit/auditWriter'
 import { triggerDocumentExtraction } from '@/lib/cygraph/extractionTrigger'
+import { isAudioFile, transcribeAudio } from '@/lib/transcription/transcriptionService'
 import { logger } from '@/lib/logger'
 
 const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
@@ -35,6 +36,13 @@ const EXT_MIME_MAP: Record<string, string> = {
   '.webp': 'image/webp',
   '.md': 'text/markdown',
   '.json': 'application/json',
+  // Audio formats for meeting transcription (FINAL WAVE Task 10)
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+  '.m4a': 'audio/mp4',
+  '.webm': 'audio/webm',
+  '.ogg': 'audio/ogg',
+  '.flac': 'audio/flac',
 }
 
 // All MIME types we accept (including browser-reported variants)
@@ -44,6 +52,10 @@ const ALLOWED_MIMES = new Set([
   'image/jpg',                     // Non-standard but common
   'text/markdown',                 // .md files
   'text/x-markdown',              // .md files (variant)
+  // Audio formats for meeting transcription
+  'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/wave',
+  'audio/mp4', 'audio/x-m4a', 'audio/m4a', 'audio/webm', 'audio/ogg',
+  'audio/flac', 'audio/x-flac',
 ])
 
 function resolveContentType(file: File): string {
@@ -114,7 +126,7 @@ export async function POST(request: NextRequest) {
   // Validate content type before sending to backend
   if (!isAllowedType(contentType, ext)) {
     return NextResponse.json(
-      { success: false, error: `Unsupported file type: ${contentType} (${ext}). Supported: PDF, DOC, DOCX, TXT, CSV, XLS, XLSX, PPTX, PNG, JPG, GIF, WebP, MD, JSON` },
+      { success: false, error: `Unsupported file type: ${contentType} (${ext}). Supported: PDF, DOC, DOCX, TXT, CSV, XLS, XLSX, PPTX, PNG, JPG, GIF, WebP, MD, JSON, MP3, WAV, M4A, WebM, OGG, FLAC` },
       { status: 400 }
     )
   }
@@ -204,6 +216,38 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  const bucketName = process.env.GCS_BUCKET_NAME || ''
+
+  // Step 3b: Audio transcription (Meeting Transcription — FINAL WAVE Task 10)
+  // If the file is audio, transcribe it and store as a transcript document
+  if (isAudioFile(contentType, file.name)) {
+    transcribeAndStore(documentId, userId, Buffer.from(fileBuffer), contentType, file.name).catch(err => {
+      logger.error('[Upload] Audio transcription failed:', err)
+    })
+
+    writeAuditEntry(userId, 'document.upload', documentId, {
+      filename: file.name,
+      mimeType: contentType,
+      sizeBytes: file.size,
+      type: 'audio_transcript',
+    }).catch(() => {})
+
+    invalidateUserCache(userId).catch(() => {})
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        documentId,
+        storagePath: objectName,
+        gcsUri: bucketName ? `gs://${bucketName}/${objectName}` : objectName,
+        mimeType: contentType,
+        status: 'transcribing',
+        type: 'transcript',
+      },
+      warning: 'Audio file uploaded — transcription in progress. It will appear in your vault shortly.',
+    })
+  }
+
   // Step 4: Trigger ingestion pipeline on Go backend (with retry)
   const ingestUrl = new URL(`/api/documents/${documentId}/ingest`, GO_BACKEND_URL)
   let ingestOk = false
@@ -231,7 +275,6 @@ export async function POST(request: NextRequest) {
   // Step 4b: Publish to Pub/Sub for async worker (safety net + retry support)
   // If Go backend ingest succeeds, the worker will see 'Indexed' and skip.
   // If Go backend ingest fails, the worker will process the document.
-  const bucketName = process.env.GCS_BUCKET_NAME || ''
   try {
     const topic = getPubSub().topic('ragbox-document-processing')
     await topic.publishMessage({
@@ -276,5 +319,64 @@ export async function POST(request: NextRequest) {
       status: 'processing',
     },
     ...(ingestWarning ? { warning: ingestWarning } : {}),
+  })
+}
+
+/**
+ * Async: transcribe audio, store transcript as document content, trigger ingestion.
+ * Called fire-and-forget for audio uploads.
+ */
+async function transcribeAndStore(
+  documentId: string,
+  userId: string,
+  audioBuffer: Buffer,
+  mimeType: string,
+  fileName: string,
+): Promise<void> {
+  const result = await transcribeAudio(audioBuffer, mimeType)
+
+  if (!result.text) {
+    logger.warn('[Upload] Audio transcription returned empty text', { documentId, fileName })
+    return
+  }
+
+  const title = fileName.replace(/\.[^.]+$/, '')
+  const header = `Meeting Transcript: ${title}\nDuration: ${Math.round(result.durationSeconds / 60)} minutes | Words: ${result.wordCount} | Confidence: ${Math.round(result.confidence * 100)}%\n\n`
+  const fullText = header + result.text
+
+  // Store transcript as document content via Go backend ingest
+  const ingestUrl = new URL(`/api/documents/${documentId}/ingest`, GO_BACKEND_URL)
+  const ingestRes = await fetch(ingestUrl.toString(), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Internal-Auth': INTERNAL_AUTH_SECRET,
+      'X-User-ID': userId,
+    },
+    body: JSON.stringify({
+      transcriptText: fullText,
+      documentType: 'transcript',
+      metadata: {
+        type: 'transcript',
+        durationSeconds: result.durationSeconds,
+        wordCount: result.wordCount,
+        confidence: result.confidence,
+        originalFileName: fileName,
+      },
+    }),
+  })
+
+  if (!ingestRes.ok) {
+    logger.error('[Upload] Transcript ingest failed:', ingestRes.status)
+  }
+
+  // CyGraph extraction on the transcript
+  triggerDocumentExtraction(documentId, userId).catch(() => {})
+
+  logger.info('[Upload] Audio transcription complete', {
+    documentId,
+    fileName,
+    durationSeconds: result.durationSeconds,
+    wordCount: result.wordCount,
   })
 }
