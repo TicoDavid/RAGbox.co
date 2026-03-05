@@ -148,6 +148,12 @@ function FolderTreeItem({
   onNavigateFolder,
   sortField,
   sortDir,
+  isDragOver,
+  onDragStart,
+  onFolderDragOver,
+  onFolderDrop,
+  onFolderDragLeave,
+  dragOverFolderId,
 }: {
   folder: FolderNode
   depth: number
@@ -160,6 +166,12 @@ function FolderTreeItem({
   onNavigateFolder: (path: string[]) => void
   sortField: SortField
   sortDir: SortDirection
+  isDragOver: boolean
+  onDragStart: (e: React.DragEvent, docId: string) => void
+  onFolderDragOver: (e: React.DragEvent, folderId: string) => void
+  onFolderDrop: (e: React.DragEvent, folderId: string) => void
+  onFolderDragLeave: (e: React.DragEvent) => void
+  dragOverFolderId: string | null
 }) {
   const isExpanded = expandedFolders.has(folder.id)
   const childFolders = Object.values(allFolders).filter(f => f.parentId === folder.id)
@@ -174,9 +186,12 @@ function FolderTreeItem({
     <div>
       <button
         onClick={() => toggleExpand(folder.id)}
+        onDragOver={(e) => onFolderDragOver(e, folder.id)}
+        onDrop={(e) => onFolderDrop(e, folder.id)}
+        onDragLeave={onFolderDragLeave}
         className={`w-full flex items-center gap-2 py-1.5 px-2 rounded-md text-left transition-colors hover:bg-[var(--bg-elevated)]/50 group ${
           selectedId === folder.id ? 'bg-[var(--brand-blue)]/10' : ''
-        }`}
+        }${isDragOver ? ' ring-2 ring-[var(--brand-blue)] bg-[var(--brand-blue)]/10' : ''}`}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
         aria-label={`${isExpanded ? 'Collapse' : 'Expand'} folder: ${folder.name}`}
       >
@@ -210,6 +225,12 @@ function FolderTreeItem({
               onNavigateFolder={onNavigateFolder}
               sortField={sortField}
               sortDir={sortDir}
+              isDragOver={dragOverFolderId === child.id}
+              onDragStart={onDragStart}
+              onFolderDragOver={onFolderDragOver}
+              onFolderDrop={onFolderDrop}
+              onFolderDragLeave={onFolderDragLeave}
+              dragOverFolderId={dragOverFolderId}
             />
           ))}
           {childDocs.map(doc => (
@@ -219,6 +240,7 @@ function FolderTreeItem({
               depth={depth + 1}
               isSelected={selectedId === doc.id}
               onSelect={() => onSelectDocument(doc.id)}
+              onDragStart={onDragStart}
             />
           ))}
         </div>
@@ -236,16 +258,20 @@ function DocumentTreeItem({
   depth,
   isSelected,
   onSelect,
+  onDragStart,
 }: {
   doc: VaultItem
   depth: number
   isSelected: boolean
   onSelect: () => void
+  onDragStart?: (e: React.DragEvent, docId: string) => void
 }) {
   return (
     <button
       onClick={onSelect}
-      className={`w-full flex items-center gap-2 py-1.5 px-2 rounded-md text-left transition-colors group ${
+      draggable
+      onDragStart={(e) => onDragStart?.(e, doc.id)}
+      className={`w-full flex items-center gap-2 py-1.5 px-2 rounded-md text-left transition-colors group cursor-grab active:cursor-grabbing ${
         isSelected
           ? 'bg-[var(--brand-blue)] text-[var(--text-primary)]'
           : 'hover:bg-[var(--bg-elevated)]/50'
@@ -281,10 +307,13 @@ export function FileExplorer() {
   const selectItem = useVaultStore((s) => s.selectItem)
   const navigate = useVaultStore((s) => s.navigate)
   const createFolder = useVaultStore((s) => s.createFolder)
+  const moveDocument = useVaultStore((s) => s.moveDocument)
 
   const [sortField, setSortField] = useState<SortField>('name')
   const [sortDir, setSortDir] = useState<SortDirection>('asc')
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
+  const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null)
+  const [dragOverRoot, setDragOverRoot] = useState(false)
 
   const toggleExpand = useCallback((folderId: string) => {
     setExpandedFolders(prev => {
@@ -322,6 +351,49 @@ export function FileExplorer() {
     [documents, sortField, sortDir],
   )
 
+  const handleDragStart = useCallback((e: React.DragEvent, docId: string) => {
+    e.dataTransfer.setData('text/plain', docId)
+    e.dataTransfer.effectAllowed = 'move'
+  }, [])
+
+  const handleFolderDragOver = useCallback((e: React.DragEvent, folderId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOverFolderId(folderId)
+  }, [])
+
+  const handleFolderDrop = useCallback((e: React.DragEvent, folderId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const docId = e.dataTransfer.getData('text/plain')
+    if (docId) moveDocument(docId, folderId)
+    setDragOverFolderId(null)
+  }, [moveDocument])
+
+  const handleFolderDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOverFolderId(null)
+  }, [])
+
+  const handleRootDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOverRoot(true)
+  }, [])
+
+  const handleRootDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    const docId = e.dataTransfer.getData('text/plain')
+    if (docId) moveDocument(docId, null)
+    setDragOverRoot(false)
+  }, [moveDocument])
+
+  const handleRootDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOverRoot(false)
+  }, [])
+
   const totalFiles = Object.values(documents).filter(d => d.deletionStatus === 'Active').length
 
   return (
@@ -358,7 +430,12 @@ export function FileExplorer() {
       </div>
 
       {/* Tree */}
-      <div className="flex-1 overflow-y-auto py-1">
+      <div
+        className={`flex-1 overflow-y-auto py-1${dragOverRoot ? ' bg-[var(--brand-blue)]/5' : ''}`}
+        onDragOver={handleRootDragOver}
+        onDrop={handleRootDrop}
+        onDragLeave={handleRootDragLeave}
+      >
         {rootFolders.map(folder => (
           <FolderTreeItem
             key={folder.id}
@@ -373,6 +450,12 @@ export function FileExplorer() {
             onNavigateFolder={navigate}
             sortField={sortField}
             sortDir={sortDir}
+            isDragOver={dragOverFolderId === folder.id}
+            onDragStart={handleDragStart}
+            onFolderDragOver={handleFolderDragOver}
+            onFolderDrop={handleFolderDrop}
+            onFolderDragLeave={handleFolderDragLeave}
+            dragOverFolderId={dragOverFolderId}
           />
         ))}
         {rootDocs.map(doc => (
@@ -382,6 +465,7 @@ export function FileExplorer() {
             depth={0}
             isSelected={selectedItemId === doc.id}
             onSelect={() => selectItem(doc.id)}
+            onDragStart={handleDragStart}
           />
         ))}
 
