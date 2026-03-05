@@ -745,7 +745,10 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 						tokenJSON, _ := json.Marshal(map[string]string{"text": token})
 						sendEvent(w, flusher, "token", string(tokenJSON))
 					}
-					streamedTokens = true
+					// BUG-052: Only mark as streamed if we actually sent token events.
+					// Empty answer (e.g., BYOLLM model returned wrong JSON key) should
+					// fall through to post-SelfRAG streaming or AEGIS fallback.
+					streamedTokens = len(answerTokens) > 0
 				}
 			}
 		}

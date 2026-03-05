@@ -462,8 +462,10 @@ export const useMercuryStore = create<MercuryState>()(
             try {
               const parsed = JSON.parse(cleaned)
               const d = parsed.data ?? parsed
-              if (typeof d.answer === 'string' && d.answer.length > 0) {
-                fullContent = d.answer
+              // BUG-052: Try standard "answer" key first, then alternate keys
+              const answer = d.answer ?? d.response ?? d.text ?? d.content ?? d.result ?? d.output ?? d.message
+              if (typeof answer === 'string' && answer.length > 0) {
+                fullContent = answer
                 // Also rescue citations and confidence from the JSON if not already set
                 if (!citations && Array.isArray(d.citations)) citations = d.citations
                 if (confidence === undefined && typeof d.confidence === 'number') confidence = d.confidence

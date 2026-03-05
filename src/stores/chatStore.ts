@@ -391,11 +391,16 @@ export const useChatStore = create<ChatState>()(
                     switch (eventType) {
                       case 'token':
                         fullContent += data.text ?? ''
-                        // BUG-037: Don't display JSON-shaped streaming to user
+                        // BUG-037 + BUG-053: Don't display JSON-shaped streaming to user
                         // (backend sometimes sends structured JSON as tokens).
+                        // Also catch embedded JSON after preamble text.
                         // User sees "Analyzing..." dots instead of raw JSON.
-                        if (!fullContent.trim().startsWith('{')) {
-                          set({ streamingContent: fullContent })
+                        {
+                          const trimmed = fullContent.trim()
+                          const hasJson = trimmed.startsWith('{') || /\{"answer"\s*:/.test(trimmed)
+                          if (!hasJson) {
+                            set({ streamingContent: fullContent })
+                          }
                         }
                         break
                       case 'citations':
@@ -431,11 +436,12 @@ export const useChatStore = create<ChatState>()(
                         // Unwrap: backend may send { answer, ... } or { data: { answer, ... } }
                         const d = data.data ?? data
 
-                        // STORY-173 + HOTFIX: Use done.answer when either:
+                        // STORY-173 + HOTFIX + BUG-053: Use done.answer when either:
                         // (a) no tokens were streamed yet, OR
-                        // (b) streamed content is raw JSON (backend streamed JSON chars as tokens)
+                        // (b) streamed content is/contains raw JSON (backend streamed JSON chars as tokens)
                         const streamedIsJson = fullContent.trim().startsWith('{')
-                        if (typeof d.answer === 'string' && (!fullContent || streamedIsJson)) {
+                        const containsEmbeddedJson = !streamedIsJson && /[{[]\s*"answer"\s*:/.test(fullContent)
+                        if (typeof d.answer === 'string' && (!fullContent || streamedIsJson || containsEmbeddedJson)) {
                           fullContent = d.answer
                           set({ streamingContent: fullContent })
                         }
@@ -484,8 +490,8 @@ export const useChatStore = create<ChatState>()(
             }
           }
 
-          // BUG-040: Safety net — if fullContent is still structured JSON after
-          // SSE processing, extract the prose answer so the UI never shows raw JSON.
+          // BUG-040 + BUG-053: Safety net — if fullContent is or contains structured
+          // JSON after SSE processing, extract the prose answer so the UI never shows raw JSON.
           {
             let cleaned = fullContent.trim()
             // Strip markdown code fences (```json ... ```)
@@ -493,16 +499,35 @@ export const useChatStore = create<ChatState>()(
               const lines = cleaned.split('\n')
               if (lines.length >= 3) cleaned = lines.slice(1, -1).join('\n').trim()
             }
+            // Try direct parse (content IS JSON)
             if (cleaned.startsWith('{')) {
               try {
                 const parsed = JSON.parse(cleaned)
                 const d = parsed.data ?? parsed
-                if (typeof d.answer === 'string' && d.answer.length > 0) {
-                  fullContent = d.answer
+                // BUG-052: Try standard "answer" key first, then alternate keys
+                const answer = d.answer ?? d.response ?? d.text ?? d.content ?? d.result ?? d.output ?? d.message
+                if (typeof answer === 'string' && answer.length > 0) {
+                  fullContent = answer
                   if (!citations && Array.isArray(d.citations)) citations = d.citations
                   if (confidence === undefined && typeof d.confidence === 'number') confidence = d.confidence
                 }
               } catch { /* not valid JSON — keep fullContent as-is */ }
+            } else {
+              // BUG-053: JSON embedded after preamble text (e.g. "Here is the answer:\n{...}")
+              const jsonIdx = cleaned.indexOf('{"answer"')
+              const jsonIdx2 = jsonIdx === -1 ? cleaned.indexOf('{"data"') : jsonIdx
+              const idx = jsonIdx !== -1 ? jsonIdx : jsonIdx2
+              if (idx > 0) {
+                try {
+                  const parsed = JSON.parse(cleaned.slice(idx))
+                  const d = parsed.data ?? parsed
+                  if (typeof d.answer === 'string' && d.answer.length > 0) {
+                    fullContent = d.answer
+                    if (!citations && Array.isArray(d.citations)) citations = d.citations
+                    if (confidence === undefined && typeof d.confidence === 'number') confidence = d.confidence
+                  }
+                } catch { /* embedded JSON not parseable — keep as-is */ }
+              }
             }
           }
 

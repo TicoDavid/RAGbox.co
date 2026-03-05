@@ -151,8 +151,17 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
               llmApiKey: rawKey,
               ...(llmConfig.baseUrl ? { llmBaseUrl: llmConfig.baseUrl } : {}),
             }
-            console.info('[Chat] BYOLLM active', { provider: byollmFields.llmProvider, model: byollmFields.llmModel })
+            logger.info('[Chat] BYOLLM active', {
+              provider: byollmFields.llmProvider,
+              model: byollmFields.llmModel,
+              keyLen: rawKey.length,
+              baseUrl: llmConfig.baseUrl || '(default: openrouter)',
+            })
+          } else {
+            logger.info('[Chat] BYOLLM requested but policy is aegis_only — using AEGIS')
           }
+        } else {
+          logger.warn('[Chat] BYOLLM requested but no LLMConfig found for tenant — using AEGIS')
         }
       } catch (err) {
         logger.error('[Chat] BYOLLM config lookup failed (falling back to AEGIS):', err)

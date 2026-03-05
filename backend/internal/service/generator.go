@@ -350,6 +350,32 @@ func ParseGenerationResponse(raw string, chunks []RankedChunk) (*GenerationResul
 		}, nil
 	}
 
+	// BUG-052: Some BYOLLM models return JSON with non-standard keys
+	// (e.g., "response", "text", "content" instead of "answer").
+	// Try alternate keys before falling back to raw text.
+	if parsed.Answer == "" {
+		var altKeys map[string]json.RawMessage
+		if json.Unmarshal([]byte(cleaned), &altKeys) == nil {
+			for _, key := range []string{"response", "text", "content", "result", "output", "message"} {
+				if v, ok := altKeys[key]; ok {
+					var s string
+					if json.Unmarshal(v, &s) == nil && s != "" {
+						parsed.Answer = s
+						break
+					}
+				}
+			}
+		}
+		// If still empty after alternate keys, use raw text
+		if parsed.Answer == "" {
+			return &GenerationResult{
+				Answer:     raw,
+				Citations:  []CitationRef{},
+				Confidence: 0.5,
+			}, nil
+		}
+	}
+
 	citations := make([]CitationRef, 0, len(parsed.Citations))
 	for _, c := range parsed.Citations {
 		idx := c.ChunkIndex
