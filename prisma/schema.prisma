@@ -63,6 +63,7 @@ model User {
   knowledgeEvents       KnowledgeEvent[]
   notificationSettings  NotificationSettings?
   feedbackReports       FeedbackReport[]
+  proactiveInsights     MercuryProactiveInsight[]
 
   @@map("users")
 }
@@ -1055,14 +1056,16 @@ model KgEntity {
 }
 
 model KgEdge {
-  id            String   @id @default(cuid())
-  tenantId      String   @default("default") @map("tenant_id")
-  fromEntityId  String   @map("from_entity_id")
-  toEntityId    String   @map("to_entity_id")
-  relationType  String   @map("relation_type")  // employs | references | cites | contradicts | amends | relates_to
-  weight        Float    @default(1.0)
+  id            String    @id @default(cuid())
+  tenantId      String    @default("default") @map("tenant_id")
+  fromEntityId  String    @map("from_entity_id")
+  toEntityId    String    @map("to_entity_id")
+  relationType  String    @map("relation_type")  // employs | references | cites | contradicts | amends | relates_to | discussed_in
+  weight        Float     @default(1.0)
   metadata      Json?
-  createdAt     DateTime @default(now()) @map("created_at")
+  validFrom     DateTime? @map("valid_from")     // temporal: when relationship became valid
+  validTo       DateTime? @map("valid_to")       // temporal: when relationship expired (null = still valid)
+  createdAt     DateTime  @default(now()) @map("created_at")
 
   // Relations
   fromEntity KgEntity @relation("EdgeFrom", fields: [fromEntityId], references: [id], onDelete: Cascade)
@@ -1131,4 +1134,21 @@ model KgMention {
   @@index([documentId])
   @@index([documentId, entityId])
   @@map("kg_mentions")
+}
+
+model MercuryProactiveInsight {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  insightType String   @map("insight_type")   // contradiction | inconsistency | gap | pattern
+  summary     String
+  entities    String[]                        // entity names involved
+  documents   String[]                        // document IDs involved
+  confidence  Float
+  dismissed   Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, dismissed])
+  @@map("mercury_proactive_insights")
 }
