@@ -261,6 +261,7 @@ export const useMercuryStore = create<MercuryState>()(
         streamingContent: '',
         abortController,
         pendingAction: null,
+        attachments: [], // Clear after sending — context is ephemeral
       })
 
       // Persist user message to thread (fire-and-forget)
@@ -323,9 +324,24 @@ export const useMercuryStore = create<MercuryState>()(
         }
 
         // Build request body with persona + optional BYOLLM routing
-        const { selectedLlm, activePersona, documentScope } = get()
+        const { selectedLlm, activePersona, documentScope, attachments: currentAttachments } = get()
+
+        // Inline context injection: prepend attachment text to query (ephemeral, not stored)
+        let enrichedQuery = inputValue
+        const contextParts: string[] = []
+        for (const att of currentAttachments) {
+          if (att.status !== 'ready') continue
+          const text = att.extractedText || (att.type === 'url' ? att.extractedText : undefined)
+          if (text) {
+            contextParts.push(`[Attached document: ${att.name}]\n${text}`)
+          }
+        }
+        if (contextParts.length > 0) {
+          enrichedQuery = contextParts.join('\n\n') + `\n\nUser question: ${inputValue}`
+        }
+
         const chatBody: Record<string, unknown> = {
-          query: inputValue,
+          query: enrichedQuery,
           stream: true,
           useVectorPipeline: true,
           privilegeMode,

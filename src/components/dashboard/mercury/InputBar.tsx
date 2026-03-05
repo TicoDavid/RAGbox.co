@@ -90,8 +90,26 @@ export function InputBar() {
           size: file.size,
         })
         const reader = new FileReader()
-        reader.onload = () => {
+        reader.onload = async () => {
           updateAttachment(attachmentId, { content: reader.result as string, status: 'ready' })
+
+          // Extract text for inline context injection (non-images only)
+          if (!isImage) {
+            updateAttachment(attachmentId, { status: 'processing' })
+            try {
+              const fd = new FormData()
+              fd.append('file', file)
+              const res = await fetch('/api/chat/parse-attachment', { method: 'POST', body: fd })
+              if (res.ok) {
+                const data = await res.json()
+                updateAttachment(attachmentId, { extractedText: data.text, status: 'ready' })
+              } else {
+                updateAttachment(attachmentId, { status: 'ready' }) // keep base64, just no text
+              }
+            } catch {
+              updateAttachment(attachmentId, { status: 'ready' })
+            }
+          }
         }
         reader.onerror = () => {
           updateAttachment(attachmentId, { status: 'error' })
