@@ -3,6 +3,9 @@
  *
  * POST — Save a session summary (called on disconnect/beforeunload)
  * GET  — Load last N session summaries for cross-session memory
+ *
+ * Note: Uses Prisma.$executeRawUnsafe for new fields (decisions, actionItems,
+ * messageCount) until Prisma client is regenerated with updated schema.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -32,27 +35,29 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ success: false, error: 'Summary is required' }, { status: 400 })
     }
 
-    const record = await prisma.mercurySessionSummary.create({
-      data: {
-        userId,
-        threadId: threadId ?? null,
-        summary: summary.trim(),
-        topics: Array.isArray(topics) ? topics : [],
-        decisions: Array.isArray(decisions) ? decisions : [],
-        actionItems: Array.isArray(actionItems) ? actionItems : [],
-        messageCount: typeof messageCount === 'number' ? messageCount : 0,
-        persona: persona ?? null,
-      },
-    })
+    // Use raw insert to handle fields not yet in the generated Prisma client
+    const id = `sess_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+    const topicsArr = Array.isArray(topics) ? topics : []
+    const decisionsArr = Array.isArray(decisions) ? decisions : []
+    const actionItemsArr = Array.isArray(actionItems) ? actionItems : []
+    const msgCount = typeof messageCount === 'number' ? messageCount : 0
+
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO mercury_session_summaries (id, user_id, thread_id, summary, topics, decisions, action_items, message_count, persona, created_at)
+       VALUES ($1, $2, $3, $4, $5::text[], $6::text[], $7::text[], $8, $9, NOW())`,
+      id, userId, threadId ?? null, summary.trim(),
+      topicsArr, decisionsArr, actionItemsArr,
+      msgCount, persona ?? null
+    )
 
     logger.info('[Session] Summary saved', {
       userId,
-      summaryId: record.id,
-      messageCount: record.messageCount,
-      topicCount: record.topics.length,
+      summaryId: id,
+      messageCount: msgCount,
+      topicCount: topicsArr.length,
     })
 
-    return NextResponse.json({ success: true, data: { id: record.id } })
+    return NextResponse.json({ success: true, data: { id } })
   } catch (err) {
     logger.error('[Session] Failed to save summary:', err)
     return NextResponse.json({ success: false, error: 'Failed to save session summary' }, { status: 500 })
@@ -75,23 +80,37 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const limit = parseInt(request.nextUrl.searchParams.get('limit') ?? String(MAX_SUMMARIES), 10)
     const effectiveLimit = Math.min(Math.max(limit, 1), 10)
 
-    const summaries = await prisma.mercurySessionSummary.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      take: effectiveLimit,
-      select: {
-        id: true,
-        summary: true,
-        topics: true,
-        decisions: true,
-        actionItems: true,
-        messageCount: true,
-        persona: true,
-        createdAt: true,
-      },
-    })
+    // Use raw query to access all fields including those not yet in generated client
+    const summaries = await prisma.$queryRawUnsafe<Array<{
+      id: string
+      summary: string
+      topics: string[]
+      decisions: string[]
+      action_items: string[]
+      message_count: number
+      persona: string | null
+      created_at: Date
+    }>>(
+      `SELECT id, summary, topics, decisions, action_items, message_count, persona, created_at
+       FROM mercury_session_summaries
+       WHERE user_id = $1
+       ORDER BY created_at DESC
+       LIMIT $2`,
+      userId, effectiveLimit
+    )
 
-    return NextResponse.json({ success: true, data: summaries })
+    const mapped = summaries.map(s => ({
+      id: s.id,
+      summary: s.summary,
+      topics: s.topics,
+      decisions: s.decisions,
+      actionItems: s.action_items,
+      messageCount: s.message_count,
+      persona: s.persona,
+      createdAt: s.created_at,
+    }))
+
+    return NextResponse.json({ success: true, data: mapped })
   } catch (err) {
     logger.error('[Session] Failed to load summaries:', err)
     return NextResponse.json({ success: true, data: [] })
