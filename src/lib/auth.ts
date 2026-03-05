@@ -157,6 +157,7 @@ export const authOptions: NextAuthOptions = {
               email: user.email,
               name: user.name ?? null,
               image: user.image ?? null,
+              subscriptionTier: 'professional', // CPO: unlimited queries until Stripe enforces
             },
             update: {
               name: user.name ?? undefined,
