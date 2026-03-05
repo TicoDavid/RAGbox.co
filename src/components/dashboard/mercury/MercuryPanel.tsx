@@ -19,6 +19,51 @@ let _pollThreadId: string | null = null
 let _pollInFlight = false
 let _pollCursor: string | null = null
 
+// ============================================================================
+// Insights polling singleton — polls GET /api/mercury/insights every 60s
+// ============================================================================
+let _insightsPollInterval: ReturnType<typeof setInterval> | null = null
+let _insightsPollInFlight = false
+const _seenInsightIds = new Set<string>()
+
+async function pollInsights() {
+  if (_insightsPollInFlight) return
+  _insightsPollInFlight = true
+
+  try {
+    const res = await fetch('/api/mercury/insights')
+    if (!res.ok) return
+
+    const data = await res.json()
+    const insights: Array<{ id: string; summary: string }> = data.data || []
+
+    for (const insight of insights) {
+      if (!_seenInsightIds.has(insight.id)) {
+        _seenInsightIds.add(insight.id)
+        useMercuryStore.getState().addInsight(insight.summary)
+      }
+    }
+  } catch {
+    // Silent fail — polling is best-effort
+  } finally {
+    _insightsPollInFlight = false
+  }
+}
+
+function startInsightsPolling() {
+  if (_insightsPollInterval) return
+  pollInsights()
+  _insightsPollInterval = setInterval(pollInsights, 60_000)
+}
+
+function stopInsightsPolling() {
+  if (_insightsPollInterval) {
+    clearInterval(_insightsPollInterval)
+    _insightsPollInterval = null
+  }
+  _insightsPollInFlight = false
+}
+
 function startThreadPolling(threadId: string) {
   // Already polling this thread — do nothing
   if (_pollInterval && _pollThreadId === threadId) return
@@ -141,6 +186,12 @@ export function MercuryPanel() {
     window.addEventListener('beforeunload', saveSessionSummary)
     return () => window.removeEventListener('beforeunload', saveSessionSummary)
   }, [loadThread])
+
+  // Poll proactive insights from DB every 60s
+  useEffect(() => {
+    startInsightsPolling()
+    return () => stopInsightsPolling()
+  }, [])
 
   // Handle pending tool actions (navigate, toggle_privilege, export_audit, open_document)
   useEffect(() => {
