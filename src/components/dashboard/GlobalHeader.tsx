@@ -48,6 +48,7 @@ import { getModelDisplayName, OPENROUTER_ENDPOINT } from '@/services/OpenRouterS
 import { AIModelSettings } from './settings/AIModelSettings'
 import IntegrationsSettings from '@/app/dashboard/settings/integrations/page'
 import { logger } from '@/lib/logger'
+import { FeedbackModal } from './FeedbackModal'
 
 // Profile types for multi-profile switching
 interface Profile {
@@ -77,6 +78,7 @@ export function GlobalHeader() {
   const [activeProfile, setActiveProfile] = useState<string>('work')
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsInitialSection, setSettingsInitialSection] = useState<SettingsSection | undefined>(undefined)
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [isSwitching, setIsSwitching] = useState(false)
   const [personaMenuOpen, setPersonaMenuOpen] = useState(false)
   const [hoveredPersona, setHoveredPersona] = useState<string | null>(null)
@@ -380,6 +382,16 @@ export function GlobalHeader() {
             </button>
           )}
 
+          {/* Feedback */}
+          <button
+            onClick={() => setFeedbackOpen(true)}
+            className="p-2 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+            title="Send Feedback"
+            aria-label="Send feedback"
+          >
+            <MessageSquare className="w-5 h-5" />
+          </button>
+
           {/* Settings */}
           <button
             onClick={() => setSettingsOpen(true)}
@@ -478,6 +490,9 @@ export function GlobalHeader() {
           </div>
         </div>
       </header>
+
+      {/* Feedback Modal */}
+      <FeedbackModal isOpen={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
 
       {/* Settings Modal */}
       {settingsOpen && (
