@@ -299,24 +299,36 @@ export function ActionConfirmationOverlay() {
 
   if (!pendingConfirmation) return null
 
-  return (
-    <AnimatePresence>
-      {pendingConfirmation.type === 'send_email' && (
+  const { type } = pendingConfirmation
+
+  if (type === 'send_email') {
+    return (
+      <AnimatePresence>
         <EmailConfirmationCard
           payload={pendingConfirmation.payload}
           onConfirm={confirmAction}
           onDeny={denyAction}
         />
-      )}
-      {pendingConfirmation.type === 'send_sms' && (
+      </AnimatePresence>
+    )
+  }
+
+  if (type === 'send_sms') {
+    return (
+      <AnimatePresence>
         <SmsConfirmationCard
           payload={pendingConfirmation.payload}
           onConfirm={confirmAction}
           onDeny={denyAction}
         />
-      )}
-    </AnimatePresence>
-  )
+      </AnimatePresence>
+    )
+  }
+
+  // Unrecognized confirmation type — block the action, auto-deny
+  console.warn('[ActionConfirmationOverlay] Unhandled confirmation type:', type)
+  denyAction()
+  return null
 }
 
 // ============================================================================
