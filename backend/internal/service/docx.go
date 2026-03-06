@@ -90,7 +90,9 @@ func parseDocumentXML(data []byte) (string, error) {
 				inText = false
 			case "p":
 				if paraHasText {
-					buf.WriteByte('\n')
+					// Double newline so the semantic chunker recognises paragraph boundaries.
+					// Previously a single '\n' caused the entire docx to collapse into 1-3 chunks.
+					buf.WriteString("\n\n")
 				}
 				inPara = false
 			}

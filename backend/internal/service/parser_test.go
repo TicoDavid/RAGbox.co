@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -417,6 +418,100 @@ func TestExtract_TextRoutingBypassesDocAI(t *testing.T) {
 	}
 	if called {
 		t.Error("Document AI should NOT be called for .md files")
+	}
+}
+
+// ============================================================================
+// Tests for normalizeParagraphs (PDF under-chunking fix)
+// ============================================================================
+
+func TestNormalizeParagraphs_PDFSingleNewlines(t *testing.T) {
+	// Simulates Document AI output where paragraph breaks are single \n
+	input := "EXECUTIVE SUMMARY\n" +
+		"CyberShield was engaged to review the platform.\n" +
+		"The review covered security and performance.\n" +
+		"1. Architecture Analysis\n" +
+		"The platform operates on GCP.\n" +
+		"It uses Cloud Run for hosting."
+
+	result := normalizeParagraphs(input)
+
+	// Should have paragraph breaks before section headers
+	if !strings.Contains(result, "\n\n1. Architecture Analysis") {
+		t.Errorf("expected paragraph break before section header, got:\n%s", result)
+	}
+
+	doubleNL := strings.Count(result, "\n\n")
+	if doubleNL < 2 {
+		t.Errorf("expected at least 2 double newlines, got %d in:\n%s", doubleNL, result)
+	}
+}
+
+func TestNormalizeParagraphs_AlreadyNormalized(t *testing.T) {
+	// Text already has paragraph breaks — should not be modified
+	input := "# Title\n\nFirst paragraph here.\n\nSecond paragraph here.\n\nThird paragraph."
+	result := normalizeParagraphs(input)
+
+	if result != input {
+		t.Errorf("expected no modification for already-normalized text.\ngot:  %q\nwant: %q", result, input)
+	}
+}
+
+func TestNormalizeParagraphs_AllCapsHeader(t *testing.T) {
+	input := "Some content here.\nTECHNICAL REVIEW\nMore content follows."
+	result := normalizeParagraphs(input)
+
+	if !strings.Contains(result, "\n\nTECHNICAL REVIEW") {
+		t.Errorf("expected paragraph break before all-caps header, got:\n%s", result)
+	}
+}
+
+func TestNormalizeParagraphs_WrappedLines(t *testing.T) {
+	// Lines that are soft wraps (mid-sentence) should be joined with space
+	input := "The RAGbox platform demonstrates a mature security architecture suitable for\n" +
+		"HIPAA-regulated healthcare data processing."
+	result := normalizeParagraphs(input)
+
+	expected := "The RAGbox platform demonstrates a mature security architecture suitable for HIPAA-regulated healthcare data processing."
+	if result != expected {
+		t.Errorf("expected line-wrap join.\ngot:  %q\nwant: %q", result, expected)
+	}
+}
+
+func TestNormalizeParagraphs_EmptyInput(t *testing.T) {
+	if normalizeParagraphs("") != "" {
+		t.Error("expected empty output for empty input")
+	}
+}
+
+func TestNormalizeParagraphs_SentenceEndThenNewParagraph(t *testing.T) {
+	input := "The audit found 7 findings.\nOverall the platform is secure."
+	result := normalizeParagraphs(input)
+
+	// "findings." ends with terminal punct, "Overall" starts with uppercase → paragraph break
+	if !strings.Contains(result, "\n\nOverall") {
+		t.Errorf("expected paragraph break after sentence end, got:\n%s", result)
+	}
+}
+
+func TestIsLikelySectionHeader(t *testing.T) {
+	tests := []struct {
+		line string
+		want bool
+	}{
+		{"1. Executive Summary", true},
+		{"2.1 Service Topology", true},
+		{"# Heading", true},
+		{"EXECUTIVE SUMMARY", true},
+		{"The platform operates on GCP.", false},
+		{"a lowercase line", false},
+		{"ABCDEF but this is way too long to be a header because it keeps going on and on and never seems to stop at all", false},
+	}
+	for _, tt := range tests {
+		got := isLikelySectionHeader(tt.line)
+		if got != tt.want {
+			t.Errorf("isLikelySectionHeader(%q) = %v, want %v", tt.line, got, tt.want)
+		}
 	}
 }
 

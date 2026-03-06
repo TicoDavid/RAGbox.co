@@ -96,8 +96,18 @@ func (s *ParserService) Extract(ctx context.Context, gcsURI string) (*ParseResul
 		return s.extractFallback(ctx, gcsURI, fmt.Errorf("document ai returned empty text"))
 	}
 
+	// Document AI outputs one \n per visual line (PDF column width), with no
+	// distinction between line wraps and paragraph breaks.  The semantic chunker
+	// splits on \n\n, so without normalisation PDF text collapses into 1-2 giant
+	// chunks.  normalizeParagraphs infers paragraph boundaries.
+	normalized := normalizeParagraphs(resp.Text)
+	slog.Info("document ai text normalized",
+		"gcs_uri", gcsURI, "raw_chars", len(resp.Text), "norm_chars", len(normalized),
+		"raw_double_nl", strings.Count(resp.Text, "\n\n"),
+		"norm_double_nl", strings.Count(normalized, "\n\n"))
+
 	return &ParseResult{
-		Text:     resp.Text,
+		Text:     normalized,
 		Pages:    resp.Pages,
 		Entities: resp.Entities,
 	}, nil
@@ -249,6 +259,107 @@ func parseGCSURI(uri string) (bucket, object string, err error) {
 		return "", "", fmt.Errorf("invalid GCS URI %q: missing object path", uri)
 	}
 	return trimmed[:idx], trimmed[idx+1:], nil
+}
+
+// normalizeParagraphs converts Document AI single-newline text into
+// paragraph-separated text that the semantic chunker can split correctly.
+//
+// Document AI emits one \n per visual line (PDF column width), with no
+// distinction between soft line wraps and hard paragraph breaks.
+// Heuristic rules:
+//  1. Empty lines are preserved as paragraph breaks (\n\n).
+//  2. A line that looks like a section header (starts with digit+dot, all-caps
+//     short line, or markdown-style #) forces a paragraph break before it.
+//  3. A line following a sentence-terminal character (.!?:) where the next
+//     line starts with an uppercase letter or digit triggers a paragraph break.
+//  4. Otherwise the newline is treated as a soft wrap and replaced with a space.
+func normalizeParagraphs(text string) string {
+	// If text already has reasonable paragraph breaks, don't touch it.
+	if strings.Count(text, "\n\n") >= 3 {
+		return text
+	}
+
+	lines := strings.Split(text, "\n")
+	if len(lines) <= 1 {
+		return text
+	}
+
+	var buf strings.Builder
+	buf.Grow(len(text) + len(lines)) // slightly larger to accommodate extra \n
+
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+
+		// Empty line → paragraph break
+		if trimmed == "" {
+			buf.WriteString("\n\n")
+			continue
+		}
+
+		if i > 0 {
+			prevTrimmed := strings.TrimSpace(lines[i-1])
+
+			if prevTrimmed == "" {
+				// Previous was empty — \n\n already written, just continue
+			} else if isLikelySectionHeader(trimmed) {
+				buf.WriteString("\n\n")
+			} else if endsWithTerminal(prevTrimmed) && startsNewUnit(trimmed) {
+				buf.WriteString("\n\n")
+			} else {
+				buf.WriteByte(' ')
+			}
+		}
+
+		buf.WriteString(trimmed)
+	}
+
+	return strings.TrimSpace(buf.String())
+}
+
+// isLikelySectionHeader returns true if a line looks like a section heading.
+func isLikelySectionHeader(line string) bool {
+	// Numbered sections: "1.", "2.1", "3.2.1 Title", etc.
+	if len(line) > 0 && line[0] >= '0' && line[0] <= '9' {
+		for j := 1; j < len(line) && j < 8; j++ {
+			if line[j] == '.' {
+				return true
+			}
+			if line[j] < '0' || line[j] > '9' {
+				break
+			}
+		}
+	}
+
+	// Markdown headers
+	if strings.HasPrefix(line, "#") {
+		return true
+	}
+
+	// Short all-caps lines (titles): "EXECUTIVE SUMMARY", "FINDINGS", etc.
+	if len(line) <= 60 && line == strings.ToUpper(line) && strings.ContainsAny(line, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") {
+		return true
+	}
+
+	return false
+}
+
+// endsWithTerminal returns true if a line ends with sentence-terminal punctuation.
+func endsWithTerminal(line string) bool {
+	if line == "" {
+		return false
+	}
+	last := line[len(line)-1]
+	return last == '.' || last == '!' || last == '?' || last == ':'
+}
+
+// startsNewUnit returns true if a line starts a new semantic unit.
+func startsNewUnit(line string) bool {
+	if line == "" {
+		return false
+	}
+	r := rune(line[0])
+	// Uppercase letter or digit (new sentence / numbered item)
+	return (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9')
 }
 
 // detectMimeType infers the MIME type from a GCS URI's file extension.

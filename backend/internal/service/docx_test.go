@@ -60,21 +60,12 @@ func TestExtractDocxText_MultipleParagraphs(t *testing.T) {
 		t.Fatalf("extractDocxText: %v", err)
 	}
 
-	lines := strings.Split(text, "\n")
-	nonEmpty := 0
-	for _, l := range lines {
-		if strings.TrimSpace(l) != "" {
-			nonEmpty++
-		}
+	// Paragraphs must be separated by \n\n so the semantic chunker can split them
+	if !strings.Contains(text, "First paragraph\n\nSecond paragraph") {
+		t.Errorf("expected \\n\\n between paragraphs, got:\n%q", text)
 	}
-	if nonEmpty < 3 {
-		t.Errorf("expected at least 3 non-empty lines, got %d in:\n%s", nonEmpty, text)
-	}
-	if !strings.Contains(text, "First paragraph") {
-		t.Errorf("missing 'First paragraph' in text")
-	}
-	if !strings.Contains(text, "Third paragraph") {
-		t.Errorf("missing 'Third paragraph' in text")
+	if !strings.Contains(text, "Second paragraph\n\nThird paragraph") {
+		t.Errorf("expected \\n\\n between second and third, got:\n%q", text)
 	}
 }
 

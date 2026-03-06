@@ -129,7 +129,15 @@ func (s *PipelineService) ProcessDocument(ctx context.Context, docID string) err
 		s.failDocument(ctx, docID, "parse_failed", err)
 		return fmt.Errorf("pipeline.ProcessDocument: parse: %w", err)
 	}
-	slog.Info("pipeline text extracted", "document_id", docID, "chars", len(parsed.Text), "pages", parsed.Pages)
+	doubleNL := 0
+	for i := 0; i+1 < len(parsed.Text); i++ {
+		if parsed.Text[i] == '\n' && parsed.Text[i+1] == '\n' {
+			doubleNL++
+		}
+	}
+	slog.Info("pipeline text extracted", "document_id", docID,
+		"chars", len(parsed.Text), "pages", parsed.Pages,
+		"mime_type", doc.MimeType, "double_newlines", doubleNL)
 
 	// Step 2: Scan for PII/PHI
 	slog.Info("pipeline step 2: scanning for PII", "document_id", docID)
@@ -162,14 +170,17 @@ func (s *PipelineService) ProcessDocument(ctx context.Context, docID string) err
 	}
 
 	// Step 4: Chunk
-	slog.Info("pipeline step 4: chunking text", "document_id", docID, "chars", len(parsed.Text))
+	slog.Info("pipeline step 4: chunking text", "document_id", docID,
+		"chars", len(parsed.Text), "filename", doc.Filename, "mime_type", doc.MimeType)
 	chunks, err := s.chunker.Chunk(ctx, parsed.Text, docID)
 	if err != nil {
 		slog.Error("pipeline chunking failed", "document_id", docID, "error", err)
 		s.failDocument(ctx, docID, "chunk_failed", err)
 		return fmt.Errorf("pipeline.ProcessDocument: chunk: %w", err)
 	}
-	slog.Info("pipeline chunks created", "document_id", docID, "chunk_count", len(chunks))
+	slog.Info("pipeline chunks created", "document_id", docID,
+		"chunk_count", len(chunks), "chars_per_chunk", len(parsed.Text)/(max(len(chunks), 1)),
+		"filename", doc.Filename)
 
 	// Step 5: Embed and store vectors
 	slog.Info("pipeline step 5: generating embeddings", "document_id", docID, "chunk_count", len(chunks))
