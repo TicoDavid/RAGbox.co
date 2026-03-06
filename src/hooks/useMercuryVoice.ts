@@ -7,10 +7,14 @@
  *   Recv: TEXT event                               — agent text (show in thread)
  *   Recv: AUDIO event / binary                     — TTS audio (play via AudioContext)
  *   Recv: INTERACTION_END                          — turn complete
+ *
+ * Capture: Uses AudioCapture (AudioWorklet + ScriptProcessorNode fallback)
+ * Playback: Pre-buffers ~2 chunks before starting to eliminate first-word clipping
  */
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { AudioCapture } from '@/lib/voice/audio-capture'
 
 // ============================================================================
 // TYPES
@@ -33,6 +37,21 @@ const VAD_THRESHOLD = 0.015
 const VAD_SILENCE_MS = 1500
 const VAD_MIN_SPEECH_MS = 300
 const CAPTURE_SAMPLE_RATE = 16000
+const PRE_BUFFER_CHUNKS = 2
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+/** Convert Int16 PCM ArrayBuffer → Float32Array (range -1..1) */
+function int16ToFloat32(buffer: ArrayBuffer): Float32Array {
+  const int16 = new Int16Array(buffer)
+  const float32 = new Float32Array(int16.length)
+  for (let i = 0; i < int16.length; i++) {
+    float32[i] = int16[i] < 0 ? int16[i] / 0x8000 : int16[i] / 0x7FFF
+  }
+  return float32
+}
 
 // ============================================================================
 // HOOK
@@ -43,9 +62,7 @@ export function useMercuryVoice(): UseMercuryVoiceReturn {
   const [audioLevel, setAudioLevel] = useState(0)
 
   const wsRef = useRef<WebSocket | null>(null)
-  const mediaStreamRef = useRef<MediaStream | null>(null)
-  const captureCtxRef = useRef<AudioContext | null>(null)
-  const processorRef = useRef<ScriptProcessorNode | null>(null)
+  const captureRef = useRef<AudioCapture | null>(null)
   const playbackCtxRef = useRef<AudioContext | null>(null)
   const playbackQueueRef = useRef<AudioBuffer[]>([])
   const isPlayingRef = useRef(false)
@@ -97,6 +114,16 @@ export function useMercuryVoice(): UseMercuryVoiceReturn {
 
     if (!isPlayingRef.current) {
       setStatus('speaking')
+      // Pre-buffer: wait for enough chunks to eliminate first-word clipping
+      if (playbackQueueRef.current.length >= PRE_BUFFER_CHUNKS) {
+        playNext()
+      }
+    }
+  }, [playNext])
+
+  // Flush any pre-buffered audio that hasn't started playing yet
+  const flushPreBuffer = useCallback(() => {
+    if (!isPlayingRef.current && playbackQueueRef.current.length > 0) {
       playNext()
     }
   }, [playNext])
@@ -104,18 +131,14 @@ export function useMercuryVoice(): UseMercuryVoiceReturn {
   // ── Cleanup ───────────────────────────────────────────────────────────
 
   const cleanup = useCallback(() => {
-    processorRef.current?.disconnect()
-    try { captureCtxRef.current?.close() } catch { /* already closed */ }
-    mediaStreamRef.current?.getTracks().forEach(t => t.stop())
+    captureRef.current?.stop()
     try { playbackCtxRef.current?.close() } catch { /* already closed */ }
 
     if (wsRef.current && wsRef.current.readyState <= WebSocket.OPEN) {
       wsRef.current.close()
     }
 
-    processorRef.current = null
-    captureCtxRef.current = null
-    mediaStreamRef.current = null
+    captureRef.current = null
     playbackCtxRef.current = null
     wsRef.current = null
     playbackQueueRef.current = []
@@ -160,6 +183,8 @@ export function useMercuryVoice(): UseMercuryVoiceReturn {
         }
 
         case 'INTERACTION_END':
+          // Flush pre-buffer if response was short (< PRE_BUFFER_CHUNKS)
+          flushPreBuffer()
           if (!isPlayingRef.current) {
             setStatus('ready')
           }
@@ -189,7 +214,7 @@ export function useMercuryVoice(): UseMercuryVoiceReturn {
           break
       }
     } catch { /* ignore parse errors */ }
-  }, [queueAudio])
+  }, [queueAudio, flushPreBuffer])
 
   // ── Connect ───────────────────────────────────────────────────────────
 
@@ -234,30 +259,14 @@ export function useMercuryVoice(): UseMercuryVoiceReturn {
     ws.onclose = () => cleanup()
     ws.onerror = () => cleanup()
 
-    // Start mic capture with VAD
+    // Start mic capture via AudioCapture (AudioWorklet + ScriptProcessorNode fallback)
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          sampleRate: CAPTURE_SAMPLE_RATE,
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      })
-      mediaStreamRef.current = stream
+      const capture = new AudioCapture()
+      captureRef.current = capture
 
-      const actx = new AudioContext({ sampleRate: CAPTURE_SAMPLE_RATE })
-      captureCtxRef.current = actx
-      const source = actx.createMediaStreamSource(stream)
-      const processor = actx.createScriptProcessor(4096, 1, 1)
-      processorRef.current = processor
-
-      source.connect(processor)
-      processor.connect(actx.destination)
-
-      processor.onaudioprocess = (e) => {
-        const pcm = e.inputBuffer.getChannelData(0)
+      await capture.start((data: ArrayBuffer) => {
+        // Convert Int16 PCM → Float32 for VAD + WebSocket protocol
+        const pcm = int16ToFloat32(data)
 
         // RMS for VAD + visualization
         let sum = 0
@@ -299,7 +308,7 @@ export function useMercuryVoice(): UseMercuryVoiceReturn {
             ws.send(JSON.stringify({ type: 'audio', audio: [Array.from(pcm)] }))
           } catch { /* ws may have closed */ }
         }
-      }
+      })
 
       setStatus('ready')
     } catch {
