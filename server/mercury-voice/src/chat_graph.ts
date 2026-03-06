@@ -33,8 +33,8 @@ export function buildChatGraph(voiceId?: string): Graph {
     speakerId: voiceId || DEFAULT_VOICE_ID,
     modelId: DEFAULT_TTS_MODEL_ID,
     sampleRate: TTS_SAMPLE_RATE,
-    temperature: 0.8,
-    speakingRate: 1.0,
+    temperature: 0.6,
+    speakingRate: 1.05,
   });
 
   const graph = new GraphBuilder({
