@@ -111,7 +111,7 @@ describe('MercurySettingsModal', () => {
     // Switch to Voice tab
     fireEvent.click(screen.getByText('Voice'))
     await waitFor(() => {
-      expect(screen.getByText(/Configure Mercury's voice/)).toBeInTheDocument()
+      expect(screen.getByText(/Browse, audition, and tune Mercury's voice/)).toBeInTheDocument()
     })
   })
 

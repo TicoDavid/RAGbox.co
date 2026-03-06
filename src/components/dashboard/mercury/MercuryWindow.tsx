@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Settings, Mic, Power, PowerOff } from 'lucide-react'
+import { Settings, Mic, Power, PowerOff, Terminal } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { MercuryPanel } from './MercuryPanel'
+import { MatrixRain } from './MatrixRain'
 import { MercurySettingsModal } from './MercurySettingsModal'
 import { useMercuryVoice, type VoiceStatus } from '@/hooks/useMercuryVoice'
 import { useMercuryStore } from '@/stores/mercuryStore'
@@ -62,8 +63,22 @@ export function MercuryWindow() {
   const [greeting, setGreeting] = useState('')
   const greetingInjectedRef = useRef(false)
 
+  // Matrix rain speed — persisted in localStorage
+  const [matrixSpeed, setMatrixSpeed] = useState(() => {
+    if (typeof window === 'undefined') return 30
+    try {
+      return parseInt(localStorage.getItem('mercury-matrix-speed') || '30', 10)
+    } catch {
+      return 30
+    }
+  })
+
   const { data: session } = useSession()
   const { status, audioLevel, connect, disconnect } = useMercuryVoice()
+  const isStreaming = useMercuryStore((s) => s.isStreaming)
+
+  // Auto-ramp matrix speed during AI streaming
+  const effectiveSpeed = isStreaming ? 45 : matrixSpeed
 
   const isPoweredOn = status !== 'off'
 
@@ -111,10 +126,17 @@ export function MercuryWindow() {
     }
   }, [isPoweredOn, greeting])
 
+  // Persist matrix speed preference
+  useEffect(() => {
+    try {
+      localStorage.setItem('mercury-matrix-speed', String(matrixSpeed))
+    } catch { /* storage unavailable */ }
+  }, [matrixSpeed])
+
   return (
     <div className="flex flex-col h-full bg-[var(--bg-primary)] overflow-hidden">
-      {/* ─── Header ─── */}
-      <div className="shrink-0 flex items-center justify-between px-4 py-2.5 border-b border-[var(--border-subtle)]">
+      {/* ─── Header — glass effect for rain visibility ─── */}
+      <div className="shrink-0 flex items-center justify-between px-4 py-2.5 border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]/80 backdrop-blur-md relative z-20">
         {/* Agent identity */}
         <div className="flex items-center gap-3 min-w-0">
           <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-[var(--bg-tertiary)] to-[var(--bg-primary)] border border-[var(--border-default)] flex items-center justify-center">
@@ -162,8 +184,8 @@ export function MercuryWindow() {
         </div>
       </div>
 
-      {/* ─── Voice Controls Subheader — compact one-row ─── */}
-      <div className="shrink-0 flex items-center gap-3 px-4 py-2 border-b border-[var(--border-subtle)]">
+      {/* ─── Voice Controls Subheader — glass effect ─── */}
+      <div className="shrink-0 flex items-center gap-3 px-4 py-2 border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 backdrop-blur-sm relative z-20">
         {/* Power Button */}
         <motion.button
           onClick={handlePowerToggle}
@@ -203,11 +225,42 @@ export function MercuryWindow() {
         <span className={`text-[10px] font-medium shrink-0 ${STATUS_COLORS[status]}`}>
           {STATUS_LABELS[status]}
         </span>
+
+        {/* Matrix speed control — compact inline slider */}
+        <div className="flex items-center gap-2 bg-[var(--bg-tertiary)]/40 px-3 py-1.5 rounded-full border border-[var(--border-default)] backdrop-blur-sm">
+          <Terminal
+            size={14}
+            className={effectiveSpeed > 0 ? 'text-[var(--brand-blue)]' : 'text-[var(--text-tertiary)]'}
+          />
+          <input
+            type="range"
+            aria-label="Matrix rain animation speed"
+            min="0"
+            max="60"
+            step="10"
+            value={matrixSpeed}
+            onChange={(e) => setMatrixSpeed(parseInt(e.target.value, 10))}
+            className="w-20 h-1 bg-[var(--bg-elevated)] rounded-lg appearance-none cursor-pointer accent-[var(--brand-blue)]"
+          />
+          <span className="text-[10px] font-mono text-[var(--text-tertiary)] w-8">
+            {matrixSpeed === 0 ? 'OFF' : matrixSpeed <= 10 ? 'SLOW' : matrixSpeed <= 30 ? 'ON' : 'FAST'}
+          </span>
+        </div>
       </div>
 
-      {/* ─── Unified Mercury Panel — always rendered ─── */}
-      <div className="flex-1 min-h-0 overflow-hidden">
-        <MercuryPanel />
+      {/* ─── Unified Mercury Panel — always rendered, with Matrix rain behind ─── */}
+      <div className="flex-1 min-h-0 overflow-hidden relative">
+        {/* Matrix rain — behind everything */}
+        <MatrixRain
+          opacity={0.15}
+          color="#60a5fa"
+          backgroundColor="#0A192F"
+          speed={effectiveSpeed}
+        />
+        {/* Chat panel — on top with glass effect */}
+        <div className="relative z-10 h-full">
+          <MercuryPanel />
+        </div>
       </div>
 
       {/* ─── Settings Modal ─── */}
