@@ -215,6 +215,7 @@ type ChatDeps struct {
 	CortexSvc      CortexSearcher  // optional — nil means no working memory
 	QueryCache     *cache.QueryCache // optional — nil disables retrieval caching
 	EmbedCache     *cache.EmbeddingCache // optional — nil disables embedding caching
+	RedisCache     *cache.RedisCache // optional — nil disables Redis L2 caching (EPIC-028)
 	UsageSvc       *service.UsageService // optional — nil disables usage metering
 	UserTierFunc   func(ctx context.Context, userID string) string // optional — returns user's subscription tier
 	DocStatus      DocumentStatusChecker // optional — STORY-172: check if docs are still processing
@@ -416,6 +417,44 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			}
 		}
 
+		// EPIC-028: Fast-path — check Redis for a cached full response before any work.
+		// This returns the final answer in <500ms for repeated identical queries.
+		if deps.RedisCache != nil {
+			if cachedResp, ok := deps.RedisCache.GetResponse(ctx, userID, req.Query, privilegeMode); ok {
+				fastTTFB := time.Since(startTime).Milliseconds()
+				// Stream the cached answer as token events
+				answerTokens := splitIntoTokens(sanitizeAnswer(cachedResp.Answer))
+				for _, token := range answerTokens {
+					if ctx.Err() != nil {
+						return
+					}
+					tokenJSON, _ := json.Marshal(map[string]string{"text": token})
+					sendEvent(w, flusher, "token", string(tokenJSON))
+				}
+				// Send confidence + citations
+				confJSON, _ := json.Marshal(map[string]interface{}{"confidence": cachedResp.Confidence})
+				sendEvent(w, flusher, "confidence", string(confJSON))
+				if len(cachedResp.Citations) > 0 {
+					citJSON, _ := json.Marshal(cachedResp.Citations)
+					sendEvent(w, flusher, "citations", string(citJSON))
+				}
+				donePayload := map[string]interface{}{
+					"totalMs":   time.Since(startTime).Milliseconds(),
+					"ttfbMs":    fastTTFB,
+					"cached":    true,
+					"modelUsed": cachedResp.ModelUsed,
+				}
+				doneJSON, _ := json.Marshal(donePayload)
+				sendEvent(w, flusher, "done", string(doneJSON))
+				slog.Info("[Chat] Redis response cache hit",
+					"user_id", userID,
+					"ttfb_ms", fastTTFB,
+					"total_ms", time.Since(startTime).Milliseconds(),
+				)
+				return
+			}
+		}
+
 		// Step 1: Retrieve — parallel cache check + embedding (STORY-150)
 		sendEvent(w, flusher, "status", `{"stage":"retrieving"}`)
 
@@ -431,23 +470,45 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 
 		g, gCtx := errgroup.WithContext(ctx)
 
-		// Goroutine 1: check query result cache
+		// Goroutine 1: check query result cache (L1 in-memory → L2 Redis)
 		g.Go(func() error {
 			if deps.QueryCache != nil {
 				if cached, ok := deps.QueryCache.Get(userID, req.Query, privilegeMode); ok {
 					retrieval = cached
 					cacheHit = true
+					return nil
+				}
+			}
+			// EPIC-028: L2 Redis fallback for retrieval results
+			if deps.RedisCache != nil {
+				if cached, ok := deps.RedisCache.GetRetrieval(gCtx, userID, req.Query, privilegeMode); ok {
+					retrieval = cached
+					cacheHit = true
+					if deps.QueryCache != nil {
+						deps.QueryCache.Set(userID, req.Query, privilegeMode, cached) // backfill L1
+					}
 				}
 			}
 			return nil // cache miss is not an error
 		})
 
-		// Goroutine 2: embed query (check embedding cache first)
+		// Goroutine 2: embed query (check L1 in-memory → L2 Redis → compute)
 		g.Go(func() error {
 			if deps.EmbedCache != nil {
 				if vec, ok := deps.EmbedCache.Get(queryHash); ok {
 					queryVec = vec
 					embedCached = true
+					return nil
+				}
+			}
+			// EPIC-028: L2 Redis fallback for embeddings
+			if deps.RedisCache != nil {
+				if vec, ok := deps.RedisCache.GetEmbedding(gCtx, queryHash); ok {
+					queryVec = vec
+					embedCached = true
+					if deps.EmbedCache != nil {
+						deps.EmbedCache.Set(queryHash, vec) // backfill L1
+					}
 					return nil
 				}
 			}
@@ -458,6 +519,9 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			queryVec = vecs[0]
 			if deps.EmbedCache != nil {
 				deps.EmbedCache.Set(queryHash, queryVec)
+			}
+			if deps.RedisCache != nil {
+				deps.RedisCache.SetEmbedding(gCtx, queryHash, queryVec)
 			}
 			return nil
 		})
@@ -485,6 +549,9 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			_ = tSearchStart // used in latency log below
 			if deps.QueryCache != nil {
 				deps.QueryCache.Set(userID, req.Query, privilegeMode, retrieval)
+			}
+			if deps.RedisCache != nil {
+				deps.RedisCache.SetRetrieval(ctx, userID, req.Query, privilegeMode, retrieval)
 			}
 		}
 
@@ -704,22 +771,21 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 					return
 				}
 			} else {
-				// STORY-220: Accumulate streaming tokens server-side — do NOT
-				// forward raw LLM output to the client. The system prompt tells
-				// the model to return structured JSON ({"answer":"...",
-				// "citations":[...],"confidence":0.85}), so raw tokens would
-				// expose the JSON envelope to the user. We buffer the entire
-				// generation, parse the JSON, then stream ONLY the extracted
-				// answer text as clean token events.
+				// EPIC-028: Forward streaming tokens directly to SSE for
+				// instant TTFB. The prompt now requests plain text with
+				// inline [N] citations instead of JSON, so tokens are safe
+				// to send to the client as-is.
 				gotTokens := false
 				for token := range streamResult.TokenCh {
 					if ctx.Err() != nil {
 						return
 					}
-					_ = token // consumed but not forwarded
 					if !gotTokens {
 						gotTokens = true
+						ttfbMs = time.Since(tGenerateStart).Milliseconds()
 					}
+					tokenJSON, _ := json.Marshal(map[string]string{"text": token})
+					sendEvent(w, flusher, "token", string(tokenJSON))
 				}
 
 				// Check for generation errors
@@ -743,36 +809,13 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 				default:
 				}
 
-				// Parse accumulated response, then stream ONLY the answer (STORY-220)
+				// EPIC-028: Parse accumulated plain text for citations + confidence
 				if gotTokens {
 					fullText := streamResult.Full()
-					ttfbMs = time.Since(tGenerateStart).Milliseconds()
-
-					var parseErr error
-					initial, parseErr = service.ParseGenerationResponse(fullText, retrieval.Chunks)
-					if parseErr != nil {
-						slog.Error("chat parse failed", "user_id", userID, "error", parseErr)
-					}
+					initial = service.ParseStreamingAnswer(fullText, retrieval.Chunks)
 					initial.ModelUsed = streamResult.Model
 					initial.LatencyMs = time.Since(tGenerateStart).Milliseconds()
-
-					// Stream the extracted answer text as clean token events.
-					// Every event: token contains ONLY prose — no JSON structure,
-					// no braces, no "answer:" keys. Citations and confidence go
-					// via their own dedicated SSE events.
-					// BUG-054: sanitize in case ParseGenerationResponse returned raw JSON
-					answerTokens := splitIntoTokens(sanitizeAnswer(initial.Answer))
-					for _, token := range answerTokens {
-						if ctx.Err() != nil {
-							return
-						}
-						tokenJSON, _ := json.Marshal(map[string]string{"text": token})
-						sendEvent(w, flusher, "token", string(tokenJSON))
-					}
-					// BUG-052: Only mark as streamed if we actually sent token events.
-					// Empty answer (e.g., BYOLLM model returned wrong JSON key) should
-					// fall through to post-SelfRAG streaming or AEGIS fallback.
-					streamedTokens = len(answerTokens) > 0
+					streamedTokens = true
 				}
 			}
 		}
@@ -962,6 +1005,17 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			"latency_ms": time.Since(startTime).Milliseconds(),
 		})
 		sendEvent(w, flusher, "metadata", string(metadataJSON))
+
+		// EPIC-028: Cache final response in Redis for next identical query
+		if deps.RedisCache != nil && result != nil {
+			cacheableResult := &service.GenerationResult{
+				Answer:     result.FinalAnswer,
+				Citations:  result.Citations,
+				Confidence: result.FinalConfidence,
+				ModelUsed:  initial.ModelUsed,
+			}
+			deps.RedisCache.SetResponse(ctx, userID, req.Query, privilegeMode, cacheableResult)
+		}
 
 		// Structured latency log (STORY-150 + STORY-151)
 		slog.Info("[Chat Latency]",

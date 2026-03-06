@@ -226,7 +226,7 @@ func TestGenerate_Modes(t *testing.T) {
 
 func TestBuildUserPrompt(t *testing.T) {
 	chunks := testChunks()
-	prompt := buildUserPrompt("What is the revenue?", chunks, "concise")
+	prompt := buildUserPrompt("What is the revenue?", chunks, "concise", false)
 
 	if !strings.Contains(prompt, "[1]") {
 		t.Error("prompt should contain chunk index [1]")
@@ -243,14 +243,14 @@ func TestBuildUserPrompt(t *testing.T) {
 }
 
 func TestBuildUserPrompt_DetailedMode(t *testing.T) {
-	prompt := buildUserPrompt("query", testChunks(), "detailed")
+	prompt := buildUserPrompt("query", testChunks(), "detailed", false)
 	if !strings.Contains(prompt, "DETAILED") {
 		t.Error("prompt should contain DETAILED for detailed mode")
 	}
 }
 
 func TestBuildUserPrompt_RiskMode(t *testing.T) {
-	prompt := buildUserPrompt("query", testChunks(), "risk-analysis")
+	prompt := buildUserPrompt("query", testChunks(), "risk-analysis", false)
 	if !strings.Contains(prompt, "RISK ANALYSIS") {
 		t.Error("prompt should contain RISK ANALYSIS for risk mode")
 	}

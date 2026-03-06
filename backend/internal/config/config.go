@@ -45,6 +45,7 @@ type Config struct {
 	VonageDefaultTenant      string
 	RerankUseEmbeddings      bool
 	ConfidenceFloor          float64
+	RedisAddr                string
 }
 
 // Load reads configuration from environment variables.
@@ -98,6 +99,7 @@ func Load() (*Config, error) {
 		VonageDefaultTenant:      envStr("VONAGE_DEFAULT_TENANT", ""),
 		RerankUseEmbeddings:      envBool("RERANK_USE_EMBEDDINGS", true),
 		ConfidenceFloor:          envFloat("CONFIDENCE_FLOOR", 0.3),
+		RedisAddr:                envStr("REDIS_ADDR", ""),
 	}
 
 	// Internal auth secret is required in non-development environments

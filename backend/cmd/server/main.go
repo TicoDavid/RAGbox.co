@@ -287,6 +287,13 @@ func run() error {
 	defer embedCache.Stop()
 	slog.Info("embedding cache initialized", "ttl", "15m")
 
+	// EPIC-028: Redis L2 cache (optional — nil if REDIS_ADDR not set)
+	redisCache := cache.NewRedisCache(cfg.RedisAddr)
+	if redisCache != nil {
+		defer redisCache.Close()
+		slog.Info("redis L2 cache initialized", "addr", cfg.RedisAddr)
+	}
+
 	// ─── Router ────────────────────────────────────────────────────────
 
 	router := internalrouter.New(&internalrouter.Dependencies{
@@ -325,6 +332,7 @@ func run() error {
 			CortexSvc:      cortexSvc,
 			QueryCache:     queryCache,
 			EmbedCache:     embedCache,
+			RedisCache:     redisCache,
 			UsageSvc:       usageSvc,      // STORY-199: token allocation enforcement
 			UserTierFunc:   userTierFunc,   // STORY-199: tier lookup from users table
 			DocStatus:      docRepo,         // STORY-172: processing status + document summaries

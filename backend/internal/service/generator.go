@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -106,7 +108,7 @@ func (s *GeneratorService) Generate(ctx context.Context, query string, chunks []
 	}
 
 	systemPrompt := s.buildSystemPrompt(opts)
-	userPrompt := buildUserPrompt(query, chunks, mode, opts.CortexContext...)
+	userPrompt := buildUserPrompt(query, chunks, mode, false, opts.CortexContext...)
 
 	raw, err := s.client.GenerateContent(ctx, systemPrompt, userPrompt)
 	if err != nil {
@@ -136,7 +138,7 @@ func (s *GeneratorService) GenerateStream(ctx context.Context, query string, chu
 	if !ok {
 		// Fallback: non-streaming client — generate synchronously, deliver as one chunk
 		raw, err := s.client.GenerateContent(ctx, s.buildSystemPrompt(opts),
-			buildUserPrompt(query, chunks, opts.Mode, opts.CortexContext...))
+			buildUserPrompt(query, chunks, opts.Mode, false, opts.CortexContext...))
 		if err != nil {
 			return nil, fmt.Errorf("service.GenerateStream: fallback: %w", err)
 		}
@@ -163,7 +165,7 @@ func (s *GeneratorService) GenerateStream(ctx context.Context, query string, chu
 	}
 
 	systemPrompt := s.buildSystemPrompt(opts)
-	userPrompt := buildUserPrompt(query, chunks, mode, opts.CortexContext...)
+	userPrompt := buildUserPrompt(query, chunks, mode, true, opts.CortexContext...)
 
 	textCh, errCh := streamClient.GenerateContentStream(ctx, systemPrompt, userPrompt)
 
@@ -285,7 +287,8 @@ RULES (NON-NEGOTIABLE):
 {"answer": "...", "citations": [{"chunkIndex": 1, "excerpt": "...", "relevance": 0.9}], "confidence": 0.85}`
 
 // buildUserPrompt constructs the user message with context chunks and query.
-func buildUserPrompt(query string, chunks []RankedChunk, mode string, cortexContext ...string) string {
+// When streaming is true, requests plain text with inline [N] citations instead of JSON.
+func buildUserPrompt(query string, chunks []RankedChunk, mode string, streaming bool, cortexContext ...string) string {
 	var sb strings.Builder
 
 	sb.WriteString("=== CONTEXT CHUNKS ===\n")
@@ -318,7 +321,11 @@ func buildUserPrompt(query string, chunks []RankedChunk, mode string, cortexCont
 		sb.WriteString("=== MODE: CONCISE ===\nProvide a brief, focused answer with key citations.\n")
 	}
 
-	sb.WriteString("\nRespond with JSON: {\"answer\": \"...\", \"citations\": [{\"chunkIndex\": N, \"excerpt\": \"...\", \"relevance\": 0.0-1.0}], \"confidence\": 0.0-1.0}")
+	if streaming {
+		sb.WriteString("\nRespond directly with your answer as plain text. Cite sources using bracketed numbers [1], [2], [3] referencing the context chunks above. Every factual claim from documents must have a citation. Do NOT wrap your response in JSON or code fences.")
+	} else {
+		sb.WriteString("\nRespond with JSON: {\"answer\": \"...\", \"citations\": [{\"chunkIndex\": N, \"excerpt\": \"...\", \"relevance\": 0.0-1.0}], \"confidence\": 0.0-1.0}")
+	}
 
 	return sb.String()
 }
@@ -468,4 +475,65 @@ parsed_ok:
 		Citations:  citations,
 		Confidence: confidence,
 	}, nil
+}
+
+// citationPattern matches inline citation references like [1], [2], [3].
+var citationPattern = regexp.MustCompile(`\[(\d+)\]`)
+
+// ParseStreamingAnswer extracts citations from a plain-text streaming response
+// that uses [N] inline references. Confidence is estimated from citation density.
+func ParseStreamingAnswer(text string, chunks []RankedChunk) *GenerationResult {
+	answer := strings.TrimSpace(text)
+
+	// If the model accidentally returned JSON despite the streaming prompt,
+	// try to parse it with the standard parser.
+	if strings.HasPrefix(answer, "{") && strings.Contains(answer, `"answer"`) {
+		if result, err := ParseGenerationResponse(text, chunks); err == nil {
+			return result
+		}
+	}
+
+	// Extract [N] citation references from the text
+	matches := citationPattern.FindAllStringSubmatch(answer, -1)
+	seen := make(map[int]bool)
+	var citations []CitationRef
+
+	for _, m := range matches {
+		idx, err := strconv.Atoi(m[1])
+		if err != nil || idx < 1 || idx > len(chunks) {
+			continue
+		}
+		if seen[idx] {
+			continue
+		}
+		seen[idx] = true
+
+		chunk := chunks[idx-1]
+		excerpt := chunk.Chunk.Content
+		if len(excerpt) > 150 {
+			excerpt = excerpt[:150] + "..."
+		}
+		citations = append(citations, CitationRef{
+			ChunkID:    chunk.Chunk.ID,
+			DocumentID: chunk.Document.ID,
+			Excerpt:    excerpt,
+			Relevance:  chunk.Similarity,
+			Index:      idx,
+		})
+	}
+
+	// Estimate confidence from citation density
+	confidence := 0.5
+	if len(citations) > 0 {
+		confidence = float64(len(citations)) * 0.2
+		if confidence > 1.0 {
+			confidence = 1.0
+		}
+	}
+
+	return &GenerationResult{
+		Answer:     answer,
+		Citations:  citations,
+		Confidence: confidence,
+	}
 }
