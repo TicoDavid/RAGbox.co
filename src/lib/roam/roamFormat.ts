@@ -61,7 +61,7 @@ export function formatForRoam(
  * Format a Silence Protocol refusal for ROAM.
  */
 export function formatSilenceForRoam(suggestions?: string[], personaName?: string): string {
-  const name = personaName || 'Mercury'
+  const name = personaName || 'Evelyn Monroe'
   const lines = [
     `🔇 ${name} — Silence Protocol`,
     '',
@@ -85,7 +85,7 @@ export function formatSilenceForRoam(suggestions?: string[], personaName?: strin
  * Format an error message for ROAM.
  */
 export function formatErrorForRoam(errorCode?: string, personaName?: string): string {
-  const name = personaName || 'Mercury'
+  const name = personaName || 'Evelyn Monroe'
   return [
     `⚠ ${name} — Processing Error`,
     '',

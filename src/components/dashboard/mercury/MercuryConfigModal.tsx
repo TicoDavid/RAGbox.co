@@ -31,7 +31,7 @@ interface ConfigState {
 export type { ConfigState }
 
 const DEFAULT_CONFIG: ConfigState = {
-  name: 'Mercury',
+  name: 'Evelyn Monroe',
   title: 'AI Assistant',
   greeting: 'Welcome to RAGbox. Upload documents to your vault and ask me anything.',
   personalityPrompt: '',

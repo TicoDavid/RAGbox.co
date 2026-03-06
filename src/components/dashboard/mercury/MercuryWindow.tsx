@@ -38,7 +38,7 @@ function AudioLevelBar({ level, isActive }: { level: number; isActive: boolean }
 
 export function MercuryWindow() {
   const [configOpen, setConfigOpen] = useState(false)
-  const [agentName, setAgentName] = useState('Mercury')
+  const [agentName, setAgentName] = useState('Evelyn Monroe')
   const [agentTitle, setAgentTitle] = useState('AI Assistant')
   const [greeting, setGreeting] = useState('')
   const greetingInjectedRef = useRef(false)
@@ -90,7 +90,7 @@ export function MercuryWindow() {
       if (!res.ok) return
       const json = await res.json()
       if (json.success && json.data?.config) {
-        setAgentName(json.data.config.name || 'Mercury')
+        setAgentName(json.data.config.name || 'Evelyn Monroe')
         setAgentTitle(json.data.config.title || 'AI Assistant')
         setGreeting(json.data.config.greeting || '')
       }
@@ -268,7 +268,7 @@ export function MercuryWindow() {
         open={configOpen}
         onClose={() => setConfigOpen(false)}
         onSaved={({ name, title, greeting: g }) => {
-          setAgentName(name || 'Mercury')
+          setAgentName(name || 'Evelyn Monroe')
           setAgentTitle(title || 'AI Assistant')
           if (g !== undefined) setGreeting(g)
         }}

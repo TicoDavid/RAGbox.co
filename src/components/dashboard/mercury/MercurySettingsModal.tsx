@@ -72,7 +72,7 @@ interface ConfigState {
 }
 
 const DEFAULT_CONFIG: ConfigState = {
-  name: 'Mercury',
+  name: 'Evelyn Monroe',
   title: 'AI Assistant',
   greeting: 'Welcome to RAGbox. Upload documents to your vault and ask me anything.',
   personality: '',
@@ -473,7 +473,7 @@ function VoiceSection({
     if (previewing || typeof window === 'undefined') return
     setPreviewing(true)
     setPreviewError(false)
-    const text = config.greeting || `Hello, I'm ${config.name || 'Mercury'}. How can I help you today?`
+    const text = config.greeting || `Hello, I'm ${config.name || 'Evelyn Monroe'}. How can I help you today?`
 
     try {
       const res = await fetch('/api/voice/synthesize', {
