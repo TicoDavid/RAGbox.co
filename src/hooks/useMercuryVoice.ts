@@ -1,12 +1,14 @@
 /**
  * useMercuryVoice — Clean WebSocket voice hook for Mercury panel
  *
- * Protocol:
- *   Send: { type: "audio", audio: float32[][] }  — mic audio chunks
- *   Send: { type: "audioSessionEnd" }             — user stopped speaking
- *   Recv: TEXT event                               — agent text (show in thread)
- *   Recv: AUDIO event / binary                     — TTS audio (play via AudioContext)
- *   Recv: INTERACTION_END                          — turn complete
+ * Protocol (matches server/agent-ws.ts):
+ *   Send: { type: "start" }                      — begin audio session
+ *   Send: binary ArrayBuffer (Int16 PCM)          — mic audio chunks
+ *   Send: { type: "stop" }                        — end audio session → triggers STT→LLM→TTS
+ *   Recv: asr_final / asr_partial                  — speech-to-text results
+ *   Recv: agent_text_final / agent_text_partial    — Mercury's response text
+ *   Recv: binary ArrayBuffer (Int16 PCM)           — TTS audio (play via AudioContext)
+ *   Recv: state                                    — server state transitions
  *
  * Capture: Uses AudioCapture (AudioWorklet + ScriptProcessorNode fallback)
  * Playback: Pre-buffers ~2 chunks before starting to eliminate first-word clipping
@@ -73,6 +75,7 @@ export function useMercuryVoice(): UseMercuryVoiceReturn {
   const silenceStartRef = useRef<number | null>(null)
   const speechStartRef = useRef<number | null>(null)
   const smoothedLevelRef = useRef(0)
+  const audioSessionActiveRef = useRef(false)
 
   // Keep ref in sync for closures
   statusRef.current = status
@@ -147,6 +150,7 @@ export function useMercuryVoice(): UseMercuryVoiceReturn {
     silenceStartRef.current = null
     speechStartRef.current = null
     smoothedLevelRef.current = 0
+    audioSessionActiveRef.current = false
     setAudioLevel(0)
     setStatus('off')
   }, [])
@@ -154,9 +158,10 @@ export function useMercuryVoice(): UseMercuryVoiceReturn {
   // ── WebSocket message handler ─────────────────────────────────────────
 
   const handleMessage = useCallback((event: MessageEvent) => {
-    // Binary frame = raw TTS audio (Float32 PCM)
+    // Binary frame = raw Int16 PCM TTS audio from server
     if (event.data instanceof ArrayBuffer) {
-      const float32 = new Float32Array(event.data)
+      // Server sends Int16 PCM — convert to Float32 for Web Audio playback
+      const float32 = int16ToFloat32(event.data)
       if (statusRef.current === 'thinking') setStatus('speaking')
       queueAudio(float32, CAPTURE_SAMPLE_RATE)
       return
@@ -190,13 +195,17 @@ export function useMercuryVoice(): UseMercuryVoiceReturn {
           }
           break
 
-        // ── Legacy compat (existing mercury-voice server) ──
+        // ── Legacy compat (agent-ws.ts server protocol) ──
         case 'agent_text_final':
           if (msg.text) {
             window.dispatchEvent(new CustomEvent('mercury:voice-response', {
               detail: { text: msg.text, source: 'voice' },
             }))
           }
+          break
+
+        case 'agent_text_partial':
+          // Partial text — could show streaming indicator
           break
 
         case 'asr_final':
@@ -207,10 +216,18 @@ export function useMercuryVoice(): UseMercuryVoiceReturn {
           }
           break
 
+        case 'asr_partial':
+          // Partial ASR — could show live transcript
+          break
+
         case 'state':
           if (msg.state === 'speaking') setStatus('speaking')
           else if (msg.state === 'processing') setStatus('thinking')
-          else if (msg.state === 'idle' && !isPlayingRef.current) setStatus('ready')
+          else if (msg.state === 'idle' && !isPlayingRef.current) {
+            // Flush pre-buffer when server signals idle (in case response was short)
+            flushPreBuffer()
+            setStatus('ready')
+          }
           break
       }
     } catch { /* ignore parse errors */ }
@@ -265,7 +282,8 @@ export function useMercuryVoice(): UseMercuryVoiceReturn {
       captureRef.current = capture
 
       await capture.start((data: ArrayBuffer) => {
-        // Convert Int16 PCM → Float32 for VAD + WebSocket protocol
+        // AudioCapture provides Int16 PCM ArrayBuffer
+        // Convert to Float32 only for local VAD + level visualization
         const pcm = int16ToFloat32(data)
 
         // RMS for VAD + visualization
@@ -285,6 +303,13 @@ export function useMercuryVoice(): UseMercuryVoiceReturn {
             if (now - speechStartRef.current >= VAD_MIN_SPEECH_MS) {
               isSpeakingRef.current = true
               setStatus('listening')
+              // Tell server to start audio session (required by agent-ws.ts)
+              if (!audioSessionActiveRef.current) {
+                audioSessionActiveRef.current = true
+                try {
+                  ws.send(JSON.stringify({ type: 'start' }))
+                } catch { /* ws may have closed */ }
+              }
             }
           }
         } else {
@@ -294,18 +319,20 @@ export function useMercuryVoice(): UseMercuryVoiceReturn {
             if (now - silenceStartRef.current >= VAD_SILENCE_MS) {
               isSpeakingRef.current = false
               silenceStartRef.current = null
+              audioSessionActiveRef.current = false
+              // Tell server to stop audio session → triggers STT→LLM→TTS pipeline
               try {
-                ws.send(JSON.stringify({ type: 'audioSessionEnd' }))
+                ws.send(JSON.stringify({ type: 'stop' }))
               } catch { /* ws may have closed */ }
               setStatus('thinking')
             }
           }
         }
 
-        // Send audio while speaking
+        // Send raw Int16 PCM as binary while speaking (server expects binary frames)
         if (isSpeakingRef.current && ws.readyState === WebSocket.OPEN) {
           try {
-            ws.send(JSON.stringify({ type: 'audio', audio: [Array.from(pcm)] }))
+            ws.send(data)
           } catch { /* ws may have closed */ }
         }
       })

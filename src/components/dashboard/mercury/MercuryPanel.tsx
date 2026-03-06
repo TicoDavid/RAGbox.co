@@ -359,7 +359,7 @@ export function MercuryPanel() {
   return (
     <div
       className={`
-        relative flex flex-col h-full bg-[var(--bg-primary)] overflow-hidden transition-all duration-300
+        relative flex flex-col h-full bg-[var(--bg-primary)]/70 backdrop-blur-sm overflow-hidden transition-all duration-300
         ${isWhistleblowerMode ? 'ring-2 ring-amber-500/30 ring-inset' : ''}
       `}
     >

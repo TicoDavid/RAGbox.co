@@ -719,7 +719,7 @@ export function DashboardLayout() {
                     <div className="absolute left-0.5 top-1/2 -translate-y-1/2 h-8 w-0.5 rounded-full bg-[var(--text-tertiary)] opacity-40 group-hover:opacity-80 transition-opacity" />
                   </div>
                 )}
-                <div style={{ width: MERCURY_PANEL_WIDTH }} className="h-full bg-[var(--bg-secondary)]">
+                <div style={{ width: MERCURY_PANEL_WIDTH }} className="h-full bg-[var(--bg-secondary)] isolate">
                   <MercuryWindow />
                 </div>
               </motion.div>
