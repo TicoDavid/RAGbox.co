@@ -2,12 +2,11 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Settings, Mic, Power, PowerOff, Radio } from 'lucide-react'
+import { Settings, Mic, Power, PowerOff } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { MercuryPanel } from './MercuryPanel'
 import { MercurySettingsModal } from './MercurySettingsModal'
-import { useSovereignAgentVoice } from '@/hooks/useSovereignAgentVoice'
-import { usePrivilegeStore } from '@/stores/privilegeStore'
+import { useMercuryVoice, type VoiceStatus } from '@/hooks/useMercuryVoice'
 import { useMercuryStore } from '@/stores/mercuryStore'
 import type { ChatMessage } from '@/types/ragbox'
 
@@ -33,6 +32,26 @@ function AudioLevelBar({ level, isActive }: { level: number; isActive: boolean }
 }
 
 // ============================================================================
+// STATUS LABEL MAP
+// ============================================================================
+
+const STATUS_LABELS: Record<VoiceStatus, string> = {
+  off: 'Voice off',
+  ready: 'Ready',
+  listening: 'Listening...',
+  thinking: 'Thinking...',
+  speaking: 'Speaking...',
+}
+
+const STATUS_COLORS: Record<VoiceStatus, string> = {
+  off: 'text-[var(--text-tertiary)]',
+  ready: 'text-[var(--text-secondary)]',
+  listening: 'text-[var(--success)]',
+  thinking: 'text-[var(--warning)]',
+  speaking: 'text-[var(--brand-blue)]',
+}
+
+// ============================================================================
 // MERCURY WINDOW — Unified thread with inline voice controls
 // ============================================================================
 
@@ -43,43 +62,16 @@ export function MercuryWindow() {
   const [greeting, setGreeting] = useState('')
   const greetingInjectedRef = useRef(false)
 
-  // Voice state
   const { data: session } = useSession()
-  const privilegeMode = usePrivilegeStore((s) => s.isEnabled)
-  const userId = (session?.user as { id?: string })?.id || session?.user?.email || 'anonymous'
+  const { status, audioLevel, connect, disconnect } = useMercuryVoice()
 
-  const {
-    state,
-    isConnected,
-    isSpeaking,
-    isVADActive,
-    audioLevel,
-    disconnect,
-    enableVAD,
-    disableVAD,
-  } = useSovereignAgentVoice({ userId, privilegeMode })
-
-  const isPoweredOn = isConnected
-  const isConnecting = state === 'connecting'
+  const isPoweredOn = status !== 'off'
 
   const handlePowerToggle = async () => {
     if (isPoweredOn) {
-      disableVAD()
       disconnect()
     } else {
-      try {
-        await enableVAD()
-      } catch {
-        // enableVAD → connect() rejected — voice server unreachable
-      }
-    }
-  }
-
-  const handleVADToggle = () => {
-    if (isVADActive) {
-      disableVAD()
-    } else {
-      enableVAD()
+      await connect()
     }
   }
 
@@ -114,26 +106,10 @@ export function MercuryWindow() {
         messages: [...s.messages, greetingMsg],
       }))
     }
-    // Reset greeting injection flag when voice disconnects
     if (!isPoweredOn) {
       greetingInjectedRef.current = false
     }
   }, [isPoweredOn, greeting])
-
-  // Voice state label for the subheader
-  const voiceStateLabel = isConnecting
-    ? 'Connecting...'
-    : state === 'error'
-      ? 'Voice error'
-      : isSpeaking
-        ? 'Speaking'
-        : state === 'listening' || (isPoweredOn && isVADActive)
-          ? 'Listening'
-          : state === 'processing'
-            ? 'Processing'
-            : isPoweredOn
-              ? 'Voice ready'
-              : 'Voice off'
 
   return (
     <div className="flex flex-col h-full bg-[var(--bg-primary)] overflow-hidden">
@@ -191,7 +167,6 @@ export function MercuryWindow() {
         {/* Power Button */}
         <motion.button
           onClick={handlePowerToggle}
-          disabled={isConnecting}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           aria-label={isPoweredOn ? 'Disconnect voice' : 'Connect voice'}
@@ -202,8 +177,6 @@ export function MercuryWindow() {
               ? 'bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-blue-dim)] shadow-[0_0_12px_rgba(36,99,235,0.4)]'
               : 'bg-[var(--bg-tertiary)]/80 hover:bg-[var(--bg-elevated)]/80 border border-[var(--border-strong)]'
             }
-            ${isConnecting ? 'animate-pulse bg-[var(--warning)]/50' : ''}
-            disabled:cursor-not-allowed
           `}
         >
           {isPoweredOn ? (
@@ -223,39 +196,13 @@ export function MercuryWindow() {
 
         {/* Audio Level Bar */}
         <div className="flex-1 min-w-0">
-          <AudioLevelBar level={isPoweredOn ? audioLevel : 0} isActive={isPoweredOn && isVADActive} />
+          <AudioLevelBar level={isPoweredOn ? audioLevel : 0} isActive={status === 'listening'} />
         </div>
 
-        {/* VAD Toggle + State Label */}
-        <div className="flex items-center gap-2 shrink-0">
-          <span className={`text-[10px] font-medium ${
-            isPoweredOn
-              ? isSpeaking ? 'text-[var(--brand-blue)]'
-                : isVADActive ? 'text-[var(--success)]'
-                : 'text-[var(--text-secondary)]'
-              : 'text-[var(--text-tertiary)]'
-          }`}>
-            {voiceStateLabel}
-          </span>
-          <button
-            onClick={handleVADToggle}
-            disabled={!isPoweredOn}
-            aria-label={isVADActive ? 'Disable VAD' : 'Enable VAD'}
-            className={`
-              flex items-center gap-1 py-1 px-2 rounded-md
-              transition-all text-[10px] font-semibold uppercase tracking-wider
-              ${isVADActive
-                ? 'bg-[var(--success)]/20 text-[var(--success)] border border-[var(--success)]/30'
-                : isPoweredOn
-                  ? 'bg-[var(--bg-tertiary)]/50 text-[var(--text-secondary)] border border-[var(--border-default)] hover:border-[var(--border-strong)]'
-                  : 'bg-[var(--bg-tertiary)]/30 text-[var(--text-tertiary)]/50 border border-[var(--border-subtle)] cursor-not-allowed'
-              }
-            `}
-          >
-            <Radio className="w-2.5 h-2.5" />
-            VAD
-          </button>
-        </div>
+        {/* Voice Status Label */}
+        <span className={`text-[10px] font-medium shrink-0 ${STATUS_COLORS[status]}`}>
+          {STATUS_LABELS[status]}
+        </span>
       </div>
 
       {/* ─── Unified Mercury Panel — always rendered ─── */}
