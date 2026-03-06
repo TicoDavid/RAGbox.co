@@ -17,6 +17,13 @@ import { AudioInput, EVENT_TYPE, MercurySession, VoiceGraphOpts } from './types'
 import { EventFactory } from './event_factory';
 import { STTGraph } from './stt_graph';
 
+const MAX_HISTORY_TURNS = 20;
+
+interface ConversationTurn {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export class MessageHandler {
   private pauseDuration = 0;
   private isCapturingSpeech = false;
@@ -26,6 +33,9 @@ export class MessageHandler {
 
   // Chat graph executor (reuse per connection)
   private chatExecutor: Graph | null = null;
+
+  // Conversation memory (per-session, in-memory)
+  private conversationHistory: ConversationTurn[] = [];
 
   constructor(
     private sttGraph: STTGraph,
@@ -206,8 +216,16 @@ export class MessageHandler {
     }
   }
 
+  private addTurn(role: 'user' | 'assistant', content: string) {
+    this.conversationHistory.push({ role, content });
+    if (this.conversationHistory.length > MAX_HISTORY_TURNS) {
+      this.conversationHistory = this.conversationHistory.slice(-MAX_HISTORY_TURNS);
+    }
+  }
+
   /**
    * Execute the RAGbox chat graph with text input → TTS audio output.
+   * Includes conversation history for context continuity.
    */
   private async executeChat({
     text,
@@ -218,6 +236,9 @@ export class MessageHandler {
     interactionId: string;
     key: string;
   }) {
+    // Track user turn
+    this.addTurn('user', text);
+
     try {
       const executor = this.ensureChatExecutor();
 
@@ -226,6 +247,8 @@ export class MessageHandler {
         userId: this.session.userId,
         personaId: this.session.personaId,
         threadId: this.session.threadId,
+        conversationHistory: this.conversationHistory.slice(0, -1), // exclude current query
+        userContext: undefined,
       };
 
       const executionResult = await executor.start(chatInput, {
@@ -233,10 +256,14 @@ export class MessageHandler {
       });
 
       try {
-        await this.handleTTSResponse(
+        const responseText = await this.handleTTSResponse(
           executionResult.outputStream,
           interactionId
         );
+        // Track assistant response
+        if (responseText) {
+          this.addTurn('assistant', responseText);
+        }
       } finally {
         this.send(EventFactory.interactionEnd(interactionId));
       }
@@ -254,7 +281,9 @@ export class MessageHandler {
   private async handleTTSResponse(
     outputStream: GraphOutputStream,
     interactionId: string
-  ) {
+  ): Promise<string> {
+    const textParts: string[] = [];
+
     try {
       const result = await outputStream.next();
       const ttsStream = result.data as TTSOutputStreamIterator;
@@ -265,6 +294,7 @@ export class MessageHandler {
         while (!chunk.done) {
           // Send text chunk
           if (chunk.text) {
+            textParts.push(chunk.text);
             this.send(
               EventFactory.text(chunk.text, interactionId, {
                 isAgent: true,
@@ -316,6 +346,8 @@ export class MessageHandler {
         )
       );
     }
+
+    return textParts.join('');
   }
 
   private addToQueue(task: () => Promise<void>) {

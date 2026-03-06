@@ -182,6 +182,23 @@ type ChatRequest struct {
 	LLMModel    string `json:"llmModel,omitempty"`
 	LLMApiKey   string `json:"llmApiKey,omitempty"`
 	LLMBaseUrl  string `json:"llmBaseUrl,omitempty"`
+	// Voice pipeline: conversation history (last N turns for context)
+	ConversationHistory []ConversationTurn `json:"conversationHistory,omitempty"`
+	// Voice pipeline: user context (name, role, etc.)
+	UserContext *UserContext `json:"userContext,omitempty"`
+}
+
+// ConversationTurn represents a single turn in the conversation history.
+type ConversationTurn struct {
+	Role    string `json:"role"`    // "user" or "assistant"
+	Content string `json:"content"`
+}
+
+// UserContext provides user identity for personalized responses.
+type UserContext struct {
+	Name         string   `json:"name,omitempty"`
+	Role         string   `json:"role,omitempty"`
+	RecentTopics []string `json:"recentTopics,omitempty"`
 }
 
 // PersonaFetcher loads persona from the database.
@@ -733,6 +750,30 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 					"context_count", len(cortexContext),
 					"instruction_count", len(cortexInstructions),
 				)
+			}
+		}
+
+		// Voice pipeline: inject conversation history as cortex context
+		if len(req.ConversationHistory) > 0 {
+			for _, turn := range req.ConversationHistory {
+				cortexContext = append(cortexContext, fmt.Sprintf("[%s]: %s", turn.Role, turn.Content))
+			}
+		}
+
+		// Voice pipeline: inject user context into cortex context
+		if req.UserContext != nil {
+			var parts []string
+			if req.UserContext.Name != "" {
+				parts = append(parts, fmt.Sprintf("User: %s", req.UserContext.Name))
+			}
+			if req.UserContext.Role != "" {
+				parts = append(parts, fmt.Sprintf("Role: %s", req.UserContext.Role))
+			}
+			if len(req.UserContext.RecentTopics) > 0 {
+				parts = append(parts, fmt.Sprintf("Recent topics: %s", strings.Join(req.UserContext.RecentTopics, ", ")))
+			}
+			if len(parts) > 0 {
+				cortexContext = append(cortexContext, strings.Join(parts, ". "))
 			}
 		}
 
