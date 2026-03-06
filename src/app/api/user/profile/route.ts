@@ -18,37 +18,66 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const userId = (token.id as string) || token.email || ''
 
-  // Use raw SQL — isAdmin field may not be in generated Prisma client yet
-  const users = await prisma.$queryRawUnsafe<Array<{
-    id: string; name: string | null; email: string; image: string | null; role: string; is_admin: boolean; subscription_tier: string | null;
-    company_name: string | null; job_title: string | null; industry: string | null; company_size: string | null; use_case: string | null
-  }>>(
-    `SELECT id, name, email, image, role, is_admin, subscription_tier, company_name, job_title, industry, company_size, use_case FROM users WHERE id = $1 LIMIT 1`,
-    userId
-  )
+  try {
+    // Use raw SQL — isAdmin field may not be in generated Prisma client yet
+    const users = await prisma.$queryRawUnsafe<Array<{
+      id: string; name: string | null; email: string; image: string | null; role: string; is_admin: boolean; subscription_tier: string | null;
+      company_name: string | null; job_title: string | null; industry: string | null; company_size: string | null; use_case: string | null
+    }>>(
+      `SELECT id, name, email, image, role, is_admin, subscription_tier, company_name, job_title, industry, company_size, use_case FROM users WHERE id = $1 LIMIT 1`,
+      userId
+    )
 
-  if (users.length === 0) {
-    return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 })
+    if (users.length === 0) {
+      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 })
+    }
+
+    const user = users[0]
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        displayName: user.name,
+        email: user.email,
+        avatarUrl: user.image,
+        role: user.role,
+        isAdmin: user.is_admin === true,
+        subscriptionTier: user.subscription_tier || null,
+        companyName: user.company_name || null,
+        jobTitle: user.job_title || null,
+        industry: user.industry || null,
+        companySize: user.company_size || null,
+        useCase: user.use_case || null,
+      },
+    })
+  } catch {
+    // Fallback: columns may not exist yet — use Prisma client with known-good schema
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true, image: true, role: true },
+    })
+
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        displayName: user.name,
+        email: user.email,
+        avatarUrl: user.image,
+        role: user.role,
+        isAdmin: false,
+        subscriptionTier: null,
+        companyName: null,
+        jobTitle: null,
+        industry: null,
+        companySize: null,
+        useCase: null,
+      },
+    })
   }
-
-  const user = users[0]
-
-  return NextResponse.json({
-    success: true,
-    data: {
-      displayName: user.name,
-      email: user.email,
-      avatarUrl: user.image,
-      role: user.role,
-      isAdmin: user.is_admin === true,
-      subscriptionTier: user.subscription_tier || null,
-      companyName: user.company_name || null,
-      jobTitle: user.job_title || null,
-      industry: user.industry || null,
-      companySize: user.company_size || null,
-      useCase: user.use_case || null,
-    },
-  })
 }
 
 export async function PUT(request: NextRequest): Promise<NextResponse> {

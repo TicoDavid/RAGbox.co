@@ -1,5 +1,4 @@
 import { CustomNode, ProcessContext } from '@inworld/runtime/graph';
-import { GraphTypes } from '@inworld/runtime/common';
 
 const GO_BACKEND_URL = process.env.GO_BACKEND_URL || 'http://localhost:8080';
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || '';
@@ -15,16 +14,16 @@ interface RAGboxInput {
  * RAGboxNode — CustomNode that calls the Go backend /api/chat for RAG answers.
  *
  * process() flow:
- * 1. Calls Go backend /api/chat with mode=voice, streaming=false
+ * 1. Calls Go backend /api/chat with mode=concise, streaming=false
  * 2. Parses the JSON response
  * 3. Strips citations [N] and markdown for TTS-clean output
- * 4. Returns text content for downstream TextChunkingNode → RemoteTTSNode
+ * 4. Returns plain string for downstream TextChunkingNode → RemoteTTSNode
  */
 export class RAGboxNode extends CustomNode {
   async process(
     _context: ProcessContext,
     input: RAGboxInput
-  ): Promise<GraphTypes.Content> {
+  ): Promise<string> {
     const { text, userId, personaId, threadId } = input;
 
     try {
@@ -39,7 +38,7 @@ export class RAGboxNode extends CustomNode {
         body: JSON.stringify({
           query: text,
           stream: false,
-          mode: 'voice',
+          mode: 'concise',
           persona: personaId || undefined,
           threadId: threadId || undefined,
         }),
@@ -48,9 +47,7 @@ export class RAGboxNode extends CustomNode {
       if (!res.ok) {
         const errText = await res.text();
         console.error(`[RAGboxNode] Backend error ${res.status}:`, errText);
-        return new GraphTypes.Content({
-          content: 'I encountered an issue processing your request. Please try again.',
-        });
+        return 'I encountered an issue processing your request. Please try again.';
       }
 
       const body = await res.json() as {
@@ -65,17 +62,13 @@ export class RAGboxNode extends CustomNode {
       const voiceText = stripForVoice(rawAnswer);
 
       if (!voiceText) {
-        return new GraphTypes.Content({
-          content: "I don't have enough information in the vault to answer that question.",
-        });
+        return "I don't have enough information in the vault to answer that question.";
       }
 
-      return new GraphTypes.Content({ content: voiceText });
+      return voiceText;
     } catch (error) {
       console.error('[RAGboxNode] Error calling backend:', error);
-      return new GraphTypes.Content({
-        content: 'I had trouble connecting to the knowledge base. Please try again.',
-      });
+      return 'I had trouble connecting to the knowledge base. Please try again.';
     }
   }
 }
