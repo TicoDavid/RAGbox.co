@@ -232,8 +232,8 @@ func TestPromptLoader_WithRealPromptFiles(t *testing.T) {
 
 	// Verify identity contains key elements
 	identity := pl.Identity()
-	if !strings.Contains(identity, "Mercury") {
-		t.Error("identity should mention Mercury")
+	if !strings.Contains(identity, "RAGbox") {
+		t.Error("identity should mention RAGbox")
 	}
 
 	// Verify personas loaded
