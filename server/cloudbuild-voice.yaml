@@ -68,7 +68,7 @@ steps:
       - '--set-env-vars'
       - 'NODE_ENV=production,VOICE_SERVER_PORT=3003,ALLOWED_ORIGINS=https://app.ragbox.co,GO_BACKEND_URL=https://ragbox-backend-100739220279.us-east4.run.app'
       - '--set-secrets'
-      - 'INWORLD_API_KEY=ragbox-inworld-api-key:latest,INTERNAL_AUTH_SECRET=ragbox-internal-auth-secret:latest'
+      - 'INWORLD_API_KEY=ragbox-inworld-api-key:latest,INTERNAL_AUTH_SECRET=ragbox-internal-auth-secret:latest,VOICE_JWT_SECRET=ragbox-voice-jwt-secret:latest'
       - '--service-account'
       - 'ragbox-prod-cloudrun@$PROJECT_ID.iam.gserviceaccount.com'
     waitFor: ['push-voice']

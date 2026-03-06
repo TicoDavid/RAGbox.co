@@ -87,6 +87,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       },
     })
   } catch (err) {
+    // 42P01 = table does not exist — return empty profile gracefully
+    const errMsg = err instanceof Error ? err.message : String(err)
+    if (errMsg.includes('42P01') || errMsg.includes('does not exist')) {
+      return NextResponse.json({ success: true, data: null })
+    }
     logger.error('[Mercury Profile] GET error:', err)
     return NextResponse.json({ success: false, error: 'Failed to load profile' }, { status: 500 })
   }
@@ -133,6 +138,11 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ success: true })
   } catch (err) {
+    // 42P01 = table does not exist — can't save yet
+    const errMsg = err instanceof Error ? err.message : String(err)
+    if (errMsg.includes('42P01') || errMsg.includes('does not exist')) {
+      return NextResponse.json({ success: false, error: 'Profile storage not yet available' }, { status: 503 })
+    }
     logger.error('[Mercury Profile] PUT error:', err)
     return NextResponse.json({ success: false, error: 'Failed to update profile' }, { status: 500 })
   }

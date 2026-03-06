@@ -2,6 +2,7 @@ import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import dotenv from 'dotenv';
+import jwt from 'jsonwebtoken';
 import { stopInworldRuntime } from '@inworld/runtime';
 import { VADFactory } from '@inworld/runtime/primitives/vad';
 import { createServer } from 'http';
@@ -18,6 +19,7 @@ const server = createServer(app);
 const webSocket = new WebSocketServer({ noServer: true });
 const PORT = process.env.PORT || process.env.VOICE_SERVER_PORT || 3003;
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || '';
+const VOICE_JWT_SECRET = process.env.VOICE_JWT_SECRET || '';
 
 app.use(express.json());
 
@@ -136,6 +138,7 @@ server.on('upgrade', (request, socket, head) => {
   const url = new URL(request.url!, `http://${request.headers.host || 'localhost'}`);
 
   if (url.pathname === '/ws') {
+    // Internal token auth: /ws?key=<sessionKey>&wsToken=<wsToken>
     const key = url.searchParams.get('key') || undefined;
     const token = url.searchParams.get('wsToken') || undefined;
 
@@ -156,6 +159,52 @@ server.on('upgrade', (request, socket, head) => {
       socket.destroy();
       return;
     }
+
+    webSocket.handleUpgrade(request, socket, head, (ws) => {
+      webSocket.emit('connection', ws, request);
+    });
+  } else if (url.pathname === '/agent/ws') {
+    // Frontend JWT auth: /agent/ws?token=<JWT>
+    const jwtToken = url.searchParams.get('token');
+
+    if (!jwtToken || !VOICE_JWT_SECRET) {
+      console.warn('[WS] JWT auth failed — missing token or VOICE_JWT_SECRET');
+      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+
+    let payload: jwt.JwtPayload;
+    try {
+      const decoded = jwt.verify(jwtToken, VOICE_JWT_SECRET);
+      if (typeof decoded === 'string') throw new Error('unexpected string JWT');
+      payload = decoded;
+    } catch (err) {
+      console.warn('[WS] JWT verification failed:', err instanceof Error ? err.message : err);
+      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+
+    const userId = (payload.userId as string) || '';
+    if (!userId) {
+      console.warn('[WS] JWT missing userId claim');
+      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+
+    // Auto-create session from JWT claims
+    const sessionKey = uuidv4();
+    const mercurySession: MercurySession = { userId };
+    sessions[sessionKey] = { session: mercurySession };
+
+    // Rewrite URL so the connection handler can find the session by key
+    const upgraded = new URL(request.url!, `http://${request.headers.host || 'localhost'}`);
+    upgraded.searchParams.set('key', sessionKey);
+    request.url = `${upgraded.pathname}?${upgraded.searchParams.toString()}`;
+
+    console.log(`[WS] JWT auth success for user ${userId}, session: ${sessionKey}`);
 
     webSocket.handleUpgrade(request, socket, head, (ws) => {
       webSocket.emit('connection', ws, request);
