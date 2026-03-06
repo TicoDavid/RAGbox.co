@@ -721,6 +721,27 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     results.push('users.onboarding_completed: OK')
 
     // ========================================
+    // EPIC-027: CyGraph Phase 2 — mercury_proactive_insights
+    // ========================================
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "mercury_proactive_insights" (
+        "id" TEXT NOT NULL,
+        "user_id" TEXT NOT NULL,
+        "insight_type" TEXT NOT NULL,
+        "summary" TEXT NOT NULL,
+        "entities" TEXT[] DEFAULT '{}',
+        "documents" TEXT[] DEFAULT '{}',
+        "confidence" DOUBLE PRECISION NOT NULL,
+        "dismissed" BOOLEAN NOT NULL DEFAULT false,
+        "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "mercury_proactive_insights_pkey" PRIMARY KEY ("id"),
+        CONSTRAINT "mercury_proactive_insights_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE
+      )
+    `)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "mercury_proactive_insights_user_id_dismissed_idx" ON "mercury_proactive_insights"("user_id", "dismissed")`)
+    results.push('mercury_proactive_insights: OK')
+
+    // ========================================
     // EPIC-027: CloudDriveCredential table (Microsoft OAuth)
     // ========================================
     await prisma.$executeRawUnsafe(`
