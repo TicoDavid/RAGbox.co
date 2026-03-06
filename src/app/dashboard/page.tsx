@@ -6,6 +6,7 @@ import { redirect, useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { FeedbackButton } from '@/components/feedback/FeedbackButton';
 import { useMercuryStore } from '@/stores/mercuryStore';
+import { useVaultStore } from '@/stores/vaultStore';
 
 export default function Dashboard() {
   const { status, data: session } = useSession();
@@ -15,13 +16,16 @@ export default function Dashboard() {
 
   // Multi-tenant fix: detect session user changes (User A -> User B)
   // and clear all client-side state so the new user starts fresh.
+  // Also runs on first mount to tag current user in stores.
   useEffect(() => {
     const currentUserId = (session?.user as { id?: string } | undefined)?.id;
+    if (!currentUserId) return;
 
-    if (previousUserIdRef.current && currentUserId &&
-        previousUserIdRef.current !== currentUserId) {
-      // User ID changed while authenticated - clear all stores
-      useMercuryStore.getState().clearConversation();
+    // resetForUser is a no-op if the userId matches — safe to call every render
+    useMercuryStore.getState().resetForUser(currentUserId);
+    useVaultStore.getState().resetForUser(currentUserId);
+
+    if (previousUserIdRef.current && previousUserIdRef.current !== currentUserId) {
       try {
         localStorage.removeItem('ragbox-vault');
         localStorage.removeItem('ragbox-privilege');

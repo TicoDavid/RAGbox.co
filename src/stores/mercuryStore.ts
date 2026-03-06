@@ -53,6 +53,9 @@ export interface SelectedLlm {
 export type PersonaId = 'ceo' | 'cfo' | 'coo' | 'cpo' | 'cmo' | 'cto' | 'legal' | 'compliance' | 'auditor' | 'whistleblower'
 
 interface MercuryState {
+  // Tenant isolation — tracks which user owns the current store data
+  _userId: string | null
+
   // Conversation
   messages: ChatMessage[]
   inputValue: string
@@ -136,6 +139,9 @@ interface MercuryState {
   addInsight: (content: string) => void
   dismissInsight: (id: string) => void
 
+  // Tenant isolation — reset store when user changes
+  resetForUser: (userId: string) => void
+
   // Unified Thread Actions
   loadThread: () => Promise<void>
   startNewThread: () => Promise<void>
@@ -212,6 +218,7 @@ async function generateThreadTitle(query: string): Promise<string> {
 
 export const useMercuryStore = create<MercuryState>()(
   devtools((set, get) => ({
+    _userId: null,
     messages: [],
     inputValue: '',
     isStreaming: false,
@@ -850,6 +857,29 @@ export const useMercuryStore = create<MercuryState>()(
         messages: [...state.messages, msg],
         pendingConfirmation: null,
       }))
+    },
+
+    // Tenant isolation — reset store when user switches accounts
+    resetForUser: (userId: string) => {
+      if (get()._userId === userId) return
+      set({
+        _userId: userId,
+        messages: [],
+        threadId: null,
+        threadTitle: null,
+        threadLoaded: false,
+        titlePatched: false,
+        attachments: [],
+        insights: [],
+        sessionSummaries: [],
+        sessionQueryCount: 0,
+        sessionTopics: [],
+        activeSessionId: null,
+        pendingAction: null,
+        pendingConfirmation: null,
+        documentScope: null,
+        documentScopeName: null,
+      })
     },
 
     // Unified Thread Actions

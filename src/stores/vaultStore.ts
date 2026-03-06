@@ -37,6 +37,9 @@ export interface DuplicateConflict {
 }
 
 interface VaultState {
+  // Tenant isolation — tracks which user owns the current store data
+  _userId: string | null
+
   // Data
   documents: Record<string, VaultItem>
   folders: Record<string, FolderNode>
@@ -84,6 +87,9 @@ interface VaultState {
   clearSelection: () => void
   selectAll: () => void
 
+  // Tenant isolation — reset store when user changes
+  resetForUser: (userId: string) => void
+
   // Folder Actions
   createFolder: (name: string, parentId?: string) => Promise<void>
   renameFolder: (id: string, name: string) => Promise<void>
@@ -95,6 +101,7 @@ export const useVaultStore = create<VaultState>()(
   devtools(
     persist(
       (set, get) => ({
+        _userId: null,
         documents: {},
         folders: {},
         totalDocuments: 0,
@@ -108,6 +115,21 @@ export const useVaultStore = create<VaultState>()(
         duplicateConflict: null,
         storage: { used: 0, total: 1073741824 },
         selectedDocumentIds: [],
+
+        resetForUser: (userId: string) => {
+          if (get()._userId === userId) return
+          set({
+            _userId: userId,
+            documents: {},
+            folders: {},
+            totalDocuments: 0,
+            selectedItemId: null,
+            selectedDocumentIds: [],
+            searchQuery: '',
+            isLoading: false,
+            error: null,
+          })
+        },
 
         toggleCollapse: () => set((state) => ({ isCollapsed: !state.isCollapsed })),
 
