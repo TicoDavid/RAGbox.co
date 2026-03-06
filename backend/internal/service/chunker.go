@@ -277,16 +277,53 @@ func splitByWords(text string, chunkSize int) []string {
 	return chunks
 }
 
-// extractSectionTitle detects markdown-style headers (# Title, ## Section, etc.)
+// extractSectionTitle detects section headers from various document formats:
+//   - Markdown headers: # Title, ## Section
+//   - Numbered sections: 1. Title, 2.1 Subtitle, 3.2.1 Deep Section
+//   - All-caps titles: EXECUTIVE SUMMARY, FINDINGS (short lines only)
 func extractSectionTitle(para string) string {
 	trimmed := strings.TrimSpace(para)
+	if trimmed == "" {
+		return ""
+	}
+
+	// Markdown headers: # Title
 	if strings.HasPrefix(trimmed, "#") {
-		// Strip leading #s and spaces
 		title := strings.TrimLeft(trimmed, "# ")
 		if title != "" {
 			return title
 		}
 	}
+
+	// Numbered sections: "1. Title", "2.1 Subtitle", "10.3.2 Deep"
+	// Must start with digit, contain a dot within the first 8 chars,
+	// and the remainder (after number prefix) must be short enough to be a title.
+	if trimmed[0] >= '0' && trimmed[0] <= '9' {
+		for j := 1; j < len(trimmed) && j < 8; j++ {
+			if trimmed[j] == '.' {
+				// Found dot — check if the rest is a reasonable title length
+				rest := strings.TrimSpace(trimmed[j+1:])
+				// Strip further numbering: "2.1 Title" → after first dot, might have "1 Title"
+				// Accept if total line is short-ish (title, not a paragraph)
+				if len(trimmed) <= 120 {
+					if rest != "" {
+						return rest
+					}
+					return trimmed
+				}
+				break
+			}
+			if trimmed[j] < '0' || trimmed[j] > '9' {
+				break
+			}
+		}
+	}
+
+	// All-caps short lines: "EXECUTIVE SUMMARY", "FINDINGS", "APPENDIX A"
+	if len(trimmed) <= 60 && trimmed == strings.ToUpper(trimmed) && strings.ContainsAny(trimmed, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") {
+		return trimmed
+	}
+
 	return ""
 }
 

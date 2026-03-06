@@ -241,11 +241,22 @@ func TestExtractSectionTitle(t *testing.T) {
 		input string
 		want  string
 	}{
+		// Markdown headers
 		{"# Introduction", "Introduction"},
 		{"## Section 1", "Section 1"},
 		{"### Subsection", "Subsection"},
+		// Numbered sections (docx/pdf)
+		{"1. Executive Summary", "Executive Summary"},
+		{"2.1 Service Topology", "1 Service Topology"},
+		{"10. Appendix", "Appendix"},
+		// All-caps titles (pdf)
+		{"EXECUTIVE SUMMARY", "EXECUTIVE SUMMARY"},
+		{"FINDINGS", "FINDINGS"},
+		{"TECHNICAL ARCHITECTURE REVIEW", "TECHNICAL ARCHITECTURE REVIEW"},
+		// Non-headers
 		{"Normal paragraph", ""},
 		{"", ""},
+		{"The system uses AES-256 encryption for all data at rest and requires rotation every 90 days according to the compliance policy.", ""},
 	}
 
 	for _, tt := range tests {
