@@ -194,9 +194,14 @@ server.on('upgrade', (request, socket, head) => {
       return;
     }
 
-    // Auto-create session from JWT claims
+    // Auto-create session from JWT claims (includes per-user voice settings)
     const sessionKey = uuidv4();
-    const mercurySession: MercurySession = { userId };
+    const mercurySession: MercurySession = {
+      userId,
+      voiceId: (payload.voiceId as string) || undefined,
+      temperature: typeof payload.temperature === 'number' ? payload.temperature : undefined,
+      speakingRate: typeof payload.speakingRate === 'number' ? payload.speakingRate : undefined,
+    };
     sessions[sessionKey] = { session: mercurySession };
 
     // Rewrite URL so the connection handler can find the session by key

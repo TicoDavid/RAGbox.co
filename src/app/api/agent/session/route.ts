@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { activeSessions, SESSION_TTL_MS } from './session-store'
 import jwt from 'jsonwebtoken'
+import prisma from '@/lib/prisma'
 
 /**
  * Secure Agent Session Bootstrap
@@ -52,6 +53,26 @@ export async function POST() {
       expiresAt: now + SESSION_TTL_MS,
     })
 
+    // Load user's voice settings from MercuryPersona
+    const userId = (session.user as { id?: string }).id ?? session.user.email
+    let voiceSettings = { voiceId: 'Ashley', temperature: 0.6, speakingRate: 1.05 }
+    try {
+      const persona = await prisma.mercuryPersona.findUnique({
+        where: { tenantId: userId },
+        select: { voiceId: true, channelConfig: true },
+      })
+      if (persona) {
+        const cfg = persona.channelConfig as { voice?: { voiceId?: string; expressiveness?: number; speakingRate?: number } } | null
+        voiceSettings = {
+          voiceId: persona.voiceId || cfg?.voice?.voiceId || 'Ashley',
+          temperature: cfg?.voice?.expressiveness ?? 0.6,
+          speakingRate: cfg?.voice?.speakingRate ?? 1.05,
+        }
+      }
+    } catch {
+      // Non-critical — use defaults
+    }
+
     // Determine WebSocket URL based on environment
     const wsProtocol = process.env.NODE_ENV === 'production' ? 'wss' : 'ws'
     // BUG-041: Use MERCURY_VOICE_URL for the dedicated voice Cloud Run service.
@@ -72,7 +93,7 @@ export async function POST() {
     let voiceToken: string | null = null
     if (voiceJwtSecret) {
       voiceToken = jwt.sign(
-        { userId: (session.user as { id?: string }).id ?? session.user.email, role: 'User' },
+        { userId, role: 'User', voiceId: voiceSettings.voiceId, temperature: voiceSettings.temperature, speakingRate: voiceSettings.speakingRate },
         voiceJwtSecret,
         { expiresIn: '1h' }
       )
@@ -100,6 +121,8 @@ export async function POST() {
         vadSilenceMs: 1500,
         vadThreshold: 0.5,
       },
+      // User's voice tuning (per-user from MercuryPersona)
+      voiceSettings,
       // Session metadata
       expiresIn: SESSION_TTL_MS,
     })

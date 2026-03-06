@@ -13,7 +13,7 @@ import {
   PAUSE_DURATION_THRESHOLD_MS,
   SPEECH_THRESHOLD,
 } from './constants';
-import { AudioInput, EVENT_TYPE, MercurySession } from './types';
+import { AudioInput, EVENT_TYPE, MercurySession, VoiceGraphOpts } from './types';
 import { EventFactory } from './event_factory';
 import { STTGraph } from './stt_graph';
 
@@ -31,13 +31,17 @@ export class MessageHandler {
     private sttGraph: STTGraph,
     private vadClient: VAD | null,
     private send: (data: Record<string, unknown>) => void,
-    private chatGraphBuilder: (voiceId?: string) => Graph,
+    private chatGraphBuilder: (opts: VoiceGraphOpts) => Graph,
     private session: MercurySession
   ) {}
 
   private ensureChatExecutor(): Graph {
     if (!this.chatExecutor) {
-      this.chatExecutor = this.chatGraphBuilder(this.session.voiceId);
+      this.chatExecutor = this.chatGraphBuilder({
+        voiceId: this.session.voiceId,
+        temperature: this.session.temperature,
+        speakingRate: this.session.speakingRate,
+      });
     }
     return this.chatExecutor;
   }

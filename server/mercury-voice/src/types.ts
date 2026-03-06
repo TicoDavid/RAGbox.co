@@ -30,4 +30,12 @@ export interface MercurySession {
   personaId?: string;
   voiceId?: string;
   threadId?: string;
+  temperature?: number;
+  speakingRate?: number;
+}
+
+export interface VoiceGraphOpts {
+  voiceId?: string;
+  temperature?: number;
+  speakingRate?: number;
 }

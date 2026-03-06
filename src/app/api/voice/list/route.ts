@@ -1,39 +1,56 @@
 /**
- * Voice List API — EPIC-022 V-005
+ * Voice List API — EPIC-028 Voice Library
  *
  * GET /api/voice/list
  *
- * Fetches available TTS voices from Inworld API at runtime.
- * Falls back to hardcoded defaults if API is unreachable.
- * Response shape matches Jordan's Settings V2 frontend expectations.
+ * Returns full voice catalog with metadata (gender, language, accent, tags).
+ * Fetches from Inworld API at runtime, falls back to hardcoded catalog.
  */
 
 import { NextResponse } from 'next/server'
 
+interface VoiceEntry {
+  id: string
+  label: string
+  description: string
+  gender: 'female' | 'male'
+  language: string
+  accent?: string
+  tags: string[]
+  sampleText?: string
+}
+
 const INWORLD_VOICES_URL = 'https://api.inworld.ai/tts/v1/voices'
 
-// Static fallback when Inworld API is unreachable
-const FALLBACK_VOICES = [
-  { id: 'Ashley', label: 'Ashley', description: 'Warm, professional' },
-  { id: 'Dennis', label: 'Dennis', description: 'Authoritative, deep' },
-  { id: 'Luna', label: 'Luna', description: 'Friendly, approachable' },
-  { id: 'Mark', label: 'Mark', description: 'Calm, measured' },
+// Full Inworld TTS-1.5-max English voice catalog
+const VOICE_CATALOG: VoiceEntry[] = [
+  { id: 'Ashley', label: 'Ashley', description: 'Warm conversationalist', gender: 'female', language: 'en-US', accent: 'American', tags: ['warm', 'professional', 'conversational'], sampleText: 'Welcome to RAGbox. How can I help you explore your documents today?' },
+  { id: 'Elizabeth', label: 'Elizabeth', description: 'Professional narrator', gender: 'female', language: 'en-US', accent: 'American', tags: ['formal', 'clear', 'authoritative'], sampleText: 'Your document analysis is complete. Here are the key findings.' },
+  { id: 'Olivia', label: 'Olivia', description: 'Friendly British warmth', gender: 'female', language: 'en-GB', accent: 'British', tags: ['british', 'warm', 'friendly'], sampleText: 'I found several relevant passages in your uploaded documents.' },
+  { id: 'Luna', label: 'Luna', description: 'Calm meditation guide', gender: 'female', language: 'en-US', accent: 'American', tags: ['calm', 'soothing', 'gentle'], sampleText: 'Let me walk you through what I found in your vault.' },
+  { id: 'Sophia', label: 'Sophia', description: 'Confident executive', gender: 'female', language: 'en-US', accent: 'American', tags: ['authoritative', 'clear', 'confident'], sampleText: 'Based on the evidence in your documents, here is my assessment.' },
+  { id: 'Dennis', label: 'Dennis', description: 'Authoritative deep voice', gender: 'male', language: 'en-US', accent: 'American', tags: ['authoritative', 'deep', 'professional'], sampleText: 'I have analyzed the documents and prepared a detailed summary.' },
+  { id: 'Mark', label: 'Mark', description: 'Calm, measured tone', gender: 'male', language: 'en-US', accent: 'American', tags: ['calm', 'measured', 'steady'], sampleText: 'Here is what your documents reveal about this topic.' },
+  { id: 'James', label: 'James', description: 'Classic professional', gender: 'male', language: 'en-US', accent: 'American', tags: ['professional', 'clear', 'classic'], sampleText: 'The relevant sections of your documents indicate the following.' },
+  { id: 'David', label: 'David', description: 'Friendly narrator', gender: 'male', language: 'en-US', accent: 'American', tags: ['friendly', 'warm', 'approachable'], sampleText: 'Great question. Let me check your documents for the answer.' },
+  { id: 'Brian', label: 'Brian', description: 'Technical expert', gender: 'male', language: 'en-US', accent: 'American', tags: ['precise', 'measured', 'technical'], sampleText: 'The technical details in your documents specify the following parameters.' },
 ]
 
-// Cache: 5-minute TTL to avoid hammering Inworld on every Settings page load
-let cachedVoices: Array<{ id: string; label: string; description: string }> | null = null
+// Index by ID for merging with dynamic API results
+const CATALOG_BY_ID = new Map(VOICE_CATALOG.map(v => [v.id, v]))
+
+// Cache: 5-minute TTL
+let cachedVoices: VoiceEntry[] | null = null
 let cacheExpiresAt = 0
 
 export async function GET(): Promise<NextResponse> {
-  // Return cached list if fresh
   if (cachedVoices && Date.now() < cacheExpiresAt) {
     return NextResponse.json({ success: true, data: { voices: cachedVoices } })
   }
 
   const apiKey = process.env.INWORLD_API_KEY
   if (!apiKey) {
-    console.warn('[Voice/List] INWORLD_API_KEY not set — returning 4 fallback voices')
-    return NextResponse.json({ success: true, data: { voices: FALLBACK_VOICES, source: 'fallback' } })
+    return NextResponse.json({ success: true, data: { voices: VOICE_CATALOG, source: 'catalog' } })
   }
 
   try {
@@ -46,28 +63,35 @@ export async function GET(): Promise<NextResponse> {
     })
 
     if (!res.ok) {
-      console.warn(`[Voice/List] Inworld API returned ${res.status}, using fallback`)
-      return NextResponse.json({ success: true, data: { voices: FALLBACK_VOICES } })
+      return NextResponse.json({ success: true, data: { voices: VOICE_CATALOG, source: 'catalog' } })
     }
 
     const json = await res.json() as { voices?: Array<{ voiceId: string; displayName?: string }> }
-    const voices = (json.voices || []).map((v) => ({
-      id: v.voiceId,
-      label: v.displayName || v.voiceId,
-      description: '',
-    }))
+    const apiVoices = json.voices || []
 
-    if (voices.length === 0) {
-      return NextResponse.json({ success: true, data: { voices: FALLBACK_VOICES } })
+    if (apiVoices.length === 0) {
+      return NextResponse.json({ success: true, data: { voices: VOICE_CATALOG, source: 'catalog' } })
     }
 
-    // Cache for 5 minutes
+    // Merge API voices with catalog metadata
+    const voices: VoiceEntry[] = apiVoices.map((v) => {
+      const catalogEntry = CATALOG_BY_ID.get(v.voiceId)
+      if (catalogEntry) return catalogEntry
+      return {
+        id: v.voiceId,
+        label: v.displayName || v.voiceId,
+        description: '',
+        gender: 'female' as const,
+        language: 'en-US',
+        tags: [],
+      }
+    })
+
     cachedVoices = voices
     cacheExpiresAt = Date.now() + 5 * 60 * 1000
 
     return NextResponse.json({ success: true, data: { voices, source: 'inworld' } })
-  } catch (err) {
-    console.warn('[Voice/List] Inworld API unreachable, using fallback', err)
-    return NextResponse.json({ success: true, data: { voices: FALLBACK_VOICES } })
+  } catch {
+    return NextResponse.json({ success: true, data: { voices: VOICE_CATALOG, source: 'catalog' } })
   }
 }

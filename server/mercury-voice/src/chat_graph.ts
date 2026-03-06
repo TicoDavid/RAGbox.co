@@ -10,16 +10,15 @@ import {
   TTS_SAMPLE_RATE,
 } from './constants';
 import { RAGboxNode } from './ragbox_node';
+import { VoiceGraphOpts } from './types';
 
 /**
  * Build the Mercury chat graph:
  *   RAGboxNode → TextChunkingNode → RemoteTTSNode
  *
- * RAGboxNode calls the Go backend /api/chat for RAG answers.
- * TextChunkingNode splits long responses into TTS-friendly chunks.
- * RemoteTTSNode synthesizes speech via Inworld TTS.
+ * Accepts per-user voice settings from session JWT claims.
  */
-export function buildChatGraph(voiceId?: string): Graph {
+export function buildChatGraph(opts: VoiceGraphOpts = {}): Graph {
   const ragboxNode = new RAGboxNode({
     id: 'ragbox-node',
   });
@@ -30,11 +29,11 @@ export function buildChatGraph(voiceId?: string): Graph {
 
   const ttsNode = new RemoteTTSNode({
     id: 'tts-node',
-    speakerId: voiceId || DEFAULT_VOICE_ID,
+    speakerId: opts.voiceId || DEFAULT_VOICE_ID,
     modelId: DEFAULT_TTS_MODEL_ID,
     sampleRate: TTS_SAMPLE_RATE,
-    temperature: 0.6,
-    speakingRate: 1.05,
+    temperature: opts.temperature ?? 0.6,
+    speakingRate: opts.speakingRate ?? 1.05,
   });
 
   const graph = new GraphBuilder({
