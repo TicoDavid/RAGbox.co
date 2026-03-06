@@ -52,8 +52,8 @@ COPY --from=builder /app/dist ./dist
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package.json ./
 
-# Copy VAD model
-COPY assets/ ./dist/assets/
+# Copy VAD model (code resolves __dirname/../assets from dist/)
+COPY assets/ ./assets/
 
 RUN chown -R mercury:voicesvc /app
 USER mercury
