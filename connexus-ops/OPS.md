@@ -4,8 +4,18 @@
 
 ## Active Sprint
 
-**Sprint 2026-03-08** — 29 items (3 P0, 9 P1, 9 P2, 8 P3) — 22/29 DONE
+**Sprint 2026-03-08** — 29 items (3 P0, 9 P1, 9 P2, 8 P3) — 23/29 DONE — FINAL ORDERS DISPATCHED
 See: `connexus-ops/sprints/SPRINT-2026-03-08.md`
+
+### FINAL Orders (close sprint + bugs — only EPICs remain after)
+
+| Agent | Order File | Items |
+|-------|-----------|-------|
+| Adam | `connexus-ops/orders/FINAL-adam.md` | Deploy 57, KMS key, BUG-D56-03, BUG-D56-05, S-P2-08, S-P2-09 |
+| Dr. Insane | `connexus-ops/orders/FINAL-drinsane.md` | Deploy 56 cert (7-point), Deploy 57 cert (10-point) |
+| Jordan | `connexus-ops/orders/FINAL-jordan.md` | S-P1-01, S-P1-05, S-P1-08, S-P2-03, S-P2-05 |
+| Sarah | `connexus-ops/orders/FINAL-sarah.md` | Deploy 57 regression, Jordan sprint verification |
+| Sheldon | `connexus-ops/orders/FINAL-sheldon.md` | KMS activation verification, EPIC readiness study |
 
 ## Epic Roadmap
 
@@ -29,22 +39,16 @@ See: `connexus-ops/sprints/SPRINT-2026-03-08.md`
 | Key | Value |
 |-----|-------|
 | Deploy | 57 |
-| Commits | 46fe6fc, ab0283e, 9ffb69c, bc95662, e4a9141, 44b6175 (+ EPIC-029 + KMS + orders) |
-| Content | Thread-to-Vault RAG (7 channels), file extractions, 80% test coverage, Matrix Rain fix, Mercury Voice section removal, TTS logging, KMS migration, EPIC-029 recorded |
+| Commits | 46fe6fc, ab0283e, 9ffb69c, e4a9141, 44b6175, 0e5c5f3, 53ad10d, 5ee6509 |
+| Content | Thread-to-Vault RAG (7 channels), file extractions, 80% test coverage, Matrix Rain fix, Mercury Voice section removal, TTS logging, KMS migration, EPIC-029 recorded, team orders |
 | Status | Waiting for Adam |
 
 ## Active Bugs
 
 | ID | Issue | Status | Owner |
 |----|-------|--------|-------|
-| BUG-D56-03 | Voice preview 500 for Sophia/David voices | Logging added, needs diagnosis after Deploy 57 | Adam (logs) |
-| BUG-D56-05 | Mercury voice agent can't hear/be heard | Infra investigation needed | Adam |
-
-## Held — Approved, Committing Now
-
-| Item | Files | Status |
-|------|-------|--------|
-| S-P0-01 KMS migration | src/lib/gmail/crypto.ts, src/app/api/admin/migrate-email-tokens/ | David approved — committing with Deploy 57 |
+| BUG-D56-03 | Voice preview 500 for Sophia/David voices | Logging added, Adam to diagnose after Deploy 57 | Adam |
+| BUG-D56-05 | Mercury voice agent can't hear/be heard | Infra investigation ordered | Adam |
 
 ## Decisions Log
 
@@ -67,6 +71,7 @@ See: `connexus-ops/sprints/SPRINT-2026-03-08.md`
 | 03-08 | S-P0-01 KMS approved to commit/push | David |
 | 03-08 | Bug fixes approved: Matrix Rain, Mercury Voice removal, TTS logging | David |
 | 03-08 | Deploy 57 approved — ship all pending commits | David |
+| 03-08 | FINAL orders: close sprint + bugs, leave only EPICs open | David |
 
 ## Completed Deploys
 
