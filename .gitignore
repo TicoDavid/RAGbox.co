@@ -55,5 +55,9 @@ private.key
 # Server build output
 server/dist/
 
+# Benchmarks & screenshots
+benchmark-results.txt
+screenshots/
+
 # Ops coordination lives in connexus-ops repo
 .team/
