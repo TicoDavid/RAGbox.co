@@ -6,6 +6,7 @@ import React from 'react'
 import { render, screen, act } from '@testing-library/react'
 
 jest.mock('framer-motion', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const R = require('react')
   const wrap = (tag: string) =>
     R.forwardRef(({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>, ref: React.Ref<HTMLElement>) => {
