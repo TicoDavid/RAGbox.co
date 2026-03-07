@@ -6,7 +6,7 @@
  *
  * EPIC-016 P06: Updated for async generateOTP/hasValidOTP (Redis primary, in-memory fallback).
  */
-import { generateOTP, hasValidOTP, debugOTPStore, authOptions } from '../auth'
+import { generateOTP, hasValidOTP, authOptions } from '../auth'
 
 // Mock Prisma — signIn callback calls prisma.user.upsert + prisma.mercuryPersona.upsert
 jest.mock('@/lib/prisma', () => ({
@@ -84,34 +84,6 @@ describe('hasValidOTP', () => {
   test('normalizes email before lookup', async () => {
     await generateOTP('user@example.com')
     expect(await hasValidOTP('  USER@EXAMPLE.COM  ')).toBe(true)
-  })
-})
-
-// ── debugOTPStore Tests ──────────────────────────────────────
-
-describe('debugOTPStore', () => {
-  const origEnv = process.env.NODE_ENV
-
-  afterEach(() => {
-    ;(process.env as Record<string, string | undefined>).NODE_ENV = origEnv
-  })
-
-  test('logs store size in development', async () => {
-    ;(process.env as Record<string, string | undefined>).NODE_ENV = 'development'
-    // logger.info calls console.info with JSON-structured output
-    const spy = jest.spyOn(console, 'info').mockImplementation()
-    await generateOTP('test@test.com')
-    debugOTPStore()
-    expect(spy).toHaveBeenCalled()
-    spy.mockRestore()
-  })
-
-  test('does nothing in production', () => {
-    ;(process.env as Record<string, string | undefined>).NODE_ENV = 'production'
-    const spy = jest.spyOn(console, 'info').mockImplementation()
-    debugOTPStore()
-    expect(spy).not.toHaveBeenCalled()
-    spy.mockRestore()
   })
 })
 

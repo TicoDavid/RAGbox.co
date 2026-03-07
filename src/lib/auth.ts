@@ -317,8 +317,3 @@ export async function hasValidOTP(email: string): Promise<boolean> {
   return !!stored && stored.expires > Date.now();
 }
 
-// Debug helper - list all OTPs (dev only, never logs secrets in production)
-export function debugOTPStore(): void {
-  if (process.env.NODE_ENV !== "development") return;
-  logger.info('[OTP Store] entry count', { count: otpStore.size });
-}
