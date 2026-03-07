@@ -6,8 +6,8 @@ import { writeAuditEntry } from '@/lib/audit/auditWriter'
 import { triggerDocumentExtraction } from '@/lib/cygraph/extractionTrigger'
 import { isAudioFile, transcribeAudio } from '@/lib/transcription/transcriptionService'
 import { logger } from '@/lib/logger'
+import { GO_BACKEND_URL } from '@/lib/backend-proxy'
 
-const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
 const GCP_PROJECT = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCP_PROJECT || 'ragbox-sovereign-prod'
 

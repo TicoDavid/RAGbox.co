@@ -19,6 +19,7 @@ import {
   RemoteTTSComponent,
 } from '@inworld/runtime/graph'
 import { PrismaClient } from '@prisma/client'
+import { logger } from './logger.js'
 import { TOOL_DEFINITIONS, executeTool, type ToolContext, type ToolCall } from './tools'
 
 // ============================================================================
@@ -254,7 +255,7 @@ export function interceptGroundingRefusal(
 
   if (!isRefusal) return response
 
-  console.info('[VoicePipeline-v3] RAG grounding refusal intercepted', {
+  logger.info('[VoicePipeline-v3] RAG grounding refusal intercepted', {
     refusalPreview: response.substring(0, 80),
     queryPreview: userQuery.substring(0, 80),
     agentName,
@@ -351,7 +352,7 @@ async function fetchMercuryConfig(userId: string): Promise<MercuryConfig> {
       }
     }
   } catch (err) {
-    console.warn('[VoicePipeline-v3] Mercury config fetch failed, using defaults', err)
+    logger.warn('[VoicePipeline-v3] Mercury config fetch failed, using defaults', err)
   }
   return {}
 }
@@ -381,7 +382,7 @@ async function loadThreadHistory(userId: string): Promise<Array<{ role: string; 
     // Reverse to chronological order
     return messages.reverse().map(m => ({ role: m.role, content: m.content }))
   } catch (err) {
-    console.warn('[VoicePipeline-v3] Thread history load failed, starting fresh', err)
+    logger.warn('[VoicePipeline-v3] Thread history load failed, starting fresh', err)
     return []
   }
 }
@@ -433,7 +434,7 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
   const ttsTemperature = mercuryConfig.ttsTemperature ?? 1.1
   const ttsSpeakingRate = mercuryConfig.ttsSpeakingRate ?? 1.0
   const ttsModelId = mercuryConfig.ttsModelId || DEFAULT_TTS_MODEL_ID
-  console.info('[VoicePipeline-v3] Session config', { agentName, voiceId, ttsTemperature, ttsSpeakingRate, ttsModelId })
+  logger.info('[VoicePipeline-v3] Session config', { agentName, voiceId, ttsTemperature, ttsSpeakingRate, ttsModelId })
 
   // Build tool descriptions for system context (sent to Go backend via history)
   const toolDescriptions = TOOL_DEFINITIONS.map(t => {
@@ -480,7 +481,7 @@ Current user context:
     ...threadHistory,
   ]
   if (threadHistory.length > 0) {
-    console.info('[VoicePipeline-v3] Loaded thread history', { messages: threadHistory.length })
+    logger.info('[VoicePipeline-v3] Loaded thread history', { messages: threadHistory.length })
   }
 
   // EPIC-022 V-001: TTS params from MercuryPersona Settings
@@ -512,7 +513,7 @@ Current user context:
         const cleanText = text.replace(toolPattern, '').trim()
         return { toolCall, cleanText }
       } catch (e) {
-        console.error('[VoicePipeline-v3] Failed to parse tool call:', e)
+        logger.error('[VoicePipeline-v3] Failed to parse tool call:', e)
       }
     }
 
@@ -525,7 +526,7 @@ Current user context:
       return 'Error: No user context available for tool execution'
     }
 
-    console.info('[VoicePipeline-v3] Executing tool', { name, args })
+    logger.info('[VoicePipeline-v3] Executing tool', { name, args })
     onToolCall?.(name, args)
 
     try {
@@ -559,7 +560,7 @@ Current user context:
 
   async function processWithLLM(userText: string, isToolResult = false): Promise<void> {
     try {
-      console.info('[VoicePipeline-v3] Processing', {
+      logger.info('[VoicePipeline-v3] Processing', {
         type: isToolResult ? 'tool_result' : 'user_message',
         preview: userText.substring(0, 100),
       })
@@ -570,7 +571,7 @@ Current user context:
 
         // EPIC-023: Two-mode query classification
         const queryMode = classifyQuery(userText)
-        console.info('[VoicePipeline-v3] Query classified', { mode: queryMode, preview: userText.substring(0, 50) })
+        logger.info('[VoicePipeline-v3] Query classified', { mode: queryMode, preview: userText.substring(0, 50) })
 
         if (queryMode === 'conversational') {
           // Bypass RAG — generate persona-driven conversational response
@@ -696,10 +697,10 @@ Current user context:
                         lastIndex = match.index + match[0].length
 
                         if (sentence.length > 5) {
-                          console.info('[VoicePipeline-v3] Sentence TTS →', { chars: sentence.length, preview: sentence.substring(0, 60) })
+                          logger.info('[VoicePipeline-v3] Sentence TTS →', { chars: sentence.length, preview: sentence.substring(0, 60) })
                           // Fire-and-forget: TTS plays while more tokens arrive
                           textToSpeech(sentence).catch(err =>
-                            console.warn('[VoicePipeline-v3] Sentence TTS failed:', err)
+                            logger.warn('[VoicePipeline-v3] Sentence TTS failed:', err)
                           )
                         }
                       }
@@ -732,12 +733,12 @@ Current user context:
           // TTS any remaining buffer (last sentence fragment)
           const remainder = sentenceBuffer.trim()
           if (remainder.length > 5) {
-            console.info('[VoicePipeline-v3] Final fragment TTS →', { chars: remainder.length })
+            logger.info('[VoicePipeline-v3] Final fragment TTS →', { chars: remainder.length })
             await textToSpeech(remainder)
           }
         } catch (streamError) {
           // Bug C fix: Streaming reader failed — fall back to res.text() approach
-          console.error('[VOICE-STREAM-ERROR] SSE reader failed, falling back to full-text:', streamError)
+          logger.error('[VOICE-STREAM-ERROR] SSE reader failed, falling back to full-text:', streamError)
           try {
             const fallbackText = await res.text()
             try {
@@ -750,7 +751,7 @@ Current user context:
               await textToSpeech(answer)
             }
           } catch (fallbackError) {
-            console.error('[VOICE-STREAM-ERROR] Fallback also failed:', fallbackError)
+            logger.error('[VOICE-STREAM-ERROR] Fallback also failed:', fallbackError)
           }
         }
       }
@@ -767,7 +768,7 @@ Current user context:
         answer = "I'm sorry, I couldn't process that request. Please try again."
       }
 
-      console.info('[VoicePipeline-v3] LLM answer', { chars: answer.length, preview: answer.substring(0, 100) })
+      logger.info('[VoicePipeline-v3] LLM answer', { chars: answer.length, preview: answer.substring(0, 100) })
 
       // BUG-042 Bug B: Intercept grounding refusals before TTS
       answer = interceptGroundingRefusal(answer, userText, agentName)
@@ -776,7 +777,7 @@ Current user context:
       const { toolCall, cleanText } = parseToolCalls(answer)
 
       if (toolCall) {
-        console.info('[VoicePipeline-v3] Tool call detected', { name: toolCall.name })
+        logger.info('[VoicePipeline-v3] Tool call detected', { name: toolCall.name })
         conversationHistory.push({ role: 'assistant', content: answer })
 
         const toolResult = await executeToolCall(toolCall.name, toolCall.arguments)
@@ -789,7 +790,7 @@ Current user context:
       // Note: TTS already fired per-sentence above during streaming.
       // No final textToSpeech(cleanText) call needed.
     } catch (error) {
-      console.error('[VoicePipeline-v3] Processing error:', error)
+      logger.error('[VoicePipeline-v3] Processing error:', error)
       onError?.(error instanceof Error ? error : new Error(String(error)))
     }
   }
@@ -800,7 +801,7 @@ Current user context:
 
   async function textToSpeech(text: string): Promise<void> {
     try {
-      console.info('[VoicePipeline-v3] TTS request', { chars: text.length, preview: text.substring(0, 50) })
+      logger.info('[VoicePipeline-v3] TTS request', { chars: text.length, preview: text.substring(0, 50) })
 
       const ttsNode = new RemoteTTSNode({
         ttsComponent,
@@ -826,7 +827,7 @@ Current user context:
       // accesses without null check — passing string avoids this SDK bug.
       const { outputStream } = await ttsGraph.start(text)
 
-      console.info('[VoicePipeline-v3] TTS graph started, awaiting audio stream')
+      logger.info('[VoicePipeline-v3] TTS graph started, awaiting audio stream')
 
       let chunkCount = 0
       let totalBytes = 0
@@ -840,7 +841,7 @@ Current user context:
           // TTSOutputStream is itself an async iterator yielding individual
           // audio chunks that must be consumed with a nested for-await loop.
           TTSOutputStream: async (ttsStream) => {
-            console.info('[VoicePipeline-v3] TTSOutputStream handler entered')
+            logger.info('[VoicePipeline-v3] TTSOutputStream handler entered')
             for await (const chunk of ttsStream) {
               if (chunk.audio?.data) {
                 // chunk.audio.data is a Buffer of raw Float32 PCM bytes
@@ -850,7 +851,7 @@ Current user context:
                 const sampleCount = rawBuffer.length / 4 // 4 bytes per Float32
 
                 if (chunkCount === 0) {
-                  console.info('[VoicePipeline-v3] TTS audio format:', {
+                  logger.info('[VoicePipeline-v3] TTS audio format:', {
                     type: chunk.audio.data?.constructor?.name,
                     sampleRate: chunk.audio?.sampleRate,
                     samples: sampleCount,
@@ -860,7 +861,7 @@ Current user context:
 
                 chunkCount++
                 totalBytes += rawBuffer.length
-                console.info(`[VoicePipeline-v3] TTS chunk ${chunkCount} sent`, {
+                logger.info(`[VoicePipeline-v3] TTS chunk ${chunkCount} sent`, {
                   samples: sampleCount,
                   bytes: rawBuffer.length,
                 })
@@ -869,19 +870,19 @@ Current user context:
             }
           },
           error: (error: GraphTypes.GraphError) => {
-            console.error('[VoicePipeline-v3] TTS graph error:', error.message)
+            logger.error('[VoicePipeline-v3] TTS graph error:', error.message)
             onError?.(new Error(error.message))
           },
         })
       }
 
-      console.info(`[VoicePipeline-v3] TTS complete, ${chunkCount} chunks delivered`, { totalBytes })
+      logger.info(`[VoicePipeline-v3] TTS complete, ${chunkCount} chunks delivered`, { totalBytes })
 
       if (chunkCount === 0) {
-        console.warn('[VoicePipeline-v3] TTS produced zero audio chunks — Inworld API may have returned empty')
+        logger.warn('[VoicePipeline-v3] TTS produced zero audio chunks — Inworld API may have returned empty')
       }
     } catch (error) {
-      console.error('[VoicePipeline-v3] TTS error:', error)
+      logger.error('[VoicePipeline-v3] TTS error:', error)
       onError?.(error instanceof Error ? error : new Error(String(error)))
     }
   }
@@ -894,7 +895,7 @@ Current user context:
     if (audioBuffer.length === 0) return
 
     try {
-      console.info('[VoicePipeline-v3] Processing audio buffer')
+      logger.info('[VoicePipeline-v3] Processing audio buffer')
 
       // Merge audio buffers
       const totalLength = audioBuffer.reduce((acc, buf) => acc + buf.length, 0)
@@ -946,7 +947,7 @@ Current user context:
             }
           },
           error: (error: GraphTypes.GraphError) => {
-            console.error('[VoicePipeline-v3] STT Error:', error.message)
+            logger.error('[VoicePipeline-v3] STT Error:', error.message)
             onError?.(new Error(error.message))
           },
         })
@@ -955,19 +956,19 @@ Current user context:
       const trimmed = transcription.trim()
       const wordCount = trimmed.split(/\s+/).filter(Boolean).length
       if (trimmed && wordCount >= 3) {
-        console.info('[VoicePipeline-v3] Transcription', { transcription: trimmed, wordCount })
+        logger.info('[VoicePipeline-v3] Transcription', { transcription: trimmed, wordCount })
         onTranscriptFinal?.(trimmed)
         await processWithLLM(trimmed)
         onSpeakingComplete?.()
       } else if (trimmed && wordCount < 3) {
         // Bug B fix: Discard short utterances (noise, partial words) — keep listening
-        console.info('[VoicePipeline-v3] Short utterance discarded (noise filter)', { text: trimmed, wordCount })
+        logger.info('[VoicePipeline-v3] Short utterance discarded (noise filter)', { text: trimmed, wordCount })
       } else {
-        console.info('[VoicePipeline-v3] No speech detected — staying silent')
+        logger.info('[VoicePipeline-v3] No speech detected — staying silent')
         // Bug B fix: Don't fire onNoSpeech for silence — just keep listening
       }
     } catch (error) {
-      console.error('[VoicePipeline-v3] STT error:', error)
+      logger.error('[VoicePipeline-v3] STT error:', error)
       onError?.(error instanceof Error ? error : new Error(String(error)))
     }
   }
@@ -976,7 +977,7 @@ Current user context:
   // SESSION INTERFACE
   // ==========================================================================
 
-  console.info('[VoicePipeline-v3] Session created', { agentName })
+  logger.info('[VoicePipeline-v3] Session created', { agentName })
 
   return {
     async sendAudio(pcmBuffer: Buffer): Promise<void> {
@@ -996,24 +997,24 @@ Current user context:
     },
 
     async startAudioSession(): Promise<void> {
-      console.info('[VoicePipeline-v3] Audio session start')
+      logger.info('[VoicePipeline-v3] Audio session start')
       isActive = true
       audioBuffer = []
     },
 
     async endAudioSession(): Promise<void> {
-      console.info('[VoicePipeline-v3] Audio session end')
+      logger.info('[VoicePipeline-v3] Audio session end')
       isActive = false
       await processAudio()
     },
 
     async cancelResponse(): Promise<void> {
-      console.info('[VoicePipeline-v3] Cancelling response')
+      logger.info('[VoicePipeline-v3] Cancelling response')
       audioBuffer = []
     },
 
     async sendText(text: string): Promise<void> {
-      console.info('[VoicePipeline-v3] Sending text', { preview: text.substring(0, 80) })
+      logger.info('[VoicePipeline-v3] Sending text', { preview: text.substring(0, 80) })
       await processWithLLM(text)
       onSpeakingComplete?.()
     },
@@ -1021,7 +1022,7 @@ Current user context:
     async triggerGreeting(): Promise<void> {
       // Bug A fix: Guard against duplicate greeting fires (WebSocket reconnect, StrictMode, etc.)
       if (greetingSent) {
-        console.info('[VoicePipeline-v3] Greeting already sent — skipping duplicate')
+        logger.info('[VoicePipeline-v3] Greeting already sent — skipping duplicate')
         return
       }
       greetingSent = true
@@ -1034,7 +1035,7 @@ Current user context:
       } else {
         greeting = DEFAULT_GREETING
       }
-      console.info('[VoicePipeline-v3] Triggering greeting', { agentName })
+      logger.info('[VoicePipeline-v3] Triggering greeting', { agentName })
 
       conversationHistory.push({ role: 'assistant', content: greeting })
       onAgentTextFinal?.(greeting)
@@ -1043,7 +1044,7 @@ Current user context:
     },
 
     close(): void {
-      console.info('[VoicePipeline-v3] Closing session')
+      logger.info('[VoicePipeline-v3] Closing session')
       isActive = false
       audioBuffer = []
       onDisconnect?.()

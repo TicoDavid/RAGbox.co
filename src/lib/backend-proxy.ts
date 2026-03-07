@@ -18,6 +18,21 @@ function getBackendUrl(): string {
 }
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
 
+/** Resolved Go backend base URL. Use this instead of declaring GO_BACKEND_URL locally. */
+export const GO_BACKEND_URL = getBackendUrl()
+
+/** Build standard headers for internal Go backend fetch calls. */
+export function backendHeaders(userId?: string): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'X-Internal-Auth': INTERNAL_AUTH_SECRET,
+  }
+  if (userId) {
+    headers['X-User-ID'] = userId
+  }
+  return headers
+}
+
 interface ProxyOptions {
   /** Override the backend path (defaults to request pathname). */
   backendPath?: string

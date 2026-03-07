@@ -264,7 +264,7 @@ export function SovereignExplorer({ onClose }: SovereignExplorerProps) {
     }
   }, [])
 
-  const handleAuditLog = useCallback(async (docId: string) => {
+  const handleAuditEntry = useCallback(async (docId: string) => {
     try {
       const res = await apiFetch(`/api/audit?documentId=${docId}`)
       if (!res.ok) throw new Error('Failed to fetch audit log')
@@ -508,7 +508,7 @@ export function SovereignExplorer({ onClose }: SovereignExplorerProps) {
               onIndexToggle={handleIndexToggle}
               onSelectItem={setSelectedId}
               onDownload={handleDownload}
-              onAuditLog={handleAuditLog}
+              onAuditEntry={handleAuditEntry}
               onVerifyIntegrity={handleVerifyIntegrity}
               onToggleStar={handleToggleStar}
             />

@@ -8,6 +8,7 @@
 
 import { PrismaClient } from '@prisma/client'
 import { checkToolPermission } from './permissions'
+import { logger } from '../logger.js'
 
 // ============================================================================
 // TYPES
@@ -637,12 +638,12 @@ async function makeOutboundCall(
 
   if (!callRes.ok) {
     const errBody = await callRes.text()
-    console.error('[Tools/make_call] Twilio call failed:', errBody)
+    logger.error('[Tools/make_call] Twilio call failed:', errBody)
     return { ok: false, message: `Call failed: ${callRes.status}` }
   }
 
   const callData = await callRes.json() as { sid: string }
-  console.info('[Tools/make_call] Call initiated', { callSid: callData.sid, to: e164 })
+  logger.info('[Tools/make_call] Call initiated', { callSid: callData.sid, to: e164 })
   return { ok: true, callSid: callData.sid, message: `Calling ${e164}...` }
 }
 
@@ -754,7 +755,7 @@ export async function executeTool(call: ToolCall, ctx: ToolContext): Promise<Too
         throw new Error(`Unhandled tool: ${call.name}`)
     }
 
-    console.log(`[Tools] Executed '${call.name}' in ${Date.now() - startTime}ms`)
+    logger.info(`[Tools] Executed '${call.name}' in ${Date.now() - startTime}ms`)
 
     return {
       toolCallId: call.id,
@@ -764,7 +765,7 @@ export async function executeTool(call: ToolCall, ctx: ToolContext): Promise<Too
       uiAction,
     }
   } catch (error) {
-    console.error(`[Tools] Error executing '${call.name}':`, error)
+    logger.error(`[Tools] Error executing '${call.name}':`, error)
 
     return {
       toolCallId: call.id,

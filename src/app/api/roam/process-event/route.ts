@@ -31,8 +31,8 @@ import { logger } from '@/lib/logger'
 import { decryptKey } from '@/lib/utils/kms'
 import { randomUUID } from 'crypto'
 import type { Citation } from '@/types/ragbox'
+import { GO_BACKEND_URL } from '@/lib/backend-proxy'
 
-const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
 const ROAM_DEFAULT_USER_ID = process.env.ROAM_DEFAULT_USER_ID || process.env.WHATSAPP_DEFAULT_USER_ID || ''
 const SILENCE_THRESHOLD = 0.65

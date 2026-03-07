@@ -17,6 +17,7 @@ import {
   RemoteTTSComponent,
 } from '@inworld/runtime/graph'
 import { TOOL_DEFINITIONS, executeTool, type ToolContext, type ToolCall } from './tools'
+import { logger } from './logger.js'
 
 // ============================================================================
 // TYPES
@@ -158,7 +159,7 @@ async function fetchMercuryConfig(userId: string): Promise<MercuryConfig> {
       }
     }
   } catch {
-    console.warn('[Inworld] Mercury config fetch failed, using defaults')
+    logger.warn('[Inworld] Mercury config fetch failed, using defaults')
   }
   return {}
 }
@@ -289,7 +290,7 @@ Current user context:
         const cleanText = text.replace(toolPattern, '').trim()
         return { toolCall, cleanText }
       } catch (e) {
-        console.error('[Inworld] Failed to parse tool call:', e)
+        logger.error('[Inworld] Failed to parse tool call:', e)
       }
     }
 
@@ -302,7 +303,7 @@ Current user context:
       return 'Error: No user context available for tool execution'
     }
 
-    console.info('[Inworld] Executing tool', { name, args })
+    logger.info('[Inworld] Executing tool', { name, args })
     onToolCall?.(name, args)
 
     try {
@@ -334,7 +335,7 @@ Current user context:
   // Process text through LLM and TTS
   async function processWithLLM(userText: string, isToolResult = false): Promise<void> {
     try {
-      console.info('[Inworld] Processing', { type: isToolResult ? 'tool_result' : 'user_message', preview: userText.substring(0, 100) })
+      logger.info('[Inworld] Processing', { type: isToolResult ? 'tool_result' : 'user_message', preview: userText.substring(0, 100) })
 
       if (!isToolResult) {
         onTranscriptFinal?.(userText)
@@ -379,13 +380,13 @@ Current user context:
         await result.processResponse({
           Content: async (response: GraphTypes.Content) => {
             fullResponse = response.content || ''
-            console.info('[Inworld] LLM response', { preview: fullResponse.substring(0, 100) })
+            logger.info('[Inworld] LLM response', { preview: fullResponse.substring(0, 100) })
 
             // Check for tool calls
             const { toolCall, cleanText } = parseToolCalls(fullResponse)
 
             if (toolCall) {
-              console.info('[Inworld] Tool call detected', { name: toolCall.name })
+              logger.info('[Inworld] Tool call detected', { name: toolCall.name })
               conversationHistory.push({ role: 'assistant', content: fullResponse })
 
               // Execute the tool
@@ -409,13 +410,13 @@ Current user context:
                 }
               }
             }
-            console.info('[Inworld] LLM streamed response', { preview: fullResponse.substring(0, 100) })
+            logger.info('[Inworld] LLM streamed response', { preview: fullResponse.substring(0, 100) })
 
             // Check for tool calls in streamed response
             const { toolCall, cleanText } = parseToolCalls(fullResponse)
 
             if (toolCall) {
-              console.info('[Inworld] Tool call detected (stream)', { name: toolCall.name })
+              logger.info('[Inworld] Tool call detected (stream)', { name: toolCall.name })
               conversationHistory.push({ role: 'assistant', content: fullResponse })
 
               // Execute the tool
@@ -430,7 +431,7 @@ Current user context:
             conversationHistory.push({ role: 'assistant', content: fullResponse })
           },
           error: (error: GraphTypes.GraphError) => {
-            console.error('[Inworld] LLM Error:', error.message)
+            logger.error('[Inworld] LLM Error:', error.message)
             onError?.(new Error(error.message))
           },
         })
@@ -443,7 +444,7 @@ Current user context:
         await textToSpeech(cleanText)
       }
     } catch (error) {
-      console.error('[Inworld] Processing error:', error)
+      logger.error('[Inworld] Processing error:', error)
       onError?.(error instanceof Error ? error : new Error(String(error)))
     }
   }
@@ -451,7 +452,7 @@ Current user context:
   // Convert text to speech
   async function textToSpeech(text: string): Promise<void> {
     try {
-      console.info('[Inworld] TTS request', { preview: text.substring(0, 50) })
+      logger.info('[Inworld] TTS request', { preview: text.substring(0, 50) })
 
       const ttsNode = new RemoteTTSNode({
         ttsComponent,
@@ -483,13 +484,13 @@ Current user context:
             }
           },
           error: (error: GraphTypes.GraphError) => {
-            console.error('[Inworld] TTS Error:', error.message)
+            logger.error('[Inworld] TTS Error:', error.message)
             onError?.(new Error(error.message))
           },
         })
       }
     } catch (error) {
-      console.error('[Inworld] TTS error:', error)
+      logger.error('[Inworld] TTS error:', error)
       onError?.(error instanceof Error ? error : new Error(String(error)))
     }
   }
@@ -499,7 +500,7 @@ Current user context:
     if (audioBuffer.length === 0) return
 
     try {
-      console.info('[Inworld] Processing audio buffer')
+      logger.info('[Inworld] Processing audio buffer')
 
       // Merge audio buffers
       const totalLength = audioBuffer.reduce((acc, buf) => acc + buf.length, 0)
@@ -551,27 +552,27 @@ Current user context:
             }
           },
           error: (error: GraphTypes.GraphError) => {
-            console.error('[Inworld] STT Error:', error.message)
+            logger.error('[Inworld] STT Error:', error.message)
             onError?.(new Error(error.message))
           },
         })
       }
 
       if (transcription.trim()) {
-        console.info('[Inworld] Transcription', { transcription })
+        logger.info('[Inworld] Transcription', { transcription })
         await processWithLLM(transcription)
         onSpeakingComplete?.()
       } else {
-        console.info('[Inworld] No speech detected')
+        logger.info('[Inworld] No speech detected')
         onNoSpeech?.()
       }
     } catch (error) {
-      console.error('[Inworld] STT error:', error)
+      logger.error('[Inworld] STT error:', error)
       onError?.(error instanceof Error ? error : new Error(String(error)))
     }
   }
 
-  console.info('[Inworld] Session created', { agentName })
+  logger.info('[Inworld] Session created', { agentName })
 
   return {
     async sendAudio(pcmBuffer: Buffer): Promise<void> {
@@ -591,25 +592,25 @@ Current user context:
     },
 
     async startAudioSession(): Promise<void> {
-      console.info('[Inworld] Audio session start')
+      logger.info('[Inworld] Audio session start')
       isActive = true
       audioBuffer = []
     },
 
     async endAudioSession(): Promise<void> {
-      console.info('[Inworld] Audio session end')
+      logger.info('[Inworld] Audio session end')
       isActive = false
       await processAudio()
     },
 
     async cancelResponse(): Promise<void> {
-      console.info('[Inworld] Cancelling response')
+      logger.info('[Inworld] Cancelling response')
       // Reset buffers
       audioBuffer = []
     },
 
     async sendText(text: string): Promise<void> {
-      console.info('[Inworld] Sending text', { preview: text.substring(0, 80) })
+      logger.info('[Inworld] Sending text', { preview: text.substring(0, 80) })
       await processWithLLM(text)
       onSpeakingComplete?.()
     },
@@ -624,7 +625,7 @@ Current user context:
       } else {
         greeting = DEFAULT_GREETING
       }
-      console.info('[Inworld] Triggering greeting', { agentName })
+      logger.info('[Inworld] Triggering greeting', { agentName })
 
       // Add greeting to conversation history
       conversationHistory.push({ role: 'assistant', content: greeting })
@@ -638,7 +639,7 @@ Current user context:
     },
 
     close(): void {
-      console.info('[Inworld] Closing session')
+      logger.info('[Inworld] Closing session')
       isActive = false
       audioBuffer = []
       // NOTE: Don't call stopInworldRuntime() here - it's a global shutdown

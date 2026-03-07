@@ -4,6 +4,8 @@
  * Logging and metrics for voice agent sessions.
  */
 
+import { logger } from './logger.js'
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -75,7 +77,7 @@ export function initSession(sessionId: string, userId: string): SessionMetrics {
     errorCount: 0,
   }
   sessionMetrics.set(sessionId, metrics)
-  console.log(`[Observability] Session started: ${sessionId} (user: ${userId})`)
+  logger.info(`[Observability] Session started: ${sessionId} (user: ${userId})`)
   return metrics
 }
 
@@ -84,7 +86,7 @@ export function endSession(sessionId: string): SessionMetrics | undefined {
   if (metrics) {
     metrics.endedAt = Date.now()
     metrics.totalDurationMs = metrics.endedAt - metrics.startedAt
-    console.log(`[Observability] Session ended: ${sessionId} (duration: ${metrics.totalDurationMs}ms, turns: ${metrics.turnCount}, tools: ${metrics.toolCallCount})`)
+    logger.info(`[Observability] Session ended: ${sessionId} (duration: ${metrics.totalDurationMs}ms, turns: ${metrics.turnCount}, tools: ${metrics.toolCallCount})`)
   }
   return metrics
 }
@@ -93,7 +95,7 @@ export function recordFirstToken(sessionId: string): void {
   const metrics = sessionMetrics.get(sessionId)
   if (metrics && !metrics.firstTokenLatencyMs) {
     metrics.firstTokenLatencyMs = Date.now() - metrics.startedAt
-    console.log(`[Observability] First token latency: ${metrics.firstTokenLatencyMs}ms`)
+    logger.info(`[Observability] First token latency: ${metrics.firstTokenLatencyMs}ms`)
   }
 }
 
@@ -101,7 +103,7 @@ export function recordFirstAudio(sessionId: string): void {
   const metrics = sessionMetrics.get(sessionId)
   if (metrics && !metrics.firstAudioLatencyMs) {
     metrics.firstAudioLatencyMs = Date.now() - metrics.startedAt
-    console.log(`[Observability] First audio latency: ${metrics.firstAudioLatencyMs}ms`)
+    logger.info(`[Observability] First audio latency: ${metrics.firstAudioLatencyMs}ms`)
   }
 }
 
@@ -141,7 +143,7 @@ export function logToolCallStart(
     startedAt: Date.now(),
   })
 
-  console.log(`[Observability] Tool call started: ${toolName} (${toolCallId})`)
+  logger.info(`[Observability] Tool call started: ${toolName} (${toolCallId})`)
 }
 
 export function logToolCallEnd(
@@ -155,7 +157,7 @@ export function logToolCallEnd(
     log.success = success
     log.error = error
     log.latencyMs = log.completedAt - log.startedAt
-    console.log(`[Observability] Tool call ended: ${log.toolName} (${success ? 'success' : 'error'}, ${log.latencyMs}ms)`)
+    logger.info(`[Observability] Tool call ended: ${log.toolName} (${success ? 'success' : 'error'}, ${log.latencyMs}ms)`)
   }
 }
 
@@ -179,7 +181,7 @@ export function logTranscript(
     isFinal,
   })
 
-  console.log(`[Observability] Transcript [${speaker}]: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`)
+  logger.info(`[Observability] Transcript [${speaker}]: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`)
 }
 
 // ============================================================================
@@ -198,7 +200,7 @@ export function logAudioEvent(
     durationMs,
   })
 
-  console.log(`[Observability] Audio event: ${event}${durationMs ? ` (${durationMs}ms)` : ''}`)
+  logger.info(`[Observability] Audio event: ${event}${durationMs ? ` (${durationMs}ms)` : ''}`)
 }
 
 // ============================================================================

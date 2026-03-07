@@ -16,6 +16,7 @@ import { getWhatsAppProvider } from './providers/factory'
 import { whatsAppEventEmitter } from './events'
 import { persistThreadMessage } from '../thread-persistence'
 import type { InboundMessage, StatusUpdate } from './providers/types'
+import { logger } from '../logger.js'
 
 const prisma = new PrismaClient()
 
@@ -33,7 +34,7 @@ export async function processInboundMessage(message: InboundMessage): Promise<vo
   // For demo: route all messages to a default user
   const userId = DEFAULT_USER_ID
   if (!userId) {
-    console.error('[WhatsApp] No WHATSAPP_DEFAULT_USER_ID configured — cannot route message')
+    logger.error('[WhatsApp] No WHATSAPP_DEFAULT_USER_ID configured — cannot route message')
     return
   }
 
@@ -57,7 +58,7 @@ export async function processInboundMessage(message: InboundMessage): Promise<vo
     })
 
     if (contact.isBlocked) {
-      console.log(`[WhatsApp] Blocked contact ${message.from} — ignoring`)
+      logger.info(`[WhatsApp] Blocked contact ${message.from} — ignoring`)
       return
     }
 
@@ -78,7 +79,7 @@ export async function processInboundMessage(message: InboundMessage): Promise<vo
     })
 
     if (conversation.status === 'blocked') {
-      console.log(`[WhatsApp] Blocked conversation — ignoring`)
+      logger.info(`[WhatsApp] Blocked conversation — ignoring`)
       return
     }
 
@@ -113,7 +114,7 @@ export async function processInboundMessage(message: InboundMessage): Promise<vo
     try {
       await provider.markAsRead(message.externalMessageId)
     } catch (error) {
-      console.warn('[WhatsApp] Failed to mark as read:', error)
+      logger.warn('[WhatsApp] Failed to mark as read:', error)
     }
 
     // 6. Emit event for dashboard real-time
@@ -132,7 +133,7 @@ export async function processInboundMessage(message: InboundMessage): Promise<vo
       },
     })
 
-    console.log(`[WhatsApp] Processed inbound from ${message.from}: ${preview}`)
+    logger.info(`[WhatsApp] Processed inbound from ${message.from}: ${preview}`)
 
     // 6b. Persist inbound message to unified Mercury thread (fire-and-forget)
     if (message.content) {
@@ -152,7 +153,7 @@ export async function processInboundMessage(message: InboundMessage): Promise<vo
       await handleAutoReply(conversation.id, userId, message.from, message.content)
     }
   } catch (error) {
-    console.error('[WhatsApp] Error processing inbound message:', error)
+    logger.error('[WhatsApp] Error processing inbound message:', error)
   }
 }
 
@@ -260,9 +261,9 @@ async function handleAutoReply(
       metadata: { conversationId, queryId, autoReply: true },
     })
 
-    console.log(`[WhatsApp] Auto-reply sent to ${toPhone} (confidence: ${confidence ?? 'N/A'})`)
+    logger.info(`[WhatsApp] Auto-reply sent to ${toPhone} (confidence: ${confidence ?? 'N/A'})`)
   } catch (error) {
-    console.error('[WhatsApp] Auto-reply failed:', error)
+    logger.error('[WhatsApp] Auto-reply failed:', error)
   }
 }
 
@@ -294,7 +295,7 @@ export async function processStatusUpdate(update: StatusUpdate): Promise<void> {
       },
     })
   } catch (error) {
-    console.error('[WhatsApp] Error processing status update:', error)
+    logger.error('[WhatsApp] Error processing status update:', error)
   }
 }
 
@@ -358,7 +359,7 @@ export async function sendManualMessage(
 
     return { success: true }
   } catch (error) {
-    console.error('[WhatsApp] Send manual message failed:', error)
+    logger.error('[WhatsApp] Send manual message failed:', error)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

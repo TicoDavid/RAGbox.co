@@ -37,7 +37,7 @@ interface DeepInspectorProps {
   onIndexToggle: (id: string, enabled: boolean) => void
   onSelectItem: (id: string) => void
   onDownload: (id: string) => void
-  onAuditLog: (id: string) => void
+  onAuditEntry: (id: string) => void
   onVerifyIntegrity: (id: string) => void
   onToggleStar?: (id: string) => void
 }
@@ -54,7 +54,7 @@ export function DeepInspector({
   onIndexToggle,
   onSelectItem,
   onDownload,
-  onAuditLog,
+  onAuditEntry,
   onVerifyIntegrity,
   onToggleStar,
 }: DeepInspectorProps) {
@@ -163,7 +163,7 @@ export function DeepInspector({
               onIndexToggle={onIndexToggle}
               onDelete={onDelete}
               onDownload={onDownload}
-              onAuditLog={onAuditLog}
+              onAuditEntry={onAuditEntry}
               onVerifyIntegrity={onVerifyIntegrity}
             />
           )}
@@ -189,7 +189,7 @@ function CertificateTab({
   onIndexToggle,
   onDelete,
   onDownload,
-  onAuditLog,
+  onAuditEntry,
   onVerifyIntegrity,
 }: {
   item: ExplorerItem
@@ -199,7 +199,7 @@ function CertificateTab({
   onIndexToggle: (id: string, enabled: boolean) => void
   onDelete: (id: string) => void
   onDownload: (id: string) => void
-  onAuditLog: (id: string) => void
+  onAuditEntry: (id: string) => void
   onVerifyIntegrity: (id: string) => void
 }) {
   return (
@@ -294,7 +294,7 @@ function CertificateTab({
             Download
           </button>
           <button
-            onClick={() => onAuditLog(item.id)}
+            onClick={() => onAuditEntry(item.id)}
             className="w-full flex items-center gap-2 px-4 py-2.5 bg-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)] text-[var(--text-secondary)] rounded-lg text-sm transition-colors border border-[var(--border-default)]"
           >
             <ScrollText className="w-4 h-4" />

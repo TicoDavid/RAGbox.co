@@ -30,6 +30,7 @@ import { createVoiceSession, type VoiceSession } from './voice-pipeline-v3'
 import { whatsAppEventEmitter, type WhatsAppEvent } from './whatsapp/events'
 import { persistThreadMessage } from './thread-persistence'
 import { validateSession } from '../src/app/api/agent/session/session-store'
+import { logger } from './logger.js'
 
 // ============================================================================
 // TYPES
@@ -94,7 +95,7 @@ setInterval(() => {
   const now = Date.now()
   for (const [sessionId, session] of sessions) {
     if (now - session.lastActivity > SESSION_TIMEOUT_MS) {
-      console.info('[AgentWS] Cleaning up expired session', { sessionId })
+      logger.info('[AgentWS] Cleaning up expired session', { sessionId })
       session.voiceSession?.close()
       session.ws.close(1000, 'Session expired')
       sessions.delete(sessionId)
@@ -165,7 +166,7 @@ async function extractConnectionParams(req: IncomingMessage): Promise<Connection
             userId: string
             role: string
           }
-          console.info('[AgentWS] JWT validated — userId:', decoded.userId, 'role:', decoded.role)
+          logger.info('[AgentWS] JWT validated — userId:', decoded.userId, 'role:', decoded.role)
           return {
             sessionId: null,
             userId: decoded.userId,
@@ -173,7 +174,7 @@ async function extractConnectionParams(req: IncomingMessage): Promise<Connection
             privilegeMode: false,
           }
         } catch (err) {
-          console.warn('[AgentWS] Voice JWT validation failed:', err instanceof Error ? err.message : err)
+          logger.warn('[AgentWS] Voice JWT validation failed:', err instanceof Error ? err.message : err)
           // Fall through to other auth paths
         }
       }
@@ -184,7 +185,7 @@ async function extractConnectionParams(req: IncomingMessage): Promise<Connection
     if (sessionId) {
       const result = validateSession(sessionId)
       if (result.valid && result.userId) {
-        console.info('[AgentWS] Authenticated via session token', { sessionId, userId: result.userId })
+        logger.info('[AgentWS] Authenticated via session token', { sessionId, userId: result.userId })
         return {
           sessionId,
           userId: result.userId,
@@ -192,7 +193,7 @@ async function extractConnectionParams(req: IncomingMessage): Promise<Connection
           privilegeMode: false,   // Server-side state (STORY-S01)
         }
       }
-      console.warn('[AgentWS] Invalid or expired session token', { sessionId })
+      logger.warn('[AgentWS] Invalid or expired session token', { sessionId })
     }
 
     // ── Path 2: NextAuth JWT cookie (auto-sent by browser on WS upgrade) ──
@@ -202,7 +203,7 @@ async function extractConnectionParams(req: IncomingMessage): Promise<Connection
         const token = await getToken({ req: req as any, secret })
         if (token && (token.id || token.email)) {
           const userId = (token.id as string) || (token.email as string)
-          console.info('[AgentWS] Authenticated via NextAuth JWT cookie', { userId })
+          logger.info('[AgentWS] Authenticated via NextAuth JWT cookie', { userId })
           return {
             sessionId: sessionId || null,
             userId,
@@ -211,15 +212,15 @@ async function extractConnectionParams(req: IncomingMessage): Promise<Connection
           }
         }
       } catch (err) {
-        console.warn('[AgentWS] NextAuth JWT cookie validation failed:', err)
+        logger.warn('[AgentWS] NextAuth JWT cookie validation failed:', err)
       }
     }
 
     // ── No valid auth ───────────────────────────────────────────────
-    console.warn('[AgentWS] Authentication failed — no valid session or JWT')
+    logger.warn('[AgentWS] Authentication failed — no valid session or JWT')
     return null
   } catch (err) {
-    console.error('[AgentWS] Error during authentication:', err)
+    logger.error('[AgentWS] Error during authentication:', err)
     return null
   }
 }
@@ -232,14 +233,14 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
   // STORY-S02: Authenticate before allowing connection
   const params = await extractConnectionParams(req)
   if (!params) {
-    console.warn('[AgentWS] Rejecting unauthenticated WebSocket connection')
+    logger.warn('[AgentWS] Rejecting unauthenticated WebSocket connection')
     ws.close(4001, 'Unauthorized')
     return
   }
 
   const sessionId = params.sessionId || generateSessionId()
 
-  console.info('[AgentWS] New connection', { sessionId, userId: params.userId, role: params.role })
+  logger.info('[AgentWS] New connection', { sessionId, userId: params.userId, role: params.role })
 
   // Initialize observability
   obs.initSession(sessionId, params.userId)
@@ -268,7 +269,7 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
   const setState = (newState: AgentState): void => {
     const prev = session.state
     session.state = newState
-    console.info(`[AgentWS] State: ${prev} → ${newState}`, { sessionId })
+    logger.info(`[AgentWS] State: ${prev} → ${newState}`, { sessionId })
     sendJSON(ws, { type: 'state', state: newState })
   }
 
@@ -323,13 +324,13 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
 
       onTTSChunk: (pcmBuffer) => {
         // Raw Int16 PCM buffer — send directly as binary WebSocket frame
-        console.info(`[BRIDGE-DIAG] TTS audio forwarding: ${pcmBuffer.length} bytes to WebSocket`, { sessionId })
+        logger.info(`[BRIDGE-DIAG] TTS audio forwarding: ${pcmBuffer.length} bytes to WebSocket`, { sessionId })
         sendBinary(ws, pcmBuffer)
         obs.recordFirstAudio(sessionId)
       },
 
       onToolCall: (toolName, args) => {
-        console.info('[AgentWS] Tool call', { toolName, args })
+        logger.info('[AgentWS] Tool call', { toolName, args })
         sendJSON(ws, {
           type: 'tool_call',
           call: { id: `tool_${Date.now()}`, name: toolName, parameters: args }
@@ -338,36 +339,36 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
       },
 
       onToolResult: (toolName, result) => {
-        console.info('[AgentWS] Tool result', { toolName })
+        logger.info('[AgentWS] Tool result', { toolName })
         sendJSON(ws, { type: 'tool_result', result: result as ToolResult })
       },
 
       onUIAction: (action) => {
-        console.info('[AgentWS] UI action', { action })
+        logger.info('[AgentWS] UI action', { action })
         sendJSON(ws, { type: 'ui_action', action })
       },
 
       onNoSpeech: () => {
         // Bug B fix: Silence is not an error — just return to idle without messaging
-        console.info('[AgentWS] No speech detected — staying silent', { sessionId })
+        logger.info('[AgentWS] No speech detected — staying silent', { sessionId })
         setState('idle')
       },
 
       onSpeakingComplete: () => {
         // BUG-042: TTS audio delivery complete — NOW it's safe to go idle.
         // This fires AFTER all TTS chunks have been sent to the client via onTTSChunk.
-        console.info('[AgentWS] TTS complete — sending state:idle', { sessionId })
+        logger.info('[AgentWS] TTS complete — sending state:idle', { sessionId })
         setState('idle')
       },
 
       onError: (error) => {
-        console.error(`[AgentWS] Voice pipeline error for ${sessionId}:`, error)
+        logger.error(`[AgentWS] Voice pipeline error for ${sessionId}:`, error)
         obs.incrementError(sessionId)
         sendJSON(ws, { type: 'error', message: error.message })
       },
 
       onDisconnect: () => {
-        console.info('[AgentWS] Voice session ended', { sessionId })
+        logger.info('[AgentWS] Voice session ended', { sessionId })
         setState('error')
       },
     })
@@ -387,7 +388,7 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
           try {
             await session.voiceSession.sendAudio(data as Buffer)
           } catch (error) {
-            console.error('[AgentWS] Error sending audio:', error)
+            logger.error('[AgentWS] Error sending audio:', error)
           }
         }
         return
@@ -420,11 +421,11 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
               try {
                 await session.voiceSession.endAudioSession()
               } catch (err) {
-                console.error('[AgentWS] Pipeline error in endAudioSession:', err)
+                logger.error('[AgentWS] Pipeline error in endAudioSession:', err)
               }
               // Only set idle if the pipeline didn't already (e.g., no speech detected)
               if (session.state === 'processing') {
-                console.info('[AgentWS] No speech/TTS output — setting idle')
+                logger.info('[AgentWS] No speech/TTS output — setting idle')
                 setState('idle')
               }
             }
@@ -450,14 +451,14 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
 
           case 'tool_result':
             // Tool results from client confirmations
-            console.info('[AgentWS] Tool result received', { name: msg.name })
+            logger.info('[AgentWS] Tool result received', { name: msg.name })
             break
 
           default:
-            console.warn('[AgentWS] Unknown message type:', msg)
+            logger.warn('[AgentWS] Unknown message type:', msg)
         }
       } catch (error) {
-        console.error('[AgentWS] Error parsing message:', error)
+        logger.error('[AgentWS] Error parsing message:', error)
         sendJSON(ws, { type: 'error', message: 'Invalid message format' })
       }
     })
@@ -474,9 +475,9 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
     whatsAppEventEmitter.on('message', onWhatsAppEvent)
 
     // Send initial greeting from Mercury (fire-and-forget so it doesn't block message handling)
-    console.info('[AgentWS] Sending initial greeting', { sessionId })
+    logger.info('[AgentWS] Sending initial greeting', { sessionId })
     voiceSession.triggerGreeting().catch((greetError) => {
-      console.warn('[AgentWS] Failed to send initial greeting:', greetError)
+      logger.warn('[AgentWS] Failed to send initial greeting:', greetError)
     })
 
     // ── Keepalive (ping/pong) ─────────────────────────────
@@ -486,7 +487,7 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
 
     const pingInterval = setInterval(() => {
       if (!isAlive) {
-        console.warn('[AgentWS] No pong received — terminating dead connection', { sessionId })
+        logger.warn('[AgentWS] No pong received — terminating dead connection', { sessionId })
         ws.terminate()
         return
       }
@@ -496,7 +497,7 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
 
     // Handle disconnection
     ws.on('close', async (code, reason) => {
-      console.info('[AgentWS] Connection closed', { sessionId, code, reason: reason.toString() })
+      logger.info('[AgentWS] Connection closed', { sessionId, code, reason: reason.toString() })
       clearInterval(pingInterval)
       whatsAppEventEmitter.off('message', onWhatsAppEvent)
       obs.endSession(sessionId)
@@ -505,14 +506,14 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
     })
 
     ws.on('error', (error) => {
-      console.error(`[AgentWS] WebSocket error for ${sessionId}:`, error)
+      logger.error(`[AgentWS] WebSocket error for ${sessionId}:`, error)
       obs.incrementError(sessionId)
       setState('error')
       sendJSON(ws, { type: 'error', message: error.message })
     })
 
   } catch (error) {
-    console.error('[AgentWS] Failed to initialize session:', error)
+    logger.error('[AgentWS] Failed to initialize session:', error)
     setState('error')
     sendJSON(ws, {
       type: 'error',
@@ -537,12 +538,12 @@ export function startAgentWSServer(httpServer: HttpServer): WebSocketServer {
     path: '/agent/ws',
   })
 
-  console.info('[AgentWS] WebSocket server started', { path: '/agent/ws' })
+  logger.info('[AgentWS] WebSocket server started', { path: '/agent/ws' })
 
   wss.on('connection', handleConnection)
 
   wss.on('error', (error) => {
-    console.error('[AgentWS] Server error:', error)
+    logger.error('[AgentWS] Server error:', error)
   })
 
   return wss
@@ -554,12 +555,12 @@ export function startAgentWSServer(httpServer: HttpServer): WebSocketServer {
 export function createStandaloneWSServer(port: number = 3003): WebSocketServer {
   const wss = new WebSocketServer({ port, path: '/agent/ws' })
 
-  console.info('[AgentWS] Standalone WebSocket server started', { port, path: '/agent/ws' })
+  logger.info('[AgentWS] Standalone WebSocket server started', { port, path: '/agent/ws' })
 
   wss.on('connection', handleConnection)
 
   wss.on('error', (error) => {
-    console.error('[AgentWS] Server error:', error)
+    logger.error('[AgentWS] Server error:', error)
   })
 
   return wss

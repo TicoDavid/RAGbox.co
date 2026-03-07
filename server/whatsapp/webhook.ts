@@ -12,6 +12,7 @@ import { parse } from 'url'
 import { getWhatsAppProvider } from './providers/factory'
 import { MetaProvider } from './providers/meta'
 import { processInboundMessage, processStatusUpdate } from './processor'
+import { logger } from '../logger.js'
 
 // ============================================================================
 // RAW BODY READER
@@ -77,7 +78,7 @@ export async function handleWhatsAppWebhook(
     }
 
     if (!provider.verifyWebhook(headers, rawBody)) {
-      console.warn('[WhatsApp] Webhook signature verification failed')
+      logger.warn('[WhatsApp] Webhook signature verification failed')
       res.writeHead(401, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({ error: 'Invalid signature' }))
       return
@@ -95,7 +96,7 @@ export async function handleWhatsAppWebhook(
       const inboundMessage = provider.parseInboundMessage(body)
       if (inboundMessage) {
         processInboundMessage(inboundMessage).catch((error) => {
-          console.error('[WhatsApp] Async processing failed:', error)
+          logger.error('[WhatsApp] Async processing failed:', error)
         })
         return
       }
@@ -104,14 +105,14 @@ export async function handleWhatsAppWebhook(
       const statusUpdate = provider.parseStatusUpdate(body)
       if (statusUpdate) {
         processStatusUpdate(statusUpdate).catch((error) => {
-          console.error('[WhatsApp] Status update processing failed:', error)
+          logger.error('[WhatsApp] Status update processing failed:', error)
         })
         return
       }
 
-      console.log('[WhatsApp] Unrecognized webhook payload — ignored')
+      logger.info('[WhatsApp] Unrecognized webhook payload — ignored')
     } catch (error) {
-      console.error('[WhatsApp] Failed to parse webhook body:', error)
+      logger.error('[WhatsApp] Failed to parse webhook body:', error)
     }
     return
   }
@@ -144,11 +145,11 @@ export async function handleWhatsAppWebhook(
       const statusUpdate = provider.parseStatusUpdate(body)
       if (statusUpdate) {
         processStatusUpdate(statusUpdate).catch((error) => {
-          console.error('[WhatsApp] Status processing failed:', error)
+          logger.error('[WhatsApp] Status processing failed:', error)
         })
       }
     } catch (error) {
-      console.error('[WhatsApp] Failed to parse status webhook:', error)
+      logger.error('[WhatsApp] Failed to parse status webhook:', error)
     }
     return
   }

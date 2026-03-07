@@ -14,13 +14,15 @@ import { Prisma } from '@prisma/client'
 import prisma from '@/lib/prisma'
 import { parseSSEText } from '@/lib/mercury/sseParser'
 import { logger } from '@/lib/logger'
+import { convertOggToWav } from '@/lib/audio/convert'
+import { transcribeAudio } from '@/lib/audio/transcribe'
+import { GO_BACKEND_URL } from '@/lib/backend-proxy'
 
 // EPIC-017 S06: Token now from Secret Manager — no hardcoded fallback
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || ''
 const VONAGE_API_KEY = process.env.VONAGE_API_KEY || ''
 const VONAGE_API_SECRET = process.env.VONAGE_API_SECRET || ''
 const VONAGE_WHATSAPP_NUMBER = process.env.VONAGE_WHATSAPP_NUMBER || '14157386102'
-const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
 const DEFAULT_USER_ID = process.env.WHATSAPP_DEFAULT_USER_ID || ''
 
@@ -114,7 +116,9 @@ async function processWebhookPayload(body: Record<string, unknown>): Promise<voi
 
   const profile = body.profile as Record<string, unknown> | undefined
   const displayName = (profile?.name as string) || undefined
-  const content = messageType === 'text' ? ((body.text as string) || '') : undefined
+  let content = messageType === 'text' ? ((body.text as string) || '') : undefined
+  const audioData = messageType === 'audio' ? (body.audio as Record<string, unknown> | undefined) : undefined
+  const audioUrl = audioData?.url as string | undefined
 
   const userId = DEFAULT_USER_ID
   if (!userId) {
@@ -183,13 +187,22 @@ async function processWebhookPayload(body: Record<string, unknown>): Promise<voi
 
     logger.info(`[Webhook] Processed inbound from ${fromPhone}: ${preview}`)
 
-    // 5. Write to Mercury Unified Thread (additive — WhatsApp data stays intact)
+    // 5. Voice message: download OGG/Opus → convert to WAV → transcribe → treat as text
+    if (messageType === 'audio' && audioUrl && !content) {
+      const transcription = await transcribeVoiceMessage(audioUrl)
+      if (transcription) {
+        content = transcription
+        logger.info(`[Webhook] Voice message transcribed: "${transcription.slice(0, 80)}"`)
+      }
+    }
+
+    // 6. Write to Mercury Unified Thread (additive — WhatsApp data stays intact)
     if (content) {
       await writeMercuryThreadMessage(userId, 'user', 'whatsapp', content, undefined, { phone: fromPhone, displayName })
     }
 
-    // 6. Auto-reply via RAG if enabled
-    if (conversation.autoReply && messageType === 'text' && content) {
+    // 7. Auto-reply via RAG if enabled (text OR transcribed voice)
+    if (conversation.autoReply && content) {
       await handleAutoReply(conversation.id, userId, fromPhone, content)
     }
   } catch (error) {
@@ -427,6 +440,37 @@ async function writeMercuryThreadMessage(
   } catch (error) {
     // Non-fatal: WhatsApp processing continues even if thread write fails
     logger.error('[Webhook] Mercury thread write failed:', error)
+  }
+}
+
+// =============================================================================
+// VOICE MESSAGE TRANSCRIPTION (S-P0-03)
+// =============================================================================
+
+async function transcribeVoiceMessage(audioUrl: string): Promise<string | null> {
+  try {
+    // Download audio from Vonage media URL
+    const auth = Buffer.from(`${VONAGE_API_KEY}:${VONAGE_API_SECRET}`).toString('base64')
+    const response = await fetch(audioUrl, {
+      headers: { 'Authorization': `Basic ${auth}` },
+    })
+
+    if (!response.ok) {
+      logger.error('[Webhook] Failed to download voice message', { status: response.status })
+      return null
+    }
+
+    const oggBuffer = Buffer.from(await response.arrayBuffer())
+    logger.info('[Webhook] Downloaded voice message', { bytes: oggBuffer.length })
+
+    // Convert OGG/Opus → WAV (16 kHz mono PCM)
+    const wavBuffer = await convertOggToWav(oggBuffer)
+
+    // Transcribe WAV → text
+    return await transcribeAudio(wavBuffer)
+  } catch (error) {
+    logger.error('[Webhook] Voice transcription failed:', error)
+    return null
   }
 }
 

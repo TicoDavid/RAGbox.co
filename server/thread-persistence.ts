@@ -7,6 +7,7 @@
  */
 
 import { PrismaClient, type mercury_channel } from '@prisma/client'
+import { logger } from './logger.js'
 import type { InputJsonValue } from '@prisma/client/runtime/library'
 
 const prisma = new PrismaClient()
@@ -66,6 +67,6 @@ export async function persistThreadMessage(msg: ThreadMessage): Promise<void> {
       data: { updatedAt: new Date() },
     })
   } catch (error) {
-    console.error('[ThreadPersistence] Failed to persist message:', error)
+    logger.error('[ThreadPersistence] Failed to persist message:', error)
   }
 }

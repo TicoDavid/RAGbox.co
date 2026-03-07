@@ -17,6 +17,7 @@
  */
 
 import type { ToolContext } from './tools'
+import { logger } from './logger.js'
 
 // ============================================================================
 // TEXT CHUNKING (inlined — server/ can't import from src/ in Docker build)
@@ -152,7 +153,7 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
   // ------------------------------------------------------------------
   async function speechToText(pcmBuffer: Buffer): Promise<string> {
     try {
-      console.info('[VoicePipeline-v2] STT request', { bytes: pcmBuffer.length })
+      logger.info('[VoicePipeline-v2] STT request', { bytes: pcmBuffer.length })
 
       const params = new URLSearchParams({
         model: STT_MODEL,
@@ -184,10 +185,10 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
       }
 
       const transcript = data.results?.channels?.[0]?.alternatives?.[0]?.transcript || ''
-      console.info('[VoicePipeline-v2] STT transcript', { transcript })
+      logger.info('[VoicePipeline-v2] STT transcript', { transcript })
       return transcript
     } catch (error) {
-      console.error('[VoicePipeline-v2] STT error:', error)
+      logger.error('[VoicePipeline-v2] STT error:', error)
       onError?.(error instanceof Error ? error : new Error(String(error)))
       return ''
     }
@@ -199,7 +200,7 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
   // ------------------------------------------------------------------
   async function queryLLM(text: string): Promise<string> {
     try {
-      console.info('[VoicePipeline-v2] LLM query', { preview: text.substring(0, 80) })
+      logger.info('[VoicePipeline-v2] LLM query', { preview: text.substring(0, 80) })
 
       // Add user message to history
       conversationHistory.push({ role: 'user', content: text })
@@ -273,14 +274,14 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
         if (!answer) answer = tokens.join('')
       }
 
-      console.info('[VoicePipeline-v2] LLM answer', { preview: answer.substring(0, 80) })
+      logger.info('[VoicePipeline-v2] LLM answer', { preview: answer.substring(0, 80) })
 
       // Add assistant response to history
       conversationHistory.push({ role: 'assistant', content: answer })
 
       return answer
     } catch (error) {
-      console.error('[VoicePipeline-v2] LLM error:', error)
+      logger.error('[VoicePipeline-v2] LLM error:', error)
       onError?.(error instanceof Error ? error : new Error(String(error)))
       return "I'm sorry, I couldn't process that request. Please try again."
     }
@@ -320,7 +321,7 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
       if (!audioContent) throw new Error('No audio content in Inworld response')
 
       const audioBuffer = Buffer.from(audioContent, 'base64')
-      console.info('[VoicePipeline-v2] Inworld TTS chunk', { bytes: audioBuffer.length })
+      logger.info('[VoicePipeline-v2] Inworld TTS chunk', { bytes: audioBuffer.length })
 
       for (let offset = 0; offset < audioBuffer.length; offset += TTS_CHUNK_SIZE) {
         if (cancelled) return
@@ -358,7 +359,7 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
     const audioArrayBuffer = await res.arrayBuffer()
     const audioBuffer = Buffer.from(audioArrayBuffer)
 
-    console.info('[VoicePipeline-v2] Deepgram TTS fallback', { bytes: audioBuffer.length })
+    logger.info('[VoicePipeline-v2] Deepgram TTS fallback', { bytes: audioBuffer.length })
 
     for (let offset = 0; offset < audioBuffer.length; offset += TTS_CHUNK_SIZE) {
       if (cancelled) break
@@ -378,18 +379,18 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
         await inworldTTS(text)
         return
       } catch (error) {
-        console.warn('[VoicePipeline-v2] Inworld TTS failed, falling back to Deepgram:',
+        logger.warn('[VoicePipeline-v2] Inworld TTS failed, falling back to Deepgram:',
           error instanceof Error ? error.message : error)
       }
     } else {
-      console.warn('[VoicePipeline-v2] No INWORLD_API_KEY — using Deepgram TTS directly')
+      logger.warn('[VoicePipeline-v2] No INWORLD_API_KEY — using Deepgram TTS directly')
     }
 
     // Fallback to Deepgram Aura
     try {
       await deepgramTTS(text)
     } catch (error) {
-      console.error('[VoicePipeline-v2] TTS error (both providers failed):', error)
+      logger.error('[VoicePipeline-v2] TTS error (both providers failed):', error)
       onError?.(error instanceof Error ? error : new Error(String(error)))
     }
   }
@@ -410,7 +411,7 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
     // Step 1: Speech-to-Text
     const transcript = await speechToText(merged)
     if (!transcript.trim()) {
-      console.info('[VoicePipeline-v2] Empty transcript, skipping')
+      logger.info('[VoicePipeline-v2] Empty transcript, skipping')
       onNoSpeech?.()
       return
     }
@@ -434,7 +435,7 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
       await textToSpeech(answer)
     }
 
-    console.info('[VoicePipeline-v2] Pipeline complete (processAudio)')
+    logger.info('[VoicePipeline-v2] Pipeline complete (processAudio)')
     onSpeakingComplete?.()
   }
 
@@ -459,11 +460,11 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
       await textToSpeech(answer)
     }
 
-    console.info('[VoicePipeline-v2] Pipeline complete (processText)')
+    logger.info('[VoicePipeline-v2] Pipeline complete (processText)')
     onSpeakingComplete?.()
   }
 
-  console.info('[VoicePipeline-v2] Session created', {
+  logger.info('[VoicePipeline-v2] Session created', {
     tts: inworldKey ? 'inworld+deepgram-fallback' : 'deepgram-only',
   })
 
@@ -474,31 +475,31 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
     },
 
     async startAudioSession(): Promise<void> {
-      console.info('[VoicePipeline-v2] Audio session start')
+      logger.info('[VoicePipeline-v2] Audio session start')
       isActive = true
       audioChunks = []
       cancelled = false
     },
 
     async endAudioSession(): Promise<void> {
-      console.info('[VoicePipeline-v2] Audio session end')
+      logger.info('[VoicePipeline-v2] Audio session end')
       isActive = false
       await processAudio()
     },
 
     async cancelResponse(): Promise<void> {
-      console.info('[VoicePipeline-v2] Cancelling response')
+      logger.info('[VoicePipeline-v2] Cancelling response')
       cancelled = true
       audioChunks = []
     },
 
     async sendText(text: string): Promise<void> {
-      console.info('[VoicePipeline-v2] Sending text', { preview: text.substring(0, 80) })
+      logger.info('[VoicePipeline-v2] Sending text', { preview: text.substring(0, 80) })
       await processText(text)
     },
 
     async triggerGreeting(): Promise<void> {
-      console.info('[VoicePipeline-v2] Triggering greeting')
+      logger.info('[VoicePipeline-v2] Triggering greeting')
 
       // Fetch agent config (best-effort — falls back to defaults)
       let agentName = 'Mercury'
@@ -523,18 +524,18 @@ export async function createVoiceSession(config: VoiceSessionConfig): Promise<Vo
         // Config endpoint unavailable — use defaults
       }
 
-      console.info('[VoicePipeline-v2] Greeting:', greeting)
+      logger.info('[VoicePipeline-v2] Greeting:', greeting)
       conversationHistory.push({ role: 'assistant', content: greeting })
       onAgentTextPartial?.(greeting)
       onAgentTextFinal?.(greeting)
       await textToSpeech(greeting)
 
-      console.info('[VoicePipeline-v2] Greeting TTS complete')
+      logger.info('[VoicePipeline-v2] Greeting TTS complete')
       onSpeakingComplete?.()
     },
 
     close(): void {
-      console.info('[VoicePipeline-v2] Closing session')
+      logger.info('[VoicePipeline-v2] Closing session')
       isActive = false
       cancelled = true
       audioChunks = []

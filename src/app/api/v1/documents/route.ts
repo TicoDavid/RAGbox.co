@@ -8,8 +8,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { authenticateApiKey, hasScope } from '@/lib/api/apiKeyMiddleware'
 import prisma from '@/lib/prisma'
+import { GO_BACKEND_URL } from '@/lib/backend-proxy'
 
-const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
 
 // Extension → canonical MIME type mapping

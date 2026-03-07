@@ -131,17 +131,18 @@ export interface Citation {
   citationIndex: number
 }
 
-export interface AuditLog {
+export interface AuditEntry {
   id: string
-  userId: string | null
+  tenantId: string
+  userId: string
   action: string
   resourceId: string | null
-  resourceType: string | null
   severity: string
   details: unknown
-  detailsHash: string | null
   ipAddress: string | null
   userAgent: string | null
+  previousHash: string | null
+  entryHash: string
   createdAt: Date
 }
 

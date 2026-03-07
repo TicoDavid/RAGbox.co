@@ -13,6 +13,7 @@ import type {
   StatusUpdate,
   MessageStatus,
 } from './types'
+import { logger } from '../../logger.js'
 
 // ============================================================================
 // VONAGE CONFIG
@@ -92,7 +93,7 @@ export class VonageProvider implements WhatsAppProvider {
 
       if (!response.ok) {
         const errorBody = await response.text()
-        console.error('[Vonage] Send text failed:', response.status, errorBody)
+        logger.error('[Vonage] Send text failed:', response.status, errorBody)
         return {
           externalMessageId: '',
           success: false,
@@ -106,7 +107,7 @@ export class VonageProvider implements WhatsAppProvider {
         success: true,
       }
     } catch (error) {
-      console.error('[Vonage] Send text error:', error)
+      logger.error('[Vonage] Send text error:', error)
       return {
         externalMessageId: '',
         success: false,
@@ -135,7 +136,7 @@ export class VonageProvider implements WhatsAppProvider {
 
       if (!response.ok) {
         const errorBody = await response.text()
-        console.error('[Vonage] Send audio failed:', response.status, errorBody)
+        logger.error('[Vonage] Send audio failed:', response.status, errorBody)
         return {
           externalMessageId: '',
           success: false,
@@ -149,7 +150,7 @@ export class VonageProvider implements WhatsAppProvider {
         success: true,
       }
     } catch (error) {
-      console.error('[Vonage] Send audio error:', error)
+      logger.error('[Vonage] Send audio error:', error)
       return {
         externalMessageId: '',
         success: false,
@@ -180,7 +181,7 @@ export class VonageProvider implements WhatsAppProvider {
   verifyWebhook(headers: Record<string, string>, rawBody: Buffer): boolean {
     if (!this.config.signatureSecret) {
       // No signature secret configured — skip verification (dev mode)
-      console.warn('[Vonage] No VONAGE_SIGNATURE_SECRET — skipping webhook verification')
+      logger.warn('[Vonage] No VONAGE_SIGNATURE_SECRET — skipping webhook verification')
       return true
     }
 

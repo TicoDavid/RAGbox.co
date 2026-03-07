@@ -26,7 +26,7 @@ export type {
   Query,
   Answer,
   Citation,
-  AuditLog,
+  AuditEntry,
   Folder,
   Template,
   WaitlistEntry,

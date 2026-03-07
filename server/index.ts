@@ -15,6 +15,7 @@ import http from 'http'
 import { parse } from 'url'
 import { startAgentWSServer } from './agent-ws'
 import { handleWhatsAppWebhook } from './whatsapp/webhook'
+import { logger } from './logger.js'
 
 // ============================================================================
 // CONFIGURATION
@@ -99,33 +100,27 @@ const wss = startAgentWSServer(server)
 // ============================================================================
 
 server.listen(PORT, HOST, () => {
-  console.log('═══════════════════════════════════════════════════════════════')
-  console.log('  RAGbox Voice Server')
-  console.log('═══════════════════════════════════════════════════════════════')
-  console.log(`  HTTP:      http://${HOST}:${PORT}`)
-  console.log(`  WebSocket: ws://${HOST}:${PORT}/agent/ws`)
-  console.log(`  Health:    http://${HOST}:${PORT}/health`)
-  console.log('═══════════════════════════════════════════════════════════════')
+  logger.info('RAGbox Voice Server started', { http: `http://${HOST}:${PORT}`, ws: `ws://${HOST}:${PORT}/agent/ws`, health: `http://${HOST}:${PORT}/health` })
 })
 
 // Graceful shutdown
 const shutdown = async (signal: string) => {
-  console.log(`\n[Server] Received ${signal}, shutting down...`)
+  logger.info(`[Server] Received ${signal}, shutting down...`)
 
   // Close WebSocket server
   wss.close(() => {
-    console.log('[Server] WebSocket server closed')
+    logger.info('[Server] WebSocket server closed')
   })
 
   // Close HTTP server
   server.close(() => {
-    console.log('[Server] HTTP server closed')
+    logger.info('[Server] HTTP server closed')
     process.exit(0)
   })
 
   // Force exit after 10 seconds
   setTimeout(() => {
-    console.error('[Server] Forced shutdown after timeout')
+    logger.error('[Server] Forced shutdown after timeout')
     process.exit(1)
   }, 10_000)
 }
@@ -135,12 +130,12 @@ process.on('SIGINT', () => shutdown('SIGINT'))
 
 // Handle uncaught errors
 process.on('uncaughtException', (error) => {
-  console.error('[Server] Uncaught exception:', error)
+  logger.error('[Server] Uncaught exception:', error)
   shutdown('uncaughtException')
 })
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('[Server] Unhandled rejection at:', promise, 'reason:', reason)
+  logger.error('[Server] Unhandled rejection at:', promise, 'reason:', reason)
 })
 
 export { server, wss }

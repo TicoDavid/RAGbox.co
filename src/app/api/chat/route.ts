@@ -19,8 +19,8 @@ import prisma from '@/lib/prisma'
 import { decryptKey } from '@/lib/utils/kms'
 import { validateExternalUrl } from '@/lib/utils/url-validation'
 import { logger } from '@/lib/logger'
+import { GO_BACKEND_URL } from '@/lib/backend-proxy'
 
-const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
 const DEFAULT_TENANT = 'default'
 
