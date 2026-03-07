@@ -8,6 +8,7 @@
  */
 
 import { NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 
 interface VoiceEntry {
   id: string
@@ -63,6 +64,8 @@ export async function GET(): Promise<NextResponse> {
     })
 
     if (!res.ok) {
+      const errText = await res.text().catch(() => 'unknown')
+      logger.warn('[VOICE-LIST] Inworld API returned non-OK', { status: res.status, body: errText.slice(0, 200) })
       return NextResponse.json({ success: true, data: { voices: VOICE_CATALOG, source: 'catalog' } })
     }
 
@@ -90,8 +93,10 @@ export async function GET(): Promise<NextResponse> {
     cachedVoices = voices
     cacheExpiresAt = Date.now() + 5 * 60 * 1000
 
+    logger.info('[VOICE-LIST] Inworld API returned voices', { count: voices.length, catalogOverlap: voices.filter(v => CATALOG_BY_ID.has(v.id)).length })
     return NextResponse.json({ success: true, data: { voices, source: 'inworld' } })
-  } catch {
+  } catch (err) {
+    logger.warn('[VOICE-LIST] Inworld API fetch failed', { error: err instanceof Error ? err.message : 'unknown' })
     return NextResponse.json({ success: true, data: { voices: VOICE_CATALOG, source: 'catalog' } })
   }
 }

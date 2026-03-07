@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   MessageCircle,
-  Mic,
   ShieldCheck,
   Loader2,
   CheckCircle2,
@@ -51,15 +50,6 @@ interface Vault {
   id: string
   name: string
 }
-
-const VOICE_MODELS = [
-  { value: 'aura-asteria-en', label: 'Asteria (Female, US)' },
-  { value: 'aura-luna-en', label: 'Luna (Female, US)' },
-  { value: 'aura-stella-en', label: 'Stella (Female, US)' },
-  { value: 'aura-athena-en', label: 'Athena (Female, UK)' },
-  { value: 'aura-hera-en', label: 'Hera (Female, US)' },
-  { value: 'aura-orion-en', label: 'Orion (Male, US)' },
-]
 
 // ============================================================================
 // COMPONENT
@@ -681,53 +671,11 @@ export function IntegrationsSettings() {
       </div>
 
       {/* ================================================================== */}
-      {/* SECTION 2: Mercury Voice */}
-      {/* Mercury Voice settings consolidated into MercurySettingsModal (Deploy 55) */}
+      {/* Mercury Voice settings removed — consolidated into Mercury Settings Modal (Voice tab) */}
+      {/* Voice enable/disable: Mercury header power button */}
+      {/* Voice model selection: Mercury Settings > Voice tab */}
+      {/* Auto-Reply moved to WhatsApp section above */}
       {/* ================================================================== */}
-      <div className="rounded-lg border border-[var(--bg-tertiary)] bg-[var(--bg-primary)] p-4 mb-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Mic size={14} className="text-[var(--brand-blue)]" />
-            <span className="text-xs font-medium text-[var(--text-primary)]">Mercury Voice</span>
-          </div>
-          <Toggle
-            checked={settings.mercuryVoiceEnabled}
-            onChange={(v) => saveField({ mercuryVoiceEnabled: v })}
-          />
-        </div>
-
-        <div className="space-y-3 mt-3 pt-3 border-t border-[var(--bg-tertiary)]">
-          {/* Voice Model */}
-          <div>
-            <label className="text-[10px] text-[var(--text-tertiary)] block mb-1">Voice Model</label>
-            <select
-              value={settings.mercuryVoiceModel}
-              onChange={(e) => saveField({ mercuryVoiceModel: e.target.value })}
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--bg-elevated)] rounded px-2 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-blue)]"
-            >
-              {VOICE_MODELS.map((m) => (
-                <option key={m.value} value={m.value}>
-                  {m.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Auto-Reply */}
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-xs text-[var(--text-primary)]">Auto-Reply</div>
-              <div className="text-[10px] text-[var(--text-tertiary)]">
-                Automatically respond to WhatsApp messages via RAG
-              </div>
-            </div>
-            <Toggle
-              checked={settings.mercuryAutoReply}
-              onChange={(v) => saveField({ mercuryAutoReply: v })}
-            />
-          </div>
-        </div>
-      </div>
 
       {/* ================================================================== */}
       {/* SECTION 3: Permissions */}

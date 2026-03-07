@@ -17,9 +17,17 @@ export const runtime = 'nodejs';
 const EMOTION_TAG_RE = /^\[(?:warm|confident|thoughtful|serious|concerned|apologetic|neutral)\]\s*/i;
 
 export async function POST(req: NextRequest) {
+  let requestVoiceId: string | undefined;
+  let requestModelId: string | undefined;
+  let requestTextLength = 0;
+
   try {
     const body = await req.json();
     const { text, voiceId, modelId } = body;
+
+    requestVoiceId = voiceId;
+    requestModelId = modelId;
+    requestTextLength = typeof text === 'string' ? text.length : 0;
 
     if (!text || typeof text !== 'string') {
       return NextResponse.json(
@@ -74,9 +82,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    logger.error('[VOICE-TTS] Synthesis failed', { message, stack });
+    logger.error('[VOICE-TTS] Synthesis failed', {
+      message,
+      stack,
+      voiceId: requestVoiceId ?? 'undefined',
+      modelId: requestModelId ?? 'default',
+      textLength: requestTextLength,
+    });
     return NextResponse.json(
-      { error: 'TTS synthesis failed' },
+      { error: 'TTS synthesis failed', detail: message },
       { status: 500 }
     );
   }

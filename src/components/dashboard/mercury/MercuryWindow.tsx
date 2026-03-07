@@ -256,9 +256,9 @@ export function MercuryWindow() {
       <div className="flex-1 min-h-0 overflow-hidden relative">
         {/* Matrix rain — behind everything */}
         <MatrixRain
-          opacity={0.15}
+          opacity={0.6}
           color="#60a5fa"
-          backgroundColor="#0A192F"
+          backgroundColor="#0b1120"
           speed={effectiveSpeed}
         />
         {/* Chat panel — on top with glass effect */}
