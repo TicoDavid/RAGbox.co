@@ -216,22 +216,26 @@ export function MercuryWindow() {
           )}
         </motion.button>
 
-        {/* Audio Level Bar */}
-        <div className="flex-1 min-w-0">
-          <AudioLevelBar level={isPoweredOn ? audioLevel : 0} isActive={status === 'listening'} />
-        </div>
+        {/* Audio Level Bar — only visible when voice is active */}
+        {isPoweredOn && (
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <AudioLevelBar level={audioLevel} isActive={status === 'listening'} />
+            <span className={`text-[10px] font-medium shrink-0 ${STATUS_COLORS[status]}`}>
+              {STATUS_LABELS[status]}
+            </span>
+          </div>
+        )}
 
-        {/* Voice Status Label */}
-        <span className={`text-[10px] font-medium shrink-0 ${STATUS_COLORS[status]}`}>
-          {STATUS_LABELS[status]}
-        </span>
+        {/* Spacer when voice is off */}
+        {!isPoweredOn && <div className="flex-1" />}
 
-        {/* Matrix speed control — compact inline slider */}
+        {/* Matrix Rain speed control */}
         <div className="flex items-center gap-2 bg-[var(--bg-tertiary)]/40 px-3 py-1.5 rounded-full border border-[var(--border-default)] backdrop-blur-sm">
           <Terminal
             size={14}
             className={effectiveSpeed > 0 ? 'text-[var(--brand-blue)]' : 'text-[var(--text-tertiary)]'}
           />
+          <span className="text-[10px] font-medium text-[var(--text-tertiary)]">Matrix</span>
           <input
             type="range"
             aria-label="Matrix rain animation speed"
