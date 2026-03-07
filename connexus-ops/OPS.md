@@ -24,7 +24,7 @@ NONE — Sprint is complete. Only EPICs remain.
 | Jordan | `connexus-ops/orders/FINAL-jordan.md` | ✅ CLOSED — 7/7 complete (S-P1-01, S-P1-05, S-P1-08, S-P2-03, S-P2-05, S-P3-06, S-P3-08) |
 | Sarah | `connexus-ops/orders/FINAL-sarah.md` | ✅ CLOSED — Deploy 57 regression 24/25 PASS, Jordan verification pending |
 | Sheldon | `connexus-ops/orders/FINAL-sheldon.md` | ✅ CLOSED — Sprint 10/10, KMS verified, EPIC notes ready |
-| Sheldon | `connexus-ops/orders/BUGS-sheldon.md` | ✅ BUGS FIXED — BUG-D56-03 ✅, BUG-D56-05 ✅, KMS migration ⏳ (GREEN LIGHT given, run pending) |
+| Sheldon | `connexus-ops/orders/BUGS-sheldon.md` | ✅ ALL CLOSED — BUG-D56-03 ✅, BUG-D56-05 ✅, KMS migration ✅ EXECUTED (0 tokens — pre-GA) |
 
 ## Epic Roadmap
 
@@ -37,13 +37,24 @@ NONE — Sprint is complete. Only EPICs remain.
 
 | Key | Value |
 |-----|-------|
-| Deploy | 57 |
-| Commit | 9e6126b (11 commits since Deploy 56) |
-| Revision | ragbox-app-00760-hkw |
-| Health | 200 — DB ok (8ms), Backend ok (1ms) |
-| Build | 12b2f0fe — 10m 16s, 2 attempts |
-| Regression | ✅ PASS — Sarah 24/25 (1 advisory) |
-| Certified | ✅ Dr. Insane 10/10 (71f357d) |
+| Deploy | 58 |
+| Commit | 511df10 (7 commits since Deploy 57) |
+| Build (ragbox-app) | f16d518e — BUILDING |
+| Build (mercury-voice) | 4290d16d — BUILDING |
+| Changes | Bug fixes (D56-03, D56-05), Jordan sprint (5 items), KMS migration, Inworld reference |
+| Regression | ⏳ Pending |
+| Certified | ⏳ Pending |
+
+### Deploy 58 Contents (since Deploy 57)
+| Commit | Description |
+|--------|------------|
+| 511df10 | docs: Inworld API reference |
+| cb378b2 | chore: sprint 28/28 COMPLETE |
+| 8162dda | feat: Jordan's sprint — agent page, dynamic models, accessibility, tier gating |
+| e3cdfdf | fix: BUG-D56-03 (voice catalog) + BUG-D56-05 (binary audio handler) |
+| cc572bc | chore: KMS GREEN LIGHT, S-P2-09 deferred |
+| 6e55d7d | chore: Deploy 57 shipped, bugs routed |
+| 11a1900 | chore: FINAL orders |
 
 ## Active Bugs
 
@@ -62,7 +73,7 @@ NONE — Sprint is complete. Only EPICs remain.
 | IAM binding for Cloud Run SA | ✅ Adam |
 | Code implemented (tri-prefix decrypt) | ✅ Sheldon (0e5c5f3) |
 | 4-path verification | ✅ Sheldon (kms-email, kms-email decrypt, aes legacy, kms-stub-email) |
-| Migration endpoint run | ⏳ GREEN LIGHT GIVEN — Sheldon to execute |
+| Migration endpoint run | ✅ EXECUTED — 0 tokens (pre-GA, no agentEmailCredential rows). Endpoint works, KMS initializes on Cloud Run ✅ |
 
 ## Decisions Log
 
@@ -99,3 +110,4 @@ NONE — Sprint is complete. Only EPICs remain.
 | 54 | 9d49df1 | 03-07 | Resize fix, voice protocol fix, Matrix Rain transparency |
 | 55 | 769185d | 03-07 | Settings restructure, pre-deploy cleanup |
 | 56 | d57fd29 | 03-08 | CSP blob: fix, WhatsApp ffmpeg, AuditEntry rename, structured logging, centralized backend URL, dead code cleanup |
+| 57 | 9e6126b | 03-08 | KMS email encryption, lint fixes, certified 10/10 |
