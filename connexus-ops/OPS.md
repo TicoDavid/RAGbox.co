@@ -4,29 +4,27 @@
 
 ## Active Sprint
 
-**Sprint 2026-03-08** — 29 items (3 P0, 9 P1, 9 P2, 8 P3) — 25/28 DONE (3 remaining, S-P2-09 deferred)
+**Sprint 2026-03-08** — 28 active items (3 P0, 9 P1, 9 P2, 8 P3) — ✅ **28/28 DONE — SPRINT COMPLETE** (S-P2-09 deferred)
 See: `connexus-ops/sprints/SPRINT-2026-03-08.md`
 
 ### Remaining
 
-| ID | Story | Owner |
-|----|-------|-------|
-| S-P1-05 | Agent identity page | Jordan |
-| S-P1-08 | Dynamic AI model lists | Jordan |
-| S-P2-03 | Accessibility audit | Jordan |
-| S-P2-05 | Tier gating | Jordan |
-| S-P2-09 | VPC Service Controls | ⏭️ DEFERRED — needs GCP Org (Cloud Identity Free → migrate project) |
+NONE — Sprint is complete. Only EPICs remain.
+
+| ID | Story | Status |
+|----|-------|--------|
+| S-P2-09 | VPC Service Controls | ⏭️ DEFERRED to next sprint — needs GCP Org (Cloud Identity Free → migrate project) |
 
 ### FINAL Orders
 
 | Agent | Order File | Status |
 |-------|-----------|--------|
-| Adam | `connexus-ops/orders/FINAL-adam.md` | Deploy 57 ✅, KMS key ✅, S-P2-08 ✅, S-P2-09 ⛔, bugs diagnosed ✅ |
-| Dr. Insane | `connexus-ops/orders/FINAL-drinsane.md` | Deploy 56 cert ✅ (7/7), Deploy 57 cert pending |
-| Jordan | `connexus-ops/orders/FINAL-jordan.md` | S-P1-01 ✅, 4 remaining |
-| Sarah | `connexus-ops/orders/FINAL-sarah.md` | Deploy 57 regression ✅ (24/25 PASS) |
-| Sheldon | `connexus-ops/orders/FINAL-sheldon.md` | Sprint 10/10 ✅, KMS key ready |
-| Sheldon | `connexus-ops/orders/BUGS-sheldon.md` | BUG-D56-03 + BUG-D56-05 + KMS verify |
+| Adam | `connexus-ops/orders/FINAL-adam.md` | ✅ CLOSED — Deploy 57 ✅, KMS key ✅, S-P2-08 ✅, S-P2-09 ⛔ deferred, bugs diagnosed ✅ |
+| Dr. Insane | `connexus-ops/orders/FINAL-drinsane.md` | ✅ CLOSED — Deploy 56 cert 7/7 ✅, Deploy 57 cert 10/10 ✅ (71f357d) |
+| Jordan | `connexus-ops/orders/FINAL-jordan.md` | ✅ CLOSED — 7/7 complete (S-P1-01, S-P1-05, S-P1-08, S-P2-03, S-P2-05, S-P3-06, S-P3-08) |
+| Sarah | `connexus-ops/orders/FINAL-sarah.md` | ✅ CLOSED — Deploy 57 regression 24/25 PASS, Jordan verification pending |
+| Sheldon | `connexus-ops/orders/FINAL-sheldon.md` | ✅ CLOSED — Sprint 10/10, KMS verified, EPIC notes ready |
+| Sheldon | `connexus-ops/orders/BUGS-sheldon.md` | ✅ BUGS FIXED — BUG-D56-03 ✅, BUG-D56-05 ✅, KMS migration ⏳ (GREEN LIGHT given, run pending) |
 
 ## Epic Roadmap
 
@@ -42,17 +40,29 @@ See: `connexus-ops/sprints/SPRINT-2026-03-08.md`
 | Deploy | 57 |
 | Commit | 9e6126b (11 commits since Deploy 56) |
 | Revision | ragbox-app-00760-hkw |
-| Health | 200 — DB ok (44ms), Backend ok (1ms) |
+| Health | 200 — DB ok (8ms), Backend ok (1ms) |
 | Build | 12b2f0fe — 10m 16s, 2 attempts |
 | Regression | ✅ PASS — Sarah 24/25 (1 advisory) |
-| Certified | ⏳ Pending Dr. Insane (10-point) |
+| Certified | ✅ Dr. Insane 10/10 (71f357d) |
 
 ## Active Bugs
 
+**NONE — All bugs resolved.**
+
 | ID | Issue | Root Cause | Owner | Status |
 |----|-------|-----------|-------|--------|
-| BUG-D56-03 | Voice preview 500 for Sophia/David | Inworld 404 — voice IDs don't exist in catalog | Sheldon | Fix ordered |
-| BUG-D56-05 | Mercury voice agent no audio | message_handler.ts JSON.parse on binary audio frames | Sheldon | Fix ordered |
+| BUG-D56-03 | Voice preview 500 for Sophia/David | Inworld 404 — display names not valid voice IDs | Sheldon | ✅ FIXED — removed from catalog (10→8 voices) |
+| BUG-D56-05 | Mercury voice agent no audio | message_handler.ts JSON.parse on binary audio frames | Sheldon | ✅ FIXED — isBinary flag, PCM→VAD pipeline bypass |
+
+## KMS Migration Status
+
+| Step | Status |
+|------|--------|
+| Key provisioned (ragbox-keys/email-token-key) | ✅ Adam |
+| IAM binding for Cloud Run SA | ✅ Adam |
+| Code implemented (tri-prefix decrypt) | ✅ Sheldon (0e5c5f3) |
+| 4-path verification | ✅ Sheldon (kms-email, kms-email decrypt, aes legacy, kms-stub-email) |
+| Migration endpoint run | ⏳ GREEN LIGHT GIVEN — Sheldon to execute |
 
 ## Decisions Log
 
@@ -78,6 +88,8 @@ See: `connexus-ops/sprints/SPRINT-2026-03-08.md`
 | 03-08 | FINAL orders: close sprint + bugs, leave only EPICs open | David |
 | 03-08 | S-P2-09 deferred to next sprint — needs GCP Org setup first | David |
 | 03-08 | KMS migration endpoint: GREEN LIGHT — run it | David |
+| 03-08 | Inworld API intel provided for voice bug fixes (Realtime WS + Voice API) | David |
+| 03-08 | Sprint 28/28 COMPLETE — all agents finished, both bugs fixed | Zane |
 
 ## Completed Deploys
 
