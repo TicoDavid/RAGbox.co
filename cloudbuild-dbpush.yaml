@@ -1,0 +1,16 @@
+steps:
+  - name: 'node:20-slim'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
+        npm install prisma@5.22.0
+        npx prisma generate --schema=prisma/schema.prisma
+        npx prisma db push --accept-data-loss --schema=prisma/schema.prisma
+    secretEnv: ['DATABASE_URL']
+availableSecrets:
+  secretManager:
+    - versionName: projects/ragbox-sovereign-prod/secrets/ragbox-prod-database-url/versions/latest
+      env: 'DATABASE_URL'
+timeout: '300s'
