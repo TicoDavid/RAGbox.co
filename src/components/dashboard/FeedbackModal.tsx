@@ -69,6 +69,7 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
         exit={{ opacity: 0 }}
         onClick={onClose}
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        aria-hidden="true"
       />
 
       {/* Modal */}
@@ -76,10 +77,13 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
         initial={{ scale: 0.95, opacity: 0, y: 10 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         className="relative w-full max-w-[460px] rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)] shadow-2xl overflow-hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="feedback-title"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-subtle)]">
-          <h2 className="text-base font-semibold text-[var(--text-primary)]">Send Feedback</h2>
+          <h2 id="feedback-title" className="text-base font-semibold text-[var(--text-primary)]">Send Feedback</h2>
           <button
             onClick={onClose}
             className="p-1 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors"
@@ -143,6 +147,7 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
               accept="image/*"
               onChange={handleScreenshot}
               className="hidden"
+              aria-label="Upload screenshot file"
             />
             {screenshot ? (
               <div className="flex items-center gap-2 p-2 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-default)]">

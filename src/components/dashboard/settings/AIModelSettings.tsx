@@ -23,6 +23,7 @@ import {
 } from '@/contexts/SettingsContext'
 import { apiFetch } from '@/lib/api'
 import { ConnectionsHelpText } from './ConnectionsHelpText'
+import { MODEL_CATALOG, getModelsForProvider, type ProviderCatalog } from '@/lib/models/catalog'
 
 // ============================================================================
 // CONSTANTS
@@ -36,32 +37,6 @@ const PROVIDER_OPTIONS: { value: ByollmProvider; label: string; endpoint: string
   { value: 'anthropic', label: 'Anthropic', endpoint: 'https://api.anthropic.com/v1' },
   { value: 'google', label: 'Google AI', endpoint: 'https://generativelanguage.googleapis.com/v1' },
 ]
-
-const HARDCODED_MODELS: Record<string, { id: string; name: string }[]> = {
-  openai: [
-    { id: 'gpt-4o', name: 'GPT-4o' },
-    { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
-    { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' },
-    { id: 'o1', name: 'o1' },
-    { id: 'o1-mini', name: 'o1-mini' },
-  ],
-  anthropic: [
-    { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6' },
-    { id: 'claude-opus-4-6', name: 'Claude Opus 4.6' },
-    { id: 'claude-haiku-4-5', name: 'Claude Haiku 4.5' },
-  ],
-  google: [
-    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' },
-    { id: 'gemini-2.0-pro', name: 'Gemini 2.0 Pro' },
-    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
-  ],
-  openrouter: [
-    { id: 'anthropic/claude-sonnet-4-20250514', name: 'Claude Sonnet 4' },
-    { id: 'openai/gpt-4o', name: 'GPT-4o' },
-    { id: 'google/gemini-2.0-flash-001', name: 'Gemini 2.0 Flash' },
-    { id: 'meta-llama/llama-3.1-405b-instruct', name: 'Llama 3.1 405B' },
-  ],
-}
 
 const POLICY_OPTIONS: { value: LlmPolicy; label: string; desc: string }[] = [
   { value: 'choice', label: 'User Choice', desc: 'Users toggle between AEGIS and Private LLM' },
@@ -116,6 +91,17 @@ export function AIModelSettings() {
   const [testError, setTestError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [dynamicCatalog, setDynamicCatalog] = useState<Record<string, ProviderCatalog> | null>(null)
+
+  // Fetch dynamic model list from API (falls back to shared catalog)
+  useEffect(() => {
+    apiFetch('/api/models/list')
+      .then((res) => res.ok ? res.json() : null)
+      .then((json) => {
+        if (json?.data) setDynamicCatalog(json.data)
+      })
+      .catch(() => { /* fallback to imported catalog */ })
+  }, [])
 
   // Find the existing BYOLLM connection in SettingsContext (local state)
   const byollmConnection = connections.find(
@@ -238,8 +224,8 @@ export function AIModelSettings() {
         // Auto-switch active intelligence so chat uses the saved BYOLLM model
         if (llmPolicy !== 'aegis_only' && selectedModel) {
           const providerLabel = PROVIDER_OPTIONS.find((p) => p.value === selectedProvider)?.label || selectedProvider
-          const models = HARDCODED_MODELS[selectedProvider] || []
-          const modelLabel = models.find((m) => m.id === selectedModel)?.name || selectedModel
+          const saveModels = (dynamicCatalog ?? MODEL_CATALOG)[selectedProvider]?.models ?? getModelsForProvider(selectedProvider)
+          const modelLabel = saveModels.find((m) => m.id === selectedModel)?.name || selectedModel
           setActiveIntelligence({
             id: selectedModel,
             displayName: modelLabel,
@@ -257,7 +243,7 @@ export function AIModelSettings() {
     } finally {
       setIsSaving(false)
     }
-  }, [selectedProvider, apiKeyInput, selectedModel, llmPolicy, byollmConnection, addConnection, updateConnection, setActiveIntelligence])
+  }, [selectedProvider, apiKeyInput, selectedModel, llmPolicy, byollmConnection, addConnection, updateConnection, setActiveIntelligence, dynamicCatalog])
 
   // ── Remove Config: DELETE /api/settings/llm ──
   const handleRemove = useCallback(async () => {
@@ -299,8 +285,9 @@ export function AIModelSettings() {
     }
   }, [setLlmPolicy, serverConfig])
 
-  // Build model list for dropdown
-  const modelOptions = HARDCODED_MODELS[selectedProvider] || []
+  // Build model list for dropdown — prefer dynamic API data, fall back to shared catalog
+  const activeCatalog = dynamicCatalog ?? MODEL_CATALOG
+  const modelOptions = activeCatalog[selectedProvider]?.models ?? getModelsForProvider(selectedProvider)
 
   const isConfigured = serverConfig?.configured ?? false
 

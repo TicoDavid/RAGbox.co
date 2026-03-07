@@ -159,6 +159,7 @@ export function MobileOverlay({ isOpen, onClose, side, children }: MobileOverlay
             transition={{ duration: 0.2 }}
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
             onClick={onClose}
+            aria-hidden="true"
           />
 
           {/* Panel */}
@@ -261,6 +262,7 @@ export function MobileBottomNav({
                 : 'text-[var(--text-tertiary)]'
             }`}
             aria-label={tab.label}
+            aria-current={isActive ? 'page' : undefined}
           >
             <Icon className="w-5 h-5" />
             <span className="text-[10px] font-medium">{tab.label}</span>

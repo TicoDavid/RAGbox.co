@@ -4,57 +4,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react'
 import { Zap, Lock, Search, X, Check, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { useSettings, type SecureConnection, type ActiveIntelligence } from '@/contexts/SettingsContext'
-
-// ============================================================================
-// MODEL CATALOG — curated per-provider model list
-// ============================================================================
-
-interface ModelEntry {
-  id: string
-  name: string
-}
-
-const MODEL_CATALOG: Record<string, { label: string; models: ModelEntry[] }> = {
-  openrouter: {
-    label: 'OpenRouter',
-    models: [
-      { id: 'anthropic/claude-sonnet-4-20250514', name: 'Claude Sonnet 4' },
-      { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet' },
-      { id: 'openai/gpt-4o', name: 'GPT-4o' },
-      { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini' },
-      { id: 'google/gemini-2.0-flash-001', name: 'Gemini 2.0 Flash' },
-      { id: 'google/gemini-2.0-pro', name: 'Gemini 2.0 Pro' },
-      { id: 'meta-llama/llama-3.1-405b-instruct', name: 'Llama 3.1 405B' },
-      { id: 'mistralai/mistral-large', name: 'Mistral Large' },
-    ],
-  },
-  openai: {
-    label: 'OpenAI',
-    models: [
-      { id: 'gpt-4o', name: 'GPT-4o' },
-      { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
-      { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' },
-      { id: 'o1', name: 'o1' },
-      { id: 'o1-mini', name: 'o1-mini' },
-    ],
-  },
-  anthropic: {
-    label: 'Anthropic',
-    models: [
-      { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6' },
-      { id: 'claude-opus-4-6', name: 'Claude Opus 4.6' },
-      { id: 'claude-haiku-4-5', name: 'Claude Haiku 4.5' },
-    ],
-  },
-  google: {
-    label: 'Google AI',
-    models: [
-      { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' },
-      { id: 'gemini-2.0-pro', name: 'Gemini 2.0 Pro' },
-      { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
-    ],
-  },
-}
+import { MODEL_CATALOG } from '@/lib/models/catalog'
 
 // ============================================================================
 // BYOLLM SELECTOR MODAL

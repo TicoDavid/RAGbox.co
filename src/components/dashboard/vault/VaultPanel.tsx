@@ -73,6 +73,7 @@ function VaultDetailView() {
           onClick={() => toggleStar(selectedDoc.id)}
           className="p-1.5 rounded-lg hover:bg-[var(--bg-elevated)]/50 transition-colors"
           aria-label={selectedDoc.isStarred ? 'Unstar document' : 'Star document'}
+          aria-pressed={selectedDoc.isStarred}
         >
           <Star className={`w-4 h-4 ${selectedDoc.isStarred ? 'fill-[var(--warning)] text-[var(--warning)]' : 'text-[var(--text-tertiary)]'}`} />
         </button>

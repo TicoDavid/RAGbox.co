@@ -42,6 +42,7 @@ function RailIcon({ icon: Icon, label, isActive, onClick, side, badge }: RailIco
       <button
         onClick={onClick}
         aria-label={label}
+        aria-current={isActive ? 'page' : undefined}
         className={`
           relative w-11 h-11 flex items-center justify-center rounded-xl
           transition-all duration-200

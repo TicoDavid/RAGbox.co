@@ -88,7 +88,7 @@ export function SettingsModal({ onClose, initialSection }: { onClose: () => void
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
 
       {/* Modal - Wide layout */}
-      <div className="relative w-full max-w-4xl mx-4 h-[80vh] max-h-[700px] bg-[var(--bg-secondary)] backdrop-blur-xl border border-[var(--border-default)] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+      <div className="relative w-full max-w-4xl mx-4 h-[80vh] max-h-[700px] bg-[var(--bg-secondary)] backdrop-blur-xl border border-[var(--border-default)] rounded-2xl shadow-2xl overflow-hidden flex flex-col" role="dialog" aria-modal="true" aria-labelledby="settings-title">
         {/* Header */}
         <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-[var(--border-default)]">
           <div className="flex items-center gap-3">
@@ -96,7 +96,7 @@ export function SettingsModal({ onClose, initialSection }: { onClose: () => void
               <Settings className="w-5 h-5 text-[var(--brand-blue)]" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-[var(--text-primary)]">System Control Panel</h2>
+              <h2 id="settings-title" className="text-lg font-semibold text-[var(--text-primary)]">System Control Panel</h2>
               <p className="text-xs text-[var(--text-tertiary)]">Sovereign Configuration Engine</p>
             </div>
           </div>

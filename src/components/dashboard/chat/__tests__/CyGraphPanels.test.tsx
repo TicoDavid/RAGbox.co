@@ -65,7 +65,7 @@ describe('RelationshipsPanel', () => {
       { fromEntity: 'Alice', toEntity: 'Bob', relationType: 'WORKS_WITH', weight: 0.8 },
     ]
     render(<RelationshipsPanel edges={edges} loading={false} />)
-    expect(screen.getByText('Alice')).toBeTruthy()
+    expect(screen.getAllByText('Alice').length).toBeGreaterThan(0)
     expect(screen.getByText('WORKS_WITH')).toBeTruthy()
     expect(screen.getByText('Bob')).toBeTruthy()
     expect(screen.getByText('80%')).toBeTruthy()

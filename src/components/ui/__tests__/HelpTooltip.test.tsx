@@ -3,7 +3,7 @@
  */
 
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 
 jest.mock('lucide-react', () => ({
   HelpCircle: (props: React.ComponentProps<'svg'>) => <svg data-testid="help-icon" {...props} />,
@@ -32,7 +32,9 @@ describe('HelpTooltip', () => {
     fireEvent.mouseEnter(wrapper)
     expect(screen.getByText('Detailed help')).toBeTruthy()
     fireEvent.mouseLeave(wrapper)
-    jest.advanceTimersByTime(200)
+    act(() => {
+      jest.advanceTimersByTime(200)
+    })
     expect(screen.queryByText('Detailed help')).toBeNull()
     jest.useRealTimers()
   })
