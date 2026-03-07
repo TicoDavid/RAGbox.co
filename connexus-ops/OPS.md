@@ -4,18 +4,29 @@
 
 ## Active Sprint
 
-**Sprint 2026-03-08** — 29 items (3 P0, 9 P1, 9 P2, 8 P3) — 23/29 DONE — FINAL ORDERS DISPATCHED
+**Sprint 2026-03-08** — 29 items (3 P0, 9 P1, 9 P2, 8 P3) — 25/29 DONE (3 remaining + 1 blocked)
 See: `connexus-ops/sprints/SPRINT-2026-03-08.md`
 
-### FINAL Orders (close sprint + bugs — only EPICs remain after)
+### Remaining
 
-| Agent | Order File | Items |
-|-------|-----------|-------|
-| Adam | `connexus-ops/orders/FINAL-adam.md` | Deploy 57, KMS key, BUG-D56-03, BUG-D56-05, S-P2-08, S-P2-09 |
-| Dr. Insane | `connexus-ops/orders/FINAL-drinsane.md` | Deploy 56 cert (7-point), Deploy 57 cert (10-point) |
-| Jordan | `connexus-ops/orders/FINAL-jordan.md` | S-P1-01, S-P1-05, S-P1-08, S-P2-03, S-P2-05 |
-| Sarah | `connexus-ops/orders/FINAL-sarah.md` | Deploy 57 regression, Jordan sprint verification |
-| Sheldon | `connexus-ops/orders/FINAL-sheldon.md` | KMS activation verification, EPIC readiness study |
+| ID | Story | Owner |
+|----|-------|-------|
+| S-P1-05 | Agent identity page | Jordan |
+| S-P1-08 | Dynamic AI model lists | Jordan |
+| S-P2-03 | Accessibility audit | Jordan |
+| S-P2-05 | Tier gating | Jordan |
+| S-P2-09 | VPC Service Controls | Adam — ⛔ BLOCKED (no GCP org) |
+
+### FINAL Orders
+
+| Agent | Order File | Status |
+|-------|-----------|--------|
+| Adam | `connexus-ops/orders/FINAL-adam.md` | Deploy 57 ✅, KMS key ✅, S-P2-08 ✅, S-P2-09 ⛔, bugs diagnosed ✅ |
+| Dr. Insane | `connexus-ops/orders/FINAL-drinsane.md` | Deploy 56 cert ✅ (7/7), Deploy 57 cert pending |
+| Jordan | `connexus-ops/orders/FINAL-jordan.md` | S-P1-01 ✅, 4 remaining |
+| Sarah | `connexus-ops/orders/FINAL-sarah.md` | Deploy 57 regression ✅ (24/25 PASS) |
+| Sheldon | `connexus-ops/orders/FINAL-sheldon.md` | Sprint 10/10 ✅, KMS key ready |
+| Sheldon | `connexus-ops/orders/BUGS-sheldon.md` | BUG-D56-03 + BUG-D56-05 + KMS verify |
 
 ## Epic Roadmap
 
@@ -28,27 +39,20 @@ See: `connexus-ops/sprints/SPRINT-2026-03-08.md`
 
 | Key | Value |
 |-----|-------|
-| Deploy | 56 |
-| Commit | d57fd29 |
-| Revision | ragbox-app-00756-bcg |
-| Health | 200 — DB ok (12ms), Backend ok (75ms) |
-| Certified | ⏳ Pending Dr. Insane |
-
-## Pending Deploy
-
-| Key | Value |
-|-----|-------|
 | Deploy | 57 |
-| Commits | 46fe6fc, ab0283e, 9ffb69c, e4a9141, 44b6175, 0e5c5f3, 53ad10d, 5ee6509 |
-| Content | Thread-to-Vault RAG (7 channels), file extractions, 80% test coverage, Matrix Rain fix, Mercury Voice section removal, TTS logging, KMS migration, EPIC-029 recorded, team orders |
-| Status | Waiting for Adam |
+| Commit | 9e6126b (11 commits since Deploy 56) |
+| Revision | ragbox-app-00760-hkw |
+| Health | 200 — DB ok (44ms), Backend ok (1ms) |
+| Build | 12b2f0fe — 10m 16s, 2 attempts |
+| Regression | ✅ PASS — Sarah 24/25 (1 advisory) |
+| Certified | ⏳ Pending Dr. Insane (10-point) |
 
 ## Active Bugs
 
-| ID | Issue | Status | Owner |
-|----|-------|--------|-------|
-| BUG-D56-03 | Voice preview 500 for Sophia/David voices | Logging added, Adam to diagnose after Deploy 57 | Adam |
-| BUG-D56-05 | Mercury voice agent can't hear/be heard | Infra investigation ordered | Adam |
+| ID | Issue | Root Cause | Owner | Status |
+|----|-------|-----------|-------|--------|
+| BUG-D56-03 | Voice preview 500 for Sophia/David | Inworld 404 — voice IDs don't exist in catalog | Sheldon | Fix ordered |
+| BUG-D56-05 | Mercury voice agent no audio | message_handler.ts JSON.parse on binary audio frames | Sheldon | Fix ordered |
 
 ## Decisions Log
 
