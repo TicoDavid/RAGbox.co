@@ -11,19 +11,26 @@ See: `connexus-ops/sprints/SPRINT-2026-03-08.md`
 
 | Key | Value |
 |-----|-------|
-| Deploy | 55 |
-| Commit | 769185d |
-| Revision | ragbox-app-00755-6wk |
-| Certified | ✅ 7/7 PASS |
+| Deploy | 56 |
+| Commit | d57fd29 |
+| Revision | ragbox-app-00756-bcg |
+| Health | 200 — DB ok (12ms), Backend ok (75ms) |
+| Certified | ⏳ Pending Dr. Insane |
 
 ## Pending Deploy
 
 | Key | Value |
 |-----|-------|
-| Deploy | 56 |
-| Commits | 4280e5e (CSP blob: fix), ac5b584 (Sheldon sprint work), c42e093 (sprint update) |
-| Content | Voice preview CSP fix, WhatsApp ffmpeg, AuditEntry unification, structured logger, centralized GO_BACKEND_URL, dead code removal |
+| Deploy | 57 |
+| Commits | 46fe6fc (S-P1-04 Thread-to-Vault), ab0283e (S-P1-02 file extractions), 9ffb69c (S-P0-02 test coverage), bc95662 (V2 epic) |
+| Content | Thread memory recall (7 channels), file extractions (5 files under limit), 80% test coverage (113 test files), CI smoke tests, server test fix |
 | Status | Waiting for Adam |
+
+## Held — Awaiting David Approval
+
+| Item | Files | Reason |
+|------|-------|--------|
+| S-P0-01 KMS migration | src/lib/gmail/crypto.ts, src/app/api/admin/migrate-email-tokens/ | Auth/Crypto — must flag before push |
 
 ## Decisions Log
 
@@ -41,6 +48,7 @@ See: `connexus-ops/sprints/SPRINT-2026-03-08.md`
 | 03-07 | KMS migration: GREEN LIGHT (provision key, implement, flag before push) | David |
 | 03-07 | Thread-to-Vault RAG: auto-embed all, all sources, retain forever | David |
 | 03-07 | Mercury vision: total memory recall — every input through RAGbox gets embedded | David |
+| 03-07 | EPIC-V2-VERDICT approved — 3 phases, 6 months, adaptive sovereign retrieval | David |
 
 ## Completed Deploys
 
@@ -49,3 +57,4 @@ See: `connexus-ops/sprints/SPRINT-2026-03-08.md`
 | 53 | c1f91f0 | 03-07 | Ferrari voice, Phase 2 memory, intent detection |
 | 54 | 9d49df1 | 03-07 | Resize fix, voice protocol fix, Matrix Rain transparency |
 | 55 | 769185d | 03-07 | Settings restructure, pre-deploy cleanup |
+| 56 | d57fd29 | 03-08 | CSP blob: fix, WhatsApp ffmpeg, AuditEntry rename, structured logging, centralized backend URL, dead code cleanup |
