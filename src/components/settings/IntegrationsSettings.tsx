@@ -83,7 +83,7 @@ const VOICE_MODELS = [
 // COMPONENT
 // ============================================================================
 
-export default function IntegrationsSettings() {
+export function IntegrationsSettings() {
   const [settings, setSettings] = useState<IntegrationSettingsData | null>(null)
   const [vaults, setVaults] = useState<Vault[]>([])
   const [loading, setLoading] = useState(true)

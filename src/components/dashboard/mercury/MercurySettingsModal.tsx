@@ -4,17 +4,18 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   X, Save, Loader2, Check, Play, Search, ChevronDown,
-  User, Brain, Cpu, Mic, Sparkles, Plug,
+  User, Brain, Cpu, Mic, Sparkles, Plug, Users,
 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { logger } from '@/lib/logger'
+import { NeuralShiftSection } from './NeuralShiftSection'
+import { IntegrationsSettings } from '@/components/settings/IntegrationsSettings'
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-type SectionId = 'identity' | 'voice' | 'persona' | 'intelligence'
+type SectionId = 'identity' | 'voice' | 'persona' | 'intelligence' | 'neuralshift' | 'integrations'
 
 interface SectionDef {
   id: SectionId
@@ -27,7 +28,9 @@ const SECTIONS: SectionDef[] = [
   { id: 'identity', label: 'Identity', icon: User, group: 'IDENTITY' },
   { id: 'voice', label: 'Voice', icon: Mic, group: 'IDENTITY' },
   { id: 'persona', label: 'Persona', icon: Sparkles, group: 'PERSONA' },
+  { id: 'neuralshift', label: 'Neural Shift', icon: Users, group: 'PERSONA' },
   { id: 'intelligence', label: 'Silence Protocol', icon: Brain, group: 'INTELLIGENCE' },
+  { id: 'integrations', label: 'Integrations', icon: Plug, group: 'CONNECTIONS' },
 ]
 
 // Group sections by group label
@@ -144,7 +147,6 @@ interface MercurySettingsModalProps {
 }
 
 export function MercurySettingsModal({ open, onClose, onSaved }: MercurySettingsModalProps) {
-  const router = useRouter()
   const [activeSection, setActiveSection] = useState<SectionId>('identity')
   const [config, setConfig] = useState<ConfigState>(DEFAULT_CONFIG)
   const [loading, setLoading] = useState(false)
@@ -325,20 +327,19 @@ export function MercurySettingsModal({ open, onClose, onSaved }: MercurySettings
                       {activeSection === 'intelligence' && (
                         <IntelligenceSection config={config} updateField={updateField} />
                       )}
+                      {activeSection === 'neuralshift' && (
+                        <NeuralShiftSection />
+                      )}
+                      {activeSection === 'integrations' && (
+                        <IntegrationsSettings />
+                      )}
                     </>
                   )}
                 </div>
               </div>
 
               {/* ─── Footer ─── */}
-              <div className="shrink-0 flex items-center justify-between px-6 py-3 border-t border-[var(--border-default)]">
-                <button
-                  onClick={() => { onClose(); router.push('/dashboard/settings/integrations') }}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]/30 transition-colors"
-                >
-                  <Plug className="w-3.5 h-3.5" />
-                  Integrations
-                </button>
+              <div className="shrink-0 flex items-center justify-end px-6 py-3 border-t border-[var(--border-default)]">
                 <div className="flex items-center gap-3">
                 <button
                   onClick={onClose}

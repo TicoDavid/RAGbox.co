@@ -1,11 +1,10 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { Brain, ChevronRight, Pencil, RotateCcw, Save } from 'lucide-react'
+import { ChevronRight, Pencil, RotateCcw, Save } from 'lucide-react'
 import { PERSONAS, type PersonaMeta } from '@/lib/personas'
 import { toast } from 'sonner'
 
-/** Local overrides stored in localStorage under this key. */
 const STORAGE_KEY = 'ragbox:persona-prompt-overrides'
 
 function loadOverrides(): Record<string, string> {
@@ -21,7 +20,7 @@ function saveOverrides(overrides: Record<string, string>) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides))
 }
 
-export default function PersonasSettingsPage() {
+export function NeuralShiftSection() {
   const [selected, setSelected] = useState<PersonaMeta | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draftPrompt, setDraftPrompt] = useState('')
@@ -52,13 +51,10 @@ export default function PersonasSettingsPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-6 space-y-6">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-[var(--text-primary)] flex items-center gap-2">
-          <Brain className="w-5 h-5 text-[var(--brand-blue)]" />
-          Neural Shift Personas
-        </h1>
-        <p className="text-sm text-[var(--text-secondary)] mt-1">
+        <h3 className="text-base font-semibold text-[var(--text-primary)]">Neural Shift Personas</h3>
+        <p className="text-xs text-[var(--text-tertiary)] mt-1">
           Each persona changes how Mercury reads and interprets your documents.
           Click the edit icon to customize a prompt.
         </p>
@@ -76,12 +72,12 @@ export default function PersonasSettingsPage() {
                 onClick={() => setSelected(isOpen ? null : p)}
                 className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border text-left transition-all ${
                   isOpen
-                    ? 'border-[var(--brand-blue)] bg-[var(--brand-blue)]/10'
-                    : 'border-[var(--border-default)] bg-[var(--bg-secondary)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)]'
+                    ? 'border-[var(--warning)]/60 bg-[var(--warning)]/10'
+                    : 'border-[var(--border-default)] bg-[var(--bg-tertiary)]/50 hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)]/30'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <span className="inline-flex items-center justify-center w-8 h-8 rounded-md bg-[var(--bg-tertiary)] text-xs font-bold text-[var(--brand-blue)]">
+                  <span className="inline-flex items-center justify-center w-8 h-8 rounded-md bg-[var(--bg-tertiary)] text-xs font-bold text-[var(--warning)]">
                     {p.label.slice(0, 3)}
                   </span>
                   <div>
@@ -110,14 +106,11 @@ export default function PersonasSettingsPage() {
                     rows={Math.min((isEditing ? draftPrompt : getPrompt(p)).split('\n').length + 1, 16)}
                     className={`w-full px-3 py-3 rounded-lg border text-xs font-mono leading-relaxed resize-y focus:outline-none ${
                       isEditing
-                        ? 'bg-[var(--bg-primary)] border-[var(--brand-blue)] text-[var(--text-primary)] focus:ring-1 focus:ring-[var(--brand-blue)]'
+                        ? 'bg-[var(--bg-primary)] border-[var(--warning)] text-[var(--text-primary)] focus:ring-1 focus:ring-[var(--warning)]'
                         : 'bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-secondary)] cursor-default'
                     }`}
                   />
-                  <div className="flex items-center justify-between mt-1.5 px-1">
-                    <p className="text-[10px] text-[var(--text-tertiary)]">
-                      Source: backend/internal/service/prompts/persona_{p.id}.txt
-                    </p>
+                  <div className="flex items-center justify-end mt-1.5 px-1">
                     <div className="flex items-center gap-1.5">
                       {isEditing ? (
                         <>
@@ -139,7 +132,7 @@ export default function PersonasSettingsPage() {
                           )}
                           <button
                             onClick={() => handleSave(p.id)}
-                            className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-[var(--brand-blue)] text-white hover:bg-[var(--brand-blue-hover)] transition-colors"
+                            className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-[var(--warning)] text-black hover:bg-[var(--warning)]/90 transition-colors"
                           >
                             <Save className="w-3 h-3" />
                             Save

@@ -106,7 +106,7 @@ jest.mock('lucide-react', () => {
 })
 
 // ── Import component ─────────────────────────────────────────────
-import IntegrationsSettings from '@/app/dashboard/settings/integrations/page'
+import { IntegrationsSettings } from '@/components/settings/IntegrationsSettings'
 
 // ── Setup ────────────────────────────────────────────────────────
 

@@ -50,6 +50,14 @@ jest.mock('./chat', () => ({
   CenterChat: () => <div data-testid="center-chat" />,
 }))
 
+jest.mock('@/hooks/useMercuryEntitlement', () => ({
+  useMercuryEntitlement: () => ({ hasMercury: true, tier: 'professional', loading: false }),
+}))
+
+jest.mock('@/components/ui/MercuryUpgradeCard', () => ({
+  MercuryUpgradeCard: () => <div data-testid="mercury-upgrade-card" />,
+}))
+
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn(), prefetch: jest.fn() }),
   usePathname: () => '/dashboard',

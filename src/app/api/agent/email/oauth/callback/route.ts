@@ -13,13 +13,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   if (error) {
     return NextResponse.redirect(
-      `${baseUrl}/dashboard/settings/mercury?email_error=${encodeURIComponent(error)}`
+      `${baseUrl}/dashboard?email_error=${encodeURIComponent(error)}`
     )
   }
 
   if (!code || !state) {
     return NextResponse.redirect(
-      `${baseUrl}/dashboard/settings/mercury?email_error=missing_params`
+      `${baseUrl}/dashboard?email_error=missing_params`
     )
   }
 
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       const errData = await tokenResponse.json().catch(() => ({}))
       logger.error('OAuth token exchange failed:', errData)
       return NextResponse.redirect(
-        `${baseUrl}/dashboard/settings/mercury?email_error=token_exchange_failed`
+        `${baseUrl}/dashboard?email_error=token_exchange_failed`
       )
     }
 
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     if (!refreshToken) {
       return NextResponse.redirect(
-        `${baseUrl}/dashboard/settings/mercury?email_error=no_refresh_token`
+        `${baseUrl}/dashboard?email_error=no_refresh_token`
       )
     }
 
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     if (!userInfoResponse.ok) {
       return NextResponse.redirect(
-        `${baseUrl}/dashboard/settings/mercury?email_error=userinfo_failed`
+        `${baseUrl}/dashboard?email_error=userinfo_failed`
       )
     }
 
@@ -108,12 +108,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     })
 
     return NextResponse.redirect(
-      `${baseUrl}/dashboard/settings/mercury?email=connected`
+      `${baseUrl}/dashboard?email=connected`
     )
   } catch (err) {
     logger.error('OAuth callback error:', err)
     return NextResponse.redirect(
-      `${baseUrl}/dashboard/settings/mercury?email_error=internal_error`
+      `${baseUrl}/dashboard?email_error=internal_error`
     )
   }
 }

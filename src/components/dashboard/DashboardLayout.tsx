@@ -11,6 +11,8 @@ import { VaultPanel } from './vault/VaultPanel'
 import { SovereignExplorer } from './vault/explorer'
 import { MercuryWindow } from './mercury/MercuryWindow'
 import { isMercuryEnabled } from '@/lib/features'
+import { useMercuryEntitlement } from '@/hooks/useMercuryEntitlement'
+import { MercuryUpgradeCard } from '@/components/ui/MercuryUpgradeCard'
 import { CenterChat } from './chat'
 import { ChatErrorBoundary } from './chat/ChatErrorBoundary'
 import { OnboardingWizard } from './OnboardingWizard'
@@ -331,6 +333,7 @@ export function DashboardLayout() {
   const [rightExpanded, setRightExpanded] = useState(false)
   const [rightTab, setRightTab] = useState<RightRailTab>('studio')
   const mercuryEnabled = isMercuryEnabled()
+  const { hasMercury } = useMercuryEntitlement()
   const [mercuryOpen, setMercuryOpen] = useState(false)
   const [mercuryWidth, setMercuryWidth] = useState(() => {
     if (typeof window === 'undefined') return 400
@@ -720,7 +723,7 @@ export function DashboardLayout() {
                   </div>
                 )}
                 <div style={{ width: MERCURY_PANEL_WIDTH }} className="h-full bg-[var(--bg-secondary)] isolate">
-                  <MercuryWindow />
+                  {hasMercury ? <MercuryWindow /> : <MercuryUpgradeCard onUpgrade={() => { setMercuryOpen(false) }} />}
                 </div>
               </motion.div>
             )}
@@ -781,7 +784,7 @@ export function DashboardLayout() {
         <div className="flex h-full">
           {/* Panel content — Mercury if mercury tab, else tool panel */}
           <div className="flex-1 min-w-0 bg-[var(--bg-secondary)]">
-            {rightTab === 'mercury' && mercuryEnabled ? <MercuryWindow /> : renderToolContent()}
+            {rightTab === 'mercury' && mercuryEnabled ? (hasMercury ? <MercuryWindow /> : <MercuryUpgradeCard onUpgrade={() => setMobileRightOpen(false)} />) : renderToolContent()}
           </div>
 
           {/* Rail icons */}
