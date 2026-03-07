@@ -4,7 +4,7 @@
 
 ## Active Sprint
 
-**Sprint 2026-03-08** — 29 items (3 P0, 9 P1, 9 P2, 8 P3) — 25/29 DONE (3 remaining + 1 blocked)
+**Sprint 2026-03-08** — 29 items (3 P0, 9 P1, 9 P2, 8 P3) — 25/28 DONE (3 remaining, S-P2-09 deferred)
 See: `connexus-ops/sprints/SPRINT-2026-03-08.md`
 
 ### Remaining
@@ -15,7 +15,7 @@ See: `connexus-ops/sprints/SPRINT-2026-03-08.md`
 | S-P1-08 | Dynamic AI model lists | Jordan |
 | S-P2-03 | Accessibility audit | Jordan |
 | S-P2-05 | Tier gating | Jordan |
-| S-P2-09 | VPC Service Controls | Adam — ⛔ BLOCKED (no GCP org) |
+| S-P2-09 | VPC Service Controls | ⏭️ DEFERRED — needs GCP Org (Cloud Identity Free → migrate project) |
 
 ### FINAL Orders
 
@@ -76,6 +76,8 @@ See: `connexus-ops/sprints/SPRINT-2026-03-08.md`
 | 03-08 | Bug fixes approved: Matrix Rain, Mercury Voice removal, TTS logging | David |
 | 03-08 | Deploy 57 approved — ship all pending commits | David |
 | 03-08 | FINAL orders: close sprint + bugs, leave only EPICs open | David |
+| 03-08 | S-P2-09 deferred to next sprint — needs GCP Org setup first | David |
+| 03-08 | KMS migration endpoint: GREEN LIGHT — run it | David |
 
 ## Completed Deploys
 

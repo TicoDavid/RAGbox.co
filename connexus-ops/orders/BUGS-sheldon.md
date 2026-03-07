@@ -61,7 +61,17 @@ Adam confirmed KMS key provisioned:
 - [ ] Legacy `aes:` tokens still decrypt
 - [ ] `kms-stub-email:` prefix works for dev/test
 
-**Do NOT run migration endpoint** — David gives separate go-ahead.
+**GREEN LIGHT — Run the migration endpoint.** David approved. Re-encrypt all existing tokens from AES to KMS.
+
+```
+POST /api/admin/migrate-email-tokens
+Header: x-internal-auth: <admin secret>
+```
+
+Verify after migration:
+- [ ] All tokens now have `kms-email:` prefix
+- [ ] Gmail OAuth flows still work (send/receive)
+- [ ] No tokens remain with `aes:` prefix (unless migration skipped them — report count)
 
 ---
 
