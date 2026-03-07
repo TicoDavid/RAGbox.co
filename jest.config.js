@@ -17,6 +17,9 @@ const config = {
       testEnvironment: 'node',
       roots: ['<rootDir>/server'],
       testMatch: ['**/*.test.ts'],
+      moduleNameMapper: {
+        '(.*)\\.js$': '$1',
+      },
     },
     {
       displayName: 'jsdom',

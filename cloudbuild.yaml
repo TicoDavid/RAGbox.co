@@ -218,6 +218,31 @@ steps:
     allowFailure: true
 
   # ==============================================
+  # Step 10b: Jest Production Smoke Tests
+  # ==============================================
+  - id: 'production-smoke'
+    name: 'node:20-alpine'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        SERVICE_URL=$(cat /workspace/.service_url 2>/dev/null || echo "")
+        if [ -z "$$SERVICE_URL" ]; then
+          echo "No SERVICE_URL cached — skipping production smoke tests"
+          exit 0
+        fi
+        PRODUCTION=true \
+        APP_URL="$$SERVICE_URL" \
+        BACKEND_URL="https://ragbox-backend-100739220279.us-east4.run.app" \
+        VOICE_URL="https://mercury-voice-100739220279.us-east4.run.app" \
+        npx jest server/__tests__/integration/production-smoke.test.ts --no-coverage --ci || true
+    waitFor: ['smoke-test']
+    allowFailure: true
+    env:
+      - 'CI=true'
+      - 'NODE_ENV=test'
+
+  # ==============================================
   # Step 11: Notify Success
   # ==============================================
   - id: 'notify'
