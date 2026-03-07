@@ -29,11 +29,9 @@ const VOICE_CATALOG: VoiceEntry[] = [
   { id: 'Elizabeth', label: 'Elizabeth', description: 'Professional narrator', gender: 'female', language: 'en-US', accent: 'American', tags: ['formal', 'clear', 'authoritative'], sampleText: 'Your document analysis is complete. Here are the key findings.' },
   { id: 'Olivia', label: 'Olivia', description: 'Friendly British warmth', gender: 'female', language: 'en-GB', accent: 'British', tags: ['british', 'warm', 'friendly'], sampleText: 'I found several relevant passages in your uploaded documents.' },
   { id: 'Luna', label: 'Luna', description: 'Calm meditation guide', gender: 'female', language: 'en-US', accent: 'American', tags: ['calm', 'soothing', 'gentle'], sampleText: 'Let me walk you through what I found in your vault.' },
-  { id: 'Sophia', label: 'Sophia', description: 'Confident executive', gender: 'female', language: 'en-US', accent: 'American', tags: ['authoritative', 'clear', 'confident'], sampleText: 'Based on the evidence in your documents, here is my assessment.' },
   { id: 'Dennis', label: 'Dennis', description: 'Authoritative deep voice', gender: 'male', language: 'en-US', accent: 'American', tags: ['authoritative', 'deep', 'professional'], sampleText: 'I have analyzed the documents and prepared a detailed summary.' },
   { id: 'Mark', label: 'Mark', description: 'Calm, measured tone', gender: 'male', language: 'en-US', accent: 'American', tags: ['calm', 'measured', 'steady'], sampleText: 'Here is what your documents reveal about this topic.' },
   { id: 'James', label: 'James', description: 'Classic professional', gender: 'male', language: 'en-US', accent: 'American', tags: ['professional', 'clear', 'classic'], sampleText: 'The relevant sections of your documents indicate the following.' },
-  { id: 'David', label: 'David', description: 'Friendly narrator', gender: 'male', language: 'en-US', accent: 'American', tags: ['friendly', 'warm', 'approachable'], sampleText: 'Great question. Let me check your documents for the answer.' },
   { id: 'Brian', label: 'Brian', description: 'Technical expert', gender: 'male', language: 'en-US', accent: 'American', tags: ['precise', 'measured', 'technical'], sampleText: 'The technical details in your documents specify the following parameters.' },
 ]
 

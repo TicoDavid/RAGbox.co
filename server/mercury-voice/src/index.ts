@@ -120,8 +120,8 @@ webSocket.on('connection', (ws, request) => {
 
   ws.on('error', (err) => console.error(`[WS] Error for ${key}:`, err));
 
-  ws.on('message', (data: RawData) => {
-    handler.handleMessage(data, key);
+  ws.on('message', (data: RawData, isBinary: boolean) => {
+    handler.handleMessage(data, isBinary, key);
   });
 
   ws.on('close', async () => {

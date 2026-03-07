@@ -30,11 +30,9 @@ const MERCURY_VOICES: VoiceEntry[] = [
   { id: 'Elizabeth', label: 'Elizabeth', description: 'Professional narrator', gender: 'female', language: 'en-US', accent: 'American', tags: ['formal', 'clear'] },
   { id: 'Olivia', label: 'Olivia', description: 'Friendly British warmth', gender: 'female', language: 'en-GB', accent: 'British', tags: ['british', 'warm'] },
   { id: 'Luna', label: 'Luna', description: 'Calm meditation guide', gender: 'female', language: 'en-US', accent: 'American', tags: ['calm', 'soothing'] },
-  { id: 'Sophia', label: 'Sophia', description: 'Confident executive', gender: 'female', language: 'en-US', accent: 'American', tags: ['authoritative', 'clear'] },
   { id: 'Dennis', label: 'Dennis', description: 'Authoritative deep', gender: 'male', language: 'en-US', accent: 'American', tags: ['authoritative', 'deep'] },
   { id: 'Mark', label: 'Mark', description: 'Calm, measured', gender: 'male', language: 'en-US', accent: 'American', tags: ['calm', 'measured'] },
   { id: 'James', label: 'James', description: 'Classic professional', gender: 'male', language: 'en-US', accent: 'American', tags: ['professional', 'clear'] },
-  { id: 'David', label: 'David', description: 'Friendly narrator', gender: 'male', language: 'en-US', accent: 'American', tags: ['friendly', 'warm'] },
   { id: 'Brian', label: 'Brian', description: 'Technical expert', gender: 'male', language: 'en-US', accent: 'American', tags: ['precise', 'measured'] },
 ]
 

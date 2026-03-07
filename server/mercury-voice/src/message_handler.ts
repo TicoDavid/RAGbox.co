@@ -56,7 +56,52 @@ export class MessageHandler {
     return this.chatExecutor;
   }
 
-  async handleMessage(data: RawData, key: string) {
+  async handleMessage(data: RawData, isBinary: boolean, key: string) {
+    // BUG-D56-05: Binary audio frames must NOT hit JSON.parse.
+    // Binary WebSocket messages are raw PCM audio from the client microphone.
+    if (isBinary || Buffer.isBuffer(data) && !data.toString('utf8', 0, 1).startsWith('{')) {
+      // Raw binary audio — convert to Int16 samples and feed to VAD pipeline
+      const buf = Buffer.isBuffer(data) ? data : Buffer.from(data as ArrayBuffer);
+      const int16 = new Int16Array(buf.buffer, buf.byteOffset, buf.byteLength / 2);
+      const audioBuffer = Array.from(int16) as number[];
+
+      if (audioBuffer.length >= FRAME_PER_BUFFER && this.vadClient) {
+        const audioChunk = {
+          data: audioBuffer,
+          sampleRate: INPUT_SAMPLE_RATE,
+        };
+        const vadResult = await this.vadClient.detectVoiceActivity(
+          audioChunk,
+          SPEECH_THRESHOLD
+        );
+
+        if (this.isCapturingSpeech) {
+          this.speechBuffer.push(...audioChunk.data);
+          if (vadResult === -1) {
+            this.pauseDuration +=
+              (audioChunk.data.length * 2000) / INPUT_SAMPLE_RATE;
+            if (this.pauseDuration > PAUSE_DURATION_THRESHOLD_MS) {
+              this.isCapturingSpeech = false;
+              const speechDuration =
+                (this.speechBuffer.length * 2000) / INPUT_SAMPLE_RATE;
+              if (speechDuration > MIN_SPEECH_DURATION_MS) {
+                await this.processCapturedSpeech(key, v4());
+              }
+            }
+          } else {
+            this.pauseDuration = 0;
+          }
+        } else {
+          if (vadResult !== -1) {
+            this.isCapturingSpeech = true;
+            this.speechBuffer.push(...audioChunk.data);
+            this.pauseDuration = 0;
+          }
+        }
+      }
+      return;
+    }
+
     const message = JSON.parse(data.toString());
     const interactionId = v4();
 
