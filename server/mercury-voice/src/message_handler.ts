@@ -3,9 +3,6 @@ import { RawData } from 'ws';
 import type { VAD } from '@inworld/runtime/primitives/vad';
 import { Graph, GraphOutputStream } from '@inworld/runtime/graph';
 import { TTSOutputStreamIterator } from '@inworld/runtime/common';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const WavEncoder = require('wav-encoder');
-
 import {
   FRAME_PER_BUFFER,
   INPUT_SAMPLE_RATE,
@@ -41,6 +38,7 @@ export class MessageHandler {
     private sttGraph: STTGraph,
     private vadClient: VAD | null,
     private send: (data: Record<string, unknown>) => void,
+    private sendBinary: (data: Buffer) => void,
     private chatGraphBuilder: (opts: VoiceGraphOpts) => Graph,
     private session: MercurySession
   ) {}
@@ -169,6 +167,24 @@ export class MessageHandler {
         this.isCapturingSpeech = false;
         if (this.speechBuffer.length > 0) {
           await this.processCapturedSpeech(key, interactionId);
+        }
+        break;
+
+      case 'start':
+        // Client-side VAD detected speech start — reset capture state
+        this.isCapturingSpeech = true;
+        this.speechBuffer = [];
+        this.pauseDuration = 0;
+        break;
+
+      case 'stop':
+        // Client-side VAD detected speech end — flush and process
+        this.isCapturingSpeech = false;
+        this.pauseDuration = 0;
+        if (this.speechBuffer.length > 0) {
+          this.addToQueue(() =>
+            this.processCapturedSpeech(key, interactionId)
+          );
         }
         break;
     }
@@ -348,7 +364,7 @@ export class MessageHandler {
             );
           }
 
-          // Send audio chunk
+          // Send audio chunk as binary Int16 PCM with 4-byte sampleRate header
           if (chunk.audio && chunk.audio.data) {
             let float32Array: Float32Array;
             if (typeof chunk.audio.data === 'string') {
@@ -365,17 +381,17 @@ export class MessageHandler {
               );
             }
 
-            const audioBuffer = await WavEncoder.encode({
-              sampleRate: chunk.audio.sampleRate,
-              channelData: [float32Array],
-            });
-
-            this.send(
-              EventFactory.audio(
-                Buffer.from(audioBuffer).toString('base64'),
-                interactionId,
-                v4()
-              )
+            // Convert Float32 (-1..1) → Int16 PCM
+            const int16 = new Int16Array(float32Array.length);
+            for (let i = 0; i < float32Array.length; i++) {
+              const s = Math.max(-1, Math.min(1, float32Array[i]));
+              int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            }
+            // Binary frame: [4-byte LE sampleRate][Int16 PCM payload]
+            const header = Buffer.alloc(4);
+            header.writeUInt32LE(chunk.audio.sampleRate || 48000);
+            this.sendBinary(
+              Buffer.concat([header, Buffer.from(int16.buffer, int16.byteOffset, int16.byteLength)])
             );
           }
 

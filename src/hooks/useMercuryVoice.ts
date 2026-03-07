@@ -158,12 +158,15 @@ export function useMercuryVoice(): UseMercuryVoiceReturn {
   // ── WebSocket message handler ─────────────────────────────────────────
 
   const handleMessage = useCallback((event: MessageEvent) => {
-    // Binary frame = raw Int16 PCM TTS audio from server
+    // Binary frame = Int16 PCM TTS audio with 4-byte LE sampleRate header
     if (event.data instanceof ArrayBuffer) {
-      // Server sends Int16 PCM — convert to Float32 for Web Audio playback
-      const float32 = int16ToFloat32(event.data)
+      if (event.data.byteLength <= 4) return
+      const view = new DataView(event.data)
+      const sampleRate = view.getUint32(0, true) // little-endian
+      const pcmBuffer = event.data.slice(4)
+      const float32 = int16ToFloat32(pcmBuffer)
       if (statusRef.current === 'thinking') setStatus('speaking')
-      queueAudio(float32, CAPTURE_SAMPLE_RATE)
+      queueAudio(float32, sampleRate || CAPTURE_SAMPLE_RATE)
       return
     }
 
@@ -182,8 +185,10 @@ export function useMercuryVoice(): UseMercuryVoiceReturn {
 
         case 'AUDIO': {
           if (statusRef.current === 'thinking') setStatus('speaking')
-          const samples = new Float32Array(msg.audio[0])
-          queueAudio(samples, msg.sampleRate || CAPTURE_SAMPLE_RATE)
+          if (Array.isArray(msg.audio) && msg.audio[0]) {
+            const samples = new Float32Array(msg.audio[0])
+            queueAudio(samples, msg.sampleRate || CAPTURE_SAMPLE_RATE)
+          }
           break
         }
 

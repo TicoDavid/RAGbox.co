@@ -113,6 +113,11 @@ webSocket.on('connection', (ws, request) => {
         ws.send(JSON.stringify(data));
       }
     },
+    (data: Buffer) => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(data);
+      }
+    },
     buildChatGraph,
     sessions[key].session
   );
