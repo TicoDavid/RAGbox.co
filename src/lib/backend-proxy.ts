@@ -18,8 +18,9 @@ function getBackendUrl(): string {
 }
 const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET || ''
 
-/** Resolved Go backend base URL. Use this instead of declaring GO_BACKEND_URL locally. */
-export const GO_BACKEND_URL = getBackendUrl()
+/** Resolved Go backend base URL. Use this instead of declaring GO_BACKEND_URL locally.
+ *  Does not throw at module-load time so `next build` can collect page data. */
+export const GO_BACKEND_URL = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:8080')
 
 /** Build standard headers for internal Go backend fetch calls. */
 export function backendHeaders(userId?: string): Record<string, string> {
