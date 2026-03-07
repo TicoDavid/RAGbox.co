@@ -39,11 +39,16 @@ NONE — Sprint is complete. Only EPICs remain.
 |-----|-------|
 | Deploy | 58 |
 | Commit | 511df10 (7 commits since Deploy 57) |
-| Build (ragbox-app) | f16d518e — BUILDING |
-| Build (mercury-voice) | 4290d16d — BUILDING |
+| Revision (ragbox-app) | ragbox-app-00767-nmm ✅ |
+| Revision (mercury-voice) | mercury-voice-00086-j6k ✅ |
+| Health (ragbox-app) | 200 — DB ok (3ms), Backend ok (1ms) |
+| Health (mercury-voice) | 200 — STT ready, VAD ready |
+| Health (go-backend) | 200 — DB connected (6ms), v0.2.0 |
+| Build (ragbox-app) | f16d518e — ✅ SUCCESS |
+| Build (mercury-voice) | 4290d16d — ✅ SUCCESS |
 | Changes | Bug fixes (D56-03, D56-05), Jordan sprint (5 items), KMS migration, Inworld reference |
-| Regression | ⏳ Pending |
-| Certified | ⏳ Pending |
+| Regression | ⏳ Pending (Sarah) |
+| Certified | ⏳ Pending (Dr. Insane) |
 
 ### Deploy 58 Contents (since Deploy 57)
 | Commit | Description |
