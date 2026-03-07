@@ -4,8 +4,15 @@
 
 ## Active Sprint
 
-**Sprint 2026-03-08** — 29 items (3 P0, 9 P1, 9 P2, 8 P3)
+**Sprint 2026-03-08** — 29 items (3 P0, 9 P1, 9 P2, 8 P3) — 22/29 DONE
 See: `connexus-ops/sprints/SPRINT-2026-03-08.md`
+
+## Epic Roadmap
+
+| Epic | Name | Status | Ref |
+|------|------|--------|-----|
+| EPIC-V2 | VERDICT — Adaptive Sovereign Retrieval | Approved, not started | `connexus-ops/epics/EPIC-V2-VERDICT.md` |
+| EPIC-029 | VERITAS CAST — Vault to Voice | Approved, not started | `connexus-ops/epics/EPIC-029-VERITAS-CAST.md` |
 
 ## Current Deploy
 
@@ -22,15 +29,22 @@ See: `connexus-ops/sprints/SPRINT-2026-03-08.md`
 | Key | Value |
 |-----|-------|
 | Deploy | 57 |
-| Commits | 46fe6fc (S-P1-04 Thread-to-Vault), ab0283e (S-P1-02 file extractions), 9ffb69c (S-P0-02 test coverage), bc95662 (V2 epic) |
-| Content | Thread memory recall (7 channels), file extractions (5 files under limit), 80% test coverage (113 test files), CI smoke tests, server test fix |
+| Commits | 46fe6fc, ab0283e, 9ffb69c, bc95662, e4a9141, 44b6175 (+ EPIC-029 + KMS + orders) |
+| Content | Thread-to-Vault RAG (7 channels), file extractions, 80% test coverage, Matrix Rain fix, Mercury Voice section removal, TTS logging, KMS migration, EPIC-029 recorded |
 | Status | Waiting for Adam |
 
-## Held — Awaiting David Approval
+## Active Bugs
 
-| Item | Files | Reason |
+| ID | Issue | Status | Owner |
+|----|-------|--------|-------|
+| BUG-D56-03 | Voice preview 500 for Sophia/David voices | Logging added, needs diagnosis after Deploy 57 | Adam (logs) |
+| BUG-D56-05 | Mercury voice agent can't hear/be heard | Infra investigation needed | Adam |
+
+## Held — Approved, Committing Now
+
+| Item | Files | Status |
 |------|-------|--------|
-| S-P0-01 KMS migration | src/lib/gmail/crypto.ts, src/app/api/admin/migrate-email-tokens/ | Auth/Crypto — must flag before push |
+| S-P0-01 KMS migration | src/lib/gmail/crypto.ts, src/app/api/admin/migrate-email-tokens/ | David approved — committing with Deploy 57 |
 
 ## Decisions Log
 
@@ -49,6 +63,10 @@ See: `connexus-ops/sprints/SPRINT-2026-03-08.md`
 | 03-07 | Thread-to-Vault RAG: auto-embed all, all sources, retain forever | David |
 | 03-07 | Mercury vision: total memory recall — every input through RAGbox gets embedded | David |
 | 03-07 | EPIC-V2-VERDICT approved — 3 phases, 6 months, adaptive sovereign retrieval | David |
+| 03-08 | EPIC-029 VERITAS CAST approved — 15 stories, 106 points, record for roadmap | David |
+| 03-08 | S-P0-01 KMS approved to commit/push | David |
+| 03-08 | Bug fixes approved: Matrix Rain, Mercury Voice removal, TTS logging | David |
+| 03-08 | Deploy 57 approved — ship all pending commits | David |
 
 ## Completed Deploys
 
