@@ -14,13 +14,14 @@ import {
   EyeOff,
   Link2,
   Unlink,
-  Copy,
   ExternalLink,
   Phone,
 } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { toast } from 'sonner'
 import { logger } from '@/lib/logger'
+import { Toggle, ToggleRow, ReadOnlyCopyField } from './IntegrationControls'
+import { useRoamIntegration } from '@/hooks/useRoamIntegration'
 
 // ============================================================================
 // TYPES
@@ -51,25 +52,6 @@ interface Vault {
   name: string
 }
 
-interface RoamGroup {
-  id: string
-  name: string
-  description?: string
-  memberCount?: number
-}
-
-interface RoamStatus {
-  status: 'connected' | 'disconnected' | 'error'
-  workspaceName?: string
-  targetGroupName?: string
-  targetGroupId?: string
-  responseMode?: 'mentions' | 'all' | 'dms_mentions'
-  lastWebhook?: string
-  messageCount?: number
-  connectedAt?: string
-  error?: string
-}
-
 const VOICE_MODELS = [
   { value: 'aura-asteria-en', label: 'Asteria (Female, US)' },
   { value: 'aura-luna-en', label: 'Luna (Female, US)' },
@@ -93,23 +75,30 @@ export function IntegrationsSettings() {
   const [newNumber, setNewNumber] = useState('')
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // ROAM state
-  const [roamClientId, setRoamClientId] = useState('')
-  const [roamApiKey, setRoamApiKey] = useState('')
-  const [roamKeyVisible, setRoamKeyVisible] = useState(false)
-  const [roamWebhookSecret, setRoamWebhookSecret] = useState('')
-  const [roamSecretVisible, setRoamSecretVisible] = useState(false)
-  const [roamResponseMode, setRoamResponseMode] = useState<'mentions' | 'all' | 'dms_mentions'>('mentions')
-  const [roamGroups, setRoamGroups] = useState<RoamGroup[]>([])
-  const [roamSelectedGroup, setRoamSelectedGroup] = useState('')
-  const [roamStatus, setRoamStatus] = useState<RoamStatus>({ status: 'disconnected' })
-  const [roamLoadingGroups, setRoamLoadingGroups] = useState(false)
-  const [roamTesting, setRoamTesting] = useState(false)
-  const [roamTestResult, setRoamTestResult] = useState<{ success: boolean; workspaceName?: string; error?: string } | null>(null)
-  const [roamSaving, setRoamSaving] = useState(false)
-  const [roamSaveSuccess, setRoamSaveSuccess] = useState(false)
-  const [roamDisconnecting, setRoamDisconnecting] = useState(false)
-  const [roamError, setRoamError] = useState('')
+  // ROAM state (extracted to useRoamIntegration hook)
+  const {
+    roamClientId, setRoamClientId,
+    roamApiKey, setRoamApiKey,
+    roamKeyVisible, setRoamKeyVisible,
+    roamWebhookSecret, setRoamWebhookSecret,
+    roamSecretVisible, setRoamSecretVisible,
+    roamResponseMode, setRoamResponseMode,
+    roamGroups,
+    roamSelectedGroup, setRoamSelectedGroup,
+    roamStatus,
+    roamLoadingGroups,
+    roamTesting,
+    roamTestResult,
+    roamSaving,
+    roamSaveSuccess,
+    roamDisconnecting,
+    roamError, setRoamError,
+    resetError: resetRoamError,
+    fetchRoamGroups,
+    handleRoamTest,
+    handleRoamSave,
+    handleRoamDisconnect,
+  } = useRoamIntegration()
 
   // --------------------------------------------------------------------------
   // FETCH SETTINGS + VAULTS
@@ -141,161 +130,6 @@ export function IntegrationsSettings() {
     }
     load()
   }, [])
-
-  // --------------------------------------------------------------------------
-  // ROAM: FETCH STATUS ON MOUNT
-  // --------------------------------------------------------------------------
-
-  useEffect(() => {
-    async function loadRoamStatus() {
-      try {
-        const res = await apiFetch('/api/connectors/roam/status')
-        if (res.ok) {
-          const data = await res.json()
-          if (data.data) {
-            setRoamStatus(data.data)
-            if (data.data.responseMode) setRoamResponseMode(data.data.responseMode)
-          }
-        }
-      } catch {
-        // ROAM status not available yet — that's OK
-      }
-    }
-    loadRoamStatus()
-  }, [])
-
-  // --------------------------------------------------------------------------
-  // ROAM: FETCH GROUPS ON API KEY BLUR
-  // --------------------------------------------------------------------------
-
-  const fetchRoamGroups = useCallback(async () => {
-    if (!roamApiKey.trim()) return
-    setRoamLoadingGroups(true)
-    try {
-      const res = await apiFetch('/api/connectors/roam/groups', {
-        headers: { 'X-Roam-Api-Key': roamApiKey },
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Failed to fetch groups')
-      }
-      const data = await res.json()
-      const groups = data.data?.groups || data.data || []
-      setRoamGroups(groups)
-      if (groups.length > 0 && !roamSelectedGroup) {
-        setRoamSelectedGroup(groups[0].id)
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch groups'
-      setRoamError(message)
-      setRoamGroups([])
-    } finally {
-      setRoamLoadingGroups(false)
-    }
-  }, [roamApiKey, roamSelectedGroup])
-
-  // --------------------------------------------------------------------------
-  // ROAM: TEST CONNECTION
-  // --------------------------------------------------------------------------
-
-  const handleRoamTest = async () => {
-    if (!roamApiKey.trim()) {
-      toast.error('Enter an API key first')
-      return
-    }
-    setRoamTesting(true)
-    setRoamTestResult(null)
-    setRoamError('')
-    try {
-      const res = await apiFetch('/api/connectors/roam/test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey: roamApiKey }),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        throw new Error(data.error || 'Connection test failed')
-      }
-      const result = { success: true, workspaceName: data.data?.workspaceName || data.data?.workspace || 'Connected' }
-      setRoamTestResult(result)
-      // Auto-fetch groups on successful test
-      fetchRoamGroups()
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Connection test failed'
-      setRoamTestResult({ success: false, error: msg })
-      setRoamError(msg)
-    } finally {
-      setRoamTesting(false)
-    }
-  }
-
-  // --------------------------------------------------------------------------
-  // ROAM: CONNECT / DISCONNECT
-  // --------------------------------------------------------------------------
-
-  const handleRoamSave = async () => {
-    if (!roamApiKey.trim()) {
-      toast.error('Enter an API key')
-      return
-    }
-    setRoamSaving(true)
-    setRoamSaveSuccess(false)
-    setRoamError('')
-    try {
-      const res = await apiFetch('/api/connectors/roam/install', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clientId: roamClientId,
-          apiKey: roamApiKey,
-          webhookSecret: roamWebhookSecret,
-          targetGroupId: roamSelectedGroup,
-          targetGroupName: roamGroups.find((g) => g.id === roamSelectedGroup)?.name || '',
-          responseMode: roamResponseMode,
-        }),
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Save failed')
-      }
-      const data = await res.json()
-      setRoamStatus(data.data || {
-        status: 'connected',
-        workspaceName: roamTestResult?.workspaceName,
-        targetGroupName: roamGroups.find((g) => g.id === roamSelectedGroup)?.name,
-        responseMode: roamResponseMode,
-      })
-      setRoamSaveSuccess(true)
-      toast.success('ROAM connected successfully')
-      setTimeout(() => setRoamSaveSuccess(false), 3000)
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Save failed'
-      setRoamError(msg)
-      toast.error(msg)
-    } finally {
-      setRoamSaving(false)
-    }
-  }
-
-  const handleRoamDisconnect = async () => {
-    setRoamDisconnecting(true)
-    try {
-      const res = await apiFetch('/api/connectors/roam/uninstall', { method: 'POST' })
-      if (!res.ok) throw new Error('Disconnect failed')
-      setRoamStatus({ status: 'disconnected' })
-      setRoamGroups([])
-      setRoamSelectedGroup('')
-      setRoamClientId('')
-      setRoamApiKey('')
-      setRoamWebhookSecret('')
-      setRoamTestResult(null)
-      toast.success('ROAM disconnected')
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to disconnect')
-    } finally {
-      setRoamDisconnecting(false)
-    }
-  }
 
   // --------------------------------------------------------------------------
   // AUTO-SAVE
@@ -497,7 +331,7 @@ export function IntegrationsSettings() {
             <div className="flex items-center justify-between">
               <div className="text-xs text-[var(--danger)]">{roamStatus.error || roamError || 'Connection failed'}</div>
               <button
-                onClick={() => { setRoamStatus({ status: 'disconnected' }); setRoamError(''); setRoamTestResult(null) }}
+                onClick={resetRoamError}
                 className="px-3 py-1.5 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-default)] hover:bg-[var(--bg-elevated)]/30 transition-colors"
               >
                 Retry
@@ -987,130 +821,3 @@ export function IntegrationsSettings() {
   )
 }
 
-// ============================================================================
-// SUB-COMPONENTS
-// ============================================================================
-
-function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className={`w-10 h-5 rounded-full relative transition-colors ${
-        checked ? 'bg-[var(--brand-blue)]' : 'bg-[var(--bg-elevated)]'
-      }`}
-    >
-      <span
-        className={`absolute top-0.5 w-4 h-4 rounded-full bg-[var(--text-primary)] transition-all ${
-          checked ? 'right-0.5' : 'left-0.5'
-        }`}
-      />
-    </button>
-  )
-}
-
-function ToggleRow({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string
-  checked: boolean
-  onChange: (v: boolean) => void
-}) {
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-xs text-[var(--text-primary)]">{label}</span>
-      <Toggle checked={checked} onChange={onChange} />
-    </div>
-  )
-}
-
-function CredentialField({
-  label,
-  value,
-  onChange,
-  type = 'text',
-  placeholder,
-}: {
-  label: string
-  value: string | null
-  onChange: (v: string) => void
-  type?: 'text' | 'password'
-  placeholder?: string
-}) {
-  const [localValue, setLocalValue] = useState(value || '')
-  const [focused, setFocused] = useState(false)
-
-  // When we focus a masked field, clear it for fresh input
-  const handleFocus = () => {
-    setFocused(true)
-    if (value && /^\*+/.test(value)) {
-      setLocalValue('')
-    }
-  }
-
-  const handleBlur = () => {
-    setFocused(false)
-    if (localValue && localValue !== value) {
-      onChange(localValue)
-    }
-  }
-
-  // Update local value when prop changes (e.g. after save)
-  useEffect(() => {
-    if (!focused) {
-      setLocalValue(value || '')
-    }
-  }, [value, focused])
-
-  return (
-    <div>
-      <label className="text-[10px] text-[var(--text-tertiary)] block mb-1">{label}</label>
-      <input
-        type={type}
-        value={localValue}
-        onChange={(e) => setLocalValue(e.target.value)}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        placeholder={placeholder}
-        className="w-full bg-[var(--bg-secondary)] border border-[var(--bg-elevated)] rounded px-2 py-1.5 text-xs text-[var(--text-primary)] placeholder:text-[var(--border-default)] focus:outline-none focus:border-[var(--brand-blue)]"
-      />
-    </div>
-  )
-}
-
-function ReadOnlyCopyField({ label, value }: { label: string; value: string }) {
-  const [copied, setCopied] = useState(false)
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(value)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      toast.error('Failed to copy')
-    }
-  }
-
-  return (
-    <div>
-      <label className="text-[10px] text-[var(--text-tertiary)] block mb-1">{label}</label>
-      <div className="flex gap-1">
-        <input
-          type="text"
-          readOnly
-          value={value}
-          className="flex-1 bg-[var(--bg-secondary)] border border-[var(--bg-elevated)] rounded px-2 py-1.5 text-xs text-[var(--text-tertiary)] font-mono cursor-default"
-        />
-        <button
-          onClick={handleCopy}
-          className="px-2 py-1.5 rounded bg-[var(--bg-tertiary)] hover:bg-[var(--bg-elevated)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
-        >
-          {copied ? <CheckCircle2 size={12} /> : <Copy size={12} />}
-        </button>
-      </div>
-    </div>
-  )
-}
