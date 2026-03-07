@@ -30,6 +30,7 @@ var (
 	_ service.ChunkStore        = (*ChunkRepo)(nil)
 	_ service.VectorSearcher    = (*ChunkRepo)(nil)
 	_ service.RelatedDocSearcher = (*ChunkRepo)(nil)
+	_ service.ThreadSearcher    = (*ChunkRepo)(nil)
 )
 
 // BulkInsert stores chunks with their embedding vectors using pgx batching.
@@ -238,6 +239,51 @@ func (r *ChunkRepo) FindRelatedDocuments(ctx context.Context, documentID string,
 		}
 		results = append(results, rd)
 	}
+
+	return results, nil
+}
+
+// ThreadSimilaritySearch finds the top-K thread messages most similar to queryVec,
+// scoped to threads owned by userID. S-P1-04: Thread-to-Vault RAG.
+func (r *ChunkRepo) ThreadSimilaritySearch(ctx context.Context, queryVec []float32, topK int, threshold float64, userID string) ([]service.ThreadSearchResult, error) {
+	embedding := pgvector.NewVector(queryVec)
+
+	query := `
+		SELECT
+			m.id, m.thread_id, m.role, m.channel, m.content,
+			1 - (m.embedding <=> $1::vector) AS similarity,
+			m.created_at
+		FROM mercury_thread_messages m
+		JOIN mercury_threads t ON m.thread_id = t.id
+		WHERE t.user_id = $3
+			AND m.embedding IS NOT NULL
+			AND (1 - (m.embedding <=> $1::vector)) > $2
+		ORDER BY m.embedding <=> $1::vector
+		LIMIT $4`
+
+	rows, err := r.pool.Query(ctx, query, embedding, threshold, userID, topK)
+	if err != nil {
+		return nil, fmt.Errorf("repository.ThreadSimilaritySearch: %w", err)
+	}
+	defer rows.Close()
+
+	var results []service.ThreadSearchResult
+	for rows.Next() {
+		var tr service.ThreadSearchResult
+		err := rows.Scan(
+			&tr.MessageID, &tr.ThreadID, &tr.Role, &tr.Channel,
+			&tr.Content, &tr.Similarity, &tr.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("repository.ThreadSimilaritySearch: scan: %w", err)
+		}
+		results = append(results, tr)
+	}
+
+	slog.Info("[REPO] Thread similarity search complete",
+		"results_count", len(results),
+		"user_id", userID,
+	)
 
 	return results, nil
 }

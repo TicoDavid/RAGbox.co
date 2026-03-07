@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getValidAccessToken } from '@/lib/gmail/token'
 import { logger } from '@/lib/logger'
+import { embedThreadMessage } from '@/lib/mercury/embedMessage'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -259,12 +260,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         const threadId = await findOrCreateThread(tenantId)
 
         // Create inbound message in Mercury thread
-        await prisma.mercuryThreadMessage.create({
+        const inboundContent = `Email from ${fromName} <${fromEmail}>:\nSubject: ${subject}\n\n${bodyText}`
+        const msg = await prisma.mercuryThreadMessage.create({
           data: {
             threadId,
             role: 'user',
             channel: 'email',
-            content: `Email from ${fromName} <${fromEmail}>:\nSubject: ${subject}\n\n${bodyText}`,
+            content: inboundContent,
             metadata: {
               gmailMessageId: message.id,
               gmailThreadId: message.threadId,
@@ -274,7 +276,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
               inReplyTo: inReplyTo || null,
             },
           },
+          select: { id: true },
         })
+
+        // Embed for RAG total recall (fire-and-forget) — S-P1-04
+        embedThreadMessage(msg.id, inboundContent).catch(() => {})
       }
     }
 

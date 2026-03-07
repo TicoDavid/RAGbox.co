@@ -53,6 +53,22 @@ type BM25Searcher interface {
 	FullTextSearch(ctx context.Context, query string, topK int, userID string) ([]VectorSearchResult, error)
 }
 
+// ThreadSearchResult represents a conversation message found via similarity search.
+type ThreadSearchResult struct {
+	MessageID  string    `json:"messageId"`
+	ThreadID   string    `json:"threadId"`
+	Role       string    `json:"role"`
+	Channel    string    `json:"channel"`
+	Content    string    `json:"content"`
+	Similarity float64   `json:"similarity"`
+	CreatedAt  time.Time `json:"createdAt"`
+}
+
+// ThreadSearcher abstracts thread message similarity search (S-P1-04).
+type ThreadSearcher interface {
+	ThreadSimilaritySearch(ctx context.Context, queryVec []float32, topK int, threshold float64, userID string) ([]ThreadSearchResult, error)
+}
+
 // RankedChunk is a chunk with its final re-ranked score and parent document metadata.
 type RankedChunk struct {
 	Chunk      model.DocumentChunk `json:"chunk"`
@@ -63,17 +79,19 @@ type RankedChunk struct {
 
 // RetrievalResult contains the ranked chunks and query metadata.
 type RetrievalResult struct {
-	Chunks              []RankedChunk `json:"chunks"`
-	QueryEmbedding      []float32     `json:"-"`
-	TotalCandidates     int           `json:"totalCandidates"`
-	TotalDocumentsFound int           `json:"totalDocumentsFound"`
+	Chunks              []RankedChunk      `json:"chunks"`
+	ThreadMessages      []ThreadSearchResult `json:"threadMessages,omitempty"`
+	QueryEmbedding      []float32          `json:"-"`
+	TotalCandidates     int                `json:"totalCandidates"`
+	TotalDocumentsFound int                `json:"totalDocumentsFound"`
 }
 
 // RetrieverService processes queries and retrieves relevant document chunks.
 type RetrieverService struct {
 	embedder QueryEmbedder
 	searcher VectorSearcher
-	bm25     BM25Searcher // nil = vector-only (backward compatible)
+	bm25     BM25Searcher    // nil = vector-only (backward compatible)
+	threads  ThreadSearcher  // nil = no thread search (S-P1-04)
 }
 
 // NewRetrieverService creates a RetrieverService.
@@ -93,6 +111,11 @@ func (s *RetrieverService) Embedder() QueryEmbedder {
 // When nil (default), retrieval is vector-only.
 func (s *RetrieverService) SetBM25(bm25 BM25Searcher) {
 	s.bm25 = bm25
+}
+
+// SetThreadSearcher attaches a ThreadSearcher for conversation memory recall (S-P1-04).
+func (s *RetrieverService) SetThreadSearcher(ts ThreadSearcher) {
+	s.threads = ts
 }
 
 // Retrieve embeds a query, performs similarity search scoped to the user's documents,
@@ -127,9 +150,10 @@ func (s *RetrieverService) retrieveWithVec(ctx context.Context, userID string, q
 		"vec_first3", fmt.Sprintf("%.4f, %.4f, %.4f", safeIdx(queryVec, 0), safeIdx(queryVec, 1), safeIdx(queryVec, 2)),
 	)
 
-	// 2. Run vector + BM25 concurrently (STORY-154)
+	// 2. Run vector + BM25 + thread search concurrently (STORY-154, S-P1-04)
 	excludePrivileged := !privilegeMode
 	var vectorResults, bm25Results []VectorSearchResult
+	var threadResults []ThreadSearchResult
 
 	g, gCtx := errgroup.WithContext(ctx)
 
@@ -144,6 +168,19 @@ func (s *RetrieverService) retrieveWithVec(ctx context.Context, userID string, q
 			var err error
 			bm25Results, err = s.bm25.FullTextSearch(gCtx, query, defaultTopK, userID)
 			return err
+		})
+	}
+
+	// S-P1-04: Thread memory recall — search conversation history
+	if s.threads != nil {
+		g.Go(func() error {
+			var err error
+			threadResults, err = s.threads.ThreadSimilaritySearch(gCtx, queryVec, 5, defaultThreshold, userID)
+			if err != nil {
+				slog.Warn("[RETRIEVER] Thread search failed (non-fatal)", "error", err)
+				return nil // non-fatal: don't block document retrieval
+			}
+			return nil
 		})
 	}
 
@@ -209,6 +246,7 @@ func (s *RetrieverService) retrieveWithVec(ctx context.Context, userID string, q
 
 	return &RetrievalResult{
 		Chunks:              deduped[:limit],
+		ThreadMessages:      threadResults,
 		QueryEmbedding:      queryVec,
 		TotalCandidates:     len(candidates),
 		TotalDocumentsFound: totalDocsFound,

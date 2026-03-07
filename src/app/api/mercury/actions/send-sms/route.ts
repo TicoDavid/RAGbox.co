@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import prisma from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { embedThreadMessage } from '@/lib/mercury/embedMessage'
 
 const VONAGE_API_KEY = process.env.VONAGE_API_KEY || ''
 const VONAGE_API_SECRET = process.env.VONAGE_API_SECRET || ''
@@ -162,14 +163,19 @@ async function writeMercuryThread(userId: string, to: string, smsBody: string): 
       })
     }
 
-    await prisma.mercuryThreadMessage.create({
+    const smsContent = `SMS sent to ${to}: "${smsBody.slice(0, 100)}"`
+    const msg = await prisma.mercuryThreadMessage.create({
       data: {
         threadId: thread.id,
         role: 'assistant',
         channel: 'dashboard',
-        content: `SMS sent to ${to}: "${smsBody.slice(0, 100)}"`,
+        content: smsContent,
       },
+      select: { id: true },
     })
+
+    // Embed for RAG total recall (fire-and-forget) — S-P1-04
+    embedThreadMessage(msg.id, smsContent).catch(() => {})
   } catch (error) {
     logger.error('[Mercury SMS] Thread write failed:', error)
   }

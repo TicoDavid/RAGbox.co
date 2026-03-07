@@ -25,10 +25,11 @@ import (
 
 // DonePayload is the structured payload sent with the final "done" SSE event.
 type DonePayload struct {
-	Answer    string         `json:"answer"`
-	Sources   []DoneSource   `json:"sources"`
-	Citations []DoneCitation `json:"citations"`
-	Evidence  DoneEvidence   `json:"evidence"`
+	Answer         string                     `json:"answer"`
+	Sources        []DoneSource               `json:"sources"`
+	Citations      []DoneCitation             `json:"citations"`
+	Evidence       DoneEvidence               `json:"evidence"`
+	ThreadMessages []service.ThreadSearchResult `json:"threadMessages,omitempty"`
 }
 
 // DoneCitation represents a retrieved chunk used as context for the answer.
@@ -150,10 +151,17 @@ func buildDonePayload(
 		totalDocs = retrieval.TotalDocumentsFound
 	}
 
+	// S-P1-04: Thread memory recall results
+	var threadMessages []service.ThreadSearchResult
+	if retrieval != nil && len(retrieval.ThreadMessages) > 0 {
+		threadMessages = retrieval.ThreadMessages
+	}
+
 	return DonePayload{
-		Answer:    answer,
-		Sources:   sources,
-		Citations: doneCitations,
+		Answer:         answer,
+		Sources:        sources,
+		Citations:      doneCitations,
+		ThreadMessages: threadMessages,
 		Evidence: DoneEvidence{
 			TotalChunksSearched:    totalChunks,
 			TotalDocumentsSearched: totalDocs,
@@ -751,6 +759,19 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 					"instruction_count", len(cortexInstructions),
 				)
 			}
+		}
+
+		// S-P1-04: Inject thread memory recall into cortex context
+		if retrieval != nil && len(retrieval.ThreadMessages) > 0 {
+			for _, tm := range retrieval.ThreadMessages {
+				cortexContext = append(cortexContext,
+					fmt.Sprintf("[Thread Memory — %s on %s]: %s",
+						tm.Role, tm.CreatedAt.Format("2006-01-02"), tm.Content))
+			}
+			slog.Info("[DEBUG-CHAT] thread memory injected",
+				"user_id", userID,
+				"thread_messages", len(retrieval.ThreadMessages),
+			)
 		}
 
 		// Voice pipeline: inject conversation history as cortex context

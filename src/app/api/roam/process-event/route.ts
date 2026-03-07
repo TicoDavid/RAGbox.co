@@ -28,6 +28,7 @@ import { formatForRoam, formatSilenceForRoam, formatErrorForRoam, formatMeetingS
 import { buildBlockKitResponse } from '@/lib/roam/roamBlockKit'
 import { writeDeadLetter } from '@/lib/roam/deadLetterWriter'
 import { logger } from '@/lib/logger'
+import { embedThreadMessage } from '@/lib/mercury/embedMessage'
 import { decryptKey } from '@/lib/utils/kms'
 import { randomUUID } from 'crypto'
 import type { Citation } from '@/types/ragbox'
@@ -669,7 +670,7 @@ async function writeMercuryThreadMessage(
       })
     }
 
-    await prisma.mercuryThreadMessage.create({
+    const msg = await prisma.mercuryThreadMessage.create({
       data: {
         threadId: thread.id,
         role,
@@ -678,7 +679,11 @@ async function writeMercuryThreadMessage(
         confidence: confidence ?? null,
         metadata: metadata ? (metadata as Prisma.InputJsonValue) : undefined,
       },
+      select: { id: true },
     })
+
+    // Embed for RAG total recall (fire-and-forget) — S-P1-04
+    embedThreadMessage(msg.id, content).catch(() => {})
 
     await prisma.mercuryThread.update({
       where: { id: thread.id },

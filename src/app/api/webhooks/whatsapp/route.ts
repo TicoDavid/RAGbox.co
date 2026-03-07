@@ -14,6 +14,7 @@ import { Prisma } from '@prisma/client'
 import prisma from '@/lib/prisma'
 import { parseSSEText } from '@/lib/mercury/sseParser'
 import { logger } from '@/lib/logger'
+import { embedThreadMessage } from '@/lib/mercury/embedMessage'
 import { convertOggToWav } from '@/lib/audio/convert'
 import { transcribeAudio } from '@/lib/audio/transcribe'
 import { GO_BACKEND_URL } from '@/lib/backend-proxy'
@@ -422,7 +423,7 @@ async function writeMercuryThreadMessage(
       })
     }
 
-    await prisma.mercuryThreadMessage.create({
+    const msg = await prisma.mercuryThreadMessage.create({
       data: {
         threadId: thread.id,
         role,
@@ -431,7 +432,11 @@ async function writeMercuryThreadMessage(
         confidence: confidence ?? null,
         metadata: metadata ? (metadata as Prisma.InputJsonValue) : undefined,
       },
+      select: { id: true },
     })
+
+    // Embed for RAG total recall (fire-and-forget) — S-P1-04
+    embedThreadMessage(msg.id, content).catch(() => {})
 
     await prisma.mercuryThread.update({
       where: { id: thread.id },

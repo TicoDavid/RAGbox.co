@@ -16,6 +16,7 @@ import { getValidAccessToken } from '@/lib/gmail/token'
 import { authorizeAgentAccessJWT } from '@/lib/agent/authorization'
 import { isGmailConfigured, sendViaGmail as sendSystemGmail } from '@/lib/email/gmail'
 import { logger } from '@/lib/logger'
+import { embedThreadMessage } from '@/lib/mercury/embedMessage'
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || ''
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || ''
@@ -291,14 +292,19 @@ async function writeMercuryThread(userId: string, to: string, subject: string): 
       })
     }
 
-    await prisma.mercuryThreadMessage.create({
+    const emailContent = `Email sent to ${to}: "${subject}"`
+    const msg = await prisma.mercuryThreadMessage.create({
       data: {
         threadId: thread.id,
         role: 'assistant',
         channel: 'email',
-        content: `Email sent to ${to}: "${subject}"`,
+        content: emailContent,
       },
+      select: { id: true },
     })
+
+    // Embed for RAG total recall (fire-and-forget) — S-P1-04
+    embedThreadMessage(msg.id, emailContent).catch(() => {})
   } catch (error) {
     logger.error('[Mercury Email] Thread write failed:', error)
   }

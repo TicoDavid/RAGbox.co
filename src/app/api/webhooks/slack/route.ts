@@ -16,6 +16,7 @@ import prisma from '@/lib/prisma'
 import { parseSSEText } from '@/lib/mercury/sseParser'
 import { postMessage, addReaction } from '@/lib/slack/slackClient'
 import { logger } from '@/lib/logger'
+import { embedThreadMessage } from '@/lib/mercury/embedMessage'
 import type { Prisma } from '@prisma/client'
 import { GO_BACKEND_URL } from '@/lib/backend-proxy'
 
@@ -232,7 +233,7 @@ async function writeSlackThreadMessage(
       })
     }
 
-    await prisma.mercuryThreadMessage.create({
+    const msg = await prisma.mercuryThreadMessage.create({
       data: {
         threadId: thread.id,
         role,
@@ -240,7 +241,11 @@ async function writeSlackThreadMessage(
         content,
         metadata: metadata as Prisma.InputJsonValue,
       },
+      select: { id: true },
     })
+
+    // Embed for RAG total recall (fire-and-forget) — S-P1-04
+    embedThreadMessage(msg.id, content).catch(() => {})
 
     await prisma.mercuryThread.update({
       where: { id: thread.id },

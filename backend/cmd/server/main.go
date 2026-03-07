@@ -176,6 +176,10 @@ func run() error {
 	retrieverService.SetBM25(bm25Repo)
 	slog.Info("hybrid BM25 search enabled")
 
+	// S-P1-04: Thread-to-Vault RAG — conversation memory recall
+	retrieverService.SetThreadSearcher(chunkRepo)
+	slog.Info("thread memory recall enabled")
+
 	// Forge service (template report generation)
 	forgeService := service.NewForgeService(genAI, storageAdapter, cfg.GCSBucketName)
 
