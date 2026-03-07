@@ -72,7 +72,7 @@ function buildCspHeader(): string {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob: https://storage.googleapis.com https://*.googleusercontent.com",
-    "media-src 'self' https://storage.googleapis.com",
+    "media-src 'self' blob: https://storage.googleapis.com",
     "connect-src 'self' https://*.googleapis.com https://*.deepgram.com https://openrouter.ai https://*.run.app wss://*.deepgram.com wss: https://*.sentry.io https://*.ingest.sentry.io",
     "frame-ancestors 'none'",
     "form-action 'self'",
