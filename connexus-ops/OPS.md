@@ -37,29 +37,23 @@ NONE — Sprint is complete. Only EPICs remain.
 
 | Key | Value |
 |-----|-------|
-| Deploy | 58 |
-| Commit | 511df10 (7 commits since Deploy 57) |
-| Revision (ragbox-app) | ragbox-app-00767-nmm ✅ |
-| Revision (mercury-voice) | mercury-voice-00086-j6k ✅ |
-| Health (ragbox-app) | 200 — DB ok (3ms), Backend ok (1ms) |
+| Deploy | 59 |
+| Commit | 265e093 (1 commit since Deploy 58) |
+| Revision (ragbox-app) | ragbox-app-00771-frh ✅ |
+| Revision (mercury-voice) | mercury-voice-00088-5z8 ✅ |
+| Health (ragbox-app) | 200 — DB ok (7ms), Backend ok (1ms) |
 | Health (mercury-voice) | 200 — STT ready, VAD ready |
-| Health (go-backend) | 200 — DB connected (6ms), v0.2.0 |
-| Build (ragbox-app) | f16d518e — ✅ SUCCESS |
-| Build (mercury-voice) | 4290d16d — ✅ SUCCESS |
-| Changes | Bug fixes (D56-03, D56-05), Jordan sprint (5 items), KMS migration, Inworld reference |
-| Regression | ⏳ Pending (Sarah) |
-| Certified | ⏳ Pending (Dr. Insane) |
+| Health (go-backend) | 200 — DB connected (4ms), v0.2.0 |
+| Build (ragbox-app) | 35c88cc6 — ✅ SUCCESS |
+| Build (mercury-voice) | 6afd1505 — ✅ SUCCESS |
+| Changes | Mercury voice audio fix — binary frames + start/stop protocol |
+| Regression | ⏳ Pending |
+| Certified | ⏳ Pending |
 
-### Deploy 58 Contents (since Deploy 57)
+### Deploy 59 Contents (since Deploy 58)
 | Commit | Description |
 |--------|------------|
-| 511df10 | docs: Inworld API reference |
-| cb378b2 | chore: sprint 28/28 COMPLETE |
-| 8162dda | feat: Jordan's sprint — agent page, dynamic models, accessibility, tier gating |
-| e3cdfdf | fix: BUG-D56-03 (voice catalog) + BUG-D56-05 (binary audio handler) |
-| cc572bc | chore: KMS GREEN LIGHT, S-P2-09 deferred |
-| 6e55d7d | chore: Deploy 57 shipped, bugs routed |
-| 11a1900 | chore: FINAL orders |
+| 265e093 | fix: Mercury voice audio — binary frames + start/stop protocol |
 
 ## Active Bugs
 
@@ -68,7 +62,8 @@ NONE — Sprint is complete. Only EPICs remain.
 | ID | Issue | Root Cause | Owner | Status |
 |----|-------|-----------|-------|--------|
 | BUG-D56-03 | Voice preview 500 for Sophia/David | Inworld 404 — display names not valid voice IDs | Sheldon | ✅ FIXED — removed from catalog (10→8 voices) |
-| BUG-D56-05 | Mercury voice agent no audio | message_handler.ts JSON.parse on binary audio frames | Sheldon | ✅ FIXED — isBinary flag, PCM→VAD pipeline bypass |
+| BUG-D56-05 | Mercury voice agent no audio | message_handler.ts JSON.parse on binary audio frames | Sheldon | ✅ FIXED (D57) — isBinary flag, PCM→VAD pipeline bypass |
+| BUG-D59-01 | Mercury voice still no audio | Protocol mismatch: server sent JSON {chunk:base64} but client read msg.audio[0]; stop signal ignored | Zane | ✅ FIXED (D59) — binary Int16 PCM frames + start/stop handlers |
 
 ## KMS Migration Status
 
@@ -116,3 +111,4 @@ NONE — Sprint is complete. Only EPICs remain.
 | 55 | 769185d | 03-07 | Settings restructure, pre-deploy cleanup |
 | 56 | d57fd29 | 03-08 | CSP blob: fix, WhatsApp ffmpeg, AuditEntry rename, structured logging, centralized backend URL, dead code cleanup |
 | 57 | 9e6126b | 03-08 | KMS email encryption, lint fixes, certified 10/10 |
+| 58 | 511df10 | 03-08 | Bug fixes (D56-03, D56-05), Jordan sprint (5 items), KMS migration, Inworld reference |
