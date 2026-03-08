@@ -1139,19 +1139,28 @@ model KgMention {
 }
 
 model MercuryProactiveInsight {
-  id          String   @id @default(cuid())
-  userId      String   @map("user_id")
-  insightType String   @map("insight_type")   // contradiction | inconsistency | gap | pattern
-  summary     String
-  entities    String[]                        // entity names involved
-  documents   String[]                        // document IDs involved
-  confidence  Float
-  dismissed   Boolean  @default(false)
-  createdAt   DateTime @default(now()) @map("created_at")
+  id             String    @id @default(cuid())
+  userId         String    @map("user_id")
+  tenantId       String?   @default("default") @map("tenant_id")
+  documentId     String?   @map("document_id") @db.Uuid     // source document (Go scanner)
+  insightType    String    @map("insight_type")               // CyGraph: contradiction | inconsistency | gap | pattern — Go scanner: deadline | expiring | anomaly | trend | reminder
+  title          String?                                      // short title (Go scanner)
+  summary        String
+  sourceChunkId  String?   @map("source_chunk_id") @db.Uuid  // source chunk (Go scanner)
+  entities       String[]                                     // entity names involved (CyGraph)
+  documents      String[]                                     // document IDs involved (CyGraph)
+  confidence     Float?                                       // CyGraph confidence
+  relevanceScore Float?    @default(0.5) @map("relevance_score") // Go scanner urgency score
+  expiresAt      DateTime? @map("expires_at")                 // Go scanner: when insight expires
+  dismissed      Boolean   @default(false)                    // CyGraph dismiss flag
+  acknowledged   Boolean   @default(false)                    // Go scanner acknowledge flag
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime? @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, dismissed])
+  @@index([userId, acknowledged, expiresAt])
   @@map("mercury_proactive_insights")
 }
 
