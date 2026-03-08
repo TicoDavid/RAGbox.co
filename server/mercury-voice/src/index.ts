@@ -126,7 +126,9 @@ webSocket.on('connection', (ws, request) => {
   ws.on('error', (err) => console.error(`[WS] Error for ${key}:`, err));
 
   ws.on('message', (data: RawData, isBinary: boolean) => {
-    handler.handleMessage(data, isBinary, key);
+    handler.handleMessage(data, isBinary, key).catch((err) => {
+      console.error(`[WS] Unhandled error in message handler for ${key}:`, err);
+    });
   });
 
   ws.on('close', async () => {
@@ -297,3 +299,9 @@ async function gracefulShutdown() {
 
 process.on('SIGTERM', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);
+process.on('unhandledRejection', (reason) => {
+  console.error('[Process] Unhandled rejection:', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[Process] Uncaught exception:', err);
+});

@@ -30,9 +30,6 @@ export class MessageHandler {
   private processingQueue: (() => Promise<void>)[] = [];
   private isProcessing = false;
 
-  // Chat graph executor (reuse per connection)
-  private chatExecutor: Graph | null = null;
-
   // Conversation memory (per-session, in-memory)
   private conversationHistory: ConversationTurn[] = [];
 
@@ -45,15 +42,14 @@ export class MessageHandler {
     private session: MercurySession
   ) {}
 
-  private ensureChatExecutor(): Graph {
-    if (!this.chatExecutor) {
-      this.chatExecutor = this.chatGraphBuilder({
-        voiceId: this.session.voiceId,
-        temperature: this.session.temperature,
-        speakingRate: this.session.speakingRate,
-      });
-    }
-    return this.chatExecutor;
+  private createChatExecutor(): Graph {
+    // Create a fresh graph per invocation — Inworld Graph instances
+    // may not support multiple start() calls on the same instance (#40)
+    return this.chatGraphBuilder({
+      voiceId: this.session.voiceId,
+      temperature: this.session.temperature,
+      speakingRate: this.session.speakingRate,
+    });
   }
 
   async handleMessage(data: RawData, isBinary: boolean, key: string) {
@@ -339,7 +335,7 @@ export class MessageHandler {
     this.addTurn('user', text);
 
     try {
-      const executor = this.ensureChatExecutor();
+      const executor = this.createChatExecutor();
 
       const chatInput = {
         text,
@@ -471,13 +467,6 @@ export class MessageHandler {
   }
 
   async destroy() {
-    if (this.chatExecutor) {
-      try {
-        await this.chatExecutor.stop();
-      } catch {
-        // Ignore stop errors
-      }
-      this.chatExecutor = null;
-    }
+    // No-op — graph executors are created per-invocation now (#40)
   }
 }
