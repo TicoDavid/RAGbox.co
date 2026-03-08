@@ -111,6 +111,31 @@ function ChannelBadge({ channel }: { channel?: MercuryChannel }) {
 }
 
 // ============================================================================
+// EPIC-028 Phase 3: Intent Classification Badge
+// ============================================================================
+
+type IntentType = 'document' | 'conversational' | 'meta' | 'greeting' | 'followup'
+
+const INTENT_COLORS: Record<IntentType, string> = {
+  document: 'bg-[var(--brand-blue)]/15 text-[var(--brand-blue)] border-[var(--brand-blue)]/30',
+  conversational: 'bg-[var(--bg-elevated)] text-[var(--text-tertiary)] border-[var(--border-default)]',
+  meta: 'bg-[var(--warning)]/15 text-[var(--warning)] border-[var(--warning)]/30',
+  greeting: 'bg-[var(--success)]/15 text-[var(--success)] border-[var(--success)]/30',
+  followup: 'bg-[var(--brand-blue-dim)]/15 text-[var(--brand-blue-dim)] border-[var(--brand-blue-dim)]/30',
+}
+
+function IntentBadge({ intent }: { intent?: string }) {
+  if (!intent) return null
+  const colors = INTENT_COLORS[intent as IntentType]
+  if (!colors) return null
+  return (
+    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider border ${colors}`}>
+      {intent}
+    </span>
+  )
+}
+
+// ============================================================================
 // STORY-239: Perplexity-style Source Cards
 // ============================================================================
 
@@ -218,6 +243,10 @@ export function Message({ message }: MessageProps) {
     ? { content: message.content, citations: message.citations, confidence: message.confidence }
     : parseStructuredResponse(message.content, message.citations, message.confidence)
 
+  // EPIC-028 Phase 3: Detect greeting messages + resolve intent
+  const isGreeting = message.id.startsWith('voice-greeting-')
+  const intent = (message.metadata?.intent as string) || (isGreeting ? 'greeting' : undefined)
+
   // ── User message: compact right-aligned bubble ──
   if (isUser) {
     return (
@@ -243,10 +272,41 @@ export function Message({ message }: MessageProps) {
       <div className={
         message.isError
           ? 'p-4 rounded-xl bg-[var(--danger)]/10 border border-[var(--danger)]/30 text-[var(--text-primary)]'
-          : 'text-[var(--text-primary)]'
+          : isGreeting
+            ? 'text-[var(--text-secondary)] italic'
+            : 'text-[var(--text-primary)]'
       }>
         <MarkdownRenderer content={parsed.content} />
       </div>
+
+      {/* EPIC-028 Phase 4: Greeting insight accent block */}
+      {isGreeting && !!message.metadata?.insightText && (
+        <div
+          className={`mt-2 pl-3 py-2 border-l-2 rounded-r-md ${
+            message.metadata?.insightType === 'deadline' || message.metadata?.insightType === 'expiring'
+              ? 'border-l-[var(--warning)] bg-[var(--warning)]/5'
+              : 'border-l-[var(--brand-blue)] bg-[var(--brand-blue)]/5'
+          }`}
+        >
+          <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+            {String(message.metadata.insightText)}
+            {typeof message.metadata?.insightDocumentId === 'string' && (
+              <button
+                onClick={() => {
+                  window.dispatchEvent(
+                    new CustomEvent('mercury:open-document', {
+                      detail: { documentId: String(message.metadata!.insightDocumentId) },
+                    })
+                  )
+                }}
+                className="inline-flex items-center ml-1 text-[var(--brand-blue)] hover:text-[var(--brand-blue-hover)] transition-colors"
+              >
+                <span className="text-sm">&rarr;</span>
+              </button>
+            )}
+          </p>
+        </div>
+      )}
 
       {/* Sources — Perplexity-style source cards */}
       {parsed.citations && parsed.citations.length > 0 && (
@@ -262,12 +322,13 @@ export function Message({ message }: MessageProps) {
         </div>
       )}
 
-      {/* Footer: time + channel + confidence + model */}
+      {/* Footer: time + channel + intent + confidence + model */}
       <div className="flex items-center gap-2 mt-3">
         <span className="text-[10px] text-[var(--text-tertiary)]">
           {formatTime(message.timestamp)}
         </span>
         <ChannelBadge channel={message.channel} />
+        <IntentBadge intent={intent} />
         {parsed.confidence !== undefined && (
           <ConfidenceBadge confidence={parsed.confidence} />
         )}

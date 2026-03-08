@@ -76,6 +76,7 @@ export function MercuryWindow() {
   const { data: session } = useSession()
   const { status, audioLevel, connect, disconnect } = useMercuryVoice()
   const isStreaming = useMercuryStore((s) => s.isStreaming)
+  const insights = useMercuryStore((s) => s.insights)
 
   // Auto-ramp matrix speed during AI streaming
   const effectiveSpeed = isStreaming ? 45 : matrixSpeed
@@ -139,14 +140,19 @@ export function MercuryWindow() {
       <div className="shrink-0 flex items-center justify-between px-4 py-2.5 border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]/80 backdrop-blur-md relative z-20">
         {/* Agent identity */}
         <div className="flex items-center gap-3 min-w-0">
-          <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-[var(--bg-tertiary)] to-[var(--bg-primary)] border border-[var(--border-default)] flex items-center justify-center">
+          <div className={`shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-[var(--bg-tertiary)] to-[var(--bg-primary)] border border-[var(--border-default)] flex items-center justify-center transition-all duration-300 ${
+            status === 'ready' ? 'mercury-breathe' :
+            status === 'thinking' ? 'animate-pulse' :
+            status === 'speaking' ? 'shadow-[0_0_10px_var(--brand-blue)] border-[var(--brand-blue)]/50' :
+            ''
+          }`}>
             <span className="text-xs font-bold text-[var(--warning)]/90">
               {agentName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
             </span>
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-[var(--text-primary)] truncate">
+              <h2 className="text-sm font-semibold text-[var(--text-primary)] truncate font-[family-name:var(--font-space)]">
                 {agentName}
               </h2>
               {/* Online indicator */}
@@ -156,6 +162,16 @@ export function MercuryWindow() {
                 </span>
                 <span className="text-[10px] font-medium text-[var(--success)]">Online</span>
               </span>
+              {/* Insight badge count */}
+              {insights.filter((i) => !i.acknowledged).length > 0 && (
+                <span className={`shrink-0 min-w-[18px] h-[18px] flex items-center justify-center rounded-full text-[9px] font-bold text-white px-1 ${
+                  insights.some((i) => !i.acknowledged && (i.insightType === 'deadline' || i.insightType === 'expiring'))
+                    ? 'bg-[var(--warning)]'
+                    : 'bg-[var(--brand-blue)]'
+                }`}>
+                  {insights.filter((i) => !i.acknowledged).length}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -164,12 +180,14 @@ export function MercuryWindow() {
           {/* Mic icon — voice state indicator */}
           <div
             className={`shrink-0 w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${
-              isPoweredOn
-                ? 'text-[var(--brand-blue)]'
-                : 'text-[var(--text-tertiary)]'
+              status === 'listening'
+                ? 'text-[var(--success)]'
+                : isPoweredOn
+                  ? 'text-[var(--brand-blue)]'
+                  : 'text-[var(--text-tertiary)]'
             }`}
           >
-            <Mic className="w-4 h-4" />
+            <Mic className={`w-4 h-4 ${status === 'listening' ? 'animate-pulse' : ''}`} />
           </div>
 
           {/* Gear icon */}
@@ -220,7 +238,14 @@ export function MercuryWindow() {
         {isPoweredOn && (
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <AudioLevelBar level={audioLevel} isActive={status === 'listening'} />
-            <span className={`text-[10px] font-medium shrink-0 ${STATUS_COLORS[status]}`}>
+            <span className={`text-[10px] font-medium shrink-0 font-[family-name:var(--font-jakarta)] ${STATUS_COLORS[status]}`}>
+              {status === 'speaking' && (
+                <span className="inline-flex items-center gap-0.5 mr-1">
+                  <span className="w-0.5 h-2 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-0.5 h-3 bg-current rounded-full animate-bounce" style={{ animationDelay: '100ms' }} />
+                  <span className="w-0.5 h-2 bg-current rounded-full animate-bounce" style={{ animationDelay: '200ms' }} />
+                </span>
+              )}
               {STATUS_LABELS[status]}
             </span>
           </div>
@@ -266,6 +291,17 @@ export function MercuryWindow() {
           <MercuryPanel />
         </div>
       </div>
+
+      {/* Voice status animations */}
+      <style jsx global>{`
+        @keyframes mercury-breathe {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.06); }
+        }
+        .mercury-breathe {
+          animation: mercury-breathe 2.5s ease-in-out infinite;
+        }
+      `}</style>
 
       {/* ─── Settings Modal ─── */}
       <MercurySettingsModal

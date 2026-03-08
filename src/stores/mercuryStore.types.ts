@@ -7,6 +7,21 @@ import { useVaultStore } from '@/stores/vaultStore'
 // TYPES
 // ============================================================================
 
+// Proactive Insight (EPIC-028 Phase 4)
+export type InsightType = 'deadline' | 'expiring' | 'anomaly' | 'trend' | 'reminder'
+
+export interface InsightData {
+  id: string
+  documentId?: string
+  insightType: InsightType
+  title: string
+  summary: string
+  relevanceScore: number
+  expiresAt?: string
+  acknowledged: boolean
+  createdAt: string
+}
+
 // Ad-Hoc Attachment (Session-only, not persisted to Vault)
 export interface SessionAttachment {
   id: string
@@ -66,8 +81,8 @@ export interface MercuryState {
   // Cross-session memory (E24-002)
   sessionSummaries: Array<{ id: string; summary: string; topics: string[]; createdAt: string }>
 
-  // Proactive Insights
-  insights: Array<{ id: string; content: string; dismissed: boolean; createdAt: string }>
+  // Proactive Insights (EPIC-028 Phase 4)
+  insights: InsightData[]
 
   // Tool Actions
   pendingAction: { type: string; payload: Record<string, unknown> } | null
@@ -113,6 +128,8 @@ export interface MercuryState {
   denyAction: () => void
 
   // Proactive Insight Actions
+  fetchInsights: () => Promise<void>
+  acknowledgeInsight: (id: string) => Promise<void>
   addInsight: (content: string) => void
   dismissInsight: (id: string) => void
 

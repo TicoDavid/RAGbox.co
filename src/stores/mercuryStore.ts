@@ -16,7 +16,7 @@ import {
   mapServerMessage,
 } from './mercuryStore.types'
 
-export type { SessionAttachment, SelectedLlm, PersonaId } from './mercuryStore.types'
+export type { SessionAttachment, SelectedLlm, PersonaId, InsightData, InsightType } from './mercuryStore.types'
 
 // E24-002: Save session summary via navigator.sendBeacon (works on page close)
 export function saveSessionSummary(): void {
@@ -874,17 +874,64 @@ export const useMercuryStore = create<MercuryState>()(
       return result
     },
 
-    addInsight: (content) => set((state) => ({
-      insights: [...state.insights, {
-        id: `insight-${Date.now()}`,
-        content,
-        dismissed: false,
-        createdAt: new Date().toISOString(),
-      }],
-    })),
+    // EPIC-028 Phase 4: Proactive Insights
+    fetchInsights: async () => {
+      try {
+        const res = await fetch('/api/insights', { credentials: 'include' })
+        if (!res.ok) return
+        const data = await res.json()
+        const items = (data.data || data.insights || []) as Array<Record<string, unknown>>
+        const insights = items
+          .filter((i) => !i.acknowledged)
+          .map((i) => ({
+            id: (i.id as string) || `insight-${Date.now()}`,
+            documentId: i.documentId as string | undefined,
+            insightType: (i.insightType as string || i.insight_type as string || 'reminder') as import('./mercuryStore.types').InsightType,
+            title: (i.title as string) || 'Insight',
+            summary: (i.summary as string) || '',
+            relevanceScore: (i.relevanceScore as number) ?? (i.relevance_score as number) ?? 0.5,
+            expiresAt: i.expiresAt as string | undefined,
+            acknowledged: false,
+            createdAt: (i.createdAt as string) || new Date().toISOString(),
+          }))
+        set({ insights })
+      } catch {
+        // Silent — insights are non-critical
+      }
+    },
+
+    acknowledgeInsight: async (id) => {
+      // Optimistic removal
+      set((state) => ({
+        insights: state.insights.filter((i) => i.id !== id),
+      }))
+      // Fire-and-forget PATCH
+      fetch(`/api/insights/${encodeURIComponent(id)}/acknowledge`, {
+        method: 'PATCH',
+        credentials: 'include',
+      }).catch(() => {})
+    },
+
+    // Legacy compat: addInsight from polling → maps to new InsightData shape
+    addInsight: (content) => {
+      const existing = get().insights
+      const contentKey = content.slice(0, 80)
+      if (existing.some((i) => i.summary.slice(0, 80) === contentKey)) return
+      set((state) => ({
+        insights: [...state.insights, {
+          id: `insight-${Date.now()}`,
+          insightType: 'reminder' as const,
+          title: 'Mercury Insight',
+          summary: content,
+          relevanceScore: 0.5,
+          acknowledged: false,
+          createdAt: new Date().toISOString(),
+        }],
+      }))
+    },
 
     dismissInsight: (id) => set((state) => ({
-      insights: state.insights.map((i) => i.id === id ? { ...i, dismissed: true } : i),
+      insights: state.insights.filter((i) => i.id !== id),
     })),
   }))
 )

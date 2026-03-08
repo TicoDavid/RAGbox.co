@@ -34,7 +34,7 @@ export interface ConfigState {
 }
 
 export const DEFAULT_CONFIG: ConfigState = {
-  name: 'Evelyn Monroe',
+  name: 'Mercury',
   title: 'AI Assistant',
   greeting: 'Welcome to RAGbox. Upload documents to your vault and ask me anything.',
   personality: '',
@@ -50,9 +50,10 @@ export const DEFAULT_CONFIG: ConfigState = {
 }
 
 export const PERSONALITIES = [
+  { key: 'warm', label: 'Warm' },
   { key: 'professional', label: 'Professional' },
-  { key: 'friendly', label: 'Friendly' },
-  { key: 'technical', label: 'Technical' },
+  { key: 'casual', label: 'Casual' },
+  { key: 'analytical', label: 'Analytical' },
 ] as const
 
 export const ROLES = [
@@ -66,6 +67,7 @@ export const ROLES = [
   { key: 'compliance', label: 'Compliance', group: 'specialist' },
   { key: 'auditor', label: 'Auditor', group: 'specialist' },
   { key: 'whistleblower', label: 'Whistleblower', group: 'specialist' },
+  { key: 'general', label: 'General', group: 'general' },
 ] as const
 
 // ============================================================================

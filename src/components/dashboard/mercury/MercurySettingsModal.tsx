@@ -404,9 +404,26 @@ function PersonaSection({
           ))}
         </div>
         {/* Specialist */}
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5 mb-1.5">
           <span className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider w-full">Specialist</span>
           {ROLES.filter((r) => r.group === 'specialist').map((r) => (
+            <button
+              key={r.key}
+              onClick={() => toggleRole(r.key)}
+              className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                config.role === r.key
+                  ? 'bg-[var(--warning)] text-black'
+                  : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
+              }`}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+        {/* General */}
+        <div className="flex flex-wrap gap-1.5">
+          <span className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider w-full">General</span>
+          {ROLES.filter((r) => r.group === 'general').map((r) => (
             <button
               key={r.key}
               onClick={() => toggleRole(r.key)}

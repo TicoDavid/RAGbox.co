@@ -5,6 +5,7 @@ import { ContextBar } from './ContextBar'
 import { ConversationThread } from './ConversationThread'
 import { InputBar } from './InputBar'
 import { ActionConfirmationOverlay } from './ToolConfirmationDialog'
+import { InsightsPanel } from './InsightsPanel'
 import { useMercuryStore, saveSessionSummary } from '@/stores/mercuryStore'
 import { usePrivilegeStore } from '@/stores/privilegeStore'
 import { useVaultStore } from '@/stores/vaultStore'
@@ -20,40 +21,16 @@ let _pollInFlight = false
 let _pollCursor: string | null = null
 
 // ============================================================================
-// Insights polling singleton — polls GET /api/mercury/insights every 60s
+// Insights polling singleton — polls store.fetchInsights() every 60s
 // ============================================================================
 let _insightsPollInterval: ReturnType<typeof setInterval> | null = null
-let _insightsPollInFlight = false
-const _seenInsightIds = new Set<string>()
-
-async function pollInsights() {
-  if (_insightsPollInFlight) return
-  _insightsPollInFlight = true
-
-  try {
-    const res = await fetch('/api/mercury/insights')
-    if (!res.ok) return
-
-    const data = await res.json()
-    const insights: Array<{ id: string; summary: string }> = data.data || []
-
-    for (const insight of insights) {
-      if (!_seenInsightIds.has(insight.id)) {
-        _seenInsightIds.add(insight.id)
-        useMercuryStore.getState().addInsight(insight.summary)
-      }
-    }
-  } catch {
-    // Silent fail — polling is best-effort
-  } finally {
-    _insightsPollInFlight = false
-  }
-}
 
 function startInsightsPolling() {
   if (_insightsPollInterval) return
-  pollInsights()
-  _insightsPollInterval = setInterval(pollInsights, 60_000)
+  useMercuryStore.getState().fetchInsights()
+  _insightsPollInterval = setInterval(() => {
+    useMercuryStore.getState().fetchInsights()
+  }, 60_000)
 }
 
 function stopInsightsPolling() {
@@ -61,7 +38,6 @@ function stopInsightsPolling() {
     clearInterval(_insightsPollInterval)
     _insightsPollInterval = null
   }
-  _insightsPollInFlight = false
 }
 
 function startThreadPolling(threadId: string) {
@@ -366,6 +342,9 @@ export function MercuryPanel() {
       {/* All content */}
       <div className="relative flex flex-col h-full min-h-0">
         <ContextBar />
+
+        {/* EPIC-028 Phase 4: Proactive Insights Panel */}
+        <InsightsPanel />
 
         {/* Conversation with Lens Refocus Animation */}
         <div

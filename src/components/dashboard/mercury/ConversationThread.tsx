@@ -8,7 +8,6 @@ import { useMercuryStore } from '@/stores/mercuryStore'
 import type { MercuryChannel } from '@/types/ragbox'
 import { Message } from './Message'
 import { EmptyState } from './EmptyState'
-import { InsightCard } from './InsightCard'
 import { ChevronDown } from 'lucide-react'
 
 const CHANNEL_FILTERS: { value: MercuryChannel | 'all'; label: string; color: string }[] = [
@@ -30,7 +29,6 @@ export function ConversationThread() {
   const channelFilter = useMercuryStore((s) => s.channelFilter)
   const setChannelFilter = useMercuryStore((s) => s.setChannelFilter)
   const filteredMessages = useMercuryStore((s) => s.filteredMessages)
-  const insights = useMercuryStore((s) => s.insights)
   const scrollRef = useRef<HTMLDivElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const userScrolledUp = useRef(false)
@@ -149,11 +147,6 @@ export function ConversationThread() {
       <div className="max-w-3xl mx-auto relative z-10">
         {visibleMessages.map((msg) => (
           <Message key={msg.id} message={msg} />
-        ))}
-
-        {/* Proactive Insights from Evelyn */}
-        {insights.filter((i) => !i.dismissed).map((insight) => (
-          <InsightCard key={insight.id} id={insight.id} content={insight.content} />
         ))}
 
         {/* Streaming indicator */}
