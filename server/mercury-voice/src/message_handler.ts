@@ -25,6 +25,8 @@ export class MessageHandler {
   private pauseDuration = 0;
   private isCapturingSpeech = false;
   private speechBuffer: number[] = [];
+  private frameBuffer: number[] = []; // Accumulates small frames for VAD
+  private binaryFrameCount = 0;
   private processingQueue: (() => Promise<void>)[] = [];
   private isProcessing = false;
 
@@ -58,12 +60,22 @@ export class MessageHandler {
     // BUG-D56-05: Binary audio frames must NOT hit JSON.parse.
     // Binary WebSocket messages are raw PCM audio from the client microphone.
     if (isBinary || Buffer.isBuffer(data) && !data.toString('utf8', 0, 1).startsWith('{')) {
-      // Raw binary audio — convert to Int16 samples and feed to VAD pipeline
+      // Raw binary audio — convert to Int16 samples and accumulate for VAD
       const buf = Buffer.isBuffer(data) ? data : Buffer.from(data as ArrayBuffer);
       const int16 = new Int16Array(buf.buffer, buf.byteOffset, buf.byteLength / 2);
-      const audioBuffer = Array.from(int16) as number[];
 
-      if (audioBuffer.length >= FRAME_PER_BUFFER && this.vadClient) {
+      // Accumulate small frames (AudioWorklet sends 128 samples per frame,
+      // but VAD needs FRAME_PER_BUFFER=1024 samples minimum)
+      this.frameBuffer.push(...Array.from(int16));
+      this.binaryFrameCount++;
+
+      if (this.binaryFrameCount === 1) {
+        console.log(`[Audio] First binary frame: ${int16.length} samples, accumulating for VAD (need ${FRAME_PER_BUFFER})`);
+      }
+
+      // Process accumulated frames in FRAME_PER_BUFFER-sized chunks
+      while (this.frameBuffer.length >= FRAME_PER_BUFFER && this.vadClient) {
+        const audioBuffer = this.frameBuffer.splice(0, FRAME_PER_BUFFER);
         const audioChunk = {
           data: audioBuffer,
           sampleRate: INPUT_SAMPLE_RATE,
@@ -82,6 +94,7 @@ export class MessageHandler {
               this.isCapturingSpeech = false;
               const speechDuration =
                 (this.speechBuffer.length * 2000) / INPUT_SAMPLE_RATE;
+              console.log(`[Audio] Server VAD end-of-speech: ${speechDuration.toFixed(0)}ms captured`);
               if (speechDuration > MIN_SPEECH_DURATION_MS) {
                 await this.processCapturedSpeech(key, v4());
               }
@@ -94,6 +107,7 @@ export class MessageHandler {
             this.isCapturingSpeech = true;
             this.speechBuffer.push(...audioChunk.data);
             this.pauseDuration = 0;
+            console.log('[Audio] Server VAD: speech detected');
           }
         }
       }
@@ -172,13 +186,19 @@ export class MessageHandler {
 
       case 'start':
         // Client-side VAD detected speech start — reset capture state
+        console.log(`[Audio] Client 'start' received, frameBuffer=${this.frameBuffer.length}, speechBuffer=${this.speechBuffer.length}`);
         this.isCapturingSpeech = true;
         this.speechBuffer = [];
         this.pauseDuration = 0;
         break;
 
-      case 'stop':
-        // Client-side VAD detected speech end — flush and process
+      case 'stop': {
+        // Client-side VAD detected speech end — flush remaining frames + process
+        const remaining = this.frameBuffer.splice(0);
+        if (remaining.length > 0) {
+          this.speechBuffer.push(...remaining);
+        }
+        console.log(`[Audio] Client 'stop' received, speechBuffer=${this.speechBuffer.length} samples (${((this.speechBuffer.length * 1000) / INPUT_SAMPLE_RATE).toFixed(0)}ms), flushed ${remaining.length} remaining frames`);
         this.isCapturingSpeech = false;
         this.pauseDuration = 0;
         if (this.speechBuffer.length > 0) {
@@ -187,6 +207,7 @@ export class MessageHandler {
           );
         }
         break;
+      }
     }
   }
 
@@ -201,6 +222,8 @@ export class MessageHandler {
 
   private async processCapturedSpeech(key: string, interactionId: string) {
     try {
+      const durationMs = (this.speechBuffer.length * 1000) / INPUT_SAMPLE_RATE;
+      console.log(`[Pipeline] Processing speech: ${this.speechBuffer.length} samples (${durationMs.toFixed(0)}ms) → STT`);
       const input: AudioInput = {
         audio: {
           data: this.normalizeAudio(this.speechBuffer),
@@ -247,7 +270,8 @@ export class MessageHandler {
       const transcribedText = sttOutput.data as string;
 
       if (!transcribedText || transcribedText.trim().length === 0) {
-        return; // Empty speech — skip silently
+        console.log('[STT] Empty transcription — no speech recognized');
+        return;
       }
 
       console.log(`[STT] Transcribed: "${transcribedText}"`);
