@@ -267,7 +267,21 @@ export class MessageHandler {
         executionId: v4(),
       });
       const sttOutput = await sttResult.outputStream.next();
-      const transcribedText = sttOutput.data as string;
+      const rawSTT = sttOutput.data;
+
+      // Inworld STT may return a string, a TextOutput object, or other types.
+      // Extract the actual text string defensively.
+      let transcribedText: string;
+      if (typeof rawSTT === 'string') {
+        transcribedText = rawSTT;
+      } else if (rawSTT && typeof rawSTT === 'object') {
+        const obj = rawSTT as Record<string, unknown>;
+        transcribedText = String(obj.text ?? obj.transcript ?? obj.data ?? obj.value ?? '');
+      } else {
+        transcribedText = String(rawSTT ?? '');
+      }
+
+      console.log(`[STT] Raw output type: ${typeof rawSTT}, keys: ${rawSTT && typeof rawSTT === 'object' ? Object.keys(rawSTT as object).join(',') : 'N/A'}`);
 
       if (!transcribedText || transcribedText.trim().length === 0) {
         console.log('[STT] Empty transcription — no speech recognized');

@@ -88,9 +88,40 @@ export function DashboardLayout() {
   useEffect(() => {
     if (onboardingChecked.current) return
     onboardingChecked.current = true
+
+    // Skip onboarding entirely if user has completed it before (localStorage flag)
+    try {
+      if (localStorage.getItem('ragbox-onboarding-done') === '1') return
+    } catch { /* SSR / private browsing */ }
+
     apiFetch('/api/user/onboarding')
       .then((res) => res.json())
-      .then((data) => {
+      .then(async (data) => {
+        if (data.success && data.onboardingCompleted) {
+          // Already onboarded — persist locally so we never re-check
+          try { localStorage.setItem('ragbox-onboarding-done', '1') } catch { /* */ }
+          return
+        }
+
+        // Double-check: if user has documents, they're clearly not new
+        try {
+          const docsRes = await apiFetch('/api/documents/folders')
+          if (docsRes.ok) {
+            const docsData = await docsRes.json()
+            const hasDocs = docsData.data?.length > 0 || Object.keys(docsData.data || {}).length > 0
+            if (hasDocs) {
+              // Existing user — mark as onboarded and skip wizard
+              try { localStorage.setItem('ragbox-onboarding-done', '1') } catch { /* */ }
+              apiFetch('/api/user/onboarding', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ completed: true }),
+              }).catch(() => { /* best-effort */ })
+              return
+            }
+          }
+        } catch { /* fall through to show wizard */ }
+
         if (data.success && !data.onboardingCompleted) setShowOnboarding(true)
       })
       .catch(() => { /* silently skip — don't block dashboard */ })
@@ -549,7 +580,10 @@ export function DashboardLayout() {
       {/* Onboarding Wizard — first-run only */}
       <AnimatePresence>
         {showOnboarding && (
-          <OnboardingWizard onComplete={() => setShowOnboarding(false)} />
+          <OnboardingWizard onComplete={() => {
+            setShowOnboarding(false)
+            try { localStorage.setItem('ragbox-onboarding-done', '1') } catch { /* */ }
+          }} />
         )}
       </AnimatePresence>
 

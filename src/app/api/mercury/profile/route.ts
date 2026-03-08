@@ -42,11 +42,21 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     )
 
     if (profiles.length === 0) {
-      // Auto-create from User record
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { name: true, companyName: true, jobTitle: true },
-      })
+      // Auto-create from User record (defensive: companyName column may not exist yet)
+      let user: { name: string | null; companyName?: string | null; jobTitle?: string | null } | null = null
+      try {
+        user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { name: true, companyName: true, jobTitle: true },
+        })
+      } catch {
+        // P2022: column missing — fall back to name-only query
+        const basic = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { name: true },
+        })
+        user = basic ? { name: basic.name, companyName: null, jobTitle: null } : null
+      }
 
       if (user) {
         const id = `mup_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`

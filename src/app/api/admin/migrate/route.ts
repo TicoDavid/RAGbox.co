@@ -776,6 +776,213 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "cloud_drive_credentials_user_id_idx" ON "cloud_drive_credentials"("user_id")`)
     results.push('cloud_drive_credentials: OK')
 
+    // ========================================
+    // STORY-010: Work profile columns on users (company_name, job_title, etc.)
+    // ========================================
+    await prisma.$executeRawUnsafe(`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "company_name" TEXT`)
+    await prisma.$executeRawUnsafe(`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "job_title" TEXT`)
+    await prisma.$executeRawUnsafe(`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "industry" TEXT`)
+    await prisma.$executeRawUnsafe(`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "company_size" TEXT`)
+    await prisma.$executeRawUnsafe(`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "use_case" TEXT`)
+    results.push('users work-profile columns: OK')
+
+    // ========================================
+    // E24-002: Mercury Session Summaries (cross-session memory)
+    // ========================================
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "mercury_session_summaries" (
+        "id"            TEXT NOT NULL DEFAULT gen_random_uuid()::text,
+        "user_id"       TEXT NOT NULL,
+        "thread_id"     TEXT,
+        "summary"       TEXT NOT NULL,
+        "topics"        TEXT[] DEFAULT ARRAY[]::TEXT[],
+        "decisions"     TEXT[] DEFAULT ARRAY[]::TEXT[],
+        "action_items"  TEXT[] DEFAULT ARRAY[]::TEXT[],
+        "message_count" INTEGER NOT NULL DEFAULT 0,
+        "persona"       TEXT,
+        "created_at"    TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "mercury_session_summaries_pkey" PRIMARY KEY ("id"),
+        CONSTRAINT "mercury_session_summaries_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE
+      )
+    `)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "mercury_session_summaries_user_id_created_at_idx" ON "mercury_session_summaries"("user_id", "created_at" DESC)`)
+    results.push('mercury_session_summaries: OK')
+
+    // ========================================
+    // E24-003: Mercury User Profiles (personalized context)
+    // ========================================
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "mercury_user_profiles" (
+        "id"           TEXT NOT NULL,
+        "user_id"      TEXT NOT NULL,
+        "display_name" TEXT,
+        "role"         TEXT,
+        "company"      TEXT,
+        "priorities"   JSONB,
+        "preferences"  JSONB,
+        "timezone"     TEXT,
+        "last_updated" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        CONSTRAINT "mercury_user_profiles_pkey" PRIMARY KEY ("id"),
+        CONSTRAINT "mercury_user_profiles_user_id_key" UNIQUE ("user_id"),
+        CONSTRAINT "mercury_user_profiles_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE
+      )
+    `)
+    results.push('mercury_user_profiles: OK')
+
+    // ========================================
+    // CyGraph2026: Knowledge Graph tables
+    // ========================================
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "kg_entities" (
+        "id" TEXT NOT NULL,
+        "tenant_id" TEXT NOT NULL DEFAULT 'default',
+        "name" TEXT NOT NULL,
+        "entity_type" TEXT NOT NULL,
+        "canonical" TEXT,
+        "metadata" JSONB,
+        "merged_into" TEXT,
+        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "kg_entities_pkey" PRIMARY KEY ("id")
+      )
+    `)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "kg_entities_tenant_id_entity_type_idx" ON "kg_entities"("tenant_id", "entity_type")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "kg_entities_tenant_id_name_idx" ON "kg_entities"("tenant_id", "name")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "kg_entities_merged_into_idx" ON "kg_entities"("merged_into")`)
+
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "kg_edges" (
+        "id" TEXT NOT NULL,
+        "tenant_id" TEXT NOT NULL DEFAULT 'default',
+        "from_entity_id" TEXT NOT NULL,
+        "to_entity_id" TEXT NOT NULL,
+        "relation_type" TEXT NOT NULL,
+        "weight" DOUBLE PRECISION NOT NULL DEFAULT 1.0,
+        "metadata" JSONB,
+        "valid_from" TIMESTAMPTZ,
+        "valid_to" TIMESTAMPTZ,
+        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "kg_edges_pkey" PRIMARY KEY ("id")
+      )
+    `)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "kg_edges_tenant_id_relation_type_idx" ON "kg_edges"("tenant_id", "relation_type")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "kg_edges_from_entity_id_idx" ON "kg_edges"("from_entity_id")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "kg_edges_to_entity_id_idx" ON "kg_edges"("to_entity_id")`)
+
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "kg_claims" (
+        "id" TEXT NOT NULL,
+        "tenant_id" TEXT NOT NULL DEFAULT 'default',
+        "subject_entity_id" TEXT NOT NULL,
+        "predicate" TEXT NOT NULL,
+        "object_value" TEXT NOT NULL,
+        "object_entity_id" TEXT,
+        "confidence" DOUBLE PRECISION NOT NULL DEFAULT 1.0,
+        "status" TEXT NOT NULL DEFAULT 'active',
+        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "kg_claims_pkey" PRIMARY KEY ("id")
+      )
+    `)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "kg_claims_tenant_id_predicate_idx" ON "kg_claims"("tenant_id", "predicate")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "kg_claims_subject_entity_id_idx" ON "kg_claims"("subject_entity_id")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "kg_claims_status_idx" ON "kg_claims"("status")`)
+
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "kg_provenance" (
+        "id" TEXT NOT NULL,
+        "claim_id" TEXT NOT NULL,
+        "document_id" TEXT NOT NULL,
+        "chunk_id" TEXT,
+        "excerpt" TEXT,
+        "page_number" INTEGER,
+        "confidence" DOUBLE PRECISION NOT NULL DEFAULT 1.0,
+        "extracted_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "kg_provenance_pkey" PRIMARY KEY ("id")
+      )
+    `)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "kg_provenance_claim_id_idx" ON "kg_provenance"("claim_id")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "kg_provenance_document_id_idx" ON "kg_provenance"("document_id")`)
+
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "kg_mentions" (
+        "id" TEXT NOT NULL,
+        "entity_id" TEXT NOT NULL,
+        "document_id" TEXT NOT NULL,
+        "chunk_id" TEXT,
+        "mention_text" TEXT NOT NULL,
+        "start_offset" INTEGER,
+        "end_offset" INTEGER,
+        "confidence" DOUBLE PRECISION NOT NULL DEFAULT 1.0,
+        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "kg_mentions_pkey" PRIMARY KEY ("id")
+      )
+    `)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "kg_mentions_entity_id_idx" ON "kg_mentions"("entity_id")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "kg_mentions_document_id_idx" ON "kg_mentions"("document_id")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "kg_mentions_document_id_entity_id_idx" ON "kg_mentions"("document_id", "entity_id")`)
+
+    // CyGraph foreign keys (wrapped in try/catch for idempotency)
+    try {
+      await prisma.$executeRawUnsafe(`ALTER TABLE "kg_edges" ADD CONSTRAINT "kg_edges_from_entity_id_fkey" FOREIGN KEY ("from_entity_id") REFERENCES "kg_entities"("id") ON DELETE CASCADE ON UPDATE CASCADE`)
+    } catch { /* already exists */ }
+    try {
+      await prisma.$executeRawUnsafe(`ALTER TABLE "kg_edges" ADD CONSTRAINT "kg_edges_to_entity_id_fkey" FOREIGN KEY ("to_entity_id") REFERENCES "kg_entities"("id") ON DELETE CASCADE ON UPDATE CASCADE`)
+    } catch { /* already exists */ }
+    try {
+      await prisma.$executeRawUnsafe(`ALTER TABLE "kg_claims" ADD CONSTRAINT "kg_claims_subject_entity_id_fkey" FOREIGN KEY ("subject_entity_id") REFERENCES "kg_entities"("id") ON DELETE CASCADE ON UPDATE CASCADE`)
+    } catch { /* already exists */ }
+    try {
+      await prisma.$executeRawUnsafe(`ALTER TABLE "kg_provenance" ADD CONSTRAINT "kg_provenance_claim_id_fkey" FOREIGN KEY ("claim_id") REFERENCES "kg_claims"("id") ON DELETE CASCADE ON UPDATE CASCADE`)
+    } catch { /* already exists */ }
+    try {
+      await prisma.$executeRawUnsafe(`ALTER TABLE "kg_mentions" ADD CONSTRAINT "kg_mentions_entity_id_fkey" FOREIGN KEY ("entity_id") REFERENCES "kg_entities"("id") ON DELETE CASCADE ON UPDATE CASCADE`)
+    } catch { /* already exists */ }
+    results.push('cygraph knowledge graph (5 tables + indexes + FKs): OK')
+
+    // ========================================
+    // Feedback Entries (replaces feedback_reports)
+    // ========================================
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "feedback_entries" (
+        "id"              TEXT NOT NULL DEFAULT gen_random_uuid()::text,
+        "user_id"         TEXT NOT NULL,
+        "user_email"      TEXT,
+        "category"        TEXT NOT NULL,
+        "message"         TEXT NOT NULL,
+        "screenshot_url"  TEXT,
+        "current_url"     TEXT,
+        "browser_info"    TEXT,
+        "status"          TEXT NOT NULL DEFAULT 'new',
+        "admin_response"  TEXT,
+        "created_at"      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        "updated_at"      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        CONSTRAINT "feedback_entries_pkey" PRIMARY KEY ("id"),
+        CONSTRAINT "feedback_entries_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE
+      )
+    `)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "feedback_entries_user_id_idx" ON "feedback_entries"("user_id")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "feedback_entries_status_idx" ON "feedback_entries"("status")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "feedback_entries_created_at_idx" ON "feedback_entries"("created_at")`)
+    results.push('feedback_entries: OK')
+
+    // ========================================
+    // Add 'slack' and 'phone' to mercury_channel enum
+    // ========================================
+    try {
+      await prisma.$executeRawUnsafe(`ALTER TYPE mercury_channel ADD VALUE IF NOT EXISTS 'slack'`)
+      await prisma.$executeRawUnsafe(`ALTER TYPE mercury_channel ADD VALUE IF NOT EXISTS 'phone'`)
+      results.push('mercury_channel slack+phone: OK')
+    } catch (enumErr4) {
+      results.push(`mercury_channel slack+phone: SKIPPED (${enumErr4 instanceof Error ? enumErr4.message.slice(0, 80) : 'permission error'})`)
+    }
+
+    // ========================================
+    // CyGraph Phase 2: Temporal columns on kg_edges
+    // ========================================
+    await prisma.$executeRawUnsafe(`ALTER TABLE "kg_edges" ADD COLUMN IF NOT EXISTS "valid_from" TIMESTAMPTZ`)
+    await prisma.$executeRawUnsafe(`ALTER TABLE "kg_edges" ADD COLUMN IF NOT EXISTS "valid_to" TIMESTAMPTZ`)
+    results.push('kg_edges temporal columns: OK')
+
     return NextResponse.json({ success: true, results })
   } catch (error) {
     return NextResponse.json({
