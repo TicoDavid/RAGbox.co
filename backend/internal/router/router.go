@@ -105,6 +105,10 @@ type Dependencies struct {
 
 	// Usage metering
 	UsageDeps *handler.UsageDeps
+
+	// Proactive insights (EPIC-028 Phase 4)
+	InsightDeps       handler.InsightDeps
+	InsightRateLimiter *middleware.RateLimiter
 }
 
 // internalAuthOnly wraps a handler with a simple internal auth check.
@@ -245,6 +249,17 @@ func New(deps *Dependencies) *chi.Mux {
 		// Usage metering
 		if deps.UsageDeps != nil {
 			r.With(timeout30s).Get("/api/v1/usage", handler.GetUsage(*deps.UsageDeps))
+		}
+
+		// Proactive Insights (EPIC-028 Phase 4)
+		r.With(timeout30s).Get("/api/v1/insights", handler.ListInsights(deps.InsightDeps))
+		r.With(timeout30s).Patch("/api/v1/insights/{id}/acknowledge", handler.AcknowledgeInsight(deps.InsightDeps))
+		if deps.InsightRateLimiter != nil {
+			r.With(middleware.Timeout(60*time.Second), middleware.RateLimit(deps.InsightRateLimiter)).
+				Post("/api/v1/insights/scan", handler.ScanVault(deps.InsightDeps))
+		} else {
+			r.With(middleware.Timeout(60*time.Second)).
+				Post("/api/v1/insights/scan", handler.ScanVault(deps.InsightDeps))
 		}
 
 		// Forge — AI generation, 60s timeout. Strictest rate limit (5/min).

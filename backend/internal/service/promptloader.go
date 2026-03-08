@@ -14,10 +14,11 @@ import (
 type PromptLoader struct {
 	promptsDir string
 
-	mu       sync.RWMutex
-	rules    string
-	identity string
-	personas map[string]string
+	mu          sync.RWMutex
+	rules       string
+	identity    string
+	personality string // JARVIS-level warmth/engagement style (optional)
+	personas    map[string]string
 }
 
 // Compile-time check that PromptLoader implements SystemPromptBuilder.
@@ -49,6 +50,16 @@ func (p *PromptLoader) load() error {
 		return fmt.Errorf("FATAL: mercury_identity.txt missing — server cannot start without identity: %w", err)
 	}
 
+	// Personality file is optional — adds warmth/engagement style on top of identity
+	var personalityText string
+	personalityPath := filepath.Join(p.promptsDir, "mercury_personality.txt")
+	if personalityBytes, err := os.ReadFile(personalityPath); err == nil {
+		personalityText = string(personalityBytes)
+		slog.Info("loaded mercury_personality.txt")
+	} else {
+		slog.Warn("mercury_personality.txt not found — personality layer skipped", "error", err)
+	}
+
 	personas := make(map[string]string)
 
 	// Load all persona_*.txt and compliance_*.txt files
@@ -73,6 +84,7 @@ func (p *PromptLoader) load() error {
 	p.mu.Lock()
 	p.rules = string(rulesBytes)
 	p.identity = string(identityBytes)
+	p.personality = personalityText
 	p.personas = personas
 	p.mu.Unlock()
 
@@ -82,9 +94,10 @@ func (p *PromptLoader) load() error {
 // BuildSystemPrompt constructs the layered "prompt sandwich":
 //
 //	Layer 1: Rules Engine (hard laws — always first, always present)
-//	Layer 2: Mercury Identity (personality — always present)
-//	Layer 3: Selected Persona (CFO, Legal, etc. — user-selected or default)
-//	Layer 4: Compliance Perspective (optional, added in strict mode)
+//	Layer 2: Mercury Identity (who Mercury is — always present)
+//	Layer 3: Mercury Personality (JARVIS warmth/engagement — optional)
+//	Layer 4: Selected Persona (CFO, Legal, etc. — user-selected or default)
+//	Layer 5: Compliance Perspective (optional, added in strict mode)
 func (p *PromptLoader) BuildSystemPrompt(persona string, strictMode bool) string {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
@@ -96,6 +109,11 @@ func (p *PromptLoader) BuildSystemPrompt(persona string, strictMode bool) string
 
 	sb.WriteString("\n\n=== IDENTITY ===\n")
 	sb.WriteString(p.identity)
+
+	if p.personality != "" {
+		sb.WriteString("\n\n=== PERSONALITY ===\n")
+		sb.WriteString(p.personality)
+	}
 
 	if persona != "" {
 		if personaText, ok := p.personas[persona]; ok {
@@ -131,6 +149,13 @@ func (p *PromptLoader) Identity() string {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 	return p.identity
+}
+
+// Personality returns the cached personality text (for testing/inspection).
+func (p *PromptLoader) Personality() string {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	return p.personality
 }
 
 // PersonaNames returns all loaded persona keys.

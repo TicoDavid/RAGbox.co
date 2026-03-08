@@ -13,6 +13,7 @@ import {
 import { AudioInput, EVENT_TYPE, MercurySession, VoiceGraphOpts } from './types';
 import { EventFactory } from './event_factory';
 import { STTGraph } from './stt_graph';
+import { buildGreeting, triggerBackgroundScan } from './greeting';
 
 const MAX_HISTORY_TURNS = 20;
 
@@ -50,6 +51,53 @@ export class MessageHandler {
       temperature: this.session.temperature,
       speakingRate: this.session.speakingRate,
     });
+  }
+
+  /**
+   * Send a time-aware greeting via TTS on session start.
+   * Phase 3: Time-aware greeting.
+   * Phase 4: Proactive insight injection + background scan trigger.
+   *
+   * Greeting is SHORT (1-3 sentences w/ insight) — TTS latency is critical (<1.5s to first audio).
+   */
+  async sendGreeting(): Promise<void> {
+    // Fire-and-forget: trigger vault scan for NEXT session's insights
+    if (this.session.userId) {
+      triggerBackgroundScan(this.session.userId);
+    }
+
+    const greetingText = await buildGreeting({
+      userName: this.session.userName,
+      userId: this.session.userId,
+    });
+
+    console.log(`[Greeting] Sending: "${greetingText}"`);
+
+    const interactionId = v4();
+    this.addTurn('assistant', greetingText);
+
+    try {
+      const executor = this.createChatExecutor();
+      // Feed the greeting directly as text input — it bypasses RAG and goes straight to TTS
+      const executionResult = await executor.start(
+        { text: greetingText, userId: this.session.userId, skipRAG: true },
+        { executionId: v4() }
+      );
+
+      await this.handleTTSResponse(executionResult.outputStream, interactionId);
+    } catch (error) {
+      // Greeting failure is non-fatal — log and continue
+      console.error('[Greeting] TTS error (non-fatal):', error);
+      // Fall back to text-only greeting
+      this.send(
+        EventFactory.text(greetingText, interactionId, {
+          isAgent: true,
+          name: 'Mercury',
+        })
+      );
+    }
+
+    this.send(EventFactory.interactionEnd(interactionId));
   }
 
   async handleMessage(data: RawData, isBinary: boolean, key: string) {

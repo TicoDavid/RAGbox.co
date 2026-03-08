@@ -209,6 +209,96 @@ func TestPromptLoader_ImplementsSystemPromptBuilder(t *testing.T) {
 	}
 }
 
+// Sarah — EPIC-028 Phase 3, Task 3: Personality prompt loading tests
+
+func TestPersonality_LoadsSuccessfully(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "rules_engine.txt"), []byte("GROUNDING: rules"), 0644)
+	os.WriteFile(filepath.Join(dir, "mercury_identity.txt"), []byte("IDENTITY: Mercury"), 0644)
+	os.WriteFile(filepath.Join(dir, "mercury_personality.txt"), []byte("PERSONALITY: JARVIS-level warmth and engagement."), 0644)
+
+	pl, err := NewPromptLoader(dir)
+	if err != nil {
+		t.Fatalf("NewPromptLoader error: %v", err)
+	}
+
+	if pl.Personality() == "" {
+		t.Error("personality should be loaded when file exists")
+	}
+	if !strings.Contains(pl.Personality(), "JARVIS") {
+		t.Error("personality should contain expected JARVIS content")
+	}
+}
+
+func TestBuildSystemPrompt_IncludesPersonalityLayer(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "rules_engine.txt"), []byte("GROUNDING: rules"), 0644)
+	os.WriteFile(filepath.Join(dir, "mercury_identity.txt"), []byte("IDENTITY: Mercury"), 0644)
+	os.WriteFile(filepath.Join(dir, "mercury_personality.txt"), []byte("Be warm and engaging."), 0644)
+	os.WriteFile(filepath.Join(dir, "persona_cfo.txt"), []byte("CFO perspective."), 0644)
+
+	pl, _ := NewPromptLoader(dir)
+	prompt := pl.BuildSystemPrompt("persona_cfo", false)
+
+	if !strings.Contains(prompt, "PERSONALITY") {
+		t.Error("prompt should include PERSONALITY section when personality file exists")
+	}
+	if !strings.Contains(prompt, "Be warm") {
+		t.Error("prompt should contain personality text")
+	}
+}
+
+func TestBuildSystemPrompt_PersonalityBetweenIdentityAndPersona(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "rules_engine.txt"), []byte("GROUNDING: rules"), 0644)
+	os.WriteFile(filepath.Join(dir, "mercury_identity.txt"), []byte("IDENTITY: Mercury"), 0644)
+	os.WriteFile(filepath.Join(dir, "mercury_personality.txt"), []byte("PERSONALITY_CONTENT"), 0644)
+	os.WriteFile(filepath.Join(dir, "persona_cfo.txt"), []byte("CFO_CONTENT"), 0644)
+
+	pl, _ := NewPromptLoader(dir)
+	prompt := pl.BuildSystemPrompt("persona_cfo", false)
+
+	// Verify sandwich order: Rules → Identity → Personality → Persona
+	rulesIdx := strings.Index(prompt, "RULES (NON-NEGOTIABLE)")
+	identityIdx := strings.Index(prompt, "IDENTITY")
+	personalityIdx := strings.Index(prompt, "PERSONALITY")
+	personaIdx := strings.Index(prompt, "ACTIVE PERSONA")
+
+	if rulesIdx < 0 || identityIdx < 0 || personalityIdx < 0 || personaIdx < 0 {
+		t.Fatalf("missing sections: rules=%d, identity=%d, personality=%d, persona=%d",
+			rulesIdx, identityIdx, personalityIdx, personaIdx)
+	}
+
+	if identityIdx >= personalityIdx {
+		t.Error("identity should come before personality")
+	}
+	if personalityIdx >= personaIdx {
+		t.Error("personality should come before persona")
+	}
+}
+
+func TestPersonality_MissingFileIsNonFatal(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "rules_engine.txt"), []byte("rules"), 0644)
+	os.WriteFile(filepath.Join(dir, "mercury_identity.txt"), []byte("identity"), 0644)
+	// No mercury_personality.txt
+
+	pl, err := NewPromptLoader(dir)
+	if err != nil {
+		t.Fatalf("NewPromptLoader should succeed without personality file: %v", err)
+	}
+
+	if pl.Personality() != "" {
+		t.Error("personality should be empty when file is missing")
+	}
+
+	// Build prompt should still work — just skip personality section
+	prompt := pl.BuildSystemPrompt("", false)
+	if strings.Contains(prompt, "PERSONALITY") {
+		t.Error("prompt should not include PERSONALITY section when file is missing")
+	}
+}
+
 func TestPromptLoader_WithRealPromptFiles(t *testing.T) {
 	// Test with the actual prompt files from the project
 	dir := "prompts"

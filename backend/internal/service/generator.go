@@ -63,6 +63,7 @@ type CitationRef struct {
 type SystemPromptBuilder interface {
 	BuildSystemPrompt(persona string, strictMode bool) string
 	Rules() string
+	Personality() string
 }
 
 // GeneratorService produces grounded answers from Gemini using retrieved context.
@@ -229,7 +230,7 @@ func (s *GeneratorService) buildDynamicPrompt(persona *model.MercuryPersona, str
 		sb.WriteString(defaultSystemPrompt)
 	}
 
-	// Layer 2: Dynamic persona (replaces static mercury_identity.txt)
+	// Layer 2: Dynamic persona (replaces static mercury_identity.txt + personality)
 	sb.WriteString("\n\n=== ACTIVE PERSONA ===\n")
 	title := "AI Assistant"
 	if persona.Title != nil {
@@ -239,6 +240,15 @@ func (s *GeneratorService) buildDynamicPrompt(persona *model.MercuryPersona, str
 	sb.WriteString("PERSONALITY & COMMUNICATION STYLE:\n")
 	sb.WriteString(persona.PersonalityPrompt)
 	sb.WriteString("\n\n")
+
+	// Layer personality file as a baseline tone guide (complements DB persona)
+	if s.promptLoader != nil {
+		if p := s.promptLoader.Personality(); p != "" {
+			sb.WriteString("=== ENGAGEMENT STYLE ===\n")
+			sb.WriteString(p)
+			sb.WriteString("\n\n")
+		}
+	}
 	sb.WriteString(fmt.Sprintf("SILENCE PROTOCOL THRESHOLD: %.2f — If your confidence in an answer is below this threshold, "+
 		"decline to answer rather than speculate. Say you need to check the vault.\n", persona.SilenceHighThreshold))
 

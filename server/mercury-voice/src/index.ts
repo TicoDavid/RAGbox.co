@@ -80,6 +80,7 @@ app.post('/create-session', (req, res) => {
     personaId: req.body.personaId,
     voiceId: req.body.voiceId,
     threadId: req.body.threadId,
+    userName: req.body.userName,
   };
 
   sessions[sessionKey] = { session: mercurySession };
@@ -122,6 +123,11 @@ webSocket.on('connection', (ws, request) => {
     sessions[key].session
   );
   sessions[key].handler = handler;
+
+  // Send time-aware greeting on session start (non-blocking)
+  handler.sendGreeting().catch((err) => {
+    console.error(`[WS] Greeting error for ${key} (non-fatal):`, err);
+  });
 
   ws.on('error', (err) => console.error(`[WS] Error for ${key}:`, err));
 
@@ -208,6 +214,7 @@ server.on('upgrade', (request, socket, head) => {
       voiceId: (payload.voiceId as string) || undefined,
       temperature: typeof payload.temperature === 'number' ? payload.temperature : undefined,
       speakingRate: typeof payload.speakingRate === 'number' ? payload.speakingRate : undefined,
+      userName: (payload.userName as string) || (payload.name as string) || undefined,
     };
     sessions[sessionKey] = { session: mercurySession };
 

@@ -32,6 +32,7 @@ export interface MercurySession {
   threadId?: string;
   temperature?: number;
   speakingRate?: number;
+  userName?: string;
 }
 
 export interface VoiceGraphOpts {

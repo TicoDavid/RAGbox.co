@@ -234,6 +234,11 @@ func run() error {
 	usageSvc := service.NewUsageService(usageRepo)
 	slog.Info("usage service initialized (token allocation enforcement active)")
 
+	// Proactive insights (EPIC-028 Phase 4)
+	insightRepo := repository.NewInsightRepo(pool)
+	insightScannerSvc := service.NewInsightScannerService(genAI, insightRepo, chunkRepo)
+	slog.Info("insight scanner service initialized")
+
 	// User tier lookup function — queries subscription_tier from users table
 	userTierFunc := func(ctx context.Context, userID string) string {
 		tier, err := userRepo.GetSubscriptionTier(ctx, userID)
@@ -277,7 +282,14 @@ func run() error {
 	})
 	defer forgeRL.Stop()
 
-	slog.Info("rate limiters initialized", "general", "60/min", "chat", "10/min", "forge", "5/min")
+	// Insight scan: 1 per 5 min per user (prevents abuse)
+	insightScanRL := middleware.NewRateLimiter(middleware.RateLimiterConfig{
+		MaxRequests: 1,
+		Window:      5 * time.Minute,
+	})
+	defer insightScanRL.Stop()
+
+	slog.Info("rate limiters initialized", "general", "60/min", "chat", "10/min", "forge", "5/min", "insight_scan", "1/5min")
 
 	// ─── Query cache ──────────────────────────────────────────────────
 
@@ -427,6 +439,12 @@ func run() error {
 			UsageSvc:     usageSvc,
 			UserTierFunc: userTierFunc,
 		},
+
+		// EPIC-028 Phase 4: Proactive insights
+		InsightDeps: handler.InsightDeps{
+			Scanner: insightScannerSvc,
+		},
+		InsightRateLimiter: insightScanRL,
 	})
 
 	// ─── HTTP server ───────────────────────────────────────────────────

@@ -31,6 +31,7 @@ var (
 	_ service.VectorSearcher    = (*ChunkRepo)(nil)
 	_ service.RelatedDocSearcher = (*ChunkRepo)(nil)
 	_ service.ThreadSearcher    = (*ChunkRepo)(nil)
+	_ service.ChunkScanner      = (*ChunkRepo)(nil)
 )
 
 // BulkInsert stores chunks with their embedding vectors using pgx batching.
@@ -286,4 +287,37 @@ func (r *ChunkRepo) ThreadSimilaritySearch(ctx context.Context, queryVec []float
 	)
 
 	return results, nil
+}
+
+// RecentChunksByUser returns the most recent document chunks for a user,
+// used by the insight scanner to find time-sensitive content.
+func (r *ChunkRepo) RecentChunksByUser(ctx context.Context, userID string, limit int) ([]service.ScannableChunk, error) {
+	if limit <= 0 {
+		limit = 100
+	}
+
+	rows, err := r.pool.Query(ctx, `
+		SELECT c.id, c.document_id, c.content
+		FROM document_chunks c
+		JOIN documents d ON c.document_id = d.id
+		WHERE d.user_id = $1
+			AND d.deletion_status = 'Active'
+			AND d.index_status = 'Indexed'
+		ORDER BY c.created_at DESC
+		LIMIT $2`, userID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("repository.RecentChunksByUser: %w", err)
+	}
+	defer rows.Close()
+
+	var chunks []service.ScannableChunk
+	for rows.Next() {
+		var sc service.ScannableChunk
+		if err := rows.Scan(&sc.ChunkID, &sc.DocumentID, &sc.Content); err != nil {
+			return nil, fmt.Errorf("repository.RecentChunksByUser: scan: %w", err)
+		}
+		chunks = append(chunks, sc)
+	}
+
+	return chunks, nil
 }
