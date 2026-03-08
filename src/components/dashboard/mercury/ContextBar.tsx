@@ -47,7 +47,7 @@ export function ContextBar() {
   }
 
   return (
-    <div className="shrink-0 flex items-center gap-3 px-4 py-2 border-b border-[var(--border-default)] border-t border-t-[var(--border-default)] bg-[var(--bg-secondary)]/80 backdrop-blur-sm">
+    <div className="shrink-0 flex items-center gap-3 px-4 py-2 border-b border-[var(--border-default)] border-t border-t-[var(--border-default)] bg-[var(--bg-secondary)]/50 backdrop-blur-sm">
       {/* Vault tags + voice status */}
       <div className="flex items-center gap-1.5 flex-1 min-w-0">
         <VoiceStatusDot />

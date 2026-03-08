@@ -248,7 +248,7 @@ export function InputBar() {
           <LlmPicker activeIntel={mercuryIntelligence} onIntelChange={setMercuryIntelligence} />
         </div>
 
-        <div className={`flex items-center gap-2 px-5 py-3.5 rounded-[var(--input-radius)] bg-[var(--bg-primary)] transition-all duration-500 ease-out ${isAegisActive ? 'border border-[var(--warning)]/40 shadow-[0_0_40px_-10px_rgba(245,158,11,0.25),0_0_80px_-20px_rgba(245,158,11,0.10)] animate-[aegisBreathe_4s_ease-in-out_infinite]' : 'border border-[var(--privilege-border)]/30 border-t-[var(--privilege-border)]/40 shadow-2xl shadow-black/80 focus-within:border-[var(--warning)]/50 focus-within:shadow-[0_8px_32px_-8px_rgba(217,119,6,0.15)]'}`}>
+        <div className={`flex items-center gap-2 px-5 py-3.5 rounded-[var(--input-radius)] bg-[var(--bg-primary)]/80 backdrop-blur-sm transition-all duration-500 ease-out ${isAegisActive ? 'border border-[var(--warning)]/40 shadow-[0_0_40px_-10px_rgba(245,158,11,0.25),0_0_80px_-20px_rgba(245,158,11,0.10)] animate-[aegisBreathe_4s_ease-in-out_infinite]' : 'border border-[var(--privilege-border)]/30 border-t-[var(--privilege-border)]/40 shadow-2xl shadow-black/80 focus-within:border-[var(--warning)]/50 focus-within:shadow-[0_8px_32px_-8px_rgba(217,119,6,0.15)]'}`}>
           <div className="relative shrink-0">
             <button
               onClick={() => setIsInjectMenuOpen(!isInjectMenuOpen)}

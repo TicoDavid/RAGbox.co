@@ -1,7 +1,6 @@
 'use client'
 
-import { Archive, Bot } from 'lucide-react'
-import { useRouter, usePathname } from 'next/navigation'
+import { Archive } from 'lucide-react'
 
 interface NavItem {
   icon: React.ElementType
@@ -15,12 +14,8 @@ export interface SidebarProps {
 }
 
 export function Sidebar({ onNavigate, activePanelId }: SidebarProps) {
-  const router = useRouter()
-  const pathname = usePathname()
-
   const navItems: NavItem[] = [
     { icon: Archive, label: 'Vault', id: 'box' },
-    { icon: Bot, label: 'Agents', id: 'agents' },
   ]
 
   return (
@@ -34,19 +29,11 @@ export function Sidebar({ onNavigate, activePanelId }: SidebarProps) {
       <nav className="flex-1 flex flex-col items-center gap-2 py-4">
         {navItems.map((item) => {
           const Icon = item.icon
-          const active = item.id === 'agents'
-            ? pathname?.startsWith('/dashboard/agents')
-            : activePanelId === item.id
+          const active = activePanelId === item.id
           return (
             <div key={item.id} className={`relative group rail-icon-glow rounded-xl ${active ? 'rail-active' : ''}`}>
               <button
-                onClick={() => {
-                  if (item.id === 'agents') {
-                    router.push('/dashboard/agents')
-                  } else {
-                    onNavigate?.(item.id)
-                  }
-                }}
+                onClick={() => onNavigate?.(item.id)}
                 aria-label={item.label}
                 className={`
                   relative w-11 h-11 flex items-center justify-center rounded-xl
