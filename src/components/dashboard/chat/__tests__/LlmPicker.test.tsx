@@ -1,5 +1,22 @@
 import React from 'react'
-import { render, screen, fireEvent, within } from '@testing-library/react'
+import { render, screen, fireEvent, within, waitFor, act } from '@testing-library/react'
+
+// ── Mock global.fetch (ByollmSelectorModal fetches /api/models) ──
+const mockFetch = jest.fn().mockResolvedValue({
+  ok: true,
+  json: async () => ({ data: [] }),
+})
+global.fetch = mockFetch as unknown as typeof fetch
+
+/** Open the selector modal and wait for async model loading to settle. */
+async function openSelectorAndWait(buttonText = 'claude-sonnet-4-20250514') {
+  await act(async () => {
+    fireEvent.click(screen.getByText(buttonText))
+  })
+  await waitFor(() => {
+    expect(screen.queryByText(/Loading models/)).not.toBeInTheDocument()
+  })
+}
 
 // ── Mock useSettings ────────────────────────────────────────────
 const mockSetActiveIntelligence = jest.fn()
@@ -132,11 +149,11 @@ describe('LlmPicker', () => {
     expect(screen.getByText('via OpenRouter')).toBeInTheDocument()
   })
 
-  it('filters models by search query in selector modal', () => {
+  it('filters models by search query in selector modal', async () => {
     withByollmConnection()
     render(<LlmPicker />)
 
-    fireEvent.click(screen.getByText('claude-sonnet-4-20250514'))
+    await openSelectorAndWait()
     const searchInput = screen.getByPlaceholderText('Search models...')
     fireEvent.change(searchInput, { target: { value: 'gpt' } })
 
@@ -147,11 +164,11 @@ describe('LlmPicker', () => {
     expect(screen.queryByText('Claude Sonnet 4')).not.toBeInTheDocument()
   })
 
-  it('shows models from provider catalog in selector', () => {
+  it('shows models from provider catalog in selector', async () => {
     withByollmConnection()
     render(<LlmPicker />)
 
-    fireEvent.click(screen.getByText('claude-sonnet-4-20250514'))
+    await openSelectorAndWait()
 
     // OpenRouter catalog should include various providers
     expect(screen.getByText('Claude Sonnet 4')).toBeInTheDocument()
@@ -161,7 +178,7 @@ describe('LlmPicker', () => {
     expect(screen.getByText('Mistral Large')).toBeInTheDocument()
   })
 
-  it('highlights selected model with gold accent in selector', () => {
+  it('highlights selected model with gold accent in selector', async () => {
     withByollmConnection({
       activeIntelligence: {
         id: 'anthropic/claude-sonnet-4-20250514',
@@ -172,17 +189,17 @@ describe('LlmPicker', () => {
     })
     render(<LlmPicker />)
 
-    fireEvent.click(screen.getByText('Claude Sonnet 4'))
+    await openSelectorAndWait('Claude Sonnet 4')
 
     // The selected model should show "Active" badge
     expect(screen.getByText('Active')).toBeInTheDocument()
   })
 
-  it('calls onSelect and closes modal when model is clicked', () => {
+  it('calls onSelect and closes modal when model is clicked', async () => {
     withByollmConnection()
     render(<LlmPicker />)
 
-    fireEvent.click(screen.getByText('claude-sonnet-4-20250514'))
+    await openSelectorAndWait()
     expect(screen.getByText('Select Model')).toBeInTheDocument()
 
     // Click a different model
@@ -222,11 +239,11 @@ describe('LlmPicker', () => {
     expect(aegisToPrivateCalls.length).toBeLessThanOrEqual(1)
   })
 
-  it('shows all models when search is empty', () => {
+  it('shows all models when search is empty', async () => {
     withByollmConnection()
     render(<LlmPicker />)
 
-    fireEvent.click(screen.getByText('claude-sonnet-4-20250514'))
+    await openSelectorAndWait()
 
     const searchInput = screen.getByPlaceholderText('Search models...')
     // Type something then clear
@@ -327,12 +344,12 @@ describe('LlmPicker', () => {
 
   // ── STORY-087: BYOLLM localStorage persistence ────────────────
 
-  it('saves BYOLLM choice to localStorage when model is selected', () => {
+  it('saves BYOLLM choice to localStorage when model is selected', async () => {
     withByollmConnection()
     render(<LlmPicker />)
 
     // Open selector and pick GPT-4o
-    fireEvent.click(screen.getByText('claude-sonnet-4-20250514'))
+    await openSelectorAndWait()
     fireEvent.click(screen.getByText('GPT-4o'))
 
     const stored = localStorage.getItem('ragbox:lastByollmModel')
@@ -384,12 +401,12 @@ describe('LlmPicker', () => {
     )
   })
 
-  it('persists across re-renders (simulating page reload)', () => {
+  it('persists across re-renders (simulating page reload)', async () => {
     withByollmConnection()
 
     // First render — select a model
     const { unmount } = render(<LlmPicker />)
-    fireEvent.click(screen.getByText('claude-sonnet-4-20250514'))
+    await openSelectorAndWait()
     fireEvent.click(screen.getByText('Gemini 2.0 Flash'))
     unmount()
 

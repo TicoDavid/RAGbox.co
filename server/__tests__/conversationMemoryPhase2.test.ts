@@ -360,7 +360,8 @@ describe('Phase 2 — RAGboxNode intent routing (integration)', () => {
     })
 
     expect(mockFetch).not.toHaveBeenCalled()
-    expect(result).toContain('welcome')
+    // Phase 3 changed handleConversational: "Thanks" now returns "Happy to help!"
+    expect(result).toMatch(/welcome|happy to help/i)
   })
 
   it('meta query skips Go backend (no fetch call)', async () => {
@@ -593,7 +594,8 @@ describe('Phase 2 — context carries across 5+ turns', () => {
     mockBackendResponse('Personalized answer for David.')
 
     await node.process(mockContext, {
-      text: 'Continue the analysis',
+      // Use a document-intent query (Phase 3 classifies "continue" as followup)
+      text: 'Analyze the contract liability terms',
       userId: 'user-1',
       conversationHistory: turns,
       userContext: {
