@@ -9,6 +9,7 @@ import { InsightsPanel } from './InsightsPanel'
 import { useMercuryStore, saveSessionSummary } from '@/stores/mercuryStore'
 import { usePrivilegeStore } from '@/stores/privilegeStore'
 import { useVaultStore } from '@/stores/vaultStore'
+import { mapServerMessage, extractTextContent } from '@/stores/mercuryStore.types'
 import type { ChatMessage } from '@/types/ragbox'
 
 // ============================================================================
@@ -91,20 +92,11 @@ function startThreadPolling(threadId: string) {
       const toAdd = newMessages
         .filter((m) => {
           if (existingIds.has(m.id)) return false
-          const contentKey = `${m.role}:${(m.content || '').slice(0, 80)}`
+          const contentKey = `${m.role}:${extractTextContent(m.content).slice(0, 80)}`
           if (existingContentKeys.has(contentKey)) return false
           return true
         })
-        .map((m) => ({
-          id: m.id,
-          role: m.role as 'user' | 'assistant',
-          content: m.content,
-          timestamp: new Date(m.createdAt),
-          confidence: m.confidence ?? undefined,
-          citations: m.citations as ChatMessage['citations'],
-          channel: m.channel as ChatMessage['channel'],
-          metadata: m.metadata ?? undefined,
-        }))
+        .map((m) => mapServerMessage(m))
 
       if (toAdd.length > 0) {
         useMercuryStore.setState((state) => ({
@@ -258,11 +250,14 @@ export function MercuryPanel() {
 
   // Sync voice transcript to Mercury chat history
   const handleVoiceQuery = useCallback((e: Event) => {
-    const detail = (e as CustomEvent).detail as { text: string }
+    const detail = (e as CustomEvent).detail
+    // BUG-060: Safely extract text — detail may be an object or have nested structure
+    const text = extractTextContent(detail)
+    if (!text || text === '{}') return  // Skip empty/invalid transcripts
     const msg: ChatMessage = {
       id: `voice-q-${Date.now()}`,
       role: 'user',
-      content: detail.text,
+      content: text,
       timestamp: new Date(),
       channel: 'voice',
     }
@@ -274,11 +269,14 @@ export function MercuryPanel() {
   }, [threadId])
 
   const handleVoiceResponse = useCallback((e: Event) => {
-    const detail = (e as CustomEvent).detail as { text: string }
+    const detail = (e as CustomEvent).detail
+    // BUG-060: Safely extract text — detail may be an object or have nested structure
+    const text = extractTextContent(detail)
+    if (!text || text === '{}') return  // Skip empty/invalid responses
     const msg: ChatMessage = {
       id: `voice-a-${Date.now()}`,
       role: 'assistant',
-      content: detail.text,
+      content: text,
       timestamp: new Date(),
       channel: 'voice',
     }

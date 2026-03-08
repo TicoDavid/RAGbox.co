@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from 'react'
 import type { ChatMessage, MercuryChannel, Citation } from '@/types/ragbox'
+import { extractTextContent } from '@/stores/mercuryStore.types'
 import { ConfidenceBadge } from './ConfidenceBadge'
 import { ModelBadge } from './ModelBadge'
 import { MarkdownRenderer } from './MarkdownRenderer'
@@ -240,10 +241,13 @@ function ActionButtons({ content }: { content: string }) {
 export function Message({ message }: MessageProps) {
   const isUser = message.role === 'user'
 
+  // BUG-060: Ensure content is always a string (voice/thread messages can have object content)
+  const safeContent = extractTextContent(message.content)
+
   // HOTFIX: Parse structured JSON responses — extract answer, citations, confidence
   const parsed = isUser
-    ? { content: message.content, citations: message.citations, confidence: message.confidence }
-    : parseStructuredResponse(message.content, message.citations, message.confidence)
+    ? { content: safeContent, citations: message.citations, confidence: message.confidence }
+    : parseStructuredResponse(safeContent, message.citations, message.confidence)
 
   // EPIC-028 Phase 3: Detect greeting messages + resolve intent
   const isGreeting = message.id.startsWith('voice-greeting-')
@@ -255,7 +259,7 @@ export function Message({ message }: MessageProps) {
       <div className="flex justify-end mb-4 group">
         <div className="max-w-[75%] rounded-xl px-4 py-3 overflow-hidden break-words bg-[var(--brand-blue)] text-[var(--text-primary)]">
           <div className="text-sm whitespace-pre-wrap leading-relaxed">
-            {message.content}
+            {safeContent}
           </div>
           <div className="flex items-center gap-2 mt-2">
             <span className="text-[10px] text-[var(--text-primary)]/60">

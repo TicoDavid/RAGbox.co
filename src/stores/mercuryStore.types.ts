@@ -164,6 +164,29 @@ export const AEGIS_INTELLIGENCE: ActiveIntelligence = {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /**
+ * BUG-060: Safely extract text from content that may be a string, object, or null.
+ * Handles cases where voice/thread messages have content stored as objects
+ * (e.g., { text: "..." } or { answer: "..." }) instead of plain strings.
+ */
+export function extractTextContent(content: unknown): string {
+  if (typeof content === 'string') return content
+  if (content == null) return ''
+  if (typeof content === 'object') {
+    const obj = content as Record<string, unknown>
+    // Try common text field names
+    if (typeof obj.text === 'string') return obj.text
+    if (typeof obj.answer === 'string') return obj.answer
+    if (typeof obj.content === 'string') return obj.content
+    if (typeof obj.message === 'string') return obj.message
+    if (typeof obj.response === 'string') return obj.response
+    if (typeof obj.display === 'string') return obj.display
+    // Last resort: JSON stringify (better than [object Object])
+    try { return JSON.stringify(content) } catch { return '' }
+  }
+  return String(content)
+}
+
+/**
  * BUG-048: Resolve document display name from vaultStore when the Go backend
  * returns a UUID or empty string instead of the actual filename.
  */
@@ -217,7 +240,7 @@ export function mapServerMessage(
   return {
     id: m.id,
     role: m.role as 'user' | 'assistant',
-    content: typeof m.content === 'string' ? m.content : String(m.content ?? ''),
+    content: extractTextContent(m.content),
     timestamp: new Date(m.createdAt),
     confidence: m.confidence ?? undefined,
     citations: m.citations as Citation[] | undefined,

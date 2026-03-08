@@ -90,13 +90,30 @@ export class RAGboxNode extends CustomNode {
         return 'I encountered an issue processing your request. Please try again.';
       }
 
-      const body = await res.json() as {
-        answer?: string;
-        citations?: unknown[];
-        confidence?: number;
-      };
+      // BUG-060: Go backend may return SSE (text/event-stream) even when
+      // stream=false is requested. Handle both JSON and SSE responses.
+      const contentType = res.headers.get('content-type') || '';
 
-      const rawAnswer = body.answer || '';
+      let rawAnswer = '';
+      let confidence: number | undefined;
+
+      if (contentType.includes('text/event-stream') || contentType.includes('text/plain')) {
+        // Parse SSE stream to extract the answer
+        const sseText = await res.text();
+        rawAnswer = parseSSEResponse(sseText);
+      } else {
+        // Standard JSON response
+        const body = await res.json() as {
+          answer?: string;
+          data?: { answer?: string; confidence?: number };
+          citations?: unknown[];
+          confidence?: number;
+        };
+        const d = body.data ?? body;
+        rawAnswer = d.answer || '';
+        confidence = d.confidence;
+      }
+
       const voiceText = stripForVoice(rawAnswer);
 
       if (!voiceText) {
@@ -244,8 +261,15 @@ async function handleFollowup(
       return "I'd love to expand on that, but I hit a snag. Can you try rephrasing?";
     }
 
-    const body = await res.json() as { answer?: string };
-    const rawAnswer = body.answer || '';
+    // BUG-060: Handle both JSON and SSE responses
+    const ct = res.headers.get('content-type') || '';
+    let rawAnswer = '';
+    if (ct.includes('text/event-stream') || ct.includes('text/plain')) {
+      rawAnswer = parseSSEResponse(await res.text());
+    } else {
+      const body = await res.json() as { answer?: string; data?: { answer?: string } };
+      rawAnswer = (body.data ?? body).answer || '';
+    }
     return stripForVoice(rawAnswer) || "I don't have more detail on that in the vault right now.";
   } catch {
     return "I had trouble expanding on that. Try asking a more specific question.";
@@ -295,4 +319,63 @@ export function stripForVoice(text: string): string {
   }
 
   return cleaned;
+}
+
+/**
+ * BUG-060: Parse an SSE text response from the Go backend into a plain answer string.
+ * The Go backend returns SSE events like:
+ *   event: token\ndata: {"text":"word "}\n\n
+ *   event: done\ndata: {"answer":"full text","confidence":0.9}\n\n
+ * We accumulate tokens and prefer the done event's answer field.
+ */
+function parseSSEResponse(sseText: string): string {
+  let tokens = '';
+  let finalAnswer = '';
+
+  const events = sseText.split('\n\n');
+  for (const block of events) {
+    if (!block.trim()) continue;
+
+    let eventType = '';
+    let eventData = '';
+    for (const line of block.split('\n')) {
+      if (line.startsWith('event: ')) eventType = line.slice(7).trim();
+      else if (line.startsWith('data: ')) eventData = line.slice(6);
+    }
+
+    if (!eventData) continue;
+
+    try {
+      const data = JSON.parse(eventData);
+
+      switch (eventType) {
+        case 'token':
+          tokens += data.text ?? '';
+          break;
+        case 'done': {
+          const d = data.data ?? data;
+          if (typeof d.answer === 'string') finalAnswer = d.answer;
+          break;
+        }
+        case 'silence':
+          if (data.message) finalAnswer = data.message;
+          break;
+        // status, citations, confidence, metadata — skip
+      }
+    } catch {
+      // Skip unparseable events
+    }
+  }
+
+  // Prefer done event answer, fall back to accumulated tokens
+  if (finalAnswer) return finalAnswer;
+  if (tokens.trim()) return tokens.trim();
+
+  // Last resort: try parsing the entire SSE text as JSON
+  try {
+    const parsed = JSON.parse(sseText);
+    return (parsed.data ?? parsed).answer || parsed.text || '';
+  } catch {
+    return '';
+  }
 }
