@@ -58,7 +58,7 @@ const STATUS_COLORS: Record<VoiceStatus, string> = {
 
 export function MercuryWindow() {
   const [configOpen, setConfigOpen] = useState(false)
-  const [agentName, setAgentName] = useState('Evelyn Monroe')
+  const [agentName, setAgentName] = useState('Mercury')
   const [agentTitle, setAgentTitle] = useState('AI Assistant')
   const [greeting, setGreeting] = useState('')
   const greetingInjectedRef = useRef(false)
@@ -97,7 +97,7 @@ export function MercuryWindow() {
       if (!res.ok) return
       const json = await res.json()
       if (json.success && json.data?.config) {
-        setAgentName(json.data.config.name || 'Evelyn Monroe')
+        setAgentName(json.data.config.name || 'Mercury')
         setAgentTitle(json.data.config.title || 'AI Assistant')
         setGreeting(json.data.config.greeting || '')
       }
@@ -272,7 +272,7 @@ export function MercuryWindow() {
         open={configOpen}
         onClose={() => setConfigOpen(false)}
         onSaved={({ name, title, greeting: g }) => {
-          setAgentName(name || 'Evelyn Monroe')
+          setAgentName(name || 'Mercury')
           setAgentTitle(title || 'AI Assistant')
           if (g !== undefined) setGreeting(g)
         }}

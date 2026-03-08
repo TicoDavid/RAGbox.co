@@ -20,15 +20,40 @@ interface ByollmSelectorProps {
 
 function ByollmSelectorModal({ isOpen, onClose, connection, currentModelId, onSelect }: ByollmSelectorProps) {
   const [search, setSearch] = useState('')
+  const [dynamicModels, setDynamicModels] = useState<{ id: string; name: string }[]>([])
+  const [isLoadingModels, setIsLoadingModels] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
+  const fetchedRef = useRef(false)
 
-  // Focus search on open
+  // Focus search on open + fetch full model list from OpenRouter API
   useEffect(() => {
     if (isOpen) {
       setSearch('')
       setTimeout(() => searchRef.current?.focus(), 100)
+
+      // Fetch full model list dynamically (once per modal open)
+      if (!fetchedRef.current && connection.type === 'openrouter') {
+        fetchedRef.current = true
+        setIsLoadingModels(true)
+        fetch('/api/models')
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.data && Array.isArray(data.data)) {
+              setDynamicModels(
+                data.data.map((m: { id: string; name: string }) => ({
+                  id: m.id,
+                  name: m.name || m.id.split('/').pop() || m.id,
+                }))
+              )
+            }
+          })
+          .catch(() => { /* fall back to static catalog */ })
+          .finally(() => setIsLoadingModels(false))
+      }
+    } else {
+      fetchedRef.current = false
     }
-  }, [isOpen])
+  }, [isOpen, connection.type])
 
   // Close on Escape
   useEffect(() => {
@@ -40,11 +65,15 @@ function ByollmSelectorModal({ isOpen, onClose, connection, currentModelId, onSe
     return () => window.removeEventListener('keydown', handleKey)
   }, [isOpen, onClose])
 
-  // Build model list: catalog + any from connection.availableModels
+  // Build model list: dynamic API models (preferred) > catalog + connection.availableModels
   const catalog = MODEL_CATALOG[connection.type]
   const providerLabel = catalog?.label || connection.type
 
   const allModels = useMemo(() => {
+    // If we have dynamic models from the API, use those (they include all 370+ OpenRouter models)
+    if (dynamicModels.length > 0) return dynamicModels
+
+    // Fallback: static catalog + connection.availableModels
     const catalogModels = catalog?.models || []
     const connectionModels = (connection.availableModels || []).map((m) => ({
       id: m.id,
@@ -55,7 +84,7 @@ function ByollmSelectorModal({ isOpen, onClose, connection, currentModelId, onSe
     const catalogIds = new Set(catalogModels.map((m) => m.id))
     const extra = connectionModels.filter((m) => !catalogIds.has(m.id))
     return [...catalogModels, ...extra]
-  }, [catalog, connection.availableModels])
+  }, [catalog, connection.availableModels, dynamicModels])
 
   const filtered = useMemo(() => {
     if (!search.trim()) return allModels
@@ -125,9 +154,22 @@ function ByollmSelectorModal({ isOpen, onClose, connection, currentModelId, onSe
             </div>
           </div>
 
+          {/* Model count + loading */}
+          {allModels.length > 0 && (
+            <div className="px-5 pb-2">
+              <p className="text-[10px] text-[var(--text-tertiary)]">
+                {isLoadingModels ? 'Loading models...' : `${allModels.length} models available`}
+              </p>
+            </div>
+          )}
+
           {/* Model list */}
           <div className="flex-1 overflow-y-auto px-3 pb-3 scrollbar-thin scrollbar-thumb-[var(--bg-elevated)] scrollbar-track-transparent">
-            {filtered.length === 0 ? (
+            {isLoadingModels ? (
+              <div className="py-8 text-center">
+                <p className="text-sm text-[var(--text-tertiary)]">Loading models from OpenRouter...</p>
+              </div>
+            ) : filtered.length === 0 ? (
               <div className="py-8 text-center">
                 <p className="text-sm text-[var(--text-tertiary)]">No models found</p>
               </div>

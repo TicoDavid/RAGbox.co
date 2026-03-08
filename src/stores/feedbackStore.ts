@@ -73,15 +73,23 @@ export const useFeedbackStore = create<FeedbackState>()(
             cpoNotes: '',
           }
 
-          // Try sending to API (may return 501 until backend is ready)
+          // Send to API — map store fields to API schema
+          const categoryMap: Record<string, string> = {
+            Bug: 'bug', Feature: 'feature', Question: 'general', Observation: 'general',
+          }
           try {
             await apiFetch('/api/feedback', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(ticket),
+              body: JSON.stringify({
+                category: categoryMap[ticket.type] || 'general',
+                message: `[${ticket.severity}] [${ticket.module}] ${ticket.description}`,
+                currentUrl: ticket.currentUrl,
+                browserInfo: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+              }),
             })
           } catch {
-            // Expected — backend not ready yet. Store locally.
+            // Store locally as fallback
           }
 
           set((state) => ({

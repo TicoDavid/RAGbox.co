@@ -12,10 +12,8 @@ import {
   Briefcase,
   User,
   Users,
-  MessageSquare,
 } from 'lucide-react'
 import { PrivilegeKeyIcon, IdentityIcon } from './icons/SovereignIcons'
-import { FeedbackModal } from './FeedbackModal'
 import { ActiveModelBadge } from './ActiveModelBadge'
 import { IntegrationStatusDots } from './IntegrationStatusDots'
 import { SettingsModal, type SettingsSection } from './settings/SettingsModal'
@@ -46,7 +44,6 @@ export function GlobalHeader() {
   const [activeProfile, setActiveProfile] = useState<string>('work')
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsInitialSection, setSettingsInitialSection] = useState<SettingsSection | undefined>(undefined)
-  const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [isSwitching, setIsSwitching] = useState(false)
 
   const currentProfile = PROFILES.find(p => p.id === activeProfile) || PROFILES[0]
@@ -158,16 +155,6 @@ export function GlobalHeader() {
             </button>
           )}
 
-          {/* Feedback */}
-          <button
-            onClick={() => setFeedbackOpen(true)}
-            className="p-2 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
-            title="Send Feedback"
-            aria-label="Send feedback"
-          >
-            <MessageSquare className="w-5 h-5" />
-          </button>
-
           {/* Settings */}
           <button
             onClick={() => setSettingsOpen(true)}
@@ -185,9 +172,6 @@ export function GlobalHeader() {
           />
         </div>
       </header>
-
-      {/* Feedback Modal */}
-      <FeedbackModal isOpen={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
 
       {/* Settings Modal */}
       {settingsOpen && (

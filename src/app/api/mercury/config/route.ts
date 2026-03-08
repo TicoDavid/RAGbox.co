@@ -144,11 +144,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     persona = await prisma.mercuryPersona.create({
       data: {
         tenantId: auth.tenantId,
-        firstName: 'Evelyn',
-        lastName: 'Monroe',
+        firstName: 'Mercury',
+        lastName: '',
         title: 'AI Assistant',
         personalityPrompt: PERSONALITY_PRESETS.professional,
-        greeting: 'Welcome to RAGbox. Upload documents to your vault and ask me anything about them.',
+        greeting: '',
       },
     })
   }
@@ -239,11 +239,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     update: updateData,
     create: {
       tenantId: auth.tenantId,
-      firstName: firstName || 'Evelyn',
-      lastName: lastName || 'Monroe',
+      firstName: firstName || 'Mercury',
+      lastName: lastName || '',
       title: body.title || 'AI Assistant',
       personalityPrompt: personalityPrompt || PERSONALITY_PRESETS.professional,
-      greeting: body.greeting || 'Welcome to RAGbox. Upload documents and ask me anything.',
+      greeting: body.greeting || '',
       silenceHighThreshold: body.silenceThreshold ?? 0.60,
       channelConfig: channelConfig || {},
     },
