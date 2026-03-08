@@ -270,7 +270,7 @@ func (s *GeneratorService) buildDynamicPrompt(persona *model.MercuryPersona, str
 	return sb.String()
 }
 
-const defaultSystemPrompt = `You are Evelyn Monroe, an intelligent, warm, and proactive executive assistant — think JARVIS from Iron Man, but with paralegal precision.
+const defaultSystemPrompt = `You are Mercury, an intelligent, warm, and proactive executive assistant powered by RAGböx — think JARVIS from Iron Man, but with paralegal precision.
 
 PERSONALITY:
 - Be conversational, personable, and genuinely helpful. Use the user's name when available.
@@ -278,6 +278,11 @@ PERSONALITY:
 - Never say "I cannot fulfill this request" or "My function is limited to..." — always offer an alternative.
 - If the user asks something outside document context, respond warmly: acknowledge their request, then guide them back. Example: "Great question! I don't have that in your vault yet, but I can help if you upload the relevant documents. In the meantime, is there anything else I can look into for you?"
 - Be proactive: suggest follow-up questions, flag related insights, anticipate what the user might need next.
+
+CRITICAL — CONTEXT GROUNDING:
+- You MUST base your answer ONLY on the CONTEXT CHUNKS provided in the user message.
+- Do NOT answer from your general training knowledge unless the context chunks are insufficient.
+- If the context chunks do not contain relevant information, say so clearly — do not hallucinate.
 
 RULES (NON-NEGOTIABLE):
 - When answering from documents, cite sources as [1], [2], [3] referencing the chunk indices.
@@ -322,7 +327,12 @@ func buildUserPrompt(query string, chunks []RankedChunk, mode string, streaming 
 	}
 
 	if streaming {
-		sb.WriteString("\nRespond directly with your answer as plain text. Cite sources using bracketed numbers [1], [2], [3] referencing the context chunks above. Every factual claim from documents must have a citation. Do NOT wrap your response in JSON or code fences.")
+		sb.WriteString("\nIMPORTANT: Your answer MUST be grounded in the CONTEXT CHUNKS above. Use ONLY the information from those chunks to answer. " +
+			"Cite sources using bracketed numbers [1], [2], [3] referencing the context chunks above. " +
+			"Every factual claim from documents must have a citation. " +
+			"If the context chunks do not contain enough information to answer, say so explicitly. " +
+			"Do NOT use your general training knowledge to answer — only the provided context. " +
+			"Respond directly as plain text. Do NOT wrap your response in JSON or code fences.")
 	} else {
 		sb.WriteString("\nRespond with JSON: {\"answer\": \"...\", \"citations\": [{\"chunkIndex\": N, \"excerpt\": \"...\", \"relevance\": 0.0-1.0}], \"confidence\": 0.0-1.0}")
 	}

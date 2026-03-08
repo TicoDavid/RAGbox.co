@@ -822,6 +822,13 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 				if byollmActive {
 					slog.Warn("BYOLLM streaming failed, falling back to AEGIS",
 						"user_id", userID, "provider", req.LLMProvider, "error", streamErr)
+					// Notify frontend that BYOLLM failed — user should see this
+					fallbackJSON, _ := json.Marshal(map[string]string{
+						"reason":   streamErr.Error(),
+						"provider": req.LLMProvider,
+						"model":    req.LLMModel,
+					})
+					sendEvent(w, flusher, "byollm_fallback", string(fallbackJSON))
 					generator = deps.Generator
 					selfRAG = deps.SelfRAG
 					byollmActive = false
@@ -858,6 +865,12 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 						if byollmActive && !gotTokens {
 							slog.Warn("BYOLLM streaming error, falling back to AEGIS",
 								"user_id", userID, "provider", req.LLMProvider, "error", genErr)
+							fallbackJSON2, _ := json.Marshal(map[string]string{
+								"reason":   genErr.Error(),
+								"provider": req.LLMProvider,
+								"model":	req.LLMModel,
+							})
+							sendEvent(w, flusher, "byollm_fallback", string(fallbackJSON2))
 							generator = deps.Generator
 							selfRAG = deps.SelfRAG
 							byollmActive = false
@@ -889,6 +902,12 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 			if err != nil && byollmActive {
 				slog.Warn("BYOLLM generation failed, falling back to AEGIS",
 					"user_id", userID, "provider", req.LLMProvider, "error", err)
+				fallbackJSON3, _ := json.Marshal(map[string]string{
+					"reason":   err.Error(),
+					"provider": req.LLMProvider,
+					"model":	req.LLMModel,
+				})
+				sendEvent(w, flusher, "byollm_fallback", string(fallbackJSON3))
 				generator = deps.Generator
 				selfRAG = deps.SelfRAG
 				byollmActive = false

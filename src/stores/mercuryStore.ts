@@ -306,6 +306,17 @@ export const useMercuryStore = create<MercuryState>()(
                         fullContent = `⚠️ ${data.message}`
                       }
                       break
+                    case 'byollm_fallback':
+                      // BYOLLM provider failed — system fell back to AEGIS
+                      // Show a notice so user knows their model didn't serve this response
+                      console.warn('[Mercury] BYOLLM fallback:', data.reason, data.provider, data.model)
+                      doneMetadata.byollmFallback = true
+                      doneMetadata.byollmFallbackReason = data.reason ?? 'Unknown error'
+                      doneMetadata.byollmFallbackProvider = data.provider ?? ''
+                      doneMetadata.byollmFallbackModel = data.model ?? ''
+                      provider = 'aegis'
+                      modelUsed = 'aegis-core'
+                      break
                     case 'status':
                       // Ignore status events (retrieving, generating)
                       break
@@ -418,10 +429,18 @@ export const useMercuryStore = create<MercuryState>()(
             )
           : undefined
 
+        // If BYOLLM fell back to AEGIS, prepend a notice so user knows
+        let finalContent = fullContent || 'No response generated.'
+        if (doneMetadata.byollmFallback) {
+          const reason = doneMetadata.byollmFallbackReason as string
+          const model = doneMetadata.byollmFallbackModel as string
+          finalContent = `⚠️ *Your selected model (${model || 'BYOLLM'}) encountered an error: ${reason}. This response was served by AEGIS instead.*\n\n${finalContent}`
+        }
+
         const assistantMessage: ChatMessage = {
           id: `msg-${Date.now()}`,
           role: 'assistant',
-          content: fullContent || 'No response generated.',
+          content: finalContent,
           timestamp: new Date(),
           confidence,
           citations,
