@@ -183,7 +183,7 @@ export function persistToThread(
   confidence?: number,
   citations?: Citation[],
 ): void {
-  if (!content.trim()) return
+  if (!content || typeof content !== 'string' || !content.trim()) return
   const body: Record<string, unknown> = { role, channel, content }
   if (threadId) body.threadId = threadId
   if (confidence !== undefined) body.confidence = confidence
@@ -217,7 +217,7 @@ export function mapServerMessage(
   return {
     id: m.id,
     role: m.role as 'user' | 'assistant',
-    content: m.content,
+    content: typeof m.content === 'string' ? m.content : String(m.content ?? ''),
     timestamp: new Date(m.createdAt),
     confidence: m.confidence ?? undefined,
     citations: m.citations as Citation[] | undefined,

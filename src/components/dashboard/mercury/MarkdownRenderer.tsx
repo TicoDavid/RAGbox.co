@@ -51,11 +51,13 @@ function renderWithCitations(
 }
 
 function generateTldr(content: string): string | null {
-  const words = content.trim().split(/\s+/)
+  // Guard: content may be null/undefined from thread loading
+  const safe = typeof content === 'string' ? content : ''
+  const words = safe.trim().split(/\s+/)
   if (words.length < WORD_THRESHOLD) return null
 
   // Extract first sentence or first ~30 words as summary
-  const firstSentence = content.match(/^[^.!?]+[.!?]/)
+  const firstSentence = safe.match(/^[^.!?]+[.!?]/)
   if (firstSentence && firstSentence[0].split(/\s+/).length <= 40) {
     return firstSentence[0].trim()
   }
@@ -63,7 +65,9 @@ function generateTldr(content: string): string | null {
 }
 
 export function MarkdownRenderer({ content, onCitationClick }: MarkdownRendererProps) {
-  const tldr = useMemo(() => generateTldr(content), [content])
+  // Guard: ensure content is always a string (prevents trim crash on null from DB)
+  const safeContent = typeof content === 'string' ? content : String(content ?? '')
+  const tldr = useMemo(() => generateTldr(safeContent), [safeContent])
 
   const mdComponents: Components = useMemo(() => ({
     h1: ({ children }) => (
@@ -162,7 +166,7 @@ export function MarkdownRenderer({ content, onCitationClick }: MarkdownRendererP
 
       {/* Main markdown content */}
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
-        {content}
+        {safeContent}
       </ReactMarkdown>
     </div>
   )

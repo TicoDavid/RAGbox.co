@@ -42,8 +42,8 @@ function WaveformVisualizer({ isActive }: { isActive: boolean }) {
 
     // Read theme-aware colors from CSS custom properties
     const styles = getComputedStyle(document.documentElement)
-    const colorTop = styles.getPropertyValue('--warning').trim() || '#F59E0B'
-    const colorBottom = styles.getPropertyValue('--warning-dim').trim() || '#D97706'
+    const colorTop = (styles.getPropertyValue('--warning') || '').trim() || '#F59E0B'
+    const colorBottom = (styles.getPropertyValue('--warning-dim') || '').trim() || '#D97706'
 
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)

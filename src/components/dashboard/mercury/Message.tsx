@@ -23,7 +23,9 @@ function parseStructuredResponse(
   existingCitations?: Citation[],
   existingConfidence?: number,
 ): ParsedResponse {
-  let cleaned = raw.trim()
+  // Guard: ensure raw is always a string (database can return null via thread loading)
+  const safeRaw = typeof raw === 'string' ? raw : String(raw ?? '')
+  let cleaned = safeRaw.trim()
 
   // BUG-040: Strip markdown code fences (```json ... ```)
   if (cleaned.startsWith('```')) {
@@ -56,7 +58,7 @@ function parseStructuredResponse(
   if (cleaned.startsWith('{')) {
     const result = tryExtract(cleaned)
     if (result) return result
-    return { content: raw, citations: existingCitations, confidence: existingConfidence }
+    return { content: safeRaw, citations: existingCitations, confidence: existingConfidence }
   }
 
   // BUG-053: Case 2: JSON embedded after preamble text
@@ -69,7 +71,7 @@ function parseStructuredResponse(
   }
 
   // Not JSON — return as-is
-  return { content: raw, citations: existingCitations, confidence: existingConfidence }
+  return { content: safeRaw, citations: existingCitations, confidence: existingConfidence }
 }
 
 /** Extract prose only — used by ConversationThread streaming indicator */
