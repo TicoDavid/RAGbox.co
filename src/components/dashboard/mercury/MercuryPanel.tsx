@@ -109,13 +109,13 @@ function startThreadPolling(threadId: string) {
       const existing = useMercuryStore.getState().messages
       const existingIds = new Set(existing.map((m: ChatMessage) => m.id))
       const existingContentKeys = new Set(
-        existing.map((m: ChatMessage) => `${m.role}:${m.content.slice(0, 80)}`)
+        existing.map((m: ChatMessage) => `${m.role}:${(m.content || '').slice(0, 80)}`)
       )
 
       const toAdd = newMessages
         .filter((m) => {
           if (existingIds.has(m.id)) return false
-          const contentKey = `${m.role}:${m.content.slice(0, 80)}`
+          const contentKey = `${m.role}:${(m.content || '').slice(0, 80)}`
           if (existingContentKeys.has(contentKey)) return false
           return true
         })

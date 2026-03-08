@@ -27,11 +27,11 @@ export function saveSessionSummary(): void {
   if (recentMessages.length === 0) return
 
   const conversationText = recentMessages
-    .map(m => `${m.role}: ${m.content.slice(0, 300)}`)
+    .map(m => `${m.role}: ${(m.content || '').slice(0, 300)}`)
     .join('\n')
 
   // Build a quick extractive summary (no LLM call on beforeunload — too slow)
-  const summary = `Session with ${state.sessionQueryCount} queries. Topics: ${state.sessionTopics.slice(0, 5).join(', ') || 'general'}. Last query: "${recentMessages[recentMessages.length - 1]?.content.slice(0, 100)}"`
+  const summary = `Session with ${state.sessionQueryCount} queries. Topics: ${state.sessionTopics.slice(0, 5).join(', ') || 'general'}. Last query: "${(recentMessages[recentMessages.length - 1]?.content || '').slice(0, 100)}"`
 
   const payload = JSON.stringify({
     summary,
@@ -742,7 +742,7 @@ export const useMercuryStore = create<MercuryState>()(
         const merged: ChatMessage[] = []
         for (const msg of [...serverMessages, ...existing]) {
           if (seenIds.has(msg.id)) continue
-          const contentKey = `${msg.role}:${msg.content.slice(0, 80)}`
+          const contentKey = `${msg.role}:${(msg.content || '').slice(0, 80)}`
           if (seenContent.has(contentKey)) continue
           seenIds.add(msg.id)
           seenContent.add(contentKey)
@@ -849,7 +849,7 @@ export const useMercuryStore = create<MercuryState>()(
       let result = channelFilter === 'all' ? messages : messages.filter((m) => m.channel === channelFilter)
       result = result.filter((m) => {
         if (m.role !== 'assistant') return true
-        const lower = m.content.toLowerCase().trim()
+        const lower = (typeof m.content === 'string' ? m.content : '').toLowerCase().trim()
         return !SUPPRESSED_PATTERNS.some((p) => lower.includes(p))
       })
       return result
