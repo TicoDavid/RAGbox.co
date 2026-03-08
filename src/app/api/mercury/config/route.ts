@@ -151,6 +151,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         greeting: '',
       },
     })
+  } else if (persona.firstName === 'Evelyn' && persona.lastName === 'Monroe') {
+    // Auto-migrate legacy default personas (#39)
+    persona = await prisma.mercuryPersona.update({
+      where: { tenantId: auth.tenantId },
+      data: { firstName: 'Mercury', lastName: '', greeting: '' },
+    })
   }
 
   return NextResponse.json({
