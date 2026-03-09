@@ -4,34 +4,35 @@
 
 CREATE EXTENSION IF NOT EXISTS vector;
 
--- Enums
+-- Enums (PascalCase quoted identifiers — must match Prisma's CREATE TYPE names)
+-- Fix: Issue #46 — snake_case names conflict with Prisma's PascalCase types
 DO $$ BEGIN
-    CREATE TYPE user_role AS ENUM ('Partner', 'Associate', 'Auditor');
+    CREATE TYPE "UserRole" AS ENUM ('Partner', 'Associate', 'Auditor');
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
-    CREATE TYPE user_status AS ENUM ('Active', 'Suspended');
+    CREATE TYPE "UserStatus" AS ENUM ('Active', 'Suspended');
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
-    CREATE TYPE vault_status AS ENUM ('open', 'closed', 'secure');
+    CREATE TYPE "VaultStatus" AS ENUM ('open', 'closed', 'secure');
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
-    CREATE TYPE index_status AS ENUM ('Pending', 'Processing', 'Indexed', 'Failed');
+    CREATE TYPE "IndexStatus" AS ENUM ('Pending', 'Processing', 'Indexed', 'Failed');
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
-    CREATE TYPE deletion_status AS ENUM ('Active', 'SoftDeleted', 'HardDeleted');
+    CREATE TYPE "DeletionStatus" AS ENUM ('Active', 'SoftDeleted', 'HardDeleted');
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
-    CREATE TYPE query_outcome AS ENUM ('Answered', 'Refused');
+    CREATE TYPE "QueryOutcome" AS ENUM ('Answered', 'Refused');
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
@@ -41,8 +42,8 @@ CREATE TABLE IF NOT EXISTS users (
     email                   TEXT UNIQUE NOT NULL,
     name                    TEXT,
     image                   TEXT,
-    role                    user_role NOT NULL DEFAULT 'Associate',
-    status                  user_status NOT NULL DEFAULT 'Active',
+    role                    "UserRole" NOT NULL DEFAULT 'Associate',
+    status                  "UserStatus" NOT NULL DEFAULT 'Active',
     privilege_mode_enabled  BOOLEAN NOT NULL DEFAULT false,
     privilege_mode_changed_at TIMESTAMPTZ,
     created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -54,7 +55,7 @@ CREATE TABLE IF NOT EXISTS vaults (
     id                 TEXT PRIMARY KEY,
     name               TEXT NOT NULL,
     user_id            TEXT NOT NULL REFERENCES users(id),
-    status             vault_status NOT NULL DEFAULT 'open',
+    status             "VaultStatus" NOT NULL DEFAULT 'open',
     document_count     INT NOT NULL DEFAULT 0,
     storage_used_bytes BIGINT NOT NULL DEFAULT 0,
     created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -74,8 +75,8 @@ CREATE TABLE IF NOT EXISTS documents (
     storage_uri     TEXT,
     storage_path    TEXT,
     extracted_text  TEXT,
-    index_status    index_status NOT NULL DEFAULT 'Pending',
-    deletion_status deletion_status NOT NULL DEFAULT 'Active',
+    index_status    "IndexStatus" NOT NULL DEFAULT 'Pending',
+    deletion_status "DeletionStatus" NOT NULL DEFAULT 'Active',
     is_privileged   BOOLEAN NOT NULL DEFAULT false,
     security_tier   INT NOT NULL DEFAULT 0,
     chunk_count     INT NOT NULL DEFAULT 0,
@@ -113,7 +114,7 @@ CREATE TABLE IF NOT EXISTS queries (
     user_id          TEXT NOT NULL REFERENCES users(id),
     query_text       TEXT NOT NULL,
     confidence_score DOUBLE PRECISION,
-    outcome          query_outcome NOT NULL DEFAULT 'Answered',
+    outcome          "QueryOutcome" NOT NULL DEFAULT 'Answered',
     privilege_mode   BOOLEAN NOT NULL DEFAULT false,
     chunks_used      INT NOT NULL DEFAULT 0,
     latency_ms       INT,
