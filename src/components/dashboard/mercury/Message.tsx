@@ -6,7 +6,7 @@ import { extractTextContent } from '@/stores/mercuryStore.types'
 import { ConfidenceBadge } from './ConfidenceBadge'
 import { ModelBadge } from './ModelBadge'
 import { MarkdownRenderer } from './MarkdownRenderer'
-import { Copy, Check, ThumbsUp, ThumbsDown, Share2, FileText, ExternalLink } from 'lucide-react'
+import { Copy, Check, ThumbsUp, ThumbsDown, Share2, FileText, ExternalLink, Sparkles } from 'lucide-react'
 
 // ============================================================================
 // JSON GUARD — same fix as CenterMessage (BUG-009 / BUG-019 / HOTFIX)
@@ -271,16 +271,31 @@ export function Message({ message }: MessageProps) {
     )
   }
 
+  // E29-012: Proactive notification styling
+  const isProactive = !!message.isProactive
+
   // ── Assistant message: full-width Perplexity-style ──
   return (
     <div className="mb-6 group">
+      {/* E29-012: Proactive insight wrapper */}
+      {isProactive && (
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <Sparkles className="w-3.5 h-3.5 text-[var(--brand-blue)]" />
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--brand-blue)]">
+            Mercury Insight
+          </span>
+        </div>
+      )}
+
       {/* Answer content — full-width, clean layout */}
       <div className={
         message.isError
           ? 'p-4 rounded-xl bg-[var(--danger)]/10 border border-[var(--danger)]/30 text-[var(--text-primary)]'
-          : isGreeting
-            ? 'text-[var(--text-secondary)] italic'
-            : 'text-[var(--text-primary)]'
+          : isProactive
+            ? 'p-4 rounded-lg bg-[var(--brand-blue)]/5 border border-[var(--brand-blue)]/20 text-[var(--text-secondary)]'
+            : isGreeting
+              ? 'text-[var(--text-secondary)] italic'
+              : 'text-[var(--text-primary)]'
       }>
         <MarkdownRenderer content={parsed.content} />
       </div>

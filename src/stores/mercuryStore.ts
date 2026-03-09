@@ -933,5 +933,21 @@ export const useMercuryStore = create<MercuryState>()(
     dismissInsight: (id) => set((state) => ({
       insights: state.insights.filter((i) => i.id !== id),
     })),
+
+    // E29-012: Add proactive notification as a chat message
+    addProactiveMessage: (msg) => {
+      const proactiveMsg: ChatMessage = {
+        id: `proactive-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        role: 'assistant',
+        content: msg.content,
+        timestamp: msg.timestamp ?? new Date(),
+        channel: 'dashboard',
+        isProactive: true,
+        proactiveType: msg.proactiveType,
+      }
+      set((state) => ({
+        messages: [...state.messages, proactiveMsg],
+      }))
+    },
   }))
 )

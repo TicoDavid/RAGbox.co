@@ -218,30 +218,34 @@ export function MercuryPanel() {
     return () => window.removeEventListener('vault:documents-uploaded', handler)
   }, [])
 
-  // E24-012: Listen for proactive indexing completion — Mercury announces when it's ready
+  // E29-012: Listen for proactive indexing completion — Mercury announces when it's ready
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as {
-        filename: string
+        filename?: string
+        message?: string
+        type?: string
         pages?: number
         documentId?: string
+        timestamp?: string
       }
-      if (!detail?.filename) return
 
-      const pageInfo = detail.pages ? ` It has ${detail.pages} pages.` : ''
-      const content = `I've indexed **${detail.filename}**.${pageInfo} Want me to summarize it, extract key dates, or check for risks?`
+      // Build content from either structured detail or raw message
+      let content: string
+      if (detail?.message) {
+        content = detail.message
+      } else if (detail?.filename) {
+        const pageInfo = detail.pages ? ` It has ${detail.pages} pages.` : ''
+        content = `I've indexed **${detail.filename}**.${pageInfo} Want me to summarize it, extract key dates, or check for risks?`
+      } else {
+        return
+      }
 
-      const notification: ChatMessage = {
-        id: `proactive-${Date.now()}`,
-        role: 'assistant',
+      useMercuryStore.getState().addProactiveMessage({
         content,
-        timestamp: new Date(),
-        channel: 'dashboard',
-        metadata: detail.documentId ? { documentId: detail.documentId } : undefined,
-      }
-      useMercuryStore.setState((state) => ({
-        messages: [...state.messages, notification],
-      }))
+        proactiveType: detail.type ?? 'document_ready',
+        timestamp: detail.timestamp ? new Date(detail.timestamp) : undefined,
+      })
     }
 
     window.addEventListener('mercury:proactive', handler)

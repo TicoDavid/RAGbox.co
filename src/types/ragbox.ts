@@ -132,6 +132,9 @@ export interface ChatMessage {
   modelUsed?: string
   provider?: string
   latencyMs?: number
+  /** E29-012: Proactive notification from Mercury */
+  isProactive?: boolean
+  proactiveType?: string
 }
 
 export interface Citation {

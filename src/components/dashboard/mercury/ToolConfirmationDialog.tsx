@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { AlertTriangle, Shield, FileText, Check, X, Mic, Mail, MessageSquare, Send } from 'lucide-react'
+import { AlertTriangle, Shield, FileText, Check, X, Mic, Mail, MessageSquare, Send, Loader2 } from 'lucide-react'
 import { useMercuryStore } from '@/stores/mercuryStore'
 
 // ============================================================================
@@ -95,10 +95,17 @@ function EmailConfirmationCard({
   onDeny: () => void
 }) {
   const [expiresAt] = useState(() => Date.now() + AUTO_CANCEL_SECONDS * 1000)
+  const [sending, setSending] = useState(false)
   const from = payload.from as string | undefined
   const to = payload.to as string
+  const cc = payload.cc as string | undefined
   const subject = payload.subject as string
   const body = payload.body as string
+
+  const handleSend = () => {
+    setSending(true)
+    onConfirm()
+  }
 
   return (
     <motion.div
@@ -130,7 +137,7 @@ function EmailConfirmationCard({
           </div>
         </div>
 
-        {/* Email Preview — E24-009 */}
+        {/* Email Preview — E29-009 */}
         <div className="mb-5 space-y-3 p-4 rounded-lg bg-[var(--bg-primary)]/60 border border-[var(--border-default)]/50">
           {from && (
             <div className="flex items-start gap-2">
@@ -142,6 +149,12 @@ function EmailConfirmationCard({
             <span className="text-xs font-medium text-[var(--text-tertiary)] w-14 shrink-0 pt-0.5">To</span>
             <span className="text-sm text-[var(--text-primary)] break-all">{to}</span>
           </div>
+          {cc && (
+            <div className="flex items-start gap-2">
+              <span className="text-xs font-medium text-[var(--text-tertiary)] w-14 shrink-0 pt-0.5">Cc</span>
+              <span className="text-sm text-[var(--text-secondary)] break-all">{cc}</span>
+            </div>
+          )}
           <div className="flex items-start gap-2">
             <span className="text-xs font-medium text-[var(--text-tertiary)] w-14 shrink-0 pt-0.5">Subject</span>
             <span className="text-sm text-[var(--text-primary)]">{subject}</span>
@@ -161,22 +174,24 @@ function EmailConfirmationCard({
           <div className="flex gap-3">
             <button
               onClick={onDeny}
+              disabled={sending}
               className="px-4 py-2 rounded-lg text-sm font-medium
                        text-[var(--text-secondary)] hover:text-[var(--text-primary)]
                        bg-[var(--bg-tertiary)] hover:bg-[var(--bg-elevated)]
-                       transition-colors flex items-center gap-2"
+                       transition-colors flex items-center gap-2 disabled:opacity-50"
             >
               <X className="w-4 h-4" />
               Cancel
             </button>
             <button
-              onClick={onConfirm}
+              onClick={handleSend}
+              disabled={sending}
               className="px-4 py-2 rounded-lg text-sm font-medium
                         text-[var(--text-primary)] transition-all flex items-center gap-2
-                        bg-[var(--warning)] hover:bg-[var(--warning)]"
+                        bg-[var(--warning)] hover:bg-[var(--warning)] disabled:opacity-70"
             >
-              <Send className="w-4 h-4" />
-              Send Email
+              {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              {sending ? 'Sending...' : 'Send Email'}
             </button>
           </div>
         </div>
@@ -199,10 +214,16 @@ function SmsConfirmationCard({
   onDeny: () => void
 }) {
   const [expiresAt] = useState(() => Date.now() + AUTO_CANCEL_SECONDS * 1000)
+  const [sending, setSending] = useState(false)
   const to = payload.to as string
   const body = payload.body as string
   const charCount = body.length
-  const isOverLimit = charCount > 160
+  const segmentCount = Math.ceil(charCount / 160) || 1
+
+  const handleSend = () => {
+    setSending(true)
+    onConfirm()
+  }
 
   return (
     <motion.div
@@ -219,7 +240,7 @@ function SmsConfirmationCard({
                    border-cyan-500/30 bg-[var(--bg-primary)]/95 backdrop-blur-xl
                    shadow-[0_0_30px_rgba(6,182,212,0.15)]"
       >
-        {/* Header — E24-009: cyan accent for SMS */}
+        {/* Header — E29-009: cyan accent for SMS */}
         <div className="flex items-center gap-4 mb-4">
           <div className="p-3 rounded-xl bg-cyan-500/10">
             <MessageSquare className="w-6 h-6 text-cyan-400" />
@@ -246,14 +267,12 @@ function SmsConfirmationCard({
             </p>
           </div>
           <div className="flex items-center justify-between pt-1">
-            <span className={`text-xs ${isOverLimit ? 'text-[var(--warning)]' : 'text-[var(--text-tertiary)]'}`}>
-              {charCount} character{charCount !== 1 ? 's' : ''}
+            <span className={`text-xs ${charCount > 1600 ? 'text-[var(--danger)]' : charCount > 160 ? 'text-[var(--warning)]' : 'text-[var(--text-tertiary)]'}`}>
+              {charCount}/1600
             </span>
-            {isOverLimit && (
-              <span className="text-xs text-[var(--warning)]">
-                May be split into multiple messages
-              </span>
-            )}
+            <span className="text-xs text-[var(--text-tertiary)]">
+              {segmentCount} segment{segmentCount !== 1 ? 's' : ''}
+            </span>
           </div>
         </div>
 
@@ -264,22 +283,24 @@ function SmsConfirmationCard({
           <div className="flex gap-3">
             <button
               onClick={onDeny}
+              disabled={sending}
               className="px-4 py-2 rounded-lg text-sm font-medium
                        text-[var(--text-secondary)] hover:text-[var(--text-primary)]
                        bg-[var(--bg-tertiary)] hover:bg-[var(--bg-elevated)]
-                       transition-colors flex items-center gap-2"
+                       transition-colors flex items-center gap-2 disabled:opacity-50"
             >
               <X className="w-4 h-4" />
               Cancel
             </button>
             <button
-              onClick={onConfirm}
+              onClick={handleSend}
+              disabled={sending}
               className="px-4 py-2 rounded-lg text-sm font-medium
                         text-black transition-all flex items-center gap-2
-                        bg-cyan-400 hover:bg-cyan-300"
+                        bg-cyan-400 hover:bg-cyan-300 disabled:opacity-70"
             >
-              <Send className="w-4 h-4" />
-              Send SMS
+              {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              {sending ? 'Sending...' : 'Send SMS'}
             </button>
           </div>
         </div>

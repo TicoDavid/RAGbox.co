@@ -133,6 +133,9 @@ export interface MercuryState {
   addInsight: (content: string) => void
   dismissInsight: (id: string) => void
 
+  // E29-012: Proactive notification message
+  addProactiveMessage: (msg: { content: string; proactiveType?: string; timestamp?: Date }) => void
+
   // Tenant isolation
   resetForUser: (userId: string) => void
 
