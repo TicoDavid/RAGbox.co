@@ -1,0 +1,7 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-f', 'backend/Dockerfile.doc-extract-worker', '-t', 'us-east4-docker.pkg.dev/ragbox-sovereign-prod/ragbox/doc-extract-worker:$SHORT_SHA', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'us-east4-docker.pkg.dev/ragbox-sovereign-prod/ragbox/doc-extract-worker:$SHORT_SHA']
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    args: ['gcloud', 'run', 'deploy', 'doc-extract-worker', '--image', 'us-east4-docker.pkg.dev/ragbox-sovereign-prod/ragbox/doc-extract-worker:$SHORT_SHA', '--region', 'us-east4', '--min-instances=0', '--max-instances=5', '--memory=512Mi', '--timeout=300']

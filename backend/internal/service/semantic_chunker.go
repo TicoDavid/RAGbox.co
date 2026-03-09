@@ -11,15 +11,27 @@ import (
 // fixed token counts. Split priority: section headers → paragraph breaks →
 // sentence boundaries. Implements the Chunker interface.
 type SemanticChunkerService struct {
-	minTokens int // target minimum tokens per chunk (512)
-	maxTokens int // target maximum tokens per chunk (1024)
+	minTokens        int // target minimum tokens per chunk (512)
+	maxTokens        int // target maximum tokens per chunk (1024)
+	overlapSentences int // number of trailing sentences for overlap (default 2)
 }
 
 // NewSemanticChunkerService creates a SemanticChunkerService with default 512-1024 token range.
 func NewSemanticChunkerService() *SemanticChunkerService {
 	return &SemanticChunkerService{
-		minTokens: 512,
-		maxTokens: 1024,
+		minTokens:        512,
+		maxTokens:        1024,
+		overlapSentences: 2,
+	}
+}
+
+// NewSemanticChunkerServiceWithConfig creates a SemanticChunkerService with custom params.
+// EPIC-034: pipeline workers use 400-500 tokens with 3-sentence overlap (≈15% of 500 tokens).
+func NewSemanticChunkerServiceWithConfig(minTokens, maxTokens, overlapSentences int) *SemanticChunkerService {
+	return &SemanticChunkerService{
+		minTokens:        minTokens,
+		maxTokens:        maxTokens,
+		overlapSentences: overlapSentences,
 	}
 }
 
@@ -45,8 +57,8 @@ func (s *SemanticChunkerService) Chunk(ctx context.Context, text string, docID s
 	// Build segments respecting semantic boundaries
 	segments := s.buildSemanticSegments(blocks)
 
-	// Apply 2-sentence overlap between consecutive chunks
-	overlapped := applySemanticOverlap(segments)
+	// Apply sentence overlap between consecutive chunks
+	overlapped := applySemanticOverlap(segments, s.overlapSentences)
 
 	// Build final Chunk structs with metadata
 	var chunks []Chunk
@@ -162,7 +174,7 @@ func (s *SemanticChunkerService) buildSemanticSegments(blocks []semanticBlock) [
 
 // applySemanticOverlap prepends the last 2 sentences of the previous chunk
 // to each subsequent chunk (semantic overlap, not token-count overlap).
-func applySemanticOverlap(segments []segment) []segment {
+func applySemanticOverlap(segments []segment, overlapN int) []segment {
 	if len(segments) <= 1 {
 		return segments
 	}
@@ -177,7 +189,7 @@ func applySemanticOverlap(segments []segment) []segment {
 			prevSentences = splitSentences(segments[i-1].content)
 		}
 
-		overlapCount := 2
+		overlapCount := overlapN
 		if overlapCount > len(prevSentences) {
 			overlapCount = len(prevSentences)
 		}
