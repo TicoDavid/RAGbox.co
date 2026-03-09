@@ -1072,9 +1072,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     results.push('kg_edges temporal columns: OK')
 
     // EPIC-034: Schema fixes for Go backend compatibility
+    // Go backend BulkInsert writes: content, content_hash (not chunk_text, tenant_id)
     await prisma.$executeRawUnsafe(`ALTER TABLE "document_chunks" ADD COLUMN IF NOT EXISTS "content" TEXT`)
     await prisma.$executeRawUnsafe(`ALTER TABLE "document_chunks" ADD COLUMN IF NOT EXISTS "content_hash" TEXT`)
     await prisma.$executeRawUnsafe(`ALTER TABLE "document_chunks" ALTER COLUMN "tenant_id" DROP NOT NULL`)
+    await prisma.$executeRawUnsafe(`ALTER TABLE "document_chunks" ALTER COLUMN "chunk_text" DROP NOT NULL`)
+    // Sync: copy content → chunk_text where chunk_text is NULL (for Next.js reads)
+    await prisma.$executeRawUnsafe(`UPDATE "document_chunks" SET "chunk_text" = "content" WHERE "chunk_text" IS NULL AND "content" IS NOT NULL`)
+    // Trigger: auto-sync content → chunk_text on INSERT/UPDATE
+    await prisma.$executeRawUnsafe(`
+      CREATE OR REPLACE FUNCTION sync_chunk_text() RETURNS TRIGGER AS $t$
+      BEGIN
+        IF NEW.chunk_text IS NULL AND NEW.content IS NOT NULL THEN
+          NEW.chunk_text := NEW.content;
+        END IF;
+        RETURN NEW;
+      END;
+      $t$ LANGUAGE plpgsql
+    `)
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        CREATE TRIGGER trg_sync_chunk_text BEFORE INSERT OR UPDATE ON document_chunks
+        FOR EACH ROW EXECUTE FUNCTION sync_chunk_text();
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$
+    `)
 
     // EPIC-034: Reset Failed documents to Pending for re-ingestion
     if (body.reset_failed === true) {
