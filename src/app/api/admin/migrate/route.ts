@@ -1071,6 +1071,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     await prisma.$executeRawUnsafe(`ALTER TABLE "kg_edges" ADD COLUMN IF NOT EXISTS "valid_to" TIMESTAMPTZ`)
     results.push('kg_edges temporal columns: OK')
 
+    // Diagnostic: document counts by status
+    try {
+      const counts = await prisma.$queryRawUnsafe<Array<{index_status: string; cnt: bigint}>>(`SELECT index_status, COUNT(*) as cnt FROM documents GROUP BY index_status`)
+      const tableExists = await prisma.$queryRawUnsafe<Array<{exists: boolean}>>(`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'document_chunks') as exists`)
+      results.push(`DIAG: docs by status: ${JSON.stringify(counts.map(r => `${r.index_status}:${r.cnt}`))} | chunks_table: ${tableExists[0]?.exists}`)
+    } catch (diagErr) {
+      results.push(`DIAG: ${diagErr instanceof Error ? diagErr.message.slice(0, 120) : 'error'}`)
+    }
+
     return NextResponse.json({ success: true, results })
   } catch (error) {
     return NextResponse.json({
