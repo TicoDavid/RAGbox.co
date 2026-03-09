@@ -34,9 +34,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS document_chunks CASCADE`)
       await prisma.$executeRawUnsafe(`
         CREATE TABLE document_chunks (
-          id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          document_id     UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
-          tenant_id       UUID NOT NULL,
+          id              TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+          document_id     TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+          tenant_id       TEXT NOT NULL,
           chunk_text      TEXT NOT NULL,
           chunk_index     INTEGER NOT NULL,
           token_count     INTEGER NOT NULL,
