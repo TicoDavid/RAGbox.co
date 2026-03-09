@@ -11,23 +11,18 @@ import Stripe from 'stripe'
 import prisma from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 
-let _stripe: Stripe | null = null
-
-function getStripe(): Stripe {
-  if (!_stripe) {
-    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-  }
-  return _stripe
-}
-
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    if (!process.env.STRIPE_SECRET_KEY) {
+    // Read secret inside handler (.trim() — Cloud Run secret gotcha)
+    const stripeKey = (process.env.STRIPE_SECRET_KEY || '').trim()
+    if (!stripeKey) {
       return NextResponse.json(
         { success: false, error: 'Billing not configured' },
         { status: 503 },
       )
     }
+
+    const stripe = new Stripe(stripeKey)
 
     const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
     if (!token) {
@@ -45,52 +40,58 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       )
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, email: true, stripeCustomerId: true },
+    // Check UserSubscription first, then User model fallback
+    const userSub = await (prisma as any).userSubscription.findUnique({
+      where: { userId },
+      select: { stripeCustomerId: true },
     })
 
-    let stripeCustomerId = user?.stripeCustomerId
+    let stripeCustomerId = userSub?.stripeCustomerId
 
-    // Fallback: if the user has no stripeCustomerId saved (e.g. webhook race,
-    // email mismatch during checkout), search Stripe by email and backfill.
-    if (!stripeCustomerId && user?.email) {
-      try {
-        const customers = await getStripe().customers.list({
-          email: user.email,
-          limit: 1,
-        })
-        if (customers.data.length > 0) {
-          stripeCustomerId = customers.data[0].id
-          // Backfill so future requests hit the fast path
-          await prisma.user.update({
-            where: { id: user.id },
-            data: { stripeCustomerId },
+    if (!stripeCustomerId) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, email: true, stripeCustomerId: true },
+      })
+
+      stripeCustomerId = user?.stripeCustomerId ?? null
+
+      // Fallback: search Stripe by email and backfill
+      if (!stripeCustomerId && user?.email) {
+        try {
+          const customers = await stripe.customers.list({
+            email: user.email,
+            limit: 1,
           })
-          logger.info('[Billing Portal] Backfilled stripeCustomerId from Stripe lookup', {
-            userId: user.id,
-            stripeCustomerId,
-          })
+          if (customers.data.length > 0) {
+            stripeCustomerId = customers.data[0].id
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { stripeCustomerId },
+            })
+            logger.info('[Billing Portal] Backfilled stripeCustomerId from Stripe lookup', {
+              userId: user.id,
+              stripeCustomerId,
+            })
+          }
+        } catch (err) {
+          logger.warn('[Billing Portal] Stripe customer lookup failed:', err)
         }
-      } catch (err) {
-        logger.warn('[Billing Portal] Stripe customer lookup failed:', err)
       }
     }
 
     if (!stripeCustomerId) {
       return NextResponse.json(
         { success: false, error: 'No active subscription. Subscribe from the pricing page to manage billing.' },
-        { status: 400 },
+        { status: 404 },
       )
     }
 
-    const returnUrl = process.env.NEXT_PUBLIC_APP_URL
-      ? `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`
-      : 'https://app.ragbox.co/dashboard'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://app.ragbox.co'
 
-    const session = await getStripe().billingPortal.sessions.create({
+    const session = await stripe.billingPortal.sessions.create({
       customer: stripeCustomerId,
-      return_url: returnUrl,
+      return_url: `${appUrl}/dashboard/settings?tab=billing`,
     })
 
     return NextResponse.json({ success: true, url: session.url })

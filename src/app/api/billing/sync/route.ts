@@ -104,7 +104,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       await prisma.user.update({
         where: { id: userId },
         data: {
-          subscriptionTier: tier,
+          subscriptionTier: tier as never,
           subscriptionStatus: 'active',
           ...(stripeCustomerId ? { stripeCustomerId } : {}),
           ...(stripeSubscriptionId ? { stripeSubscriptionId } : {}),

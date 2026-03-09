@@ -66,6 +66,7 @@ model User {
   feedbackReports       FeedbackReport[]
   proactiveInsights     MercuryProactiveInsight[]
   cloudDriveCredential  CloudDriveCredential?
+  userSubscription      UserSubscription?
 
   @@map("users")
 }
@@ -87,6 +88,9 @@ enum subscription_tier {
   professional
   enterprise
   sovereign
+  business   // EPIC-031: $249/mo tier
+  vrep       // EPIC-031: $499/mo Single V-Rep tier
+  aiteam     // EPIC-031: $2,499/mo AI Team tier
   mercury    // @deprecated — legacy alias for starter (pre-EPIC-016)
   syndicate  // @deprecated — legacy alias for enterprise (pre-EPIC-016)
 }
@@ -96,6 +100,8 @@ enum subscription_status {
   active
   past_due
   cancelled
+  trialing    // EPIC-031: Stripe trial period
+  incomplete  // EPIC-031: Stripe incomplete payment
 }
 
 // ============================================
@@ -112,6 +118,31 @@ model BetaCode {
   createdAt DateTime  @default(now()) @map("created_at")
 
   @@map("beta_codes")
+}
+
+// ============================================
+// User Subscription (EPIC-031 — Stripe Billing)
+// ============================================
+
+model UserSubscription {
+  id                    String              @id @default(uuid())
+  userId                String              @unique @map("user_id")
+  user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripeCustomerId      String              @unique @map("stripe_customer_id")
+  stripeSubscriptionId  String?             @unique @map("stripe_subscription_id")
+  stripePriceId         String?             @map("stripe_price_id")
+  tier                  subscription_tier   @default(free)
+  status                subscription_status @default(active)
+  currentPeriodStart    DateTime?           @map("current_period_start")
+  currentPeriodEnd      DateTime?           @map("current_period_end")
+  cancelAtPeriodEnd     Boolean             @default(false) @map("cancel_at_period_end")
+  trialEndsAt           DateTime?           @map("trial_ends_at")
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
+
+  @@index([stripeCustomerId])
+  @@index([tier])
+  @@map("user_subscriptions")
 }
 
 // ============================================

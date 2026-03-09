@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { createGeminiLiveSession, GeminiLiveSession, GeminiLiveConfig } from '@/lib/vertex/gemini-live-client';
+import { checkTierAccess } from '@/lib/billing/tierEnforcement';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -21,6 +22,10 @@ const sessionVoices = new Map<string, GeminiVoice>();
  */
 export async function POST(request: NextRequest) {
   try {
+    // EPIC-031: Voice requires Pro tier
+    const tierBlock = await checkTierAccess(request, 'Pro');
+    if (tierBlock) return tierBlock;
+
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

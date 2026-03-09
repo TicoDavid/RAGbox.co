@@ -42,7 +42,7 @@ export async function provisionFromCheckout(params: {
     create: {
       email,
       name: email.split('@')[0],
-      subscriptionTier: tier,
+      subscriptionTier: tier as never,
       subscriptionStatus: 'active',
       stripeCustomerId,
       stripeSubscriptionId,
@@ -50,7 +50,7 @@ export async function provisionFromCheckout(params: {
       subscriptionStartedAt: now,
     },
     update: {
-      subscriptionTier: tier,
+      subscriptionTier: tier as never,
       subscriptionStatus: 'active',
       stripeCustomerId,
       stripeSubscriptionId,
@@ -151,7 +151,7 @@ export async function updateSubscription(params: {
   await prisma.user.update({
     where: { id: user.id },
     data: {
-      subscriptionTier: tier,
+      subscriptionTier: tier as never,
       subscriptionStatus: subscriptionStatusMap[status] || 'active',
       entitlements: entitlements as unknown as Prisma.InputJsonValue,
       ...(status === 'cancelled' ? { subscriptionEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) } : {}),

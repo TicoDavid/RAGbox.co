@@ -13,6 +13,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
+import { checkUsageLimit } from '@/lib/billing/tierEnforcement'
 import { isToolError, createErrorResponse } from '@/lib/mercury/toolErrors'
 import { getCachedQuery, setCachedQuery } from '@/lib/cache/queryCache'
 import prisma from '@/lib/prisma'
@@ -42,6 +43,22 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
       return NextResponse.json(
         { success: false, error: 'Unable to determine user identity' },
         { status: 401 }
+      )
+    }
+
+    // EPIC-031: Query usage limit enforcement
+    const queryLimit = await checkUsageLimit(userId, 'query_count')
+    if (!queryLimit.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Monthly query limit reached. Upgrade your plan for more queries.',
+          current: queryLimit.current,
+          limit: queryLimit.limit,
+          tier: queryLimit.tier,
+          upgradeUrl: '/pricing',
+        },
+        { status: 429 },
       )
     }
 

@@ -1114,6 +1114,56 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     `)
     results.push('EPIC-034 enrichment columns + HNSW index: OK')
 
+    // ========================================
+    // EPIC-031: Stripe Billing — subscription_tier + subscription_status enum expansion + user_subscriptions
+    // ========================================
+    try {
+      await prisma.$executeRawUnsafe(`ALTER TYPE subscription_tier ADD VALUE IF NOT EXISTS 'business'`)
+    } catch { /* already exists */ }
+    try {
+      await prisma.$executeRawUnsafe(`ALTER TYPE subscription_tier ADD VALUE IF NOT EXISTS 'vrep'`)
+    } catch { /* already exists */ }
+    try {
+      await prisma.$executeRawUnsafe(`ALTER TYPE subscription_tier ADD VALUE IF NOT EXISTS 'aiteam'`)
+    } catch { /* already exists */ }
+    try {
+      await prisma.$executeRawUnsafe(`ALTER TYPE subscription_status ADD VALUE IF NOT EXISTS 'trialing'`)
+    } catch { /* already exists */ }
+    try {
+      await prisma.$executeRawUnsafe(`ALTER TYPE subscription_status ADD VALUE IF NOT EXISTS 'incomplete'`)
+    } catch { /* already exists */ }
+
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "user_subscriptions" (
+        "id" TEXT NOT NULL,
+        "user_id" TEXT NOT NULL,
+        "stripe_customer_id" TEXT NOT NULL,
+        "stripe_subscription_id" TEXT,
+        "stripe_price_id" TEXT,
+        "tier" subscription_tier NOT NULL DEFAULT 'free',
+        "status" subscription_status NOT NULL DEFAULT 'active',
+        "current_period_start" TIMESTAMPTZ,
+        "current_period_end" TIMESTAMPTZ,
+        "cancel_at_period_end" BOOLEAN NOT NULL DEFAULT false,
+        "trial_ends_at" TIMESTAMPTZ,
+        "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "user_subscriptions_pkey" PRIMARY KEY ("id")
+      )
+    `)
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "user_subscriptions" ADD CONSTRAINT "user_subscriptions_user_id_fkey"
+          FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+      EXCEPTION WHEN duplicate_object THEN NULL; END $$
+    `)
+    await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "user_subscriptions_user_id_key" ON "user_subscriptions"("user_id")`)
+    await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "user_subscriptions_stripe_customer_id_key" ON "user_subscriptions"("stripe_customer_id")`)
+    await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "user_subscriptions_stripe_subscription_id_key" ON "user_subscriptions"("stripe_subscription_id")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "user_subscriptions_stripe_customer_id_idx" ON "user_subscriptions"("stripe_customer_id")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "user_subscriptions_tier_idx" ON "user_subscriptions"("tier")`)
+    results.push('EPIC-031 user_subscriptions + enum expansion: OK')
+
     // EPIC-034: Reset Failed documents to Pending for re-ingestion
     if (body.reset_failed === true) {
       const resetCount = await prisma.$executeRawUnsafe(`UPDATE documents SET index_status = 'Pending', chunk_count = 0 WHERE index_status = 'Failed'`)
