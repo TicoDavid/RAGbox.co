@@ -35,13 +35,12 @@ function PreviewContent({ documentId, mimeType }: { documentId: string; mimeType
   const [textContent, setTextContent] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const group = getMimeGroup(mimeType)
-
-  if (!CUID_RE.test(documentId)) return null
+  const validId = CUID_RE.test(documentId)
 
   const downloadUrl = `/api/documents/${documentId}/download`
 
   useEffect(() => {
-    if (group !== 'text') return
+    if (!validId || group !== 'text') return
     let cancelled = false
     setLoading(true)
     apiFetch(`/api/documents/${documentId}/preview`)
@@ -55,7 +54,9 @@ function PreviewContent({ documentId, mimeType }: { documentId: string; mimeType
       })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [documentId, group])
+  }, [documentId, group, validId])
+
+  if (!validId) return null
 
   switch (group) {
     case 'pdf':
