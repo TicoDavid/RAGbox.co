@@ -39,34 +39,34 @@ describe('UploadFlow (IngestionModal)', () => {
 
   it('renders when isOpen is true', () => {
     render(<IngestionModal {...defaultProps} />)
-    // Modal should be visible with tab options
-    expect(screen.getByText(/Local Files/i) || screen.getByText(/file/i)).toBeTruthy()
+    expect(screen.getByText('Data Vault')).toBeTruthy()
+    expect(screen.getByText('Local Files')).toBeTruthy()
   })
 
   it('does not render when isOpen is false', () => {
     const { container } = render(<IngestionModal {...defaultProps} isOpen={false} />)
-    // Modal should not show upload content
-    expect(container.querySelector('[role="dialog"]')).toBeNull()
+    expect(container.innerHTML).toBe('')
   })
 
   it('drag-drop zone accepts files', async () => {
     render(<IngestionModal {...defaultProps} />)
-    // Find the drop zone area
-    const dropZone = document.querySelector('[class*="border-dashed"]') ?? document.querySelector('[data-testid="drop-zone"]')
+    const dropZone = document.querySelector('[class*="border-dashed"]')
+    expect(dropZone).toBeTruthy()
     if (dropZone) {
       const file = new File(['content'], 'test.pdf', { type: 'application/pdf' })
       fireEvent.drop(dropZone, {
         dataTransfer: { files: [file], types: ['Files'] },
       })
+      await waitFor(() => {
+        expect(screen.getByText('test.pdf')).toBeTruthy()
+      })
     }
-    // Even without a specific drop zone, the modal renders
-    expect(screen.getByText(/Local Files/i) || document.body.textContent?.includes('file')).toBeTruthy()
   })
 
   it('file list shows added files with sizes', async () => {
     render(<IngestionModal {...defaultProps} />)
-    // Simulate file selection via the file input
     const fileInput = document.querySelector('input[type="file"]')
+    expect(fileInput).toBeTruthy()
     if (fileInput) {
       const file = new File(['a'.repeat(1024)], 'report.pdf', { type: 'application/pdf' })
       Object.defineProperty(fileInput, 'files', { value: [file] })
@@ -77,49 +77,44 @@ describe('UploadFlow (IngestionModal)', () => {
     }
   })
 
-  it('file size warning appears for > 25MB files', async () => {
+  it('file size displays for staged files', async () => {
     render(<IngestionModal {...defaultProps} />)
     const fileInput = document.querySelector('input[type="file"]')
     if (fileInput) {
-      const largeFile = new File([new ArrayBuffer(30 * 1024 * 1024)], 'huge.pdf', {
+      const file = new File([new ArrayBuffer(2097152)], 'medium.pdf', {
         type: 'application/pdf',
       })
-      Object.defineProperty(fileInput, 'files', { value: [largeFile] })
+      Object.defineProperty(fileInput, 'files', { value: [file] })
       fireEvent.change(fileInput)
-      // Should show size info
       await waitFor(() => {
-        const text = document.body.textContent ?? ''
-        expect(text.includes('huge.pdf') || text.includes('MB')).toBeTruthy()
+        expect(screen.getByText('medium.pdf')).toBeTruthy()
+        // Size should be displayed (2.0 MB)
+        expect(screen.getByText('2.0 MB')).toBeTruthy()
       })
     }
   })
 
   it('close button calls onClose', () => {
     render(<IngestionModal {...defaultProps} />)
-    // Find close button (X icon or close action)
-    const closeButtons = screen.getAllByRole('button')
-    const closeBtn = closeButtons.find(
-      (b) => b.getAttribute('aria-label')?.includes('close') || b.textContent === '×',
-    ) ?? closeButtons[0]
-    if (closeBtn) {
-      fireEvent.click(closeBtn)
-    }
-    // Either onClose was called directly or the modal handles it internally
+    const closeBtn = screen.getByLabelText('Close data vault')
+    fireEvent.click(closeBtn)
     expect(defaultProps.onClose).toHaveBeenCalled()
   })
 
-  it('has tab options for different upload modes', () => {
+  it('has source tabs for different upload modes', () => {
     render(<IngestionModal {...defaultProps} />)
-    // The modal supports Local Files, Web URL, Cloud, Text tabs
-    const text = document.body.textContent ?? ''
-    expect(
-      text.includes('Local Files') ||
-      text.includes('Web URL') ||
-      text.includes('Text'),
-    ).toBeTruthy()
+    expect(screen.getByText('Local Files')).toBeTruthy()
+    expect(screen.getByText('Sovereign Web')).toBeTruthy()
+    expect(screen.getByText('Cloud Drives')).toBeTruthy()
+    expect(screen.getByText('Raw Text')).toBeTruthy()
   })
 
-  it('onFileUpload is called when files are submitted', async () => {
+  it('shows upload header for local files source', () => {
+    render(<IngestionModal {...defaultProps} />)
+    expect(screen.getByText('Upload Local Files')).toBeTruthy()
+  })
+
+  it('onFileUpload is called when files are ingested', async () => {
     render(<IngestionModal {...defaultProps} />)
     const fileInput = document.querySelector('input[type="file"]')
     if (fileInput) {
@@ -127,13 +122,26 @@ describe('UploadFlow (IngestionModal)', () => {
       Object.defineProperty(fileInput, 'files', { value: [file] })
       fireEvent.change(fileInput)
 
-      // Look for upload/submit button
       await waitFor(() => {
-        const uploadBtn = screen.queryByText(/Upload/i) ?? screen.queryByText(/Ingest/i)
-        if (uploadBtn) {
-          fireEvent.click(uploadBtn)
-        }
+        expect(screen.getByText('doc.pdf')).toBeTruthy()
       })
+
+      // Click the ingest button
+      const ingestBtn = screen.queryByText(/Ingest/i)
+      if (ingestBtn) {
+        fireEvent.click(ingestBtn)
+        expect(defaultProps.onFileUpload).toHaveBeenCalledWith([file])
+      }
+    }
+  })
+
+  it('backdrop click calls onClose', () => {
+    render(<IngestionModal {...defaultProps} />)
+    // The backdrop is the first div with onClick={onClose}
+    const backdrop = document.querySelector('[class*="backdrop-blur"]')
+    if (backdrop) {
+      fireEvent.click(backdrop)
+      expect(defaultProps.onClose).toHaveBeenCalled()
     }
   })
 })
