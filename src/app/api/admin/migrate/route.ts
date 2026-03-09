@@ -1129,6 +1129,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       results.push(`EPIC-034 reset_indexed_sample: ${resetCount} docs reset to Pending`)
     }
 
+    // EPIC-034: Purge old chunks for Pending docs (avoids duplicate key on re-ingestion)
+    if (body.purge_pending_chunks === true) {
+      const deleted = await prisma.$executeRawUnsafe(
+        `DELETE FROM document_chunks WHERE document_id IN (SELECT id FROM documents WHERE index_status = 'Pending')`
+      )
+      results.push(`EPIC-034 purge_pending_chunks: ${deleted} chunks deleted`)
+    }
+
     // Diagnostic: document counts by status
     try {
       const counts = await prisma.$queryRawUnsafe<Array<{index_status: string; cnt: bigint}>>(`SELECT index_status, COUNT(*) as cnt FROM documents GROUP BY index_status`)
