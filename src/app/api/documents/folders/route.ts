@@ -29,18 +29,51 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         id: true,
         name: true,
         parentId: true,
+        color: true,
         createdAt: true,
         updatedAt: true,
         _count: { select: { documents: true, children: true } },
       },
     })
 
-    // Build tree structure: top-level folders with nested children
-    const folderMap = new Map<string, typeof folders[number] & { children: unknown[] }>()
-    const tree: Array<typeof folders[number] & { children: unknown[] }> = []
+    // Fetch per-folder document stats in a single aggregation query (EPIC-032)
+    const folderStats = await prisma.document.groupBy({
+      by: ['folderId'],
+      where: {
+        userId,
+        deletionStatus: 'Active',
+        folderId: { not: null },
+      },
+      _count: { id: true },
+      _sum: { sizeBytes: true },
+    })
+
+    const statsMap = new Map(
+      folderStats.map(s => [s.folderId, {
+        documentCount: s._count.id,
+        totalSizeBytes: s._sum.sizeBytes || 0,
+      }])
+    )
+
+    // Build tree structure: top-level folders with nested children + metadata
+    type FolderNode = typeof folders[number] & {
+      children: unknown[]
+      documentCount: number
+      totalSizeBytes: number
+      nestedFolderCount: number
+    }
+
+    const folderMap = new Map<string, FolderNode>()
+    const tree: FolderNode[] = []
 
     for (const f of folders) {
-      folderMap.set(f.id, { ...f, children: [] })
+      folderMap.set(f.id, {
+        ...f,
+        children: [],
+        documentCount: statsMap.get(f.id)?.documentCount || 0,
+        totalSizeBytes: statsMap.get(f.id)?.totalSizeBytes || 0,
+        nestedFolderCount: folders.filter(child => child.parentId === f.id).length,
+      })
     }
 
     for (const f of folders) {

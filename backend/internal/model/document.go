@@ -43,6 +43,7 @@ type Document struct {
 	ChunkCount     int             `json:"chunkCount"`
 	Checksum       *string         `json:"checksum,omitempty"`
 	FolderID       *string         `json:"folderId,omitempty"`
+	MatchField     string          `json:"matchField,omitempty"` // Transient: set during search (filename|originalName|metadata)
 	Metadata       json.RawMessage `json:"metadata,omitempty"`
 	DeletedAt      *time.Time      `json:"deletedAt,omitempty"`
 	HardDeleteAt   *time.Time      `json:"hardDeleteAt,omitempty"`

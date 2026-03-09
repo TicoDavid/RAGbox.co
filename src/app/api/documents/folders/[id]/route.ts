@@ -27,20 +27,37 @@ export async function PATCH(request: NextRequest, { params }: RouteContext): Pro
 
   const { id } = await params
 
-  let body: { name?: string }
+  let body: { name?: string; color?: string | null }
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const name = body.name?.trim()
-  if (!name) {
-    return NextResponse.json({ success: false, error: 'Folder name is required' }, { status: 400 })
+  // At least one field must be provided
+  if (body.name === undefined && body.color === undefined) {
+    return NextResponse.json({ success: false, error: 'name or color is required' }, { status: 400 })
   }
 
-  if (name.length > 255) {
-    return NextResponse.json({ success: false, error: 'Folder name must be 255 characters or fewer' }, { status: 400 })
+  const updateData: Record<string, unknown> = {}
+
+  if (body.name !== undefined) {
+    const name = body.name?.trim()
+    if (!name) {
+      return NextResponse.json({ success: false, error: 'Folder name is required' }, { status: 400 })
+    }
+    if (name.length > 255) {
+      return NextResponse.json({ success: false, error: 'Folder name must be 255 characters or fewer' }, { status: 400 })
+    }
+    updateData.name = name
+  }
+
+  if (body.color !== undefined) {
+    const validColors = ['blue', 'green', 'amber', 'red', 'purple', 'grey', null]
+    if (!validColors.includes(body.color as string | null)) {
+      return NextResponse.json({ success: false, error: 'Invalid color' }, { status: 400 })
+    }
+    updateData.color = body.color
   }
 
   try {
@@ -56,11 +73,12 @@ export async function PATCH(request: NextRequest, { params }: RouteContext): Pro
 
     const updated = await prisma.folder.update({
       where: { id },
-      data: { name },
+      data: updateData,
       select: {
         id: true,
         name: true,
         parentId: true,
+        color: true,
         createdAt: true,
         updatedAt: true,
       },

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -94,7 +95,7 @@ func (r *DocumentRepo) ListByUser(ctx context.Context, userID string, opts servi
 	}
 
 	if opts.Search != "" {
-		countQuery += fmt.Sprintf(` AND (filename ILIKE $%d OR original_name ILIKE $%d)`, argIdx, argIdx)
+		countQuery += fmt.Sprintf(` AND (filename ILIKE $%d OR original_name ILIKE $%d OR COALESCE(metadata::text,'') ILIKE $%d)`, argIdx, argIdx, argIdx)
 		args = append(args, "%"+opts.Search+"%")
 		argIdx++
 	}
@@ -110,12 +111,23 @@ func (r *DocumentRepo) ListByUser(ctx context.Context, userID string, opts servi
 		limit = 20
 	}
 
-	listQuery := `
+	// When searching, add a CASE expression to compute which field matched (priority: filename > originalName > metadata)
+	matchFieldExpr := `'' AS match_field`
+	if opts.Search != "" {
+		matchFieldExpr = `CASE
+			WHEN filename ILIKE '%' || $SEARCH || '%' THEN 'filename'
+			WHEN original_name ILIKE '%' || $SEARCH || '%' THEN 'originalName'
+			WHEN COALESCE(metadata::text,'') ILIKE '%' || $SEARCH || '%' THEN 'metadata'
+			ELSE ''
+		END AS match_field`
+	}
+
+	listQuery := fmt.Sprintf(`
 		SELECT id, vault_id, user_id, filename, original_name, mime_type, file_type,
 			size_bytes, storage_uri, storage_path, index_status,
 			deletion_status, is_privileged, security_tier, is_starred, chunk_count,
-			folder_id, created_at, updated_at
-		FROM documents WHERE user_id = $1 AND deletion_status = 'Active'`
+			folder_id, created_at, updated_at, %s
+		FROM documents WHERE user_id = $1 AND deletion_status = 'Active'`, matchFieldExpr)
 
 	listArgs := []interface{}{userID}
 	listArgIdx := 2
@@ -125,7 +137,9 @@ func (r *DocumentRepo) ListByUser(ctx context.Context, userID string, opts servi
 	}
 
 	if opts.Search != "" {
-		listQuery += fmt.Sprintf(` AND (filename ILIKE $%d OR original_name ILIKE $%d)`, listArgIdx, listArgIdx)
+		// Replace $SEARCH placeholder with the actual parameter index
+		listQuery = strings.ReplaceAll(listQuery, "$SEARCH", fmt.Sprintf("$%d", listArgIdx))
+		listQuery += fmt.Sprintf(` AND (filename ILIKE $%d OR original_name ILIKE $%d OR COALESCE(metadata::text,'') ILIKE $%d)`, listArgIdx, listArgIdx, listArgIdx)
 		listArgs = append(listArgs, "%"+opts.Search+"%")
 		listArgIdx++
 	}
@@ -142,19 +156,20 @@ func (r *DocumentRepo) ListByUser(ctx context.Context, userID string, opts servi
 	var docs []model.Document
 	for rows.Next() {
 		var d model.Document
-		var indexStatus, deletionStatus string
+		var indexStatus, deletionStatus, matchField string
 
 		err := rows.Scan(
 			&d.ID, &d.VaultID, &d.UserID, &d.Filename, &d.OriginalName, &d.MimeType, &d.FileType,
 			&d.SizeBytes, &d.StorageURI, &d.StoragePath, &indexStatus,
 			&deletionStatus, &d.IsPrivileged, &d.SecurityTier, &d.IsStarred, &d.ChunkCount,
-			&d.FolderID, &d.CreatedAt, &d.UpdatedAt,
+			&d.FolderID, &d.CreatedAt, &d.UpdatedAt, &matchField,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("repository.ListByUser: scan: %w", err)
 		}
 		d.IndexStatus = model.IndexStatus(indexStatus)
 		d.DeletionStatus = model.DeletionStatus(deletionStatus)
+		d.MatchField = matchField
 		docs = append(docs, d)
 	}
 
