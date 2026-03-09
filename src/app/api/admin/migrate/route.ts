@@ -1120,6 +1120,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       results.push(`EPIC-034 reset_failed: ${resetCount} docs reset to Pending`)
     }
 
+    // EPIC-034: Reset N indexed documents to Pending (for pipeline re-exercise)
+    if (typeof body.reset_indexed_sample === 'number' && body.reset_indexed_sample > 0) {
+      const n = Math.min(body.reset_indexed_sample, 10)
+      const resetCount = await prisma.$executeRawUnsafe(
+        `UPDATE documents SET index_status = 'Pending', chunk_count = 0 WHERE id IN (SELECT id FROM documents WHERE index_status = 'Indexed' ORDER BY created_at DESC LIMIT ${n})`
+      )
+      results.push(`EPIC-034 reset_indexed_sample: ${resetCount} docs reset to Pending`)
+    }
+
     // Diagnostic: document counts by status
     try {
       const counts = await prisma.$queryRawUnsafe<Array<{index_status: string; cnt: bigint}>>(`SELECT index_status, COUNT(*) as cnt FROM documents GROUP BY index_status`)
