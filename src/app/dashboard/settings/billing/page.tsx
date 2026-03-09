@@ -21,7 +21,6 @@ import {
   AlertTriangle,
   HardDrive,
   MessageSquare,
-  Zap,
   ExternalLink,
 } from 'lucide-react'
 
@@ -35,6 +34,7 @@ interface PlanInfo {
   interval: 'month' | 'year'
   renewsAt: string | null
   status: 'active' | 'trialing' | 'past_due' | 'canceled'
+  cancelAtPeriodEnd?: boolean
 }
 
 interface UsageData {
@@ -137,30 +137,48 @@ export default function BillingSettings() {
   const [loading, setLoading] = useState(true)
   const [portalLoading, setPortalLoading] = useState(false)
 
+  const [error, setError] = useState<string | null>(null)
+
   const fetchBilling = useCallback(async () => {
     setLoading(true)
+    setError(null)
     try {
-      const res = await fetch('/api/billing/usage')
+      const res = await fetch('/api/billing/info')
       if (res.ok) {
         const json = await res.json()
-        // Map Sheldon's response shape → internal UsageData
-        // API returns: { documents: { used, limit }, storage: { used, limit }, queries: { used, limit }, period }
-        if (json.documents || json.storage || json.queries) {
-          setData((prev) => ({
-            ...prev,
-            usage: {
-              storageUsedBytes: json.storage?.used ?? 0,
-              storageLimitBytes: json.storage?.limit ?? 100 * 1024 * 1024,
-              documentCount: json.documents?.used ?? 0,
-              documentLimit: json.documents?.limit ?? 5,
-              queriesThisMonth: json.queries?.used ?? 0,
-              queryLimit: json.queries?.limit ?? 25,
-            },
-          }))
-        }
+        const d = json.data ?? json
+        // E31-007: Map Sheldon's /api/billing/info response
+        setData({
+          plan: {
+            name: d.plan?.name ?? d.tier ?? 'Free',
+            price: d.plan?.price ?? 0,
+            interval: d.plan?.interval ?? 'month',
+            renewsAt: d.plan?.renewsAt ?? d.currentPeriodEnd ?? null,
+            status: d.plan?.status ?? 'active',
+            cancelAtPeriodEnd: d.plan?.cancelAtPeriodEnd ?? d.cancelAtPeriodEnd ?? false,
+          },
+          usage: {
+            storageUsedBytes: d.usage?.storageUsedBytes ?? d.storage?.used ?? 0,
+            storageLimitBytes: d.usage?.storageLimitBytes ?? d.storage?.limit ?? 100 * 1024 * 1024,
+            documentCount: d.usage?.documentCount ?? d.documents?.used ?? 0,
+            documentLimit: d.usage?.documentLimit ?? d.documents?.limit ?? 5,
+            queriesThisMonth: d.usage?.queriesThisMonth ?? d.queries?.used ?? 0,
+            queryLimit: d.usage?.queryLimit ?? d.queries?.limit ?? 25,
+          },
+          invoices: (d.invoices ?? []).map((inv: Record<string, unknown>) => ({
+            id: inv.id as string,
+            date: inv.date as string,
+            amount: inv.amount as number,
+            status: (inv.status as string) ?? 'paid',
+            pdfUrl: inv.pdfUrl as string | undefined,
+          })),
+          hasStripeCustomer: d.hasStripeCustomer ?? !!d.stripeCustomerId,
+        })
+      } else {
+        setError('Failed to load billing info. Please try again.')
       }
     } catch {
-      // Use default data on error
+      setError('Failed to load billing info. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -186,18 +204,9 @@ export default function BillingSettings() {
     }
   }
 
-  const handleUpgrade = async (plan: string) => {
-    try {
-      const res = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan }),
-      })
-      const json = await res.json()
-      if (json.url) window.location.href = json.url
-    } catch {
-      // Silent fail
-    }
+  const handleUpgrade = async () => {
+    // E31-007: Navigate to pricing page for plan selection
+    window.location.href = '/pricing'
   }
 
   const { plan, usage, invoices, hasStripeCustomer } = data
@@ -212,6 +221,14 @@ export default function BillingSettings() {
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-5 h-5 text-[var(--text-tertiary)] animate-spin" />
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center py-12 gap-2">
+          <AlertTriangle className="w-5 h-5 text-[var(--danger)]" />
+          <p className="text-sm text-[var(--text-secondary)]">{error}</p>
+          <button onClick={fetchBilling} className="text-xs text-[var(--brand-blue)] hover:underline">
+            Retry
+          </button>
         </div>
       ) : (
         <div className="space-y-4">
@@ -230,50 +247,46 @@ export default function BillingSettings() {
                     ${plan.price}/{plan.interval === 'year' ? 'yr' : 'mo'}
                   </p>
                 )}
-                {plan.renewsAt && (
+                {plan.renewsAt && !plan.cancelAtPeriodEnd && (
                   <p className="text-xs text-[var(--text-tertiary)] mt-1">
                     {plan.status === 'canceled' ? 'Expires' : 'Renews'} {formatDate(plan.renewsAt)}
                   </p>
                 )}
+                {/* E31-007: Cancel warning */}
+                {plan.cancelAtPeriodEnd && plan.renewsAt && (
+                  <div className="flex items-center gap-1.5 mt-2 px-2.5 py-1.5 rounded-md bg-[var(--warning)]/10 border border-[var(--warning)]/20">
+                    <AlertTriangle className="w-3 h-3 text-[var(--warning)] shrink-0" />
+                    <span className="text-xs text-[var(--warning)]">
+                      Cancels on {formatDate(plan.renewsAt)}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2">
-                {plan.name === 'Sovereign' && (
+                <button
+                  onClick={handleUpgrade}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--brand-blue)]/10 text-[var(--brand-blue)] border border-[var(--brand-blue)]/20 hover:bg-[var(--brand-blue)]/20 transition-colors"
+                >
+                  <ArrowUpRight className="w-3 h-3" />
+                  Upgrade
+                </button>
+                {hasStripeCustomer && (
                   <button
-                    onClick={() => handleUpgrade('sovereign_mercury')}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
+                    onClick={openPortal}
+                    disabled={portalLoading}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] border border-[var(--border-default)] hover:bg-[var(--bg-elevated)] transition-colors disabled:opacity-50"
                   >
-                    <Zap className="w-3 h-3" />
-                    Add Mercury
-                  </button>
-                )}
-                {plan.name === 'Free' && (
-                  <button
-                    onClick={() => handleUpgrade('sovereign')}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--brand-blue)]/10 text-[var(--brand-blue)] border border-[var(--brand-blue)]/20 hover:bg-[var(--brand-blue)]/20 transition-colors"
-                  >
-                    <ArrowUpRight className="w-3 h-3" />
-                    Upgrade
+                    {portalLoading ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <ExternalLink className="w-3 h-3" />
+                    )}
+                    Manage Payment
                   </button>
                 )}
               </div>
             </div>
-
-            {/* Manage Payment */}
-            {hasStripeCustomer && (
-              <button
-                onClick={openPortal}
-                disabled={portalLoading}
-                className="flex items-center gap-1.5 text-xs text-[var(--brand-blue)] hover:underline disabled:opacity-50"
-              >
-                {portalLoading ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <ExternalLink className="w-3 h-3" />
-                )}
-                Manage payment method & subscription
-              </button>
-            )}
           </div>
 
           {/* ── Usage Meters ── */}
@@ -388,7 +401,8 @@ function UsageMeter({
   limit: string
   pct: number
 }) {
-  const barColor = pct >= 90 ? 'bg-[var(--danger)]' : pct >= 70 ? 'bg-[var(--warning)]' : 'bg-[var(--brand-blue)]'
+  // E31-007: 80% = amber warning, 95% = red danger
+  const barColor = pct >= 95 ? 'bg-[var(--danger)]' : pct >= 80 ? 'bg-[var(--warning)]' : 'bg-[var(--brand-blue)]'
 
   return (
     <div>
@@ -401,19 +415,19 @@ function UsageMeter({
           {used} / {limit}
         </span>
       </div>
-      <div className="w-full h-1.5 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
+      <div className="w-full h-2 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
         <div
-          className={`h-full rounded-full ${barColor} transition-all`}
+          className={`h-full rounded-full ${barColor} transition-all duration-500`}
           style={{ width: `${pct}%` }}
         />
       </div>
-      {pct >= 90 && (
+      {pct >= 95 && (
         <div className="flex items-center gap-1 mt-1">
           <AlertTriangle className="w-3 h-3 text-[var(--danger)]" />
           <span className="text-[10px] text-[var(--danger)]">Approaching limit</span>
         </div>
       )}
-      {pct >= 70 && pct < 90 && (
+      {pct >= 80 && pct < 95 && (
         <div className="flex items-center gap-1 mt-1">
           <CheckCircle2 className="w-3 h-3 text-[var(--warning)]" />
           <span className="text-[10px] text-[var(--warning)]">{pct}% used</span>
