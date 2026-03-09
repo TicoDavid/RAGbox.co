@@ -53,7 +53,15 @@ func (r *ChunkRepo) BulkInsert(ctx context.Context, chunks []service.Chunk, vect
 
 		batch.Queue(`
 			INSERT INTO document_chunks (id, document_id, chunk_index, content, content_hash, token_count, embedding, contextual_text, entities, created_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+			ON CONFLICT (document_id, chunk_index) DO UPDATE SET
+				content = EXCLUDED.content,
+				content_hash = EXCLUDED.content_hash,
+				token_count = EXCLUDED.token_count,
+				embedding = EXCLUDED.embedding,
+				contextual_text = EXCLUDED.contextual_text,
+				entities = EXCLUDED.entities,
+				created_at = EXCLUDED.created_at`,
 			id, c.DocumentID, c.Index, c.Content, c.ContentHash, c.TokenCount, embedding,
 			nullableString(c.ContextualText), entitiesToJSON(c.Entities), now,
 		)

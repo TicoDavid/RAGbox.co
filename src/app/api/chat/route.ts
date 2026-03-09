@@ -167,6 +167,8 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
             citations: cached.citations,
             fromCache: true,
           },
+        }, {
+          headers: { 'X-Cache': 'HIT' },
         })
       }
     }

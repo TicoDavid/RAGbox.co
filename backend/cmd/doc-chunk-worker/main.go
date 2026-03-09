@@ -63,6 +63,16 @@ func processChunk(ctx context.Context, data []byte, chunker textChunker, pub mes
 		return fmt.Errorf("chunk %s: %w", input.DocumentID, err)
 	}
 
+	// Truncate full document text for enrichment context.
+	// Sending the complete text with every chunk message wastes bandwidth and bloats
+	// Gemini prompts, causing rate-limit failures on large documents (C2 cert fix).
+	// 4000 chars ≈ 1000 tokens — enough context for entity extraction + classification.
+	contextText := input.RawText
+	const maxContextChars = 4000
+	if len(contextText) > maxContextChars {
+		contextText = contextText[:maxContextChars]
+	}
+
 	// Compute character positions for each chunk
 	position := 0
 	for i, chunk := range chunks {
@@ -78,7 +88,7 @@ func processChunk(ctx context.Context, data []byte, chunker textChunker, pub mes
 			PositionStart:    start,
 			PositionEnd:      end,
 			PageNumber:       chunk.PageNumber,
-			FullDocumentText: input.RawText,
+			FullDocumentText: contextText,
 			Filename:         input.Filename,
 			TotalChunks:      len(chunks),
 		}

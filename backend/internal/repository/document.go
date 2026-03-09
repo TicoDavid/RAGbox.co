@@ -209,6 +209,18 @@ func (r *DocumentRepo) UpdateChunkCount(ctx context.Context, id string, count in
 	return nil
 }
 
+// UpdateDocumentType persists the AI-classified document type (contract, memo, policy, etc.).
+func (r *DocumentRepo) UpdateDocumentType(ctx context.Context, id string, documentType string) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE documents SET document_type = $1, updated_at = $2 WHERE id = $3`,
+		documentType, time.Now().UTC(), id,
+	)
+	if err != nil {
+		return fmt.Errorf("repository.UpdateDocumentType: %w", err)
+	}
+	return nil
+}
+
 func (r *DocumentRepo) SoftDelete(ctx context.Context, id string) error {
 	now := time.Now().UTC()
 	_, err := r.pool.Exec(ctx,

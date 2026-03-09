@@ -19,10 +19,11 @@ import (
 )
 
 type finalizeInput struct {
-	DocumentID  string `json:"document_id"`
-	TenantID    string `json:"tenant_id"`
-	TotalChunks int    `json:"total_chunks"`
-	Filename    string `json:"filename"`
+	DocumentID   string `json:"document_id"`
+	TenantID     string `json:"tenant_id"`
+	TotalChunks  int    `json:"total_chunks"`
+	Filename     string `json:"filename"`
+	DocumentType string `json:"document_type,omitempty"`
 }
 
 // cacheManager abstracts Redis cache operations for testability.
@@ -35,6 +36,7 @@ type cacheManager interface {
 // statusUpdater abstracts document status updates for testability.
 type statusUpdater interface {
 	UpdateStatus(ctx context.Context, id string, status model.IndexStatus) error
+	UpdateDocumentType(ctx context.Context, id string, documentType string) error
 }
 
 // auditLogger abstracts audit logging for testability.
@@ -82,6 +84,15 @@ func processFinalize(ctx context.Context, data []byte, cache cacheManager, docRe
 	// 4. Verify document is indexed (safety check)
 	if err := docRepo.UpdateStatus(ctx, input.DocumentID, model.IndexIndexed); err != nil {
 		slog.Error("finalize status update failed", "document_id", input.DocumentID, "error", err)
+	}
+
+	// 4b. Persist document_type classification from enrichment
+	if input.DocumentType != "" {
+		if err := docRepo.UpdateDocumentType(ctx, input.DocumentID, input.DocumentType); err != nil {
+			slog.Error("update document_type failed", "document_id", input.DocumentID, "document_type", input.DocumentType, "error", err)
+		} else {
+			slog.Info("document_type classified", "document_id", input.DocumentID, "document_type", input.DocumentType)
+		}
 	}
 
 	// 5. Audit log

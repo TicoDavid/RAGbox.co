@@ -41,10 +41,11 @@ type embedInput struct {
 }
 
 type finalizeMsg struct {
-	DocumentID  string `json:"document_id"`
-	TenantID    string `json:"tenant_id"`
-	TotalChunks int    `json:"total_chunks"`
-	Filename    string `json:"filename"`
+	DocumentID   string `json:"document_id"`
+	TenantID     string `json:"tenant_id"`
+	TotalChunks  int    `json:"total_chunks"`
+	Filename     string `json:"filename"`
+	DocumentType string `json:"document_type,omitempty"`
 }
 
 // chunkEmbedder abstracts embedding + storage for testability.
@@ -119,10 +120,11 @@ func processEmbed(ctx context.Context, data []byte, embedder chunkEmbedder, redi
 		}
 
 		if err := pub.Publish(ctx, finalizeMsg{
-			DocumentID:  input.DocumentID,
-			TenantID:    input.TenantID,
-			TotalChunks: input.TotalChunks,
-			Filename:    input.Filename,
+			DocumentID:   input.DocumentID,
+			TenantID:     input.TenantID,
+			TotalChunks:  input.TotalChunks,
+			Filename:     input.Filename,
+			DocumentType: input.DocumentType,
 		}); err != nil {
 			slog.Error("publish finalize failed", "document_id", input.DocumentID, "error", err)
 		}

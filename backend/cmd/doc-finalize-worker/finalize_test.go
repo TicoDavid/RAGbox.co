@@ -38,12 +38,18 @@ func (m *mockCache) SetVaultStats(ctx context.Context, tenantID string, stats in
 }
 
 type mockStatusUpdater struct {
-	statuses  []model.IndexStatus
-	updateErr error
+	statuses     []model.IndexStatus
+	updateErr    error
+	documentType string
 }
 
 func (m *mockStatusUpdater) UpdateStatus(ctx context.Context, id string, status model.IndexStatus) error {
 	m.statuses = append(m.statuses, status)
+	return m.updateErr
+}
+
+func (m *mockStatusUpdater) UpdateDocumentType(ctx context.Context, id string, documentType string) error {
+	m.documentType = documentType
 	return m.updateErr
 }
 

@@ -393,6 +393,7 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 		w.Header().Set("Content-Type", "text/event-stream")
 		w.Header().Set("Cache-Control", "no-cache")
 		w.Header().Set("Connection", "keep-alive")
+		w.Header().Set("X-Cache", "MISS") // default; overridden to HIT on cache hit
 
 		flusher, ok := w.(http.Flusher)
 		if !ok {
@@ -446,6 +447,7 @@ func Chat(deps ChatDeps) http.HandlerFunc {
 		// This returns the final answer in <500ms for repeated identical queries.
 		if deps.RedisCache != nil {
 			if cachedResp, ok := deps.RedisCache.GetResponse(ctx, userID, req.Query, privilegeMode); ok {
+				w.Header().Set("X-Cache", "HIT")
 				fastTTFB := time.Since(startTime).Milliseconds()
 				// Stream the cached answer as token events
 				answerTokens := splitIntoTokens(sanitizeAnswer(cachedResp.Answer))
