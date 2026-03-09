@@ -81,6 +81,9 @@ export interface MercuryState {
   // Cross-session memory (E24-002)
   sessionSummaries: Array<{ id: string; summary: string; topics: string[]; createdAt: string }>
 
+  // E29: Mercury context for system prompt injection
+  mercuryContext: string | null
+
   // Proactive Insights (EPIC-028 Phase 4)
   insights: InsightData[]
 
@@ -126,6 +129,10 @@ export interface MercuryState {
   clearPendingConfirmation: () => void
   confirmAction: () => Promise<void>
   denyAction: () => void
+
+  // E29: Context Actions
+  setMercuryContext: (context: string | null) => void
+  rebuildContext: () => void
 
   // Proactive Insight Actions
   fetchInsights: () => Promise<void>

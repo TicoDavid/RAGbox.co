@@ -15,6 +15,7 @@ import {
   generateThreadTitle,
   mapServerMessage,
 } from './mercuryStore.types'
+import { buildContextPreamble } from '@/lib/mercury/context'
 
 export type { SessionAttachment, SelectedLlm, PersonaId, InsightData, InsightType } from './mercuryStore.types'
 
@@ -67,6 +68,7 @@ export const useMercuryStore = create<MercuryState>()(
     documentScope: null,
     documentScopeName: null,
     sessionSummaries: [],
+    mercuryContext: null,
     insights: [],
     pendingAction: null,
     pendingConfirmation: null,
@@ -872,6 +874,25 @@ export const useMercuryStore = create<MercuryState>()(
         return !SUPPRESSED_PATTERNS.some((p) => lower.includes(p))
       })
       return result
+    },
+
+    // E29: Mercury context
+    setMercuryContext: (context) => set({ mercuryContext: context }),
+
+    rebuildContext: () => {
+      const state = get()
+      const ctx = buildContextPreamble({
+        userId: state._userId || '',
+        tier: 'free', // resolved server-side; client uses placeholder
+        persona: state.activePersona,
+        documentScope: state.documentScope
+          ? { id: state.documentScope, name: state.documentScopeName || 'Unknown' }
+          : null,
+        sessionSummaries: state.sessionSummaries,
+        recentTopics: state.sessionTopics,
+        queryCount: state.sessionQueryCount,
+      })
+      set({ mercuryContext: ctx })
     },
 
     // EPIC-028 Phase 4: Proactive Insights
