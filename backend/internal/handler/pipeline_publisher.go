@@ -45,10 +45,23 @@ func (p *PipelinePublisher) ProcessDocument(ctx context.Context, docID string) e
 		return fmt.Errorf("pipeline_publisher: get doc: %w", err)
 	}
 
+	// Build GCS URI from stored path fields.
+	// Priority: StorageURI (full gs:// URI) > StoragePath (object key) > fallback construction.
+	storageURI := ""
+	switch {
+	case doc.StorageURI != nil && *doc.StorageURI != "":
+		storageURI = *doc.StorageURI
+	case doc.StoragePath != nil && *doc.StoragePath != "":
+		storageURI = fmt.Sprintf("gs://%s/%s", p.bucket, *doc.StoragePath)
+	default:
+		// Fallback: construct from convention uploads/{userId}/{docId}/{filename}
+		storageURI = fmt.Sprintf("gs://%s/uploads/%s/%s/%s", p.bucket, doc.UserID, docID, doc.Filename)
+	}
+
 	msg := extractMessage{
 		DocumentID: docID,
 		TenantID:   doc.UserID,
-		StorageURI: fmt.Sprintf("gs://%s/%s", p.bucket, doc.Filename),
+		StorageURI: storageURI,
 		MimeType:   doc.MimeType,
 		Filename:   doc.OriginalName,
 	}
