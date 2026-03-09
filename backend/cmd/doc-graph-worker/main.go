@@ -27,6 +27,35 @@ type graphInput struct {
 	Filename        string                    `json:"filename"`
 }
 
+// graphProcessor abstracts Neo4j knowledge graph operations for testability.
+type graphProcessor interface {
+	ProcessChunkEntities(ctx context.Context, tenantID, documentID, filename, docType, chunkID string, entities []service.EntityExtracted)
+}
+
+// processGraph handles a single graph message.
+func processGraph(ctx context.Context, data []byte, neo4j graphProcessor) error {
+	var input graphInput
+	if err := json.Unmarshal(data, &input); err != nil {
+		return fmt.Errorf("unmarshal: %w", err)
+	}
+
+	if len(input.Entities) == 0 {
+		slog.Info("no entities, skipping", "document_id", input.DocumentID, "chunk_index", input.ChunkIndex)
+		return nil // ACK — nothing to graph
+	}
+
+	chunkID := uuid.New().String()
+
+	slog.Info("graphing", "document_id", input.DocumentID, "chunk_index", input.ChunkIndex,
+		"entities", len(input.Entities))
+
+	neo4j.ProcessChunkEntities(ctx, input.TenantID, input.DocumentID,
+		input.Filename, input.DocumentType, chunkID, input.Entities)
+
+	slog.Info("graphed", "document_id", input.DocumentID, "chunk_index", input.ChunkIndex)
+	return nil
+}
+
 func main() {
 	ctx := context.Background()
 	neo4jURI := os.Getenv("NEO4J_URL")
@@ -44,25 +73,6 @@ func main() {
 	defer neo4jClient.Close(ctx)
 
 	worker.Run("doc-graph-worker", func(ctx context.Context, data []byte) error {
-		var input graphInput
-		if err := json.Unmarshal(data, &input); err != nil {
-			return fmt.Errorf("unmarshal: %w", err)
-		}
-
-		if len(input.Entities) == 0 {
-			slog.Info("no entities, skipping", "document_id", input.DocumentID, "chunk_index", input.ChunkIndex)
-			return nil // ACK — nothing to graph
-		}
-
-		chunkID := uuid.New().String()
-
-		slog.Info("graphing", "document_id", input.DocumentID, "chunk_index", input.ChunkIndex,
-			"entities", len(input.Entities))
-
-		neo4jClient.ProcessChunkEntities(ctx, input.TenantID, input.DocumentID,
-			input.Filename, input.DocumentType, chunkID, input.Entities)
-
-		slog.Info("graphed", "document_id", input.DocumentID, "chunk_index", input.ChunkIndex)
-		return nil
+		return processGraph(ctx, data, neo4jClient)
 	})
 }

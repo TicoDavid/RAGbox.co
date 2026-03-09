@@ -25,6 +25,74 @@ type finalizeInput struct {
 	Filename    string `json:"filename"`
 }
 
+// cacheManager abstracts Redis cache operations for testability.
+type cacheManager interface {
+	InvalidateQueryCache(ctx context.Context, tenantID string)
+	InvalidateDocCache(ctx context.Context, documentID string)
+	SetVaultStats(ctx context.Context, tenantID string, stats interface{})
+}
+
+// statusUpdater abstracts document status updates for testability.
+type statusUpdater interface {
+	UpdateStatus(ctx context.Context, id string, status model.IndexStatus) error
+}
+
+// auditLogger abstracts audit logging for testability.
+type auditLogger interface {
+	Log(ctx context.Context, action, userID, resourceID, resourceType string) error
+}
+
+// statsComputer abstracts vault stats computation for testability.
+type statsComputer interface {
+	ComputeVaultStats(ctx context.Context, tenantID string) (*service.VaultStats, error)
+}
+
+// dbStatsComputer computes vault stats from the database pool.
+type dbStatsComputer struct {
+	pool *pgxpool.Pool
+}
+
+func (c *dbStatsComputer) ComputeVaultStats(ctx context.Context, tenantID string) (*service.VaultStats, error) {
+	return computeVaultStats(ctx, c.pool, tenantID)
+}
+
+// processFinalize handles a single finalize message.
+func processFinalize(ctx context.Context, data []byte, cache cacheManager, docRepo statusUpdater, audit auditLogger, stats statsComputer) error {
+	var input finalizeInput
+	if err := json.Unmarshal(data, &input); err != nil {
+		return fmt.Errorf("unmarshal: %w", err)
+	}
+
+	slog.Info("finalizing", "document_id", input.DocumentID, "tenant_id", input.TenantID)
+
+	// 1. Invalidate query caches for this tenant
+	cache.InvalidateQueryCache(ctx, input.TenantID)
+
+	// 2. Invalidate doc metadata cache
+	cache.InvalidateDocCache(ctx, input.DocumentID)
+
+	// 3. Warm vault stats
+	vaultStats, err := stats.ComputeVaultStats(ctx, input.TenantID)
+	if err != nil {
+		slog.Error("compute vault stats failed", "error", err)
+	} else {
+		cache.SetVaultStats(ctx, input.TenantID, vaultStats)
+	}
+
+	// 4. Verify document is indexed (safety check)
+	if err := docRepo.UpdateStatus(ctx, input.DocumentID, model.IndexIndexed); err != nil {
+		slog.Error("finalize status update failed", "document_id", input.DocumentID, "error", err)
+	}
+
+	// 5. Audit log
+	if err := audit.Log(ctx, "DocumentUpload", input.TenantID, input.DocumentID, "document"); err != nil {
+		slog.Error("audit log failed", "document_id", input.DocumentID, "error", err)
+	}
+
+	slog.Info("finalized", "document_id", input.DocumentID, "filename", input.Filename)
+	return nil
+}
+
 func main() {
 	ctx := context.Background()
 	dbURL := os.Getenv("DATABASE_URL")
@@ -50,40 +118,10 @@ func main() {
 	redisCli := service.NewRedisClient(redisAddr)
 	defer redisCli.Close()
 
+	sc := &dbStatsComputer{pool: pool}
+
 	worker.Run("doc-finalize-worker", func(ctx context.Context, data []byte) error {
-		var input finalizeInput
-		if err := json.Unmarshal(data, &input); err != nil {
-			return fmt.Errorf("unmarshal: %w", err)
-		}
-
-		slog.Info("finalizing", "document_id", input.DocumentID, "tenant_id", input.TenantID)
-
-		// 1. Invalidate query caches for this tenant
-		redisCli.InvalidateQueryCache(ctx, input.TenantID)
-
-		// 2. Invalidate doc metadata cache
-		redisCli.InvalidateDocCache(ctx, input.DocumentID)
-
-		// 3. Warm vault stats
-		stats, err := computeVaultStats(ctx, pool, input.TenantID)
-		if err != nil {
-			slog.Error("compute vault stats failed", "error", err)
-		} else {
-			redisCli.SetVaultStats(ctx, input.TenantID, stats)
-		}
-
-		// 4. Verify document is indexed (safety check)
-		if err := docRepo.UpdateStatus(ctx, input.DocumentID, model.IndexIndexed); err != nil {
-			slog.Error("finalize status update failed", "document_id", input.DocumentID, "error", err)
-		}
-
-		// 5. Audit log
-		if err := auditService.Log(ctx, "DocumentUpload", input.TenantID, input.DocumentID, "document"); err != nil {
-			slog.Error("audit log failed", "document_id", input.DocumentID, "error", err)
-		}
-
-		slog.Info("finalized", "document_id", input.DocumentID, "filename", input.Filename)
-		return nil
+		return processFinalize(ctx, data, redisCli, docRepo, auditService, sc)
 	})
 }
 

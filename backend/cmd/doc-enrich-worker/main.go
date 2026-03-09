@@ -49,6 +49,58 @@ type enrichOutput struct {
 	TotalChunks     int                        `json:"total_chunks"`
 }
 
+// chunkEnricher abstracts Gemini enrichment for testability.
+type chunkEnricher interface {
+	Enrich(ctx context.Context, fullDocText, chunkText string, chunkIndex int) (*service.EnrichmentResult, error)
+}
+
+// messagePublisher abstracts Pub/Sub publishing for testability.
+type messagePublisher interface {
+	Publish(ctx context.Context, data interface{}) error
+}
+
+// processEnrich handles a single enrich message. FAIL-OPEN on Gemini error.
+func processEnrich(ctx context.Context, data []byte, enricher chunkEnricher, pub messagePublisher, modelName string) error {
+	var input enrichInput
+	if err := json.Unmarshal(data, &input); err != nil {
+		return fmt.Errorf("unmarshal: %w", err)
+	}
+
+	slog.Info("enriching", "document_id", input.DocumentID, "chunk_index", input.ChunkIndex)
+
+	result, err := enricher.Enrich(ctx, input.FullDocumentText, input.ChunkText, input.ChunkIndex)
+	enrichmentModel := modelName
+	if err != nil || (result.ContextualText == "" && len(result.Entities) == 0) {
+		enrichmentModel = "failed"
+	}
+
+	output := enrichOutput{
+		DocumentID:      input.DocumentID,
+		TenantID:        input.TenantID,
+		ChunkText:       input.ChunkText,
+		ChunkIndex:      input.ChunkIndex,
+		TokenCount:      input.TokenCount,
+		PositionStart:   input.PositionStart,
+		PositionEnd:     input.PositionEnd,
+		PageNumber:      input.PageNumber,
+		ContextualText:  result.ContextualText,
+		Entities:        result.Entities,
+		DocumentType:    result.DocumentType,
+		KeyReferences:   result.KeyReferences,
+		EnrichmentModel: enrichmentModel,
+		Filename:        input.Filename,
+		TotalChunks:     input.TotalChunks,
+	}
+
+	if err := pub.Publish(ctx, output); err != nil {
+		return fmt.Errorf("publish %s chunk %d: %w", input.DocumentID, input.ChunkIndex, err)
+	}
+
+	slog.Info("enriched", "document_id", input.DocumentID, "chunk_index", input.ChunkIndex,
+		"entities", len(result.Entities), "model", enrichmentModel)
+	return nil
+}
+
 func main() {
 	ctx := context.Background()
 	project := os.Getenv("GOOGLE_CLOUD_PROJECT")
@@ -77,43 +129,6 @@ func main() {
 	defer publisher.Close()
 
 	worker.Run("doc-enrich-worker", func(ctx context.Context, data []byte) error {
-		var input enrichInput
-		if err := json.Unmarshal(data, &input); err != nil {
-			return fmt.Errorf("unmarshal: %w", err)
-		}
-
-		slog.Info("enriching", "document_id", input.DocumentID, "chunk_index", input.ChunkIndex)
-
-		result, err := enricher.Enrich(ctx, input.FullDocumentText, input.ChunkText, input.ChunkIndex)
-		enrichmentModel := model
-		if err != nil || (result.ContextualText == "" && len(result.Entities) == 0) {
-			enrichmentModel = "failed"
-		}
-
-		output := enrichOutput{
-			DocumentID:      input.DocumentID,
-			TenantID:        input.TenantID,
-			ChunkText:       input.ChunkText,
-			ChunkIndex:      input.ChunkIndex,
-			TokenCount:      input.TokenCount,
-			PositionStart:   input.PositionStart,
-			PositionEnd:     input.PositionEnd,
-			PageNumber:      input.PageNumber,
-			ContextualText:  result.ContextualText,
-			Entities:        result.Entities,
-			DocumentType:    result.DocumentType,
-			KeyReferences:   result.KeyReferences,
-			EnrichmentModel: enrichmentModel,
-			Filename:        input.Filename,
-			TotalChunks:     input.TotalChunks,
-		}
-
-		if err := publisher.Publish(ctx, output); err != nil {
-			return fmt.Errorf("publish %s chunk %d: %w", input.DocumentID, input.ChunkIndex, err)
-		}
-
-		slog.Info("enriched", "document_id", input.DocumentID, "chunk_index", input.ChunkIndex,
-			"entities", len(result.Entities), "model", enrichmentModel)
-		return nil
+		return processEnrich(ctx, data, enricher, publisher, model)
 	})
 }

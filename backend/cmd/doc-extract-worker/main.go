@@ -33,6 +33,47 @@ type extractOutput struct {
 	Filename   string `json:"filename"`
 }
 
+// textExtractor abstracts document text extraction for testability.
+type textExtractor interface {
+	Extract(ctx context.Context, gcsURI string) (*service.ParseResult, error)
+}
+
+// messagePublisher abstracts Pub/Sub publishing for testability.
+type messagePublisher interface {
+	Publish(ctx context.Context, data interface{}) error
+}
+
+// processExtract handles a single extract message.
+func processExtract(ctx context.Context, data []byte, p textExtractor, pub messagePublisher) error {
+	var input extractInput
+	if err := json.Unmarshal(data, &input); err != nil {
+		return fmt.Errorf("unmarshal: %w", err)
+	}
+
+	slog.Info("extracting", "document_id", input.DocumentID, "mime_type", input.MimeType)
+
+	result, err := p.Extract(ctx, input.StorageURI)
+	if err != nil {
+		return fmt.Errorf("extract %s: %w", input.DocumentID, err)
+	}
+
+	output := extractOutput{
+		DocumentID: input.DocumentID,
+		TenantID:   input.TenantID,
+		RawText:    result.Text,
+		PageCount:  result.Pages,
+		MimeType:   input.MimeType,
+		Filename:   input.Filename,
+	}
+
+	if err := pub.Publish(ctx, output); err != nil {
+		return fmt.Errorf("publish %s: %w", input.DocumentID, err)
+	}
+
+	slog.Info("extracted", "document_id", input.DocumentID, "pages", result.Pages, "text_len", len(result.Text))
+	return nil
+}
+
 func main() {
 	ctx := context.Background()
 	project := os.Getenv("GOOGLE_CLOUD_PROJECT")
@@ -71,32 +112,6 @@ func main() {
 	defer publisher.Close()
 
 	worker.Run("doc-extract-worker", func(ctx context.Context, data []byte) error {
-		var input extractInput
-		if err := json.Unmarshal(data, &input); err != nil {
-			return fmt.Errorf("unmarshal: %w", err)
-		}
-
-		slog.Info("extracting", "document_id", input.DocumentID, "mime_type", input.MimeType)
-
-		result, err := parser.Extract(ctx, input.StorageURI)
-		if err != nil {
-			return fmt.Errorf("extract %s: %w", input.DocumentID, err)
-		}
-
-		output := extractOutput{
-			DocumentID: input.DocumentID,
-			TenantID:   input.TenantID,
-			RawText:    result.Text,
-			PageCount:  result.Pages,
-			MimeType:   input.MimeType,
-			Filename:   input.Filename,
-		}
-
-		if err := publisher.Publish(ctx, output); err != nil {
-			return fmt.Errorf("publish %s: %w", input.DocumentID, err)
-		}
-
-		slog.Info("extracted", "document_id", input.DocumentID, "pages", result.Pages, "text_len", len(result.Text))
-		return nil
+		return processExtract(ctx, data, parser, publisher)
 	})
 }

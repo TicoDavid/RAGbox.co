@@ -47,6 +47,90 @@ type finalizeMsg struct {
 	Filename    string `json:"filename"`
 }
 
+// chunkEmbedder abstracts embedding + storage for testability.
+type chunkEmbedder interface {
+	EmbedAndStore(ctx context.Context, chunks []service.Chunk) error
+}
+
+// progressTracker abstracts Redis progress counting for testability.
+type progressTracker interface {
+	IncrEmbedProgress(ctx context.Context, documentID string) (int64, error)
+}
+
+// documentUpdater abstracts document repo operations for testability.
+type documentUpdater interface {
+	UpdateStatus(ctx context.Context, id string, status model.IndexStatus) error
+	UpdateChunkCount(ctx context.Context, id string, count int) error
+}
+
+// messagePublisher abstracts Pub/Sub publishing for testability.
+type messagePublisher interface {
+	Publish(ctx context.Context, data interface{}) error
+}
+
+// processEmbed handles a single embed message.
+func processEmbed(ctx context.Context, data []byte, embedder chunkEmbedder, redis progressTracker, docRepo documentUpdater, pub messagePublisher) error {
+	var input embedInput
+	if err := json.Unmarshal(data, &input); err != nil {
+		return fmt.Errorf("unmarshal: %w", err)
+	}
+
+	slog.Info("embedding", "document_id", input.DocumentID, "chunk_index", input.ChunkIndex)
+
+	// Build embedding input: contextual_text + chunk_text
+	embeddingInput := input.ChunkText
+	if input.ContextualText != "" {
+		embeddingInput = input.ContextualText + "\n\n" + input.ChunkText
+	}
+
+	// Create chunk for embedder
+	hash := sha256.Sum256([]byte(input.ChunkText))
+	chunk := service.Chunk{
+		Content:     embeddingInput,
+		ContentHash: hex.EncodeToString(hash[:]),
+		TokenCount:  input.TokenCount,
+		Index:       input.ChunkIndex,
+		DocumentID:  input.DocumentID,
+		PageNumber:  input.PageNumber,
+	}
+
+	if err := embedder.EmbedAndStore(ctx, []service.Chunk{chunk}); err != nil {
+		return fmt.Errorf("embed %s chunk %d: %w", input.DocumentID, input.ChunkIndex, err)
+	}
+
+	// Track completion via Redis
+	count, err := redis.IncrEmbedProgress(ctx, input.DocumentID)
+	if err != nil {
+		slog.Error("redis incr failed", "document_id", input.DocumentID, "error", err)
+	}
+
+	slog.Info("embedded", "document_id", input.DocumentID, "chunk_index", input.ChunkIndex,
+		"progress", fmt.Sprintf("%d/%d", count, input.TotalChunks))
+
+	// All chunks embedded — finalize
+	if count >= int64(input.TotalChunks) {
+		if err := docRepo.UpdateStatus(ctx, input.DocumentID, model.IndexIndexed); err != nil {
+			slog.Error("update status failed", "document_id", input.DocumentID, "error", err)
+		}
+		if err := docRepo.UpdateChunkCount(ctx, input.DocumentID, input.TotalChunks); err != nil {
+			slog.Error("update chunk count failed", "document_id", input.DocumentID, "error", err)
+		}
+
+		if err := pub.Publish(ctx, finalizeMsg{
+			DocumentID:  input.DocumentID,
+			TenantID:    input.TenantID,
+			TotalChunks: input.TotalChunks,
+			Filename:    input.Filename,
+		}); err != nil {
+			slog.Error("publish finalize failed", "document_id", input.DocumentID, "error", err)
+		}
+
+		slog.Info("all chunks embedded", "document_id", input.DocumentID, "total", input.TotalChunks)
+	}
+
+	return nil
+}
+
 func main() {
 	ctx := context.Background()
 	project := os.Getenv("GOOGLE_CLOUD_PROJECT")
@@ -95,64 +179,6 @@ func main() {
 	defer finalizePublisher.Close()
 
 	worker.Run("doc-embed-worker", func(ctx context.Context, data []byte) error {
-		var input embedInput
-		if err := json.Unmarshal(data, &input); err != nil {
-			return fmt.Errorf("unmarshal: %w", err)
-		}
-
-		slog.Info("embedding", "document_id", input.DocumentID, "chunk_index", input.ChunkIndex)
-
-		// Build embedding input: contextual_text + chunk_text
-		embeddingInput := input.ChunkText
-		if input.ContextualText != "" {
-			embeddingInput = input.ContextualText + "\n\n" + input.ChunkText
-		}
-
-		// Create chunk for embedder
-		hash := sha256.Sum256([]byte(input.ChunkText))
-		chunk := service.Chunk{
-			Content:     embeddingInput,
-			ContentHash: hex.EncodeToString(hash[:]),
-			TokenCount:  input.TokenCount,
-			Index:       input.ChunkIndex,
-			DocumentID:  input.DocumentID,
-			PageNumber:  input.PageNumber,
-		}
-
-		if err := embedder.EmbedAndStore(ctx, []service.Chunk{chunk}); err != nil {
-			return fmt.Errorf("embed %s chunk %d: %w", input.DocumentID, input.ChunkIndex, err)
-		}
-
-		// Track completion via Redis
-		count, err := redisCli.IncrEmbedProgress(ctx, input.DocumentID)
-		if err != nil {
-			slog.Error("redis incr failed", "document_id", input.DocumentID, "error", err)
-		}
-
-		slog.Info("embedded", "document_id", input.DocumentID, "chunk_index", input.ChunkIndex,
-			"progress", fmt.Sprintf("%d/%d", count, input.TotalChunks))
-
-		// All chunks embedded — finalize
-		if count >= int64(input.TotalChunks) {
-			if err := docRepo.UpdateStatus(ctx, input.DocumentID, model.IndexIndexed); err != nil {
-				slog.Error("update status failed", "document_id", input.DocumentID, "error", err)
-			}
-			if err := docRepo.UpdateChunkCount(ctx, input.DocumentID, input.TotalChunks); err != nil {
-				slog.Error("update chunk count failed", "document_id", input.DocumentID, "error", err)
-			}
-
-			if err := finalizePublisher.Publish(ctx, finalizeMsg{
-				DocumentID:  input.DocumentID,
-				TenantID:    input.TenantID,
-				TotalChunks: input.TotalChunks,
-				Filename:    input.Filename,
-			}); err != nil {
-				slog.Error("publish finalize failed", "document_id", input.DocumentID, "error", err)
-			}
-
-			slog.Info("all chunks embedded", "document_id", input.DocumentID, "total", input.TotalChunks)
-		}
-
-		return nil
+		return processEmbed(ctx, data, embedder, redisCli, docRepo, finalizePublisher)
 	})
 }

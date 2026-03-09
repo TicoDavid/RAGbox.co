@@ -39,6 +39,60 @@ type chunkOutput struct {
 	TotalChunks      int    `json:"total_chunks"`
 }
 
+// textChunker abstracts semantic chunking for testability.
+type textChunker interface {
+	Chunk(ctx context.Context, text string, docID string) ([]service.Chunk, error)
+}
+
+// messagePublisher abstracts Pub/Sub publishing for testability.
+type messagePublisher interface {
+	Publish(ctx context.Context, data interface{}) error
+}
+
+// processChunk handles a single chunk message.
+func processChunk(ctx context.Context, data []byte, chunker textChunker, pub messagePublisher) error {
+	var input chunkInput
+	if err := json.Unmarshal(data, &input); err != nil {
+		return fmt.Errorf("unmarshal: %w", err)
+	}
+
+	slog.Info("chunking", "document_id", input.DocumentID, "text_len", len(input.RawText))
+
+	chunks, err := chunker.Chunk(ctx, input.RawText, input.DocumentID)
+	if err != nil {
+		return fmt.Errorf("chunk %s: %w", input.DocumentID, err)
+	}
+
+	// Compute character positions for each chunk
+	position := 0
+	for i, chunk := range chunks {
+		start := position
+		end := start + len(chunk.Content)
+
+		output := chunkOutput{
+			DocumentID:       input.DocumentID,
+			TenantID:         input.TenantID,
+			ChunkText:        chunk.Content,
+			ChunkIndex:       i,
+			TokenCount:       chunk.TokenCount,
+			PositionStart:    start,
+			PositionEnd:      end,
+			PageNumber:       chunk.PageNumber,
+			FullDocumentText: input.RawText,
+			Filename:         input.Filename,
+			TotalChunks:      len(chunks),
+		}
+
+		if err := pub.Publish(ctx, output); err != nil {
+			return fmt.Errorf("publish chunk %d of %s: %w", i, input.DocumentID, err)
+		}
+		position = end
+	}
+
+	slog.Info("chunked", "document_id", input.DocumentID, "chunks", len(chunks))
+	return nil
+}
+
 func main() {
 	ctx := context.Background()
 	project := os.Getenv("GOOGLE_CLOUD_PROJECT")
@@ -57,45 +111,6 @@ func main() {
 	defer publisher.Close()
 
 	worker.Run("doc-chunk-worker", func(ctx context.Context, data []byte) error {
-		var input chunkInput
-		if err := json.Unmarshal(data, &input); err != nil {
-			return fmt.Errorf("unmarshal: %w", err)
-		}
-
-		slog.Info("chunking", "document_id", input.DocumentID, "text_len", len(input.RawText))
-
-		chunks, err := chunker.Chunk(ctx, input.RawText, input.DocumentID)
-		if err != nil {
-			return fmt.Errorf("chunk %s: %w", input.DocumentID, err)
-		}
-
-		// Compute character positions for each chunk
-		position := 0
-		for i, chunk := range chunks {
-			start := position
-			end := start + len(chunk.Content)
-
-			output := chunkOutput{
-				DocumentID:       input.DocumentID,
-				TenantID:         input.TenantID,
-				ChunkText:        chunk.Content,
-				ChunkIndex:       i,
-				TokenCount:       chunk.TokenCount,
-				PositionStart:    start,
-				PositionEnd:      end,
-				PageNumber:       chunk.PageNumber,
-				FullDocumentText: input.RawText,
-				Filename:         input.Filename,
-				TotalChunks:      len(chunks),
-			}
-
-			if err := publisher.Publish(ctx, output); err != nil {
-				return fmt.Errorf("publish chunk %d of %s: %w", i, input.DocumentID, err)
-			}
-			position = end
-		}
-
-		slog.Info("chunked", "document_id", input.DocumentID, "chunks", len(chunks))
-		return nil
+		return processChunk(ctx, data, chunker, publisher)
 	})
 }
