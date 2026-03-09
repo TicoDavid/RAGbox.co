@@ -384,6 +384,7 @@ export function BrowserColumn({
           onRename={() => handleStartRename(contextMenu.folderId, contextMenu.folderName)}
           onDelete={() => handleDelete(contextMenu.folderId, contextMenu.folderName)}
           onNewSubfolder={() => handleNewSubfolder(contextMenu.folderId)}
+          onSetColor={() => {}}
           onClose={() => setContextMenu(null)}
         />
       )}

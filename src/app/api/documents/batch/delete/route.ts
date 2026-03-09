@@ -6,9 +6,14 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
+import { z } from 'zod'
 import prisma from '@/lib/prisma'
 import { invalidateUserCache } from '@/lib/cache/queryCache'
 import { logger } from '@/lib/logger'
+
+const batchDeleteSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1).max(50),
+})
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
@@ -21,20 +26,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ success: false, error: 'Unable to determine user identity' }, { status: 401 })
   }
 
-  let body: { ids?: string[] }
+  let body: unknown
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const { ids } = body
-  if (!Array.isArray(ids) || ids.length === 0) {
-    return NextResponse.json({ success: false, error: 'ids array required' }, { status: 400 })
+  const parsed = batchDeleteSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json({ success: false, error: parsed.error.issues[0].message }, { status: 400 })
   }
-  if (ids.length > 50) {
-    return NextResponse.json({ success: false, error: 'Maximum 50 items per batch' }, { status: 400 })
-  }
+  const { ids } = parsed.data
 
   try {
     // Verify all docs belong to user

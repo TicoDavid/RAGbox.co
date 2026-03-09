@@ -6,8 +6,13 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
+import { z } from 'zod'
 import prisma from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+
+const folderMoveSchema = z.object({
+  parentId: z.string().min(1).nullable(),
+})
 
 type RouteContext = { params: Promise<{ id: string }> }
 
@@ -47,14 +52,18 @@ export async function POST(
 
   const { id } = await params
 
-  let body: { parentId?: string | null }
+  let body: unknown
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const { parentId } = body
+  const parsed = folderMoveSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json({ success: false, error: parsed.error.issues[0].message }, { status: 400 })
+  }
+  const { parentId } = parsed.data
 
   try {
     // Verify folder ownership

@@ -43,6 +43,7 @@ export async function GET(
       where: {
         userId,
         resourceId: id,
+        action: { startsWith: 'document.' },
       },
       orderBy: { createdAt: 'desc' },
       take: 50,

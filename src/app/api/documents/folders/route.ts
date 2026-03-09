@@ -7,8 +7,14 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
+import { z } from 'zod'
 import prisma from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+
+const folderCreateSchema = z.object({
+  name: z.string().trim().min(1, 'Folder name is required').max(255, 'Folder name must be 255 characters or fewer'),
+  parentId: z.string().min(1).nullable().optional(),
+})
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
@@ -103,27 +109,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ success: false, error: 'Unable to determine user identity' }, { status: 401 })
   }
 
-  let body: { name?: string; parentId?: string | null }
+  let body: unknown
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const name = body.name?.trim()
-  if (!name) {
-    return NextResponse.json({ success: false, error: 'Folder name is required' }, { status: 400 })
+  const parsed = folderCreateSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json({ success: false, error: parsed.error.issues[0].message }, { status: 400 })
   }
 
-  if (name.length > 255) {
-    return NextResponse.json({ success: false, error: 'Folder name must be 255 characters or fewer' }, { status: 400 })
-  }
+  const { name, parentId } = parsed.data
 
   try {
     // If parentId provided, verify it belongs to this user
-    if (body.parentId) {
+    if (parentId) {
       const parent = await prisma.folder.findFirst({
-        where: { id: body.parentId, userId },
+        where: { id: parentId, userId },
         select: { id: true },
       })
       if (!parent) {
@@ -135,7 +139,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       data: {
         name,
         userId,
-        parentId: body.parentId ?? null,
+        parentId: parentId ?? null,
       },
       select: {
         id: true,

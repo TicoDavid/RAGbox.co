@@ -96,7 +96,7 @@ func (r *DocumentRepo) ListByUser(ctx context.Context, userID string, opts servi
 
 	if opts.Search != "" {
 		countQuery += fmt.Sprintf(` AND (filename ILIKE $%d OR original_name ILIKE $%d OR COALESCE(metadata::text,'') ILIKE $%d)`, argIdx, argIdx, argIdx)
-		args = append(args, "%"+opts.Search+"%")
+		args = append(args, "%"+escapeLike(opts.Search)+"%")
 		argIdx++
 	}
 
@@ -115,9 +115,9 @@ func (r *DocumentRepo) ListByUser(ctx context.Context, userID string, opts servi
 	matchFieldExpr := `'' AS match_field`
 	if opts.Search != "" {
 		matchFieldExpr = `CASE
-			WHEN filename ILIKE '%' || $SEARCH || '%' THEN 'filename'
-			WHEN original_name ILIKE '%' || $SEARCH || '%' THEN 'originalName'
-			WHEN COALESCE(metadata::text,'') ILIKE '%' || $SEARCH || '%' THEN 'metadata'
+			WHEN filename ILIKE $SEARCH THEN 'filename'
+			WHEN original_name ILIKE $SEARCH THEN 'originalName'
+			WHEN COALESCE(metadata::text,'') ILIKE $SEARCH THEN 'metadata'
 			ELSE ''
 		END AS match_field`
 	}
@@ -140,7 +140,7 @@ func (r *DocumentRepo) ListByUser(ctx context.Context, userID string, opts servi
 		// Replace $SEARCH placeholder with the actual parameter index
 		listQuery = strings.ReplaceAll(listQuery, "$SEARCH", fmt.Sprintf("$%d", listArgIdx))
 		listQuery += fmt.Sprintf(` AND (filename ILIKE $%d OR original_name ILIKE $%d OR COALESCE(metadata::text,'') ILIKE $%d)`, listArgIdx, listArgIdx, listArgIdx)
-		listArgs = append(listArgs, "%"+opts.Search+"%")
+		listArgs = append(listArgs, "%"+escapeLike(opts.Search)+"%")
 		listArgIdx++
 	}
 
@@ -373,6 +373,14 @@ func (r *DocumentRepo) ListUserDocumentSummaries(ctx context.Context, userID str
 		summaries = append(summaries, s)
 	}
 	return summaries, nil
+}
+
+// escapeLike escapes ILIKE wildcard characters so user input is matched literally.
+func escapeLike(s string) string {
+	s = strings.ReplaceAll(s, `\`, `\\`)
+	s = strings.ReplaceAll(s, `%`, `\%`)
+	s = strings.ReplaceAll(s, `_`, `\_`)
+	return s
 }
 
 func marshalMeta(meta json.RawMessage) ([]byte, error) {

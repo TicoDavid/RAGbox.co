@@ -7,8 +7,16 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
+import { z } from 'zod'
 import prisma from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+
+const folderPatchSchema = z.object({
+  name: z.string().trim().min(1).max(255).optional(),
+  color: z.enum(['blue', 'green', 'amber', 'red', 'purple', 'grey']).nullable().optional(),
+}).refine(data => data.name !== undefined || data.color !== undefined, {
+  message: 'name or color is required',
+})
 
 type RouteContext = { params: Promise<{ id: string }> }
 
@@ -27,37 +35,26 @@ export async function PATCH(request: NextRequest, { params }: RouteContext): Pro
 
   const { id } = await params
 
-  let body: { name?: string; color?: string | null }
+  let body: unknown
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 })
   }
 
-  // At least one field must be provided
-  if (body.name === undefined && body.color === undefined) {
-    return NextResponse.json({ success: false, error: 'name or color is required' }, { status: 400 })
+  const parsed = folderPatchSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json({ success: false, error: parsed.error.issues[0].message }, { status: 400 })
   }
 
   const updateData: Record<string, unknown> = {}
 
-  if (body.name !== undefined) {
-    const name = body.name?.trim()
-    if (!name) {
-      return NextResponse.json({ success: false, error: 'Folder name is required' }, { status: 400 })
-    }
-    if (name.length > 255) {
-      return NextResponse.json({ success: false, error: 'Folder name must be 255 characters or fewer' }, { status: 400 })
-    }
-    updateData.name = name
+  if (parsed.data.name !== undefined) {
+    updateData.name = parsed.data.name
   }
 
-  if (body.color !== undefined) {
-    const validColors = ['blue', 'green', 'amber', 'red', 'purple', 'grey', null]
-    if (!validColors.includes(body.color as string | null)) {
-      return NextResponse.json({ success: false, error: 'Invalid color' }, { status: 400 })
-    }
-    updateData.color = body.color
+  if (parsed.data.color !== undefined) {
+    updateData.color = parsed.data.color
   }
 
   try {

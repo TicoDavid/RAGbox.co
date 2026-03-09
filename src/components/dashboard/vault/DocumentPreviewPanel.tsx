@@ -15,6 +15,9 @@ interface DocumentPreviewPanelProps {
   onClose: () => void
 }
 
+// ── ID validation ───────────────────────────────────────────────────
+const CUID_RE = /^c[a-z0-9]{24,}$/
+
 // ── MIME group helper ────────────────────────────────────────────────
 
 function getMimeGroup(mimeType?: string): string {
@@ -32,6 +35,9 @@ function PreviewContent({ documentId, mimeType }: { documentId: string; mimeType
   const [textContent, setTextContent] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const group = getMimeGroup(mimeType)
+
+  if (!CUID_RE.test(documentId)) return null
+
   const downloadUrl = `/api/documents/${documentId}/download`
 
   useEffect(() => {
@@ -165,7 +171,7 @@ export function DocumentPreviewPanel({ documentId, onClose }: DocumentPreviewPan
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [handleKeyDown])
 
-  if (!documentId || !doc) return null
+  if (!documentId || !CUID_RE.test(documentId) || !doc) return null
 
   const handleRename = (id: string, name: string) => {
     updateDocument(id, { name } as Partial<typeof doc>)
@@ -174,7 +180,9 @@ export function DocumentPreviewPanel({ documentId, onClose }: DocumentPreviewPan
   const handleRetryIndex = (id: string) => {
     apiFetch(`/api/documents/${id}/ingest`, { method: 'POST' })
       .then(() => fetchDocuments())
-      .catch(() => {})
+      .catch((err) => {
+        console.error('Retry index failed:', err)
+      })
   }
 
   return (

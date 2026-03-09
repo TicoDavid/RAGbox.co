@@ -8,7 +8,7 @@ import type { VaultItem } from '@/types/ragbox'
 
 interface VaultSearchFiltersProps {
   filters: VaultFilters
-  onSetFilter: (category: keyof VaultFilters, value: unknown) => void
+  onSetFilter: <K extends keyof VaultFilters>(category: K, value: VaultFilters[K]) => void
   onClearFilters: () => void
   resultCount: number
   searchQuery: string
@@ -147,8 +147,8 @@ export function VaultSearchFilters({
     onSetFilter(category, next)
   }
 
-  const toggleSingleFilter = (category: 'dateRange' | 'sizeRange', value: string) => {
-    onSetFilter(category, filters[category] === value ? null : value)
+  const toggleSingleFilter = <K extends 'dateRange' | 'sizeRange'>(category: K, value: NonNullable<VaultFilters[K]>) => {
+    onSetFilter(category, (filters[category] === value ? null : value) as VaultFilters[K])
   }
 
   return (

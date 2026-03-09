@@ -76,6 +76,8 @@ export function VaultToolbar({
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      if (e.target instanceof HTMLElement && e.target.isContentEditable) return
+      if (e.target instanceof HTMLSelectElement) return
       if (e.metaKey || e.ctrlKey) return
       if (e.key === 'u') onUpload()
       if (e.key === 'n') onNewFolder()

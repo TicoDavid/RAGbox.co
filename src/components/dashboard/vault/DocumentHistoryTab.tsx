@@ -21,6 +21,8 @@ interface HistoryEvent {
   user?: string
 }
 
+const CUID_RE = /^c[a-z0-9]{24,}$/
+
 interface DocumentHistoryTabProps {
   documentId: string
 }
@@ -60,6 +62,12 @@ export function DocumentHistoryTab({ documentId }: DocumentHistoryTabProps) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!CUID_RE.test(documentId)) {
+      setLoading(false)
+      setError('Invalid document ID')
+      return
+    }
+
     let cancelled = false
     setLoading(true)
     setError(null)
