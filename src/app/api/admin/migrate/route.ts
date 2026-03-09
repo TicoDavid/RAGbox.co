@@ -21,7 +21,57 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const results: string[] = []
 
+  // Parse optional body for one-time operations
+  let body: Record<string, unknown> = {}
+  try { body = await request.json() } catch { /* empty body OK */ }
+
   try {
+    // ========================================
+    // EPIC-034 Task 4: Purge & rebuild document_chunks (CPO AUTHORIZED)
+    // Only runs when { "purge_chunks": true } is passed
+    // ========================================
+    if (body.purge_chunks === true) {
+      await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS document_chunks CASCADE`)
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE document_chunks (
+          id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          document_id     UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+          tenant_id       UUID NOT NULL,
+          chunk_text      TEXT NOT NULL,
+          chunk_index     INTEGER NOT NULL,
+          token_count     INTEGER NOT NULL,
+          position_start  INTEGER,
+          position_end    INTEGER,
+          page_number     INTEGER,
+          contextual_text TEXT,
+          entities        JSONB DEFAULT '[]',
+          document_type   VARCHAR(50),
+          key_references  JSONB DEFAULT '[]',
+          enrichment_model VARCHAR(50),
+          enriched_at     TIMESTAMPTZ,
+          embedding       vector(768),
+          embedding_input TEXT,
+          citation_count  INTEGER DEFAULT 0,
+          last_cited_at   TIMESTAMPTZ,
+          mercury_source_tag VARCHAR(200),
+          neo4j_node_ids  JSONB DEFAULT '[]',
+          created_at      TIMESTAMPTZ DEFAULT NOW(),
+          updated_at      TIMESTAMPTZ DEFAULT NOW(),
+          UNIQUE(document_id, chunk_index)
+        )
+      `)
+      await prisma.$executeRawUnsafe(`
+        CREATE INDEX idx_chunks_embedding_hnsw
+        ON document_chunks USING hnsw (embedding vector_cosine_ops)
+        WITH (m = 16, ef_construction = 64)
+      `)
+      await prisma.$executeRawUnsafe(`CREATE INDEX idx_chunks_document ON document_chunks(document_id)`)
+      await prisma.$executeRawUnsafe(`CREATE INDEX idx_chunks_tenant ON document_chunks(tenant_id)`)
+      await prisma.$executeRawUnsafe(`CREATE INDEX idx_chunks_entities ON document_chunks USING GIN(entities)`)
+      await prisma.$executeRawUnsafe(`CREATE INDEX idx_chunks_mercury_tag ON document_chunks(mercury_source_tag) WHERE mercury_source_tag IS NOT NULL`)
+      const resetResult = await prisma.$executeRawUnsafe(`UPDATE documents SET index_status = 'Pending', chunk_count = 0 WHERE index_status = 'Indexed'`)
+      results.push(`EPIC-034 purge_chunks: DROPPED + REBUILT document_chunks, reset ${resetResult} docs to Pending`)
+    }
     // ========================================
     // Phase 15: Content Intelligence + WhatsApp enums & tables
     // ========================================
