@@ -42,8 +42,18 @@ jest.mock('@/stores/vaultStore', () => ({
       setPreviewDocument: jest.fn(),
       selectedDocumentIds: [],
       clearSelection: jest.fn(),
+      selectAll: jest.fn(),
+      batchDelete: jest.fn(),
+      batchMove: jest.fn(),
+      batchUpdateTier: jest.fn(),
+      moveFolder: jest.fn(),
+      setFolderColor: jest.fn(),
     }),
   ),
+}))
+
+jest.mock('@/hooks/useMediaQuery', () => ({
+  useMediaQuery: () => false,
 }))
 
 jest.mock('./VaultRail', () => ({
@@ -79,6 +89,10 @@ jest.mock('./VaultToolbar', () => ({
 
 jest.mock('./DocumentPreviewPanel', () => ({
   DocumentPreviewPanel: () => <div data-testid="document-preview-panel" />,
+}))
+
+jest.mock('./BatchActionBar', () => ({
+  BatchActionBar: () => <div data-testid="batch-action-bar" />,
 }))
 
 import { VaultPanel } from './VaultPanel'

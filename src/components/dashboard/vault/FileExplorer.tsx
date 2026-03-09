@@ -12,9 +12,9 @@
  */
 
 import React, { useMemo, useState, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   ChevronRight,
-  ChevronDown,
   Folder,
   FolderOpen,
   FileText,
@@ -32,6 +32,19 @@ import {
 } from 'lucide-react'
 import { useVaultStore } from '@/stores/vaultStore'
 import type { VaultItem, FolderNode } from '@/types/ragbox'
+
+// ============================================================================
+// FOLDER COLORS
+// ============================================================================
+
+const FOLDER_COLORS: Record<string, string> = {
+  blue: 'text-blue-400',
+  green: 'text-emerald-400',
+  amber: 'text-amber-400',
+  red: 'text-red-400',
+  purple: 'text-purple-400',
+  grey: 'text-slate-400',
+}
 
 // ============================================================================
 // SORT CONFIG
@@ -201,13 +214,16 @@ function FolderTreeItem({
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
         aria-label={`${isExpanded ? 'Collapse' : 'Expand'} folder: ${folder.name}`}
       >
+        <motion.span
+          animate={{ rotate: isExpanded ? 90 : 0 }}
+          transition={{ duration: 0.15 }}
+          className="shrink-0"
+        >
+          <ChevronRight className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+        </motion.span>
         {isExpanded
-          ? <ChevronDown className="w-3.5 h-3.5 text-[var(--text-tertiary)] shrink-0" />
-          : <ChevronRight className="w-3.5 h-3.5 text-[var(--text-tertiary)] shrink-0" />
-        }
-        {isExpanded
-          ? <FolderOpen className="w-4 h-4 text-[var(--warning)] shrink-0" />
-          : <Folder className="w-4 h-4 text-[var(--warning)] shrink-0" />
+          ? <FolderOpen className={`w-4 h-4 shrink-0 ${folder.color ? FOLDER_COLORS[folder.color] || 'text-[var(--warning)]' : 'text-[var(--warning)]'}`} />
+          : <Folder className={`w-4 h-4 shrink-0 ${folder.color ? FOLDER_COLORS[folder.color] || 'text-[var(--warning)]' : 'text-[var(--warning)]'}`} />
         }
         <span className="text-sm font-medium text-[var(--text-primary)] truncate flex-1">{folder.name}</span>
         <span className="text-[10px] text-[var(--text-tertiary)] shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -215,42 +231,50 @@ function FolderTreeItem({
         </span>
       </button>
 
-      {isExpanded && (
-        <div>
-          {childFolders.map(child => (
-            <FolderTreeItem
-              key={child.id}
-              folder={child}
-              depth={depth + 1}
-              allFolders={allFolders}
-              allDocuments={allDocuments}
-              selectedId={selectedId}
-              expandedFolders={expandedFolders}
-              toggleExpand={toggleExpand}
-              onSelectDocument={onSelectDocument}
-              onNavigateFolder={onNavigateFolder}
-              sortField={sortField}
-              sortDir={sortDir}
-              isDragOver={dragOverFolderId === child.id}
-              onDragStart={onDragStart}
-              onFolderDragOver={onFolderDragOver}
-              onFolderDrop={onFolderDrop}
-              onFolderDragLeave={onFolderDragLeave}
-              dragOverFolderId={dragOverFolderId}
-            />
-          ))}
-          {childDocs.map(doc => (
-            <DocumentTreeItem
-              key={doc.id}
-              doc={doc}
-              depth={depth + 1}
-              isSelected={selectedId === doc.id}
-              onSelect={() => onSelectDocument(doc.id)}
-              onDragStart={onDragStart}
-            />
-          ))}
-        </div>
-      )}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="overflow-hidden"
+          >
+            {childFolders.map(child => (
+              <FolderTreeItem
+                key={child.id}
+                folder={child}
+                depth={depth + 1}
+                allFolders={allFolders}
+                allDocuments={allDocuments}
+                selectedId={selectedId}
+                expandedFolders={expandedFolders}
+                toggleExpand={toggleExpand}
+                onSelectDocument={onSelectDocument}
+                onNavigateFolder={onNavigateFolder}
+                sortField={sortField}
+                sortDir={sortDir}
+                isDragOver={dragOverFolderId === child.id}
+                onDragStart={onDragStart}
+                onFolderDragOver={onFolderDragOver}
+                onFolderDrop={onFolderDrop}
+                onFolderDragLeave={onFolderDragLeave}
+                dragOverFolderId={dragOverFolderId}
+              />
+            ))}
+            {childDocs.map(doc => (
+              <DocumentTreeItem
+                key={doc.id}
+                doc={doc}
+                depth={depth + 1}
+                isSelected={selectedId === doc.id}
+                onSelect={() => onSelectDocument(doc.id)}
+                onDragStart={onDragStart}
+              />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

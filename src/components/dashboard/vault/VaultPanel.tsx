@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useVaultStore } from '@/stores/vaultStore'
 import { useChatStore } from '@/stores/chatStore'
+import { apiFetch } from '@/lib/api'
 import { VaultRail } from './VaultRail'
 import { FileExplorer } from './FileExplorer'
 import { StorageFooter } from './StorageFooter'
@@ -11,6 +12,8 @@ import { VaultBreadcrumb, type BreadcrumbSegment } from './VaultBreadcrumb'
 import { VaultSearchFilters, filterDocuments } from './VaultSearchFilters'
 import { VaultToolbar } from './VaultToolbar'
 import { DocumentPreviewPanel } from './DocumentPreviewPanel'
+import { BatchActionBar } from './BatchActionBar'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   X,
@@ -118,9 +121,11 @@ function VaultDetailView() {
             <span className="text-xs font-medium text-[var(--danger)]">Indexing Failed</span>
             <button
               onClick={() => {
-                fetch(`/api/documents/${selectedDoc.id}/ingest`, { method: 'POST', credentials: 'include' })
+                apiFetch(`/api/documents/${selectedDoc.id}/ingest`, { method: 'POST' })
                   .then(() => fetchDocuments())
-                  .catch(() => {})
+                  .catch((err) => {
+                    console.error('Retry index failed:', err)
+                  })
               }}
               className="ml-1 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--danger)]/20 text-[var(--danger)] hover:bg-[var(--danger)]/30 transition-colors"
             >
@@ -205,7 +210,7 @@ export function VaultPanel() {
   const navigate = useVaultStore((s) => s.navigate)
   const selectedItemId = useVaultStore((s) => s.selectedItemId)
   const createFolder = useVaultStore((s) => s.createFolder)
-  const deleteDocument = useVaultStore((s) => s.deleteDocument)
+  const batchDelete = useVaultStore((s) => s.batchDelete)
   const hasFetched = useRef(false)
 
   // E32-002: Filters
@@ -227,6 +232,10 @@ export function VaultPanel() {
   // Multi-select
   const selectedDocumentIds = useVaultStore((s) => s.selectedDocumentIds)
   const clearSelection = useVaultStore((s) => s.clearSelection)
+
+  // E32-010: Responsive
+  const isMobile = useMediaQuery('(max-width: 767px)')
+  const isTablet = useMediaQuery('(min-width: 768px) and (max-width: 1024px)')
 
   // STORY-208: Document search (moved from GlobalHeader)
   const [searchInput, setSearchInput] = useState('')
@@ -348,10 +357,7 @@ export function VaultPanel() {
   }
 
   const handleDeleteSelected = async () => {
-    for (const id of selectedDocumentIds) {
-      await deleteDocument(id)
-    }
-    clearSelection()
+    await batchDelete(selectedDocumentIds)
   }
 
   if (isCollapsed) {
@@ -370,16 +376,16 @@ export function VaultPanel() {
     )
   }
 
-  return (
-    <div className="relative flex flex-col h-full bg-[var(--bg-secondary)]">
-      {/* Header with rim lighting — always visible */}
-      <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-[var(--border-default)] border-t border-t-[var(--border-default)]">
+  const vaultContent = (
+    <div className={`relative flex flex-col h-full bg-[var(--bg-secondary)] ${isMobile ? 'fixed inset-0 z-50' : ''}`}>
+      {/* Header */}
+      <div className={`shrink-0 flex items-center justify-between px-4 py-3 border-b border-[var(--border-default)] ${isMobile ? '' : 'border-t border-t-[var(--border-default)]'}`}>
         <span className="text-base font-bold text-[var(--text-primary)] tracking-wide">Vault</span>
         <button
           onClick={toggleCollapse}
-          className="p-2 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+          className="p-2 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
           title="Collapse"
-          aria-label="Collapse vault panel"
+          aria-label={isMobile ? 'Back' : 'Collapse vault panel'}
         >
           <X className="w-5 h-5" />
         </button>
@@ -501,8 +507,28 @@ export function VaultPanel() {
         )}
       </AnimatePresence>
 
+      {/* E32-009: Batch Action Bar */}
+      <BatchActionBar />
+
       {/* Storage Footer */}
       <StorageFooter />
     </div>
   )
+
+  // E32-010: Mobile — full-screen overlay with slide-up animation
+  if (isMobile) {
+    return (
+      <motion.div
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+        className="fixed inset-0 z-50"
+      >
+        {vaultContent}
+      </motion.div>
+    )
+  }
+
+  return vaultContent
 }

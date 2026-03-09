@@ -106,8 +106,11 @@ export interface FolderNode {
   id: string
   name: string
   parentId?: string
+  color?: 'blue' | 'green' | 'amber' | 'red' | 'purple' | 'grey' | null
   children: string[]
   documents: string[]
+  documentCount?: number
+  totalSizeBytes?: number
 }
 
 // ===== Chat Types =====

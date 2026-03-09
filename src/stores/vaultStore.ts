@@ -84,7 +84,7 @@ interface VaultState {
 
   // E32-002: Filters
   filters: VaultFilters
-  setFilter: (category: keyof VaultFilters, value: unknown) => void
+  setFilter: <K extends keyof VaultFilters>(category: K, value: VaultFilters[K]) => void
   clearFilters: () => void
 
   // E32-003: View mode & sort
@@ -123,6 +123,11 @@ interface VaultState {
   togglePrivilege: (id: string) => Promise<void>
   toggleStar: (id: string) => Promise<void>
 
+  // Batch Operations (E32-009)
+  batchDelete: (ids: string[]) => Promise<void>
+  batchMove: (ids: string[], folderId: string) => Promise<void>
+  batchUpdateTier: (ids: string[], tier: number) => Promise<void>
+
   // Multi-Select
   selectedDocumentIds: string[]
   setSelectedDocumentIds: (ids: string[]) => void
@@ -138,6 +143,8 @@ interface VaultState {
   renameFolder: (id: string, name: string) => Promise<void>
   deleteFolder: (id: string) => Promise<void>
   moveDocument: (docId: string, folderId: string | null) => Promise<void>
+  moveFolder: (folderId: string, newParentId: string | null) => Promise<void>
+  setFolderColor: (folderId: string, color: string | null) => Promise<void>
 }
 
 export const useVaultStore = create<VaultState>()(
@@ -746,6 +753,144 @@ export const useVaultStore = create<VaultState>()(
               },
             }))
             toast.error('Failed to move document')
+            throw error
+          }
+        },
+
+        moveFolder: async (folderId, newParentId) => {
+          const { folders } = get()
+          const folder = folders[folderId]
+          if (!folder) return
+
+          // Optimistic update
+          set((state) => ({
+            folders: {
+              ...state.folders,
+              [folderId]: { ...folder, parentId: newParentId ?? undefined },
+            },
+          }))
+
+          try {
+            const res = await apiFetch(`/api/documents/folders/${folderId}/move`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ parentId: newParentId }),
+            })
+            if (!res.ok) throw new Error('Move folder failed')
+            await get().fetchFolders()
+            toast.success('Folder moved')
+          } catch (error) {
+            // Revert
+            set((state) => ({
+              folders: { ...state.folders, [folderId]: folder },
+            }))
+            toast.error('Failed to move folder')
+            throw error
+          }
+        },
+
+        setFolderColor: async (folderId, color) => {
+          const { folders } = get()
+          const folder = folders[folderId]
+          if (!folder) return
+
+          // Optimistic update
+          set((state) => ({
+            folders: {
+              ...state.folders,
+              [folderId]: { ...folder, color: color as FolderNode['color'] },
+            },
+          }))
+
+          try {
+            const res = await apiFetch(`/api/documents/folders/${folderId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ color }),
+            })
+            if (!res.ok) throw new Error('Set folder color failed')
+          } catch (error) {
+            // Revert
+            set((state) => ({
+              folders: { ...state.folders, [folderId]: folder },
+            }))
+            toast.error('Failed to set folder color')
+            throw error
+          }
+        },
+
+        batchDelete: async (ids) => {
+          if (ids.length > 50) {
+            toast.error('Max 50 items per batch')
+            return
+          }
+          try {
+            const res = await apiFetch('/api/documents/batch/delete', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ids }),
+            })
+            if (!res.ok) throw new Error('Batch delete failed')
+            const json = await res.json().catch(() => ({}))
+            const deletedIds = new Set<string>((json.deleted ?? ids) as string[])
+            set((state) => {
+              const documents = Object.fromEntries(
+                Object.entries(state.documents).filter(([id]) => !deletedIds.has(id))
+              )
+              return { documents, selectedDocumentIds: [] }
+            })
+            toast.success(`${deletedIds.size} item${deletedIds.size > 1 ? 's' : ''} deleted`)
+          } catch (error) {
+            toast.error('Failed to delete items')
+            throw error
+          }
+        },
+
+        batchMove: async (ids, folderId) => {
+          try {
+            const res = await apiFetch('/api/documents/batch/move', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ids, folderId }),
+            })
+            if (!res.ok) throw new Error('Batch move failed')
+            set((state) => {
+              const documents = { ...state.documents }
+              for (const id of ids) {
+                if (documents[id]) {
+                  documents[id] = { ...documents[id], folderId }
+                }
+              }
+              return { documents, selectedDocumentIds: [] }
+            })
+            const folderName = get().folders[folderId]?.name ?? 'folder'
+            toast.success(`${ids.length} item${ids.length > 1 ? 's' : ''} moved to ${folderName}`)
+          } catch (error) {
+            toast.error('Failed to move items')
+            throw error
+          }
+        },
+
+        batchUpdateTier: async (ids, tier) => {
+          try {
+            const res = await apiFetch('/api/documents/batch/tier', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ids, tier }),
+            })
+            if (!res.ok) throw new Error('Batch tier update failed')
+            set((state) => {
+              const documents = { ...state.documents }
+              for (const id of ids) {
+                if (documents[id]) {
+                  documents[id] = { ...documents[id], securityTier: tier }
+                }
+              }
+              return { documents, selectedDocumentIds: [] }
+            })
+            toast.success(`Security tier updated for ${ids.length} item${ids.length > 1 ? 's' : ''}`)
+          } catch (error) {
+            toast.error('Failed to update security tier')
             throw error
           }
         },
