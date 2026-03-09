@@ -284,6 +284,26 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       .catch(() => {})
   }, [])
 
+  // Hydrate notification preferences from server (overrides localStorage default)
+  useEffect(() => {
+    fetch('/api/settings/notifications')
+      .then((r) => r.ok ? r.json() : null)
+      .then((json) => {
+        const data = json?.data
+        if (data && typeof data.email === 'boolean') {
+          setSettings((prev) => ({
+            ...prev,
+            notifications: {
+              email: data.email ?? prev.notifications.email,
+              push: data.push ?? prev.notifications.push,
+              audit: data.audit ?? prev.notifications.audit,
+            },
+          }))
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   // Save to localStorage on change
   useEffect(() => {
     if (isHydrated) {
@@ -403,6 +423,13 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       ...prev,
       notifications: { ...prev.notifications, [key]: value },
     }))
+
+    // Persist to server (fire-and-forget — localStorage is backup)
+    fetch('/api/settings/notifications', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [key]: value }),
+    }).catch(() => {})
   }, [])
 
   const setConnectionModel = useCallback((connectionId: string, modelId: string) => {
