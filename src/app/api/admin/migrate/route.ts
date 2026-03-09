@@ -1071,6 +1071,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     await prisma.$executeRawUnsafe(`ALTER TABLE "kg_edges" ADD COLUMN IF NOT EXISTS "valid_to" TIMESTAMPTZ`)
     results.push('kg_edges temporal columns: OK')
 
+    // EPIC-034: Add missing columns expected by Go backend (content, content_hash)
+    await prisma.$executeRawUnsafe(`ALTER TABLE "document_chunks" ADD COLUMN IF NOT EXISTS "content" TEXT`)
+    await prisma.$executeRawUnsafe(`ALTER TABLE "document_chunks" ADD COLUMN IF NOT EXISTS "content_hash" TEXT`)
+
     // EPIC-034: Reset Failed documents to Pending for re-ingestion
     if (body.reset_failed === true) {
       const resetCount = await prisma.$executeRawUnsafe(`UPDATE documents SET index_status = 'Pending', chunk_count = 0 WHERE index_status = 'Failed'`)
