@@ -199,6 +199,13 @@ function FolderTreeItem({
   toggleDocumentSelection?: (id: string) => void
 }) {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
+  const [isRenaming, setIsRenaming] = useState(false)
+
+  // Store actions for context menu
+  const deleteFolderAction = useVaultStore((s) => s.deleteFolder)
+  const createFolderAction = useVaultStore((s) => s.createFolder)
+  const renameFolderAction = useVaultStore((s) => s.renameFolder)
+  const setFolderColorAction = useVaultStore((s) => s.setFolderColor)
 
   const isExpanded = expandedFolders.has(folder.id)
   const childFolders = Object.values(allFolders).filter(f => f.parentId === folder.id)
@@ -289,16 +296,35 @@ function FolderTreeItem({
         )}
       </AnimatePresence>
 
+      {/* G2: Inline rename triggered from context menu */}
+      {isRenaming && (
+        <div style={{ paddingLeft: `${depth * 16 + 8}px` }}>
+          <InlineFolderInput
+            defaultName={folder.name}
+            existingNames={Object.values(allFolders)
+              .filter(f => f.parentId === folder.parentId && f.id !== folder.id)
+              .map(f => f.name)}
+            onSubmit={(newName) => {
+              renameFolderAction(folder.id, newName)
+              setIsRenaming(false)
+            }}
+            onCancel={() => setIsRenaming(false)}
+          />
+        </div>
+      )}
+
       {contextMenu && (
         <FolderContextMenu
           x={contextMenu.x}
           y={contextMenu.y}
           folderId={folder.id}
           folderName={folder.name}
-          onRename={() => {}}
-          onDelete={() => {}}
-          onNewSubfolder={() => {}}
-          onSetColor={() => {}}
+          documentCount={childDocs.length}
+          folderColor={folder.color ?? undefined}
+          onRename={() => { setContextMenu(null); setIsRenaming(true) }}
+          onDelete={() => { setContextMenu(null); deleteFolderAction(folder.id) }}
+          onNewSubfolder={() => { setContextMenu(null); createFolderAction('New Folder', folder.id) }}
+          onSetColor={(color) => { setContextMenu(null); setFolderColorAction(folder.id, color) }}
           onClose={() => setContextMenu(null)}
         />
       )}

@@ -376,6 +376,12 @@ export const useVaultStore = create<VaultState>()(
             Object.values(get().documents).map((d) => d.name.toLowerCase())
           )
 
+          // E32-005: Initialize upload progress for all files
+          get().clearUploadProgress()
+          for (const f of files) {
+            get().setUploadProgress(f.name, { status: 'queued', progress: 0 })
+          }
+
           // STORY-230: Track bulk actions across the loop
           let bulkAction: 'skip-all' | 'replace-all' | null = null
 
@@ -390,6 +396,7 @@ export const useVaultStore = create<VaultState>()(
             // 0-byte guard (STORY-201)
             if (!file.size || file.size === 0) {
               failed.push({ filename: file.name, reason: 'File is empty (0 bytes)' })
+              get().setUploadProgress(file.name, { status: 'error', error: 'File is empty (0 bytes)' })
               toast.error(`${file.name}: file is empty and cannot be uploaded.`, { duration: 4000 })
               continue
             }
@@ -397,6 +404,7 @@ export const useVaultStore = create<VaultState>()(
             // Size guard
             if (file.size > MAX_FILE_SIZE) {
               failed.push({ filename: file.name, reason: 'Exceeds 50 MB limit' })
+              get().setUploadProgress(file.name, { status: 'error', error: 'Exceeds 50 MB limit' })
               toast.error(`${file.name} exceeds 50 MB limit`, { duration: 4000 })
               continue
             }
@@ -405,6 +413,7 @@ export const useVaultStore = create<VaultState>()(
             const ext = file.name.toLowerCase().match(/\.[^.]+$/)?.[0] || ''
             if (ext === '.zip' || ext === '.rar' || ext === '.7z' || ext === '.tar' || ext === '.gz') {
               failed.push({ filename: file.name, reason: 'Archive files not supported' })
+              get().setUploadProgress(file.name, { status: 'error', error: 'Archive files not supported' })
               toast.error(
                 `${file.name}: Archive files (.zip, .rar, .7z) are not supported. Please extract the files first and upload them individually.`,
                 { duration: 6000 }
@@ -413,6 +422,7 @@ export const useVaultStore = create<VaultState>()(
             }
             if (!ALLOWED_EXTENSIONS.has(ext)) {
               failed.push({ filename: file.name, reason: `Unsupported format (${ext || 'unknown'})` })
+              get().setUploadProgress(file.name, { status: 'error', error: `Unsupported format (${ext || 'unknown'})` })
               toast.error(`${file.name}: unsupported format. Supported: PDF, DOCX, TXT, MD, CSV, XLSX, PPTX`, { duration: 5000 })
               continue
             }
@@ -470,13 +480,16 @@ export const useVaultStore = create<VaultState>()(
                 const renamedFile = new File([file], newName, { type: file.type })
                 // STORY-225: Wrap individual upload in try/catch for partial failure
                 try {
+                  get().setUploadProgress(file.name, { status: 'uploading', progress: 30 })
                   await get().uploadDocument(renamedFile, folderId)
                   recordUpload()
                   existingNames.add(newName.toLowerCase())
                   uploaded.push({ filename: newName, size: file.size })
+                  get().setUploadProgress(file.name, { status: 'done', progress: 100 })
                 } catch (err) {
                   const reason = err instanceof Error ? err.message : 'Upload failed'
                   failed.push({ filename: newName, reason })
+                  get().setUploadProgress(file.name, { status: 'error', progress: 0, error: reason })
                   toast.error(`${newName}: upload failed — ${reason}`, { duration: 5000 })
                 }
                 continue
@@ -500,13 +513,16 @@ export const useVaultStore = create<VaultState>()(
             // STORY-225: Wrap individual upload in try/catch — partial failure
             // handling ensures successful files still ingest even if one fails.
             try {
+              get().setUploadProgress(file.name, { status: 'uploading', progress: 30 })
               await get().uploadDocument(file, folderId)
               recordUpload()
               existingNames.add(file.name.toLowerCase())
               uploaded.push({ filename: file.name, size: file.size })
+              get().setUploadProgress(file.name, { status: 'done', progress: 100 })
             } catch (err) {
               const reason = err instanceof Error ? err.message : 'Upload failed'
               failed.push({ filename: file.name, reason })
+              get().setUploadProgress(file.name, { status: 'error', progress: 0, error: reason })
               toast.error(`${file.name}: upload failed — ${reason}`, { duration: 5000 })
             }
           }

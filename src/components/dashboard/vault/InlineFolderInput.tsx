@@ -6,13 +6,14 @@ import { Folder } from 'lucide-react'
 interface InlineFolderInputProps {
   parentId?: string
   existingNames: string[]
+  defaultName?: string
   onSubmit: (name: string) => void
   onCancel: () => void
 }
 
-export function InlineFolderInput({ existingNames, onSubmit, onCancel }: InlineFolderInputProps) {
+export function InlineFolderInput({ existingNames, defaultName, onSubmit, onCancel }: InlineFolderInputProps) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const [value, setValue] = useState('')
+  const [value, setValue] = useState(defaultName ?? '')
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
