@@ -57,6 +57,7 @@ jest.mock('lucide-react', () => {
     FileText: icon('file-text'),
     Download: icon('download'),
     Loader2: icon('loader'),
+    Users: icon('users'),
   }
 })
 
@@ -72,6 +73,14 @@ jest.mock('../DocumentHistoryTab', () => ({
   DocumentHistoryTab: ({ documentId }: { documentId: string }) => (
     <div data-testid="history-tab">History for {documentId}</div>
   ),
+}))
+
+jest.mock('../PipelineStatusIndicator', () => ({
+  PipelineStatusIndicator: () => <div data-testid="pipeline-status" />,
+}))
+
+jest.mock('../EntityPreview', () => ({
+  EntityPreview: () => <div data-testid="entity-preview" />,
 }))
 
 import { DocumentPreviewPanel } from '../DocumentPreviewPanel'

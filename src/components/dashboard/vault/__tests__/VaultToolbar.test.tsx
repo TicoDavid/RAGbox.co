@@ -33,6 +33,10 @@ jest.mock('lucide-react', () => {
   }
 })
 
+jest.mock('../PipelineQueueBadge', () => ({
+  PipelineQueueBadge: () => <div data-testid="pipeline-queue-badge" />,
+}))
+
 import { VaultToolbar } from '../VaultToolbar'
 
 describe('VaultToolbar', () => {
