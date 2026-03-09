@@ -2,13 +2,15 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { X, Eye, Info, History, FileText, Download, Loader2 } from 'lucide-react'
+import { X, Eye, Info, History, FileText, Download, Loader2, Users } from 'lucide-react'
 import { useVaultStore } from '@/stores/vaultStore'
 import { DocumentDetailsTab } from './DocumentDetailsTab'
 import { DocumentHistoryTab } from './DocumentHistoryTab'
+import { EntityPreview } from './EntityPreview'
+import { PipelineStatusIndicator, type PipelineStage } from './PipelineStatusIndicator'
 import { apiFetch } from '@/lib/api'
 
-type PreviewTab = 'preview' | 'details' | 'history'
+type PreviewTab = 'preview' | 'details' | 'history' | 'entities'
 
 interface DocumentPreviewPanelProps {
   documentId: string | null
@@ -212,8 +214,18 @@ export function DocumentPreviewPanel({ documentId, onClose }: DocumentPreviewPan
       <div className="shrink-0 flex border-b border-[var(--border-default)]">
         <TabButton active={activeTab === 'preview'} label="Preview" icon={Eye} onClick={() => setActiveTab('preview')} />
         <TabButton active={activeTab === 'details'} label="Details" icon={Info} onClick={() => setActiveTab('details')} />
+        <TabButton active={activeTab === 'entities'} label="Entities" icon={Users} onClick={() => setActiveTab('entities')} />
         <TabButton active={activeTab === 'history'} label="History" icon={History} onClick={() => setActiveTab('history')} />
       </div>
+
+      {/* E34-013: Pipeline status for non-indexed documents */}
+      {doc.status !== 'ready' && doc.status !== 'Indexed' && (
+        <PipelineStatusIndicator
+          documentId={doc.id}
+          stage={(doc.status === 'processing' || doc.status === 'Processing') ? 'extracting' : 'queued'}
+          progress={0}
+        />
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
@@ -231,6 +243,9 @@ export function DocumentPreviewPanel({ documentId, onClose }: DocumentPreviewPan
             onTogglePrivilege={togglePrivilege}
             onRetryIndex={handleRetryIndex}
           />
+        )}
+        {activeTab === 'entities' && (
+          <EntityPreview documentId={doc.id} />
         )}
         {activeTab === 'history' && (
           <DocumentHistoryTab documentId={doc.id} />

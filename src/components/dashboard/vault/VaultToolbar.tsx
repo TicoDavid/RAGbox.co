@@ -15,6 +15,7 @@ import {
   Check,
   ChevronDown,
 } from 'lucide-react'
+import { PipelineQueueBadge } from './PipelineQueueBadge'
 
 interface VaultToolbarProps {
   viewMode: 'list' | 'grid'
@@ -271,6 +272,9 @@ export function VaultToolbar({
               <Maximize2 className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Explorer</span>
             </button>
+
+            {/* E34: Pipeline queue status */}
+            <PipelineQueueBadge />
           </>
         )}
       </div>
