@@ -1071,6 +1071,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     await prisma.$executeRawUnsafe(`ALTER TABLE "kg_edges" ADD COLUMN IF NOT EXISTS "valid_to" TIMESTAMPTZ`)
     results.push('kg_edges temporal columns: OK')
 
+    // EPIC-034: Reset Failed documents to Pending for re-ingestion
+    if (body.reset_failed === true) {
+      const resetCount = await prisma.$executeRawUnsafe(`UPDATE documents SET index_status = 'Pending', chunk_count = 0 WHERE index_status = 'Failed'`)
+      results.push(`EPIC-034 reset_failed: ${resetCount} docs reset to Pending`)
+    }
+
     // Diagnostic: document counts by status
     try {
       const counts = await prisma.$queryRawUnsafe<Array<{index_status: string; cnt: bigint}>>(`SELECT index_status, COUNT(*) as cnt FROM documents GROUP BY index_status`)
