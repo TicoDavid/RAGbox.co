@@ -73,10 +73,42 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       results.push(`EPIC-034 purge_chunks: DROPPED + REBUILT document_chunks, reset ${resetResult} docs to Pending`)
     }
     // ========================================
-    // Core Prisma enums (must exist before any Prisma queries)
+    // Fix: reconcile Prisma enum type names (PascalCase → snake_case)
+    // Prisma schema engine creates "IndexStatus" but query engine expects "index_status"
     // ========================================
-    await prisma.$executeRawUnsafe(`DO $$ BEGIN CREATE TYPE "index_status" AS ENUM ('Pending', 'Processing', 'Indexed', 'Failed'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`)
-    await prisma.$executeRawUnsafe(`DO $$ BEGIN CREATE TYPE "deletion_status" AS ENUM ('Active', 'SoftDeleted', 'HardDeleted'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`)
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        DROP TYPE IF EXISTS index_status;
+        IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'IndexStatus') THEN
+          ALTER TYPE "IndexStatus" RENAME TO "index_status";
+        ELSE
+          CREATE TYPE "index_status" AS ENUM ('Pending', 'Processing', 'Indexed', 'Failed');
+        END IF;
+      EXCEPTION WHEN OTHERS THEN NULL;
+      END $$
+    `)
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        DROP TYPE IF EXISTS deletion_status;
+        IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'DeletionStatus') THEN
+          ALTER TYPE "DeletionStatus" RENAME TO "deletion_status";
+        ELSE
+          CREATE TYPE "deletion_status" AS ENUM ('Active', 'SoftDeleted', 'HardDeleted');
+        END IF;
+      EXCEPTION WHEN OTHERS THEN NULL;
+      END $$
+    `)
+
+    // ========================================
+    // EPIC-034 Task 6: GIN full-text index on document_chunks (if table exists)
+    // ========================================
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'document_chunks') THEN
+          EXECUTE 'CREATE INDEX IF NOT EXISTS idx_chunks_fulltext ON document_chunks USING GIN (to_tsvector(''english'', chunk_text))';
+        END IF;
+      END $$
+    `)
 
     // ========================================
     // Phase 15: Content Intelligence + WhatsApp enums & tables
