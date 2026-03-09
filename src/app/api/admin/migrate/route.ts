@@ -73,6 +73,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       results.push(`EPIC-034 purge_chunks: DROPPED + REBUILT document_chunks, reset ${resetResult} docs to Pending`)
     }
     // ========================================
+    // Core Prisma enums (must exist before any Prisma queries)
+    // ========================================
+    await prisma.$executeRawUnsafe(`DO $$ BEGIN CREATE TYPE "index_status" AS ENUM ('Pending', 'Processing', 'Indexed', 'Failed'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`)
+    await prisma.$executeRawUnsafe(`DO $$ BEGIN CREATE TYPE "deletion_status" AS ENUM ('Active', 'SoftDeleted', 'HardDeleted'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`)
+
+    // ========================================
     // Phase 15: Content Intelligence + WhatsApp enums & tables
     // ========================================
     await prisma.$executeRawUnsafe(`
