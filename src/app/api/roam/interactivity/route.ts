@@ -30,8 +30,6 @@ import { logger } from '@/lib/logger'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const ROAM_WEBHOOK_SECRET = process.env.ROAM_WEBHOOK_SECRET || ''
-
 // ── Payload shape ──────────────────────────────────────────────────
 
 interface InteractivityPayload {
@@ -55,6 +53,10 @@ interface InteractivityPayload {
 // ── Route handler ──────────────────────────────────────────────────
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  // Fix #47: Read secret inside handler, not module scope — prevents stale values
+  // from Next.js module caching on Cloud Run cold starts
+  const roamWebhookSecret = (process.env.ROAM_WEBHOOK_SECRET || '').trim()
+
   // Step 1: Read raw body
   let rawBody: string
   try {
@@ -65,7 +67,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // Step 2: Verify Standard Webhooks signature (reuse same logic as /api/webhooks/roam)
-  if (ROAM_WEBHOOK_SECRET) {
+  if (roamWebhookSecret) {
     const webhookId = request.headers.get('webhook-id') || ''
     const webhookTimestamp = request.headers.get('webhook-timestamp') || ''
     const webhookSignature = request.headers.get('webhook-signature') || ''
@@ -78,7 +80,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           'webhook-timestamp': webhookTimestamp,
           'webhook-signature': webhookSignature,
         },
-        ROAM_WEBHOOK_SECRET
+        roamWebhookSecret
       )
 
       if (!verification.valid) {

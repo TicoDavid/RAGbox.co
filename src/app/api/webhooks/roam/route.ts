@@ -20,7 +20,7 @@ import { logger } from '@/lib/logger'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const ROAM_WEBHOOK_SECRET = process.env.ROAM_WEBHOOK_SECRET || ''
+// GCP project for Pub/Sub — safe at module scope (stable config, not a secret)
 const GCP_PROJECT = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCP_PROJECT || 'ragbox-sovereign-prod'
 
 let pubsubClient: PubSub | null = null
@@ -32,6 +32,10 @@ function getPubSub(): PubSub {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  // Fix #47: Read secret inside handler, not module scope — prevents stale values
+  // from Next.js module caching on Cloud Run cold starts
+  const roamWebhookSecret = (process.env.ROAM_WEBHOOK_SECRET || '').trim()
+
   // Step 1: Read raw body as ArrayBuffer → UTF-8 string.
   let rawBody: string
   let rawBytes: ArrayBuffer
@@ -47,7 +51,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const webhookTimestamp = request.headers.get('webhook-timestamp') || ''
   const webhookSignature = request.headers.get('webhook-signature') || ''
 
-  if (!ROAM_WEBHOOK_SECRET) {
+  if (!roamWebhookSecret) {
     logger.warn('[ROAM Webhook] ROAM_WEBHOOK_SECRET not configured — skipping')
     return NextResponse.json({ ok: false, reason: 'not configured' }, { status: 200 })
   }
@@ -61,7 +65,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         'webhook-timestamp': webhookTimestamp,
         'webhook-signature': webhookSignature,
       },
-      ROAM_WEBHOOK_SECRET
+      roamWebhookSecret
     )
   } catch (sigErr) {
     logger.error('[ROAM Webhook] Signature verification threw:', sigErr)
