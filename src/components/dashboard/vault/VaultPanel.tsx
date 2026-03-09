@@ -32,6 +32,7 @@ import {
 } from 'lucide-react'
 import IngestionModal from '@/app/dashboard/components/IngestionModal'
 import { DuplicateFileDialog } from './DuplicateFileDialog'
+import { UploadProgressItem } from './UploadProgressItem'
 
 // ============================================================================
 // VAULT DETAIL VIEW — Drill-down when a file is selected
@@ -232,6 +233,9 @@ export function VaultPanel() {
   // Multi-select
   const selectedDocumentIds = useVaultStore((s) => s.selectedDocumentIds)
   const clearSelection = useVaultStore((s) => s.clearSelection)
+
+  // E32-005: Upload progress
+  const uploadProgress = useVaultStore((s) => s.uploadProgress)
 
   // E32-010: Responsive
   const isMobile = useMediaQuery('(max-width: 767px)')
@@ -450,6 +454,22 @@ export function VaultPanel() {
         onClose={() => setIsIngestionOpen(false)}
         onFileUpload={handleIngestionUpload}
       />
+
+      {/* E32-005: Upload Progress */}
+      {Object.keys(uploadProgress).length > 0 && (
+        <div className="shrink-0 border-t border-[var(--border-default)] max-h-[160px] overflow-y-auto">
+          {Object.entries(uploadProgress).map(([fileId, progress]) => (
+            <UploadProgressItem
+              key={fileId}
+              filename={fileId}
+              size={0}
+              status={progress.status}
+              progress={progress.progress}
+              error={progress.error}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Duplicate file dialog */}
       <DuplicateFileDialog />

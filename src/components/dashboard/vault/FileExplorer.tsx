@@ -32,6 +32,8 @@ import {
 } from 'lucide-react'
 import { useVaultStore } from '@/stores/vaultStore'
 import type { VaultItem, FolderNode } from '@/types/ragbox'
+import { FolderContextMenu } from './FolderContextMenu'
+import { InlineFolderInput } from './InlineFolderInput'
 
 // ============================================================================
 // FOLDER COLORS
@@ -173,6 +175,8 @@ function FolderTreeItem({
   onFolderDrop,
   onFolderDragLeave,
   dragOverFolderId,
+  selectedDocumentIds,
+  toggleDocumentSelection,
 }: {
   folder: FolderNode
   depth: number
@@ -191,7 +195,11 @@ function FolderTreeItem({
   onFolderDrop: (e: React.DragEvent, folderId: string) => void
   onFolderDragLeave: (e: React.DragEvent) => void
   dragOverFolderId: string | null
+  selectedDocumentIds?: string[]
+  toggleDocumentSelection?: (id: string) => void
 }) {
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
+
   const isExpanded = expandedFolders.has(folder.id)
   const childFolders = Object.values(allFolders).filter(f => f.parentId === folder.id)
   const childDocs = sortDocuments(
@@ -205,6 +213,7 @@ function FolderTreeItem({
     <div>
       <button
         onClick={() => toggleExpand(folder.id)}
+        onContextMenu={(e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY }) }}
         onDragOver={(e) => onFolderDragOver(e, folder.id)}
         onDrop={(e) => onFolderDrop(e, folder.id)}
         onDragLeave={onFolderDragLeave}
@@ -260,6 +269,8 @@ function FolderTreeItem({
                 onFolderDrop={onFolderDrop}
                 onFolderDragLeave={onFolderDragLeave}
                 dragOverFolderId={dragOverFolderId}
+                selectedDocumentIds={selectedDocumentIds}
+                toggleDocumentSelection={toggleDocumentSelection}
               />
             ))}
             {childDocs.map(doc => (
@@ -270,11 +281,27 @@ function FolderTreeItem({
                 isSelected={selectedId === doc.id}
                 onSelect={() => onSelectDocument(doc.id)}
                 onDragStart={onDragStart}
+                isChecked={selectedDocumentIds?.includes(doc.id)}
+                onToggleSelect={() => toggleDocumentSelection?.(doc.id)}
               />
             ))}
           </motion.div>
         )}
       </AnimatePresence>
+
+      {contextMenu && (
+        <FolderContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          folderId={folder.id}
+          folderName={folder.name}
+          onRename={() => {}}
+          onDelete={() => {}}
+          onNewSubfolder={() => {}}
+          onSetColor={() => {}}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </div>
   )
 }
@@ -289,12 +316,16 @@ function DocumentTreeItem({
   isSelected,
   onSelect,
   onDragStart,
+  isChecked,
+  onToggleSelect,
 }: {
   doc: VaultItem
   depth: number
   isSelected: boolean
   onSelect: () => void
   onDragStart?: (e: React.DragEvent, docId: string) => void
+  isChecked?: boolean
+  onToggleSelect?: (e: React.MouseEvent) => void
 }) {
   return (
     <button
@@ -309,6 +340,16 @@ function DocumentTreeItem({
       style={{ paddingLeft: `${depth * 16 + 28}px` }}
       aria-label={`Select: ${doc.name}`}
     >
+      {onToggleSelect && (
+        <input
+          type="checkbox"
+          checked={isChecked || false}
+          onClick={(e) => { e.stopPropagation(); onToggleSelect(e as unknown as React.MouseEvent) }}
+          onChange={() => {}}
+          className="w-3.5 h-3.5 rounded border-[var(--border-default)] text-[var(--brand-blue)] shrink-0"
+          aria-label={`Select ${doc.name}`}
+        />
+      )}
       <div className="shrink-0">{getFileIcon(doc.mimeType, doc.name)}</div>
       <div className="flex-1 min-w-0">
         <p className="text-sm truncate leading-tight">{doc.name}</p>
@@ -339,11 +380,15 @@ export function FileExplorer() {
   const createFolder = useVaultStore((s) => s.createFolder)
   const moveDocument = useVaultStore((s) => s.moveDocument)
 
+  const selectedDocumentIds = useVaultStore((s) => s.selectedDocumentIds)
+  const toggleDocumentSelection = useVaultStore((s) => s.toggleDocumentSelection)
+
   const [sortField, setSortField] = useState<SortField>('name')
   const [sortDir, setSortDir] = useState<SortDirection>('asc')
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null)
   const [dragOverRoot, setDragOverRoot] = useState(false)
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false)
 
   const toggleExpand = useCallback((folderId: string) => {
     setExpandedFolders(prev => {
@@ -449,7 +494,7 @@ export function FileExplorer() {
         ))}
         <div className="flex-1" />
         <button
-          onClick={() => createFolder('New Folder', undefined)}
+          onClick={() => setIsCreatingFolder(true)}
           className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--brand-blue)] hover:bg-[var(--bg-tertiary)] transition-colors"
           title="New Folder"
           aria-label="Create new folder"
@@ -466,6 +511,18 @@ export function FileExplorer() {
         onDrop={handleRootDrop}
         onDragLeave={handleRootDragLeave}
       >
+        {/* G1: Inline folder creation */}
+        {isCreatingFolder && (
+          <InlineFolderInput
+            existingNames={Object.values(folders).filter(f => !f.parentId).map(f => f.name)}
+            onSubmit={(name) => {
+              createFolder(name, undefined)
+              setIsCreatingFolder(false)
+            }}
+            onCancel={() => setIsCreatingFolder(false)}
+          />
+        )}
+
         {rootFolders.map(folder => (
           <FolderTreeItem
             key={folder.id}
@@ -486,6 +543,8 @@ export function FileExplorer() {
             onFolderDrop={handleFolderDrop}
             onFolderDragLeave={handleFolderDragLeave}
             dragOverFolderId={dragOverFolderId}
+            selectedDocumentIds={selectedDocumentIds}
+            toggleDocumentSelection={toggleDocumentSelection}
           />
         ))}
         {rootDocs.map(doc => (
@@ -496,6 +555,8 @@ export function FileExplorer() {
             isSelected={selectedItemId === doc.id}
             onSelect={() => selectItem(doc.id)}
             onDragStart={handleDragStart}
+            isChecked={selectedDocumentIds.includes(doc.id)}
+            onToggleSelect={() => toggleDocumentSelection(doc.id)}
           />
         ))}
 

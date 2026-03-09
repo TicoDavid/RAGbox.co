@@ -48,6 +48,7 @@ jest.mock('@/stores/vaultStore', () => ({
       batchUpdateTier: jest.fn(),
       moveFolder: jest.fn(),
       setFolderColor: jest.fn(),
+      uploadProgress: {},
     }),
   ),
 }))
@@ -93,6 +94,10 @@ jest.mock('./DocumentPreviewPanel', () => ({
 
 jest.mock('./BatchActionBar', () => ({
   BatchActionBar: () => <div data-testid="batch-action-bar" />,
+}))
+
+jest.mock('./UploadProgressItem', () => ({
+  UploadProgressItem: () => <div data-testid="upload-progress-item" />,
 }))
 
 import { VaultPanel } from './VaultPanel'
