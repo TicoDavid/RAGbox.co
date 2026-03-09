@@ -35,13 +35,15 @@ type Chunker interface {
 
 // Chunk represents a chunked piece of text (used by the pipeline).
 type Chunk struct {
-	Content      string
-	ContentHash  string
-	TokenCount   int
-	Index        int
-	DocumentID   string
-	PageNumber   int
-	SectionTitle string
+	Content        string
+	ContentHash    string
+	TokenCount     int
+	Index          int
+	DocumentID     string
+	PageNumber     int
+	SectionTitle   string
+	ContextualText string            // EPIC-034: enrichment from Gemini
+	Entities       []EntityExtracted // EPIC-034: entities from Gemini
 }
 
 // Embedder abstracts vector embedding and storage.

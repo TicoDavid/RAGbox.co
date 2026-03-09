@@ -1098,6 +1098,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       END $$
     `)
 
+    // ========================================
+    // EPIC-034: Enrichment columns for sovereign pipeline
+    // ========================================
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "document_chunks" ADD COLUMN IF NOT EXISTS "contextual_text" TEXT
+    `)
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "document_chunks" ADD COLUMN IF NOT EXISTS "entities" JSONB DEFAULT '[]'::jsonb
+    `)
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS idx_chunks_embedding_hnsw
+      ON document_chunks USING hnsw (embedding vector_cosine_ops)
+      WITH (m = 16, ef_construction = 200)
+    `)
+    results.push('EPIC-034 enrichment columns + HNSW index: OK')
+
     // EPIC-034: Reset Failed documents to Pending for re-ingestion
     if (body.reset_failed === true) {
       const resetCount = await prisma.$executeRawUnsafe(`UPDATE documents SET index_status = 'Pending', chunk_count = 0 WHERE index_status = 'Failed'`)

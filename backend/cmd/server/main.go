@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"cloud.google.com/go/pubsub"
 	firebase "firebase.google.com/go/v4"
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -209,6 +210,19 @@ func run() error {
 		slog.Info("pipeline service initialized", "parser", "text_fallback")
 	}
 
+	// ─── Pub/Sub client for async pipeline ────────────────────────────
+	psClient, err := pubsub.NewClient(ctx, cfg.GCPProject)
+	if err != nil {
+		return fmt.Errorf("pubsub client: %w", err)
+	}
+	defer psClient.Close()
+	slog.Info("pubsub client initialized")
+
+	// Pipeline publisher (triggers 6-worker async chain)
+	pipelinePublisher := handler.NewPipelinePublisher(psClient, docRepo, cfg.GCSBucketName)
+	defer pipelinePublisher.Close()
+	slog.Info("pipeline publisher initialized (async mode)")
+
 	// Content Gap service
 	contentGapRepo := repository.NewContentGapRepo(pool)
 	contentGapSvc := service.NewContentGapService(contentGapRepo)
@@ -378,7 +392,7 @@ func run() error {
 
 		IngestDeps: handler.IngestDeps{
 			DocRepo:    docRepo,
-			Pipeline:   pipelineSvc,
+			Pipeline:   pipelinePublisher,
 			QueryCache: queryCache,
 		},
 		IngestTextDeps: handler.IngestTextDeps{

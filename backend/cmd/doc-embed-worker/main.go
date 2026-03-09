@@ -86,12 +86,14 @@ func processEmbed(ctx context.Context, data []byte, embedder chunkEmbedder, redi
 	// Create chunk for embedder
 	hash := sha256.Sum256([]byte(input.ChunkText))
 	chunk := service.Chunk{
-		Content:     embeddingInput,
-		ContentHash: hex.EncodeToString(hash[:]),
-		TokenCount:  input.TokenCount,
-		Index:       input.ChunkIndex,
-		DocumentID:  input.DocumentID,
-		PageNumber:  input.PageNumber,
+		Content:        embeddingInput,
+		ContentHash:    hex.EncodeToString(hash[:]),
+		TokenCount:     input.TokenCount,
+		Index:          input.ChunkIndex,
+		DocumentID:     input.DocumentID,
+		PageNumber:     input.PageNumber,
+		ContextualText: input.ContextualText,
+		Entities:       input.Entities,
 	}
 
 	if err := embedder.EmbedAndStore(ctx, []service.Chunk{chunk}); err != nil {

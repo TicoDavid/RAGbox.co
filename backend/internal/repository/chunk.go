@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
@@ -51,9 +52,10 @@ func (r *ChunkRepo) BulkInsert(ctx context.Context, chunks []service.Chunk, vect
 		embedding := pgvector.NewVector(vectors[i])
 
 		batch.Queue(`
-			INSERT INTO document_chunks (id, document_id, chunk_index, content, content_hash, token_count, embedding, created_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-			id, c.DocumentID, c.Index, c.Content, c.ContentHash, c.TokenCount, embedding, now,
+			INSERT INTO document_chunks (id, document_id, chunk_index, content, content_hash, token_count, embedding, contextual_text, entities, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+			id, c.DocumentID, c.Index, c.Content, c.ContentHash, c.TokenCount, embedding,
+			nullableString(c.ContextualText), entitiesToJSON(c.Entities), now,
 		)
 	}
 
@@ -68,6 +70,24 @@ func (r *ChunkRepo) BulkInsert(ctx context.Context, chunks []service.Chunk, vect
 	}
 
 	return nil
+}
+
+func nullableString(s string) interface{} {
+	if s == "" {
+		return nil
+	}
+	return s
+}
+
+func entitiesToJSON(entities []service.EntityExtracted) interface{} {
+	if len(entities) == 0 {
+		return []byte("[]")
+	}
+	data, err := json.Marshal(entities)
+	if err != nil {
+		return []byte("[]")
+	}
+	return data
 }
 
 // SimilaritySearch finds the top-K chunks most similar to queryVec using cosine distance,

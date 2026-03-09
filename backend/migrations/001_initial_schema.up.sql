@@ -108,6 +108,15 @@ CREATE TABLE IF NOT EXISTS document_chunks (
 
 CREATE INDEX IF NOT EXISTS idx_document_chunks_document ON document_chunks(document_id);
 
+-- EPIC-034: Enrichment columns
+ALTER TABLE document_chunks ADD COLUMN IF NOT EXISTS contextual_text TEXT;
+ALTER TABLE document_chunks ADD COLUMN IF NOT EXISTS entities JSONB DEFAULT '[]'::jsonb;
+
+-- HNSW vector index (cosine distance, 768d)
+CREATE INDEX IF NOT EXISTS idx_chunks_embedding_hnsw
+ON document_chunks USING hnsw (embedding vector_cosine_ops)
+WITH (m = 16, ef_construction = 200);
+
 -- Queries
 CREATE TABLE IF NOT EXISTS queries (
     id               TEXT PRIMARY KEY,
