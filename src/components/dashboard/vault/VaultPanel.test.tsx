@@ -18,11 +18,30 @@ jest.mock('@/stores/vaultStore', () => ({
       fetchDocuments: mockFetchDocuments,
       fetchFolders: mockFetchFolders,
       uploadDocument: jest.fn(),
+      uploadDocuments: jest.fn(),
+      deleteDocument: jest.fn(),
+      createFolder: jest.fn(),
+      navigate: jest.fn(),
       currentPath: [],
       selectedItemId: null,
       isLoading: false,
       documents: {},
       folders: {},
+      searchQuery: '',
+      setSearchQuery: jest.fn(),
+      // E32 additions
+      filters: { types: [], dateRange: null, sizeRange: null, status: [] },
+      setFilter: jest.fn(),
+      clearFilters: jest.fn(),
+      viewMode: 'list',
+      sortField: 'date',
+      sortDirection: 'desc',
+      setViewMode: jest.fn(),
+      setSort: jest.fn(),
+      previewDocumentId: null,
+      setPreviewDocument: jest.fn(),
+      selectedDocumentIds: [],
+      clearSelection: jest.fn(),
     }),
   ),
 }))
@@ -43,6 +62,23 @@ jest.mock('./StorageFooter', () => ({
 
 jest.mock('./SovereignCertificate', () => ({
   SovereignCertificate: () => <div data-testid="sovereign-certificate" />,
+}))
+
+jest.mock('./VaultBreadcrumb', () => ({
+  VaultBreadcrumb: () => <div data-testid="vault-breadcrumb" />,
+}))
+
+jest.mock('./VaultSearchFilters', () => ({
+  VaultSearchFilters: () => <div data-testid="vault-search-filters" />,
+  filterDocuments: () => [],
+}))
+
+jest.mock('./VaultToolbar', () => ({
+  VaultToolbar: () => <div data-testid="vault-toolbar" />,
+}))
+
+jest.mock('./DocumentPreviewPanel', () => ({
+  DocumentPreviewPanel: () => <div data-testid="document-preview-panel" />,
 }))
 
 import { VaultPanel } from './VaultPanel'

@@ -36,6 +36,28 @@ export interface DuplicateConflict {
   resolve: (action: DuplicateAction) => void
 }
 
+// E32-002: Filter types for VaultSearchFilters
+export interface VaultFilters {
+  types: string[]
+  dateRange: 'today' | 'week' | 'month' | 'all' | null
+  sizeRange: 'small' | 'medium' | 'large' | 'xlarge' | null
+  status: string[]
+}
+
+// E32-005: Upload progress tracking
+export interface UploadProgress {
+  status: 'queued' | 'uploading' | 'processing' | 'done' | 'error'
+  progress: number
+  error?: string
+}
+
+const DEFAULT_FILTERS: VaultFilters = {
+  types: [],
+  dateRange: null,
+  sizeRange: null,
+  status: [],
+}
+
 interface VaultState {
   // Tenant isolation — tracks which user owns the current store data
   _userId: string | null
@@ -59,6 +81,27 @@ interface VaultState {
 
   // Storage
   storage: { used: number; total: number }
+
+  // E32-002: Filters
+  filters: VaultFilters
+  setFilter: (category: keyof VaultFilters, value: unknown) => void
+  clearFilters: () => void
+
+  // E32-003: View mode & sort
+  viewMode: 'list' | 'grid'
+  sortField: 'name' | 'date' | 'size' | 'type'
+  sortDirection: 'asc' | 'desc'
+  setViewMode: (mode: 'list' | 'grid') => void
+  setSort: (field: 'name' | 'date' | 'size' | 'type', direction: 'asc' | 'desc') => void
+
+  // E32-004: Preview panel
+  previewDocumentId: string | null
+  setPreviewDocument: (id: string | null) => void
+
+  // E32-005: Upload progress
+  uploadProgress: Record<string, UploadProgress>
+  setUploadProgress: (fileId: string, progress: Partial<UploadProgress>) => void
+  clearUploadProgress: () => void
 
   // Actions
   toggleCollapse: () => void
@@ -116,6 +159,20 @@ export const useVaultStore = create<VaultState>()(
         storage: { used: 0, total: 1073741824 },
         selectedDocumentIds: [],
 
+        // E32-002: Filters
+        filters: { ...DEFAULT_FILTERS },
+
+        // E32-003: View mode & sort
+        viewMode: 'list' as const,
+        sortField: 'date' as const,
+        sortDirection: 'desc' as const,
+
+        // E32-004: Preview panel
+        previewDocumentId: null,
+
+        // E32-005: Upload progress
+        uploadProgress: {},
+
         resetForUser: (userId: string) => {
           if (get()._userId === userId) return
           set({
@@ -153,6 +210,28 @@ export const useVaultStore = create<VaultState>()(
         selectItem: (id) => set({ selectedItemId: id }),
 
         setSearchQuery: (query) => set({ searchQuery: query }),
+
+        // E32-002: Filter actions
+        setFilter: (category, value) => set((state) => ({
+          filters: { ...state.filters, [category]: value },
+        })),
+        clearFilters: () => set({ filters: { ...DEFAULT_FILTERS } }),
+
+        // E32-003: View & sort actions
+        setViewMode: (mode) => set({ viewMode: mode }),
+        setSort: (field, direction) => set({ sortField: field, sortDirection: direction }),
+
+        // E32-004: Preview panel
+        setPreviewDocument: (id) => set({ previewDocumentId: id }),
+
+        // E32-005: Upload progress
+        setUploadProgress: (fileId, progress) => set((state) => ({
+          uploadProgress: {
+            ...state.uploadProgress,
+            [fileId]: { ...( state.uploadProgress[fileId] || { status: 'queued', progress: 0 }), ...progress },
+          },
+        })),
+        clearUploadProgress: () => set({ uploadProgress: {} }),
 
         setSelectedDocumentIds: (ids) => set({ selectedDocumentIds: ids }),
 

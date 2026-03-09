@@ -1,17 +1,19 @@
 'use client'
 
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useVaultStore } from '@/stores/vaultStore'
 import { useChatStore } from '@/stores/chatStore'
 import { VaultRail } from './VaultRail'
 import { FileExplorer } from './FileExplorer'
 import { StorageFooter } from './StorageFooter'
 import { SovereignCertificate } from './SovereignCertificate'
+import { VaultBreadcrumb, type BreadcrumbSegment } from './VaultBreadcrumb'
+import { VaultSearchFilters, filterDocuments } from './VaultSearchFilters'
+import { VaultToolbar } from './VaultToolbar'
+import { DocumentPreviewPanel } from './DocumentPreviewPanel'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   X,
-  Plus,
-  Maximize2,
   ArrowLeft,
   FileText,
   Shield,
@@ -188,6 +190,7 @@ function VaultDetailView() {
 
 export function VaultPanel() {
   const [isIngestionOpen, setIsIngestionOpen] = useState(false)
+  const [isNewFolderOpen, setIsNewFolderOpen] = useState(false)
   const isCollapsed = useVaultStore((s) => s.isCollapsed)
   const toggleCollapse = useVaultStore((s) => s.toggleCollapse)
   const toggleExplorerMode = useVaultStore((s) => s.toggleExplorerMode)
@@ -196,10 +199,34 @@ export function VaultPanel() {
   const setSearchQuery = useVaultStore((s) => s.setSearchQuery)
   const isLoading = useVaultStore((s) => s.isLoading)
   const documents = useVaultStore((s) => s.documents)
+  const folders = useVaultStore((s) => s.folders)
   const uploadDocuments = useVaultStore((s) => s.uploadDocuments)
   const currentPath = useVaultStore((s) => s.currentPath)
+  const navigate = useVaultStore((s) => s.navigate)
   const selectedItemId = useVaultStore((s) => s.selectedItemId)
+  const createFolder = useVaultStore((s) => s.createFolder)
+  const deleteDocument = useVaultStore((s) => s.deleteDocument)
   const hasFetched = useRef(false)
+
+  // E32-002: Filters
+  const filters = useVaultStore((s) => s.filters)
+  const setFilter = useVaultStore((s) => s.setFilter)
+  const clearFilters = useVaultStore((s) => s.clearFilters)
+
+  // E32-003: View mode & sort
+  const viewMode = useVaultStore((s) => s.viewMode)
+  const sortField = useVaultStore((s) => s.sortField)
+  const sortDirection = useVaultStore((s) => s.sortDirection)
+  const setViewMode = useVaultStore((s) => s.setViewMode)
+  const setSort = useVaultStore((s) => s.setSort)
+
+  // E32-004: Preview panel
+  const previewDocumentId = useVaultStore((s) => s.previewDocumentId)
+  const setPreviewDocument = useVaultStore((s) => s.setPreviewDocument)
+
+  // Multi-select
+  const selectedDocumentIds = useVaultStore((s) => s.selectedDocumentIds)
+  const clearSelection = useVaultStore((s) => s.clearSelection)
 
   // STORY-208: Document search (moved from GlobalHeader)
   const [searchInput, setSearchInput] = useState('')
@@ -244,6 +271,29 @@ export function VaultPanel() {
     }
   }, [fetchDocuments, fetchFolders])
 
+  // E32-002: Compute filtered result count
+  const filteredCount = useMemo(
+    () => filterDocuments(documents, filters, searchInput).length,
+    [documents, filters, searchInput],
+  )
+
+  // E32-001: Build breadcrumb segments from currentPath + folders
+  const breadcrumbSegments: BreadcrumbSegment[] = useMemo(
+    () =>
+      currentPath.map((folderId) => ({
+        id: folderId,
+        label: folders[folderId]?.name || folderId,
+      })),
+    [currentPath, folders],
+  )
+
+  // E32-004: Open preview when a document is selected
+  useEffect(() => {
+    if (selectedItemId && documents[selectedItemId]?.type === 'document') {
+      setPreviewDocument(selectedItemId)
+    }
+  }, [selectedItemId, documents, setPreviewDocument])
+
   const handleIngestionUpload = async (files: File[]) => {
     const folderId = currentPath[currentPath.length - 1]
     await uploadDocuments(files, folderId)
@@ -269,7 +319,6 @@ export function VaultPanel() {
         toast.error('No meaningful content found at that URL.')
         return
       }
-      // Convert scraped text to a .txt File and upload through the normal pipeline
       let domain = 'web-content'
       try { domain = new URL(url.startsWith('http') ? url : `https://${url}`).hostname } catch { /* */ }
       const blob = new Blob([data.content], { type: 'text/plain' })
@@ -291,6 +340,20 @@ export function VaultPanel() {
     setIsIngestionOpen(false)
   }
 
+  const handleNewFolder = async () => {
+    const name = window.prompt('Folder name:')
+    if (!name?.trim()) return
+    const parentId = currentPath[currentPath.length - 1]
+    await createFolder(name.trim(), parentId)
+  }
+
+  const handleDeleteSelected = async () => {
+    for (const id of selectedDocumentIds) {
+      await deleteDocument(id)
+    }
+    clearSelection()
+  }
+
   if (isCollapsed) {
     return (
       <>
@@ -308,37 +371,22 @@ export function VaultPanel() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-[var(--bg-secondary)]">
+    <div className="relative flex flex-col h-full bg-[var(--bg-secondary)]">
       {/* Header with rim lighting — always visible */}
       <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-[var(--border-default)] border-t border-t-[var(--border-default)]">
         <span className="text-base font-bold text-[var(--text-primary)] tracking-wide">Vault</span>
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => setIsIngestionOpen(true)}
-            className="p-2 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--brand-blue)] hover:bg-[var(--bg-tertiary)] transition-colors"
-            title="Add to Vault"
-            aria-label="Add document to vault"
-          >
-            <Plus className="w-5 h-5" />
-          </button>
-          <button
-            onClick={toggleExplorerMode}
-            className="p-2 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--brand-blue)] hover:bg-[var(--bg-tertiary)] transition-colors"
-            title="Explorer Mode"
-            aria-label="Open explorer mode"
-          >
-            <Maximize2 className="w-5 h-5" />
-          </button>
-          <button
-            onClick={toggleCollapse}
-            className="p-2 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors"
-            title="Collapse"
-            aria-label="Collapse vault panel"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+        <button
+          onClick={toggleCollapse}
+          className="p-2 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+          title="Collapse"
+          aria-label="Collapse vault panel"
+        >
+          <X className="w-5 h-5" />
+        </button>
       </div>
+
+      {/* E32-001: Breadcrumb navigation */}
+      <VaultBreadcrumb segments={breadcrumbSegments} onNavigate={navigate} />
 
       {/* STORY-208: Document search */}
       <div className="shrink-0 px-3 py-2 border-b border-[var(--border-default)]">
@@ -366,6 +414,30 @@ export function VaultPanel() {
         </div>
       </div>
 
+      {/* E32-002: Search filters */}
+      <VaultSearchFilters
+        filters={filters}
+        onSetFilter={setFilter}
+        onClearFilters={clearFilters}
+        resultCount={filteredCount}
+        searchQuery={searchInput}
+      />
+
+      {/* E32-003: Toolbar (replaces old header buttons) */}
+      <VaultToolbar
+        viewMode={viewMode}
+        sortField={sortField}
+        sortDirection={sortDirection}
+        selectedCount={selectedDocumentIds.length}
+        onUpload={() => setIsIngestionOpen(true)}
+        onNewFolder={handleNewFolder}
+        onSetViewMode={setViewMode}
+        onSetSort={setSort}
+        onOpenExplorer={toggleExplorerMode}
+        onDeleteSelected={handleDeleteSelected}
+        onClearSelection={clearSelection}
+      />
+
       {/* Ingestion Modal */}
       <IngestionModal
         isOpen={isIngestionOpen}
@@ -373,7 +445,7 @@ export function VaultPanel() {
         onFileUpload={handleIngestionUpload}
       />
 
-      {/* Duplicate file dialog — shown when uploading a file that already exists */}
+      {/* Duplicate file dialog */}
       <DuplicateFileDialog />
 
       {/* Body: Drill-down between File List ↔ File Details */}
@@ -400,7 +472,6 @@ export function VaultPanel() {
           >
             {isLoading && Object.keys(documents).length === 0 ? (
               <div className="flex-1 p-4 space-y-3">
-                {/* Vault loading skeleton */}
                 {[...Array(6)].map((_, i) => (
                   <div key={i} className="flex items-center gap-3 px-3 py-2.5">
                     <div className="w-8 h-8 rounded-lg animate-pulse bg-[var(--bg-elevated)]/50" />
@@ -417,6 +488,16 @@ export function VaultPanel() {
               </div>
             )}
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* E32-004: Document Preview Panel (slide-in from right) */}
+      <AnimatePresence>
+        {previewDocumentId && !selectedItemId && (
+          <DocumentPreviewPanel
+            documentId={previewDocumentId}
+            onClose={() => setPreviewDocument(null)}
+          />
         )}
       </AnimatePresence>
 
