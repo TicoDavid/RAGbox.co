@@ -248,49 +248,49 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  // Step 4: Trigger ingestion pipeline on Go backend (with retry)
-  const ingestUrl = new URL(`/api/documents/${documentId}/ingest`, GO_BACKEND_URL)
-  let ingestOk = false
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const ingestRes = await fetch(ingestUrl.toString(), {
-        method: 'POST',
-        headers: {
-          'Content-Length': '0',
-          'X-Internal-Auth': INTERNAL_AUTH_SECRET,
-          'X-User-ID': userId,
-        },
-      })
-      if (ingestRes.ok || ingestRes.status === 202) {
-        ingestOk = true
-        break
-      }
-      // Non-retryable client errors
-      if (ingestRes.status >= 400 && ingestRes.status < 500) break
-    } catch {
-      // Network error — retry after short delay
-      if (attempt < 2) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)))
-    }
-  }
-  // Step 4b: Publish to Pub/Sub for async worker (safety net + retry support)
-  // If Go backend ingest succeeds, the worker will see 'Indexed' and skip.
-  // If Go backend ingest fails, the worker will process the document.
+  // Step 4: EPIC-034 — Publish to doc-extract Pub/Sub topic (PRIMARY path)
+  // Pipeline workers handle the full ingestion asynchronously.
+  let pubsubOk = false
   try {
-    const topic = getPubSub().topic('ragbox-document-processing')
+    const topic = getPubSub().topic('doc-extract')
     await topic.publishMessage({
       json: {
-        documentId,
-        userId,
-        bucketName,
-        objectPath: objectName,
-        originalName: file.name,
-        mimeType: contentType,
-        uploadedAt: new Date().toISOString(),
+        document_id: documentId,
+        tenant_id: userId,
+        storage_uri: bucketName ? `gs://${bucketName}/${objectName}` : objectName,
+        mime_type: contentType,
+        filename: file.name,
       },
     })
+    pubsubOk = true
   } catch (pubsubErr) {
-    // Non-fatal — Go backend ingest is the primary path
-    logger.error('[Upload] Pub/Sub publish failed:', pubsubErr)
+    logger.error('[Upload] Pub/Sub doc-extract publish failed:', pubsubErr)
+  }
+
+  // Step 4b: Fallback — call Go backend ingest directly if Pub/Sub failed
+  // Also kept as manual re-ingest trigger for retry scenarios.
+  let ingestOk = pubsubOk
+  if (!pubsubOk) {
+    const ingestUrl = new URL(`/api/documents/${documentId}/ingest`, GO_BACKEND_URL)
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const ingestRes = await fetch(ingestUrl.toString(), {
+          method: 'POST',
+          headers: {
+            'Content-Length': '0',
+            'X-Internal-Auth': INTERNAL_AUTH_SECRET,
+            'X-User-ID': userId,
+          },
+        })
+        if (ingestRes.ok || ingestRes.status === 202) {
+          ingestOk = true
+          break
+        }
+        if (ingestRes.status >= 400 && ingestRes.status < 500) break
+      } catch {
+        if (attempt < 2) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)))
+      }
+    }
   }
 
   // Audit log (best-effort)
