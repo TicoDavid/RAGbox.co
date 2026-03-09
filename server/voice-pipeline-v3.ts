@@ -79,40 +79,61 @@ const DEFAULT_VOICE_ID = 'Ashley'
 const DEFAULT_GREETING = "Hello! How can I help you today?"
 
 // ============================================================================
-// EPIC-023 / BUG-046: Two-mode query classification
+// EPIC-028: Five-way intent classification
 // ============================================================================
 
-// BUG-046: Conversational patterns — ONLY pure greetings and small talk
-// bypass RAG. Everything else goes through the document pipeline.
-// CPO directive: "She is the same as the chat window but uses her voice."
-const CONVERSATIONAL_PATTERNS = [
-  // Pure greetings (must be the whole utterance, not embedded in a longer query)
+type IntentType = 'document' | 'conversational' | 'meta' | 'greeting' | 'followup'
+interface IntentResult { intent: IntentType; confidence: number }
+
+// Greeting patterns — pure greetings, short intros
+const GREETING_PATTERNS = [
   /^(hi|hello|hey|howdy|greetings|good\s+(morning|afternoon|evening))[\s!?.]*$/,
   /^(how are you|how's it going|what's up)[\s!?.]*$/,
-  // Acknowledgments and farewells (short utterances)
+]
+
+// Conversational patterns — acknowledgments, farewells, small talk, audio checks
+const CONVERSATIONAL_PATTERNS = [
   /^(thank(s| you)|bye|goodbye|see you|take care)[\s!?.]*$/,
   /^(yes|no|ok|okay|sure|great|got it|perfect|awesome|cool|nice|right)[\s!?.]*$/,
-  // Audio checks (can appear mid-sentence)
   /\b(can you hear|hear me|testing|is this working|are you there)\b/,
-  // Identity questions about Mercury herself
+]
+
+// Meta patterns — questions about capabilities, identity, help
+const META_PATTERNS = [
   /\b(who are you|what's your name|what can you do|tell me about yourself|introduce yourself)\b/,
+  /\b(help|what can (i|you)|how do i use|how does this work)\b/,
+]
+
+// Followup patterns — continuation requests
+const FOLLOWUP_PATTERNS = [
+  /\b(tell me more|elaborate|continue|go on|keep going|more detail|expand on)\b/,
+  /\b(what else|anything else|and then|can you explain)\b/,
 ]
 
 /**
- * Classify a voice query as conversational or document-related.
- * BUG-046 FIX: Document is the DEFAULT. Only pure greetings and small talk
- * are conversational. Any ambiguous query goes to RAG — Mercury voice must
- * have the same document access as Mercury text chat.
+ * EPIC-028: 5-way intent classification.
+ * BUG-046 behavior preserved: document is the DEFAULT. Low confidence (<0.7) → document.
  */
-export function classifyQuery(query: string): 'conversational' | 'document' {
+export function classifyQuery(query: string): IntentResult {
   const q = query.toLowerCase().trim()
 
-  for (const pattern of CONVERSATIONAL_PATTERNS) {
-    if (pattern.test(q)) return 'conversational'
+  for (const pattern of GREETING_PATTERNS) {
+    if (pattern.test(q)) return { intent: 'greeting', confidence: 0.95 }
   }
 
-  // Everything else → document query (let RAG handle it)
-  return 'document'
+  for (const pattern of META_PATTERNS) {
+    if (pattern.test(q)) return { intent: 'meta', confidence: 0.9 }
+  }
+
+  for (const pattern of FOLLOWUP_PATTERNS) {
+    if (pattern.test(q)) return { intent: 'followup', confidence: 0.85 }
+  }
+
+  for (const pattern of CONVERSATIONAL_PATTERNS) {
+    if (pattern.test(q)) return { intent: 'conversational', confidence: 0.9 }
+  }
+
+  return { intent: 'document', confidence: 1.0 }
 }
 
 // ============================================================================
@@ -262,6 +283,88 @@ export function interceptGroundingRefusal(
   })
 
   return generateConversationalResponse(userQuery, agentName)
+}
+
+// ============================================================================
+// EPIC-028: Voice response formatting
+// ============================================================================
+
+/**
+ * Strip markdown, citations, and cap at 3 sentences for clean TTS output.
+ * Ported from mercury-voice ragbox_node.ts.
+ */
+export function stripForVoice(text: string): string {
+  let cleaned = text
+  // Remove citation markers [1], [2], etc.
+  cleaned = cleaned.replace(/\[\d+\]/g, '')
+  // Strip markdown bold/italic
+  cleaned = cleaned.replace(/\*\*(.+?)\*\*/g, '$1')
+  cleaned = cleaned.replace(/\*(.+?)\*/g, '$1')
+  // Strip markdown headers
+  cleaned = cleaned.replace(/^#{1,6}\s+/gm, '')
+  // Strip markdown links [text](url) → text
+  cleaned = cleaned.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+  // Strip code blocks
+  cleaned = cleaned.replace(/```[\s\S]*?```/g, '')
+  cleaned = cleaned.replace(/`([^`]+)`/g, '$1')
+  // Strip bullet points
+  cleaned = cleaned.replace(/^[-*]\s+/gm, '')
+  // Collapse multiple newlines/spaces
+  cleaned = cleaned.replace(/\n{2,}/g, '. ')
+  cleaned = cleaned.replace(/\s{2,}/g, ' ')
+  // Cap at 3 sentences
+  const sentences = cleaned.match(/[^.!?]+[.!?]+/g) || [cleaned]
+  cleaned = sentences.slice(0, 3).join(' ').trim()
+  return cleaned
+}
+
+// ============================================================================
+// EPIC-028: Time-aware greeting helpers
+// ============================================================================
+
+type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'latenight'
+
+function getTimeOfDay(): TimeOfDay {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'morning'
+  if (hour < 17) return 'afternoon'
+  if (hour < 21) return 'evening'
+  return 'latenight'
+}
+
+/**
+ * Fetch the top unacknowledged insight for this user from the Go backend.
+ * Non-fatal: returns null on any failure (2s timeout).
+ */
+async function fetchTopInsight(userId: string): Promise<{ title: string; insightType: string } | null> {
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 2000)
+    const res = await fetch(`${GO_BACKEND_URL}/api/v1/insights?limit=1`, {
+      headers: {
+        'X-Internal-Auth': INTERNAL_AUTH,
+        'X-User-ID': userId,
+      },
+      signal: controller.signal,
+    })
+    clearTimeout(timeout)
+    if (!res.ok) return null
+    const data = await res.json() as { data?: Array<{ title: string; insightType: string }> }
+    return data.data?.[0] || null
+  } catch {
+    return null
+  }
+}
+
+function formatInsightSentence(insight: { title: string; insightType: string }): string {
+  switch (insight.insightType) {
+    case 'deadline':
+      return `By the way, I flagged something — ${insight.title}.`
+    case 'expiring':
+      return `I noticed something in your vault — ${insight.title}.`
+    default:
+      return `Something caught my attention — ${insight.title}.`
+  }
 }
 
 // Go backend for LLM
@@ -565,15 +668,19 @@ Current user context:
         preview: userText.substring(0, 100),
       })
 
+      // EPIC-028: Track intent for history sizing (followup gets more context)
+      let currentIntent: IntentType = 'document'
+
       if (!isToolResult) {
         onTranscriptFinal?.(userText)
         conversationHistory.push({ role: 'user', content: userText })
 
-        // EPIC-023: Two-mode query classification
-        const queryMode = classifyQuery(userText)
-        logger.info('[VoicePipeline-v3] Query classified', { mode: queryMode, preview: userText.substring(0, 50) })
+        // EPIC-028: Five-way intent classification
+        const { intent, confidence } = classifyQuery(userText)
+        currentIntent = confidence >= 0.7 ? intent : 'document'
+        logger.info('[VoicePipeline-v3] Query classified', { intent: currentIntent, confidence, preview: userText.substring(0, 50) })
 
-        if (queryMode === 'conversational') {
+        if (currentIntent === 'greeting' || currentIntent === 'conversational') {
           // Bypass RAG — generate persona-driven conversational response
           const response = generateConversationalResponse(userText, agentName, personality)
           onAgentTextFinal?.(response)
@@ -583,7 +690,18 @@ Current user context:
           }
           return
         }
-        // Document query — fall through to Go backend RAG pipeline
+
+        if (currentIntent === 'meta') {
+          // Return capabilities summary directly — no RAG needed
+          const response = `I'm ${agentName}, your document intelligence assistant. I can search your vault, answer questions about your files, compare documents, and provide cited summaries. Just ask me about any topic in your documents.`
+          onAgentTextFinal?.(response)
+          conversationHistory.push({ role: 'assistant', content: response })
+          await textToSpeech(response)
+          return
+        }
+
+        // followup + document → fall through to Go backend RAG pipeline
+        // followup: RAG with emphasis on conversation history (larger window)
       } else {
         conversationHistory.push({ role: 'user', content: `[Tool Result]\n${userText}` })
       }
@@ -594,9 +712,11 @@ Current user context:
         'X-Internal-Auth': INTERNAL_AUTH,
         'X-User-ID': toolContext?.userId || 'anonymous',
       }
+      // EPIC-028: followup intent gets larger history window for context emphasis
+      const historyLimit = currentIntent === 'followup' ? 20 : 10
       const chatHistory = conversationHistory
         .filter(h => h.role === 'user' || h.role === 'assistant')
-        .slice(-10)
+        .slice(-historyLimit)
       const backendBody = {
         query: userText,
         stream: true,
@@ -772,6 +892,9 @@ Current user context:
 
       // BUG-042 Bug B: Intercept grounding refusals before TTS
       answer = interceptGroundingRefusal(answer, userText, agentName)
+
+      // EPIC-028: Strip markdown, citations, cap at 3 sentences for voice
+      answer = stripForVoice(answer)
 
       // Check for tool calls in response
       const { toolCall, cleanText } = parseToolCalls(answer)
@@ -1027,15 +1150,52 @@ Current user context:
       }
       greetingSent = true
 
-      let greeting: string
+      const userId = toolContext?.userId || 'anonymous'
+
+      // EPIC-028: Custom greeting from Settings overrides everything
       if (mercuryConfig.greeting) {
-        greeting = mercuryConfig.greeting
-      } else if (agentName !== 'Mercury') {
-        greeting = `Hello, I'm ${agentName}. How can I help you today?`
-      } else {
-        greeting = DEFAULT_GREETING
+        const greeting = mercuryConfig.greeting
+        logger.info('[VoicePipeline-v3] Using custom greeting', { agentName })
+        conversationHistory.push({ role: 'assistant', content: greeting })
+        onAgentTextFinal?.(greeting)
+        await textToSpeech(greeting)
+        onSpeakingComplete?.()
+        return
       }
-      logger.info('[VoicePipeline-v3] Triggering greeting', { agentName })
+
+      // EPIC-028: Time-aware greeting with optional insight injection
+      const timeOfDay = getTimeOfDay()
+      const name = agentName !== 'Mercury' ? agentName : ''
+      const nameClause = name ? `, ${name}` : ''
+
+      let baseGreeting: string
+      switch (timeOfDay) {
+        case 'morning':
+          baseGreeting = `Good morning${nameClause}. Ready to dive in?`
+          break
+        case 'afternoon':
+          baseGreeting = `Good afternoon${nameClause}. What are we working on?`
+          break
+        case 'evening':
+          baseGreeting = `Good evening${nameClause}. What can I help you with tonight?`
+          break
+        case 'latenight':
+          baseGreeting = `Burning the midnight oil${nameClause}? What can I find for you?`
+          break
+      }
+
+      // Proactive insight injection (non-blocking, 2s timeout)
+      let greeting = baseGreeting
+      try {
+        const insight = await fetchTopInsight(userId)
+        if (insight) {
+          greeting = `${baseGreeting} ${formatInsightSentence(insight)}`
+        }
+      } catch {
+        // Non-fatal — use base greeting
+      }
+
+      logger.info('[VoicePipeline-v3] Time-aware greeting', { timeOfDay, agentName, hasInsight: greeting !== baseGreeting })
 
       conversationHistory.push({ role: 'assistant', content: greeting })
       onAgentTextFinal?.(greeting)

@@ -480,6 +480,17 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage): Promise<vo
       logger.warn('[AgentWS] Failed to send initial greeting:', greetError)
     })
 
+    // EPIC-028: Fire-and-forget background vault scan — populates insights for NEXT session's greeting
+    const goBackendUrl = process.env.GO_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+    const internalAuth = process.env.INTERNAL_AUTH_SECRET || ''
+    fetch(`${goBackendUrl}/api/v1/insights/scan`, {
+      method: 'POST',
+      headers: {
+        'X-Internal-Auth': internalAuth,
+        'X-User-ID': params.userId,
+      },
+    }).catch(() => { /* non-blocking */ })
+
     // ── Keepalive (ping/pong) ─────────────────────────────
     // Cloud Run closes idle WebSockets after ~60s. Ping every 25s to stay alive.
     let isAlive = true
